@@ -12,7 +12,8 @@ struct Book {
     author: String,
     language: String,
     size: String,
-    lastRead: String,
+    #[serde(rename = "lastRead")]
+    last_read: String,
     added: String,
     path: String,
 }
