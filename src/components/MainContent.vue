@@ -33,7 +33,7 @@
   import { ref, onMounted } from 'vue';
   import ePub from 'epubjs';
   import { invoke } from '@tauri-apps/api/core';
-  import {writeFile , BaseDirectory} from "@tauri-apps/plugin-fs";
+  import { readFile ,writeFile , BaseDirectory} from "@tauri-apps/plugin-fs";
   
   export default {
     name: 'MainContent',
@@ -46,8 +46,16 @@
           const loadedBooks = await invoke('load_books');
           for (const book of loadedBooks) {
             try {
-              const epub = ePub(await readBinaryFile(`books/${book.id}.epub`, { dir: BaseDirectory.App }));
+              // 根据书籍ID打开对应的epub文件
+              const solidBook = await readFile(`T-Reader/${book.id}.epub`, { baseDir: BaseDirectory.Document });
+
+              // Uint8Array转换为ArrayBuffer
+              const arrayBuffer = solidBook.buffer;
+
+              // 读取epub文件的封面
+              const epub = ePub(arrayBuffer);
               const cover = await epub.coverUrl();
+
               book.cover = cover;
             } catch (error) {
               console.error('Error loading cover for book:', book.title, error);
@@ -124,7 +132,10 @@
   
       const deleteBook = async (id) => {
         try {
+          // 删除基础信息json以及备份epub文件
           await invoke('delete_book', { filename: `${id}.json` });
+          await invoke('delete_book', { filename: `${id}.epub` });
+
           books.value = books.value.filter(book => book.id !== id);
         } catch (error) {
           console.error('Error deleting the book:', error);

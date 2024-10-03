@@ -10,8 +10,18 @@
     "shell:allow-open",
     "fs:default",
     "fs:allow-app-write",
+    "fs:allow-app-read",
+    "fs:allow-open",
     {
       "identifier": "fs:allow-app-write",
+      "allow": [{"path": "$DOCUMENT/T-Reader/*"}]
+    },
+    {
+      "identifier": "fs:allow-app-read",
+      "allow": [{"path": "$DOCUMENT/T-Reader/*"}]
+    },
+    {
+      "identifier": "fs:allow-open",
       "allow": [{"path": "$DOCUMENT/T-Reader/*"}]
     }
   ]
