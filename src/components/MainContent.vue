@@ -34,6 +34,7 @@
   import ePub from 'epubjs';
   import { invoke } from '@tauri-apps/api/core';
   import { readFile ,writeFile , BaseDirectory} from "@tauri-apps/plugin-fs";
+  import {open} from '@tauri-apps/plugin-dialog';
   
   export default {
     name: 'MainContent',
@@ -80,17 +81,59 @@
           excludeAcceptAllOption: true,
           multiple: false,
         };
-        // 打开文件选择器并从结果中解构出第一个句柄
-        const [fileHandle] = await window.showOpenFilePicker(pickerOpts);
-        const file = await fileHandle.getFile();
-  
-        if (file) {
+
+        // 打开文件选择器并从结果中解构出第一个句柄,现改用dialog插件
+        // 已弃用
+        // const [fileHandle] = await window.showOpenFilePicker(pickerOpts);
+        // const file = await fileHandle.getFile();
+
+        const selectedFilePath = await open({
+          // 是否选择多个文件
+          multiple: false,
+          // 是否选择文件夹
+          directory: false,
+          filters: [
+            {
+              name: 'ePub files',
+              extensions: ['epub']
+            }
+          ]
+        });
+
+        // 打印选择的文件路径
+        console.log("选择的文件路径为:", selectedFilePath);
+
+        if(Array.isArray(selectedFilePath)){
+          // 用户选择了多个文件
+        }else if(selectedFilePath === null){
+          // 用户取消了选择
+        }else{
+          // 用户选择了一个文件
+          console.log("用户选择了一个文件");
+          
+          // 检查路径是否已经存在于已添加的图书列表中
+          if(books.value.find(book => book.path === selectedFilePath)){
+            console.log("该文件已经添加过了");
+            return;
+          }
+
+          // 传文件绝对路径给后端获取返回Vec<u8>格式文件
+          const u8File = await invoke('read_file_by_path', {filepath: selectedFilePath});
+
+          // 将Vec<u8>格式文件转换为arrayBuffer格式文件
+          const bufferFile = new Uint8Array(u8File).buffer;
+
+          // 将arrayBuffer格式文件转换为Blob格式文件
+          const file = new Blob([bufferFile], {type: 'application/epub+zip'});
+
+          console.log("读取到的文件为:", file);
+
           // 图书唯一标识符 ID
           const newBookId = Date.now();
           const newBookPath = `T-Reader/${newBookId}.epub`;
 
           // 将书籍保存到文档Document的T-Reader目录下
-          const contents = new Uint8Array(await file.arrayBuffer());
+          const contents = new Uint8Array(bufferFile);
           await writeFile(newBookPath, contents, {baseDir: BaseDirectory.Document});
 
           const reader = new FileReader();
@@ -109,6 +152,7 @@
                 size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
                 lastRead: new Date().toLocaleDateString(),
                 added: new Date().toLocaleDateString(),
+                path: selectedFilePath
               };
   
               // 测试，打印解析结果到控制台

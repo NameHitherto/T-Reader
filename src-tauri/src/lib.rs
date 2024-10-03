@@ -14,6 +14,7 @@ struct Book {
     size: String,
     lastRead: String,
     added: String,
+    path: String,
 }
 
 #[tauri::command]
@@ -96,12 +97,22 @@ fn delete_book(filename: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
+    println!("正在打开{}处的文件", filepath);
+    let mut file = File::open(filepath).map_err(|e| e.to_string())?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).map_err(|e| e.to_string())?;
+    Ok(contents)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![save_file, load_books, delete_book])
+        .invoke_handler(tauri::generate_handler![save_file, load_books, delete_book, read_file_by_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
