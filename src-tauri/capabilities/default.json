@@ -2,9 +2,17 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
-    "shell:allow-open"
+    "shell:allow-open",
+    "fs:default",
+    "fs:allow-app-write",
+    {
+      "identifier": "fs:allow-app-write",
+      "allow": [{"path": "$DOCUMENT/T-Reader/*"}]
+    }
   ]
 }

@@ -3,7 +3,6 @@
       <header class="header">
         <h1>全部图书</h1>
         <button @click="addBook">添加图书</button>
-        <input type="file" ref="fileInput" @change="handleFileChange" style="display: none;" accept=".epub" />
       </header>
       <div class="book-list">
         <div class="book-header">
@@ -34,6 +33,7 @@
   import { ref, onMounted } from 'vue';
   import ePub from 'epubjs';
   import { invoke } from '@tauri-apps/api/core';
+  import {writeFile , BaseDirectory} from "@tauri-apps/plugin-fs";
   
   export default {
     name: 'MainContent',
@@ -46,7 +46,7 @@
           const loadedBooks = await invoke('load_books');
           for (const book of loadedBooks) {
             try {
-              const epub = ePub(book.path);
+              const epub = ePub(await readBinaryFile(`books/${book.id}.epub`, { dir: BaseDirectory.App }));
               const cover = await epub.coverUrl();
               book.cover = cover;
             } catch (error) {
@@ -59,13 +59,32 @@
         }
       };
   
-      const addBook = () => {
-        fileInput.value.click();
-      };
+      const addBook = async () => {
+        const pickerOpts = {
+          types: [
+            {
+              description: 'ePub files',
+              accept: {
+                'application/epub+zip': ['.epub']
+              },
+            },
+          ],
+          excludeAcceptAllOption: true,
+          multiple: false,
+        };
+        // 打开文件选择器并从结果中解构出第一个句柄
+        const [fileHandle] = await window.showOpenFilePicker(pickerOpts);
+        const file = await fileHandle.getFile();
   
-      const handleFileChange = async (event) => {
-        const file = event.target.files[0];
         if (file) {
+          // 图书唯一标识符 ID
+          const newBookId = Date.now();
+          const newBookPath = `T-Reader/${newBookId}.epub`;
+
+          // 将书籍保存到文档Document的T-Reader目录下
+          const contents = new Uint8Array(await file.arrayBuffer());
+          await writeFile(newBookPath, contents, {baseDir: BaseDirectory.Document});
+
           const reader = new FileReader();
           reader.onload = async (e) => {
             try {
@@ -74,7 +93,7 @@
               const cover = await book.coverUrl();
   
               const newBook = {
-                id: Date.now(),
+                id: newBookId,
                 cover: cover,
                 title: metadata.title,
                 author: metadata.creator,
@@ -82,7 +101,6 @@
                 size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
                 lastRead: new Date().toLocaleDateString(),
                 added: new Date().toLocaleDateString(),
-                path: file.path 
               };
   
               // 测试，打印解析结果到控制台
@@ -127,7 +145,6 @@
         fileInput,
         books,
         addBook,
-        handleFileChange,
         deleteBook,
         openBook
       };
