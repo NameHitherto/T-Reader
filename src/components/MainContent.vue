@@ -1,248 +1,226 @@
 <template>
-    <div class="main-content">
-      <header class="header">
-        <h1>全部图书</h1>
-        <button @click="addBook">添加图书</button>
-      </header>
-      <div class="book-list">
-        <div class="book-header">
-          <span>封面</span>
-          <span>书名</span>
-          <span>作者</span>
-          <span>语言</span>
-          <span>大小</span>
-          <span>上次阅读时间</span>
-          <span>加入时间</span>
-          <span>操作</span>
-        </div>
-        <div class="book-item" v-for="book in books" :key="book.id" @dblclick="openBook(book.id)">
-          <span><img :src="book.cover" alt="封面" /></span>
-          <span>{{ book.title }}</span>
-          <span>{{ book.author }}</span>
-          <span>{{ book.language }}</span>
-          <span>{{ book.size }}</span>
-          <span>{{ book.lastRead }}</span>
-          <span>{{ book.added }}</span>
-          <span><button @click="deleteBook(book.id)">删除</button></span>
-        </div>
+  <div class="main-content">
+    <header class="header">
+      <h1>全部图书</h1>
+      <button @click="addBook">添加图书</button>
+    </header>
+    <div class="book-list">
+      <div class="book-header">
+        <span>封面</span>
+        <span>书名</span>
+        <span>作者</span>
+        <span>语言</span>
+        <span>大小</span>
+        <span>上次阅读时间</span>
+        <span>加入时间</span>
+        <span>操作</span>
+      </div>
+      <div class="book-item" v-for="book in books" :key="book.id" @dblclick="openBook(book.id)">
+        <span><img :src="book.cover" alt="封面" /></span>
+        <span>{{ book.title }}</span>
+        <span>{{ book.author }}</span>
+        <span>{{ book.language }}</span>
+        <span>{{ book.size }}</span>
+        <span>{{ book.lastRead }}</span>
+        <span>{{ book.added }}</span>
+        <span><button @click="deleteBook(book.id)">删除</button></span>
       </div>
     </div>
-  </template>
-  
-  <script>
-  import { ref, onMounted } from 'vue';
-  import ePub from 'epubjs';
-  import { invoke } from '@tauri-apps/api/core';
-  import { readFile ,writeFile , BaseDirectory} from "@tauri-apps/plugin-fs";
-  import {open} from '@tauri-apps/plugin-dialog';
-  
-  export default {
-    name: 'MainContent',
-    setup() {
-      const fileInput = ref(null);
-      const books = ref([]);
-  
-      const loadBooks = async () => {
-        try {
-          const loadedBooks = await invoke('load_books');
-          for (const book of loadedBooks) {
-            try {
-              // 根据书籍ID打开对应的epub文件
-              const solidBook = await readFile(`T-Reader/${book.id}.epub`, { baseDir: BaseDirectory.Document });
+  </div>
+</template>
 
-              // Uint8Array转换为ArrayBuffer
-              const arrayBuffer = solidBook.buffer;
+<script lang="ts">
+import { ref, onMounted } from 'vue';
+import ePub from 'epubjs';
+import { invoke } from '@tauri-apps/api/core';
+import { readFile, writeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { open } from '@tauri-apps/plugin-dialog';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { listen } from '@tauri-apps/api/event';
 
-              // 读取epub文件的封面
-              const epub = ePub(arrayBuffer);
-              const cover = await epub.coverUrl();
+interface Book {
+  id: number;
+  cover: string;
+  title: string;
+  author: string;
+  language: string;
+  size: string;
+  lastRead: string;
+  added: string;
+  path: string;
+}
 
-              book.cover = cover;
-            } catch (error) {
-              console.error('Error loading cover for book:', book.title, error);
-            }
+export default {
+  name: 'MainContent',
+  setup() {
+    const fileInput = ref<HTMLInputElement | null>(null);
+    const books = ref<Book[]>([]);
+
+    const loadBooks = async () => {
+      try {
+        const loadedBooks: Book[] = await invoke('load_books');
+        for (const book of loadedBooks) {
+          try {
+            const solidBook = await readFile(`T-Reader/${book.id}.epub`, { baseDir: BaseDirectory.Document });
+            const arrayBuffer = solidBook.buffer;
+            const epub = ePub(arrayBuffer);
+            const cover = await epub.coverUrl();
+            book.cover = cover ?? 'unknown';
+          } catch (error) {
+            console.error('Error loading cover for book:', book.title, error);
           }
-          books.value = loadedBooks;
+        }
+        books.value = loadedBooks;
+      } catch (error) {
+        console.error('Error loading books:', error);
+      }
+    };
+
+    const addBook = async () => {
+      const selectedFilePath = await open({
+        multiple: false,
+        directory: false,
+        filters: [
+          {
+            name: 'ePub files',
+            extensions: ['epub']
+          }
+        ]
+      });
+
+      if (Array.isArray(selectedFilePath) || selectedFilePath === null) {
+        return;
+      }
+
+      if (books.value.find(book => book.path === selectedFilePath)) {
+        console.log("该文件已经添加过了");
+        return;
+      }
+
+      const u8File: Uint8Array = await invoke('read_file_by_path', { filepath: selectedFilePath });
+      const bufferFile = new Uint8Array(u8File).buffer;
+      const file = new Blob([bufferFile], { type: 'application/epub+zip' });
+
+      const newBookId = Date.now();
+      const newBookPath = `T-Reader/${newBookId}.epub`;
+      const contents = new Uint8Array(bufferFile);
+      await writeFile(newBookPath, contents, { baseDir: BaseDirectory.Document });
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const book = ePub(e.target?.result as ArrayBuffer);
+          const metadata = await book.loaded.metadata;
+          const cover = await book.coverUrl();
+
+          const newBook: Book = {
+            id: newBookId,
+            cover: cover ?? 'unknown',
+            title: metadata.title,
+            author: metadata.creator,
+            language: metadata.language,
+            size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            lastRead: new Date().toLocaleDateString(),
+            added: new Date().toLocaleDateString(),
+            path: selectedFilePath
+          };
+
+          await invoke('save_file', {
+            filename: `${newBook.id}.json`,
+            contents: JSON.stringify(newBook)
+          });
+
+          books.value.push(newBook);
         } catch (error) {
-          console.error('Error loading books:', error);
+          console.error('Error reading or saving the file:', error);
         }
       };
-  
-      const addBook = async () => {
-        const pickerOpts = {
-          types: [
-            {
-              description: 'ePub files',
-              accept: {
-                'application/epub+zip': ['.epub']
-              },
-            },
-          ],
-          excludeAcceptAllOption: true,
-          multiple: false,
-        };
+      reader.readAsArrayBuffer(file);
+    };
 
-        // 打开文件选择器并从结果中解构出第一个句柄,现改用dialog插件
-        // 已弃用
-        // const [fileHandle] = await window.showOpenFilePicker(pickerOpts);
-        // const file = await fileHandle.getFile();
+    const deleteBook = async (id: number) => {
+      try {
+        await invoke('delete_book', { filename: `${id}.json` });
+        await invoke('delete_book', { filename: `${id}.epub` });
+        books.value = books.value.filter(book => book.id !== id);
+      } catch (error) {
+        console.error('Error deleting the book:', error);
+      }
+    };
 
-        const selectedFilePath = await open({
-          // 是否选择多个文件
-          multiple: false,
-          // 是否选择文件夹
-          directory: false,
-          filters: [
-            {
-              name: 'ePub files',
-              extensions: ['epub']
-            }
-          ]
+    const openBook = (id: number) => {
+      console.log('Opening book:', id);
+      const webview = new WebviewWindow('reader', {
+        url: 'reader.html'
+      });
+
+      webview.once('tauri://created', async function () {
+
+        // 等待阅读器准备好接受书籍ID
+        await listen<string>('ready-to-receive-book-id', async () => {
+          console.log('Reader is ready to receive book ID');
+          WebviewWindow.getCurrent().emitTo('reader', 'load-book-id', id.toString());
         });
 
-        // 打印选择的文件路径
-        console.log("选择的文件路径为:", selectedFilePath);
-
-        if(Array.isArray(selectedFilePath)){
-          // 用户选择了多个文件
-        }else if(selectedFilePath === null){
-          // 用户取消了选择
-        }else{
-          // 用户选择了一个文件
-          console.log("用户选择了一个文件");
-          
-          // 检查路径是否已经存在于已添加的图书列表中
-          if(books.value.find(book => book.path === selectedFilePath)){
-            console.log("该文件已经添加过了");
-            return;
-          }
-
-          // 传文件绝对路径给后端获取返回Vec<u8>格式文件
-          const u8File = await invoke('read_file_by_path', {filepath: selectedFilePath});
-
-          // 将Vec<u8>格式文件转换为arrayBuffer格式文件
-          const bufferFile = new Uint8Array(u8File).buffer;
-
-          // 将arrayBuffer格式文件转换为Blob格式文件
-          const file = new Blob([bufferFile], {type: 'application/epub+zip'});
-
-          console.log("读取到的文件为:", file);
-
-          // 图书唯一标识符 ID
-          const newBookId = Date.now();
-          const newBookPath = `T-Reader/${newBookId}.epub`;
-
-          // 将书籍保存到文档Document的T-Reader目录下
-          const contents = new Uint8Array(bufferFile);
-          await writeFile(newBookPath, contents, {baseDir: BaseDirectory.Document});
-
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const book = ePub(e.target.result);
-              const metadata = await book.loaded.metadata;
-              const cover = await book.coverUrl();
-  
-              const newBook = {
-                id: newBookId,
-                cover: cover,
-                title: metadata.title,
-                author: metadata.creator,
-                language: metadata.language,
-                size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-                lastRead: new Date().toLocaleDateString(),
-                added: new Date().toLocaleDateString(),
-                path: selectedFilePath
-              };
-  
-              // 测试，打印解析结果到控制台
-              console.log(newBook);
-  
-              // 保存解析结果到项目根目录
-              await invoke('save_file', {
-                filename: `${newBook.id}.json`,
-                contents: JSON.stringify(newBook)
-              });
-  
-              // 更新图书清单
-              books.value.push(newBook);
-            } catch (error) {
-              console.error('Error reading or saving the file:', error);
-            }
-          };
-          reader.readAsArrayBuffer(file);
-        }
-      };
-  
-      const deleteBook = async (id) => {
-        try {
-          // 删除基础信息json以及备份epub文件
-          await invoke('delete_book', { filename: `${id}.json` });
-          await invoke('delete_book', { filename: `${id}.epub` });
-
-          books.value = books.value.filter(book => book.id !== id);
-        } catch (error) {
-          console.error('Error deleting the book:', error);
-        }
-      };
-  
-      const openBook = (id) => {
-        console.log('Opening book:', id);
-        // 使用 Vue 路由导航到阅读器页面，并传递书籍ID
-        router.push({ name: 'Reader', query: { bookId: id } });
-      };
-  
-      onMounted(() => {
-        loadBooks();
       });
-  
-      return {
-        fileInput,
-        books,
-        addBook,
-        deleteBook,
-        openBook
-      };
-    }
-  };
-  </script>
-  
-  <style scoped>
-  .main-content {
-    flex: 1;
-    padding: 20px;
-    overflow: auto;
+
+      webview.once('tauri://error', function () {
+        console.log('Error loading webview');
+      });
+    };
+
+    onMounted(() => {
+      loadBooks();
+    });
+
+    return {
+      fileInput,
+      books,
+      addBook,
+      deleteBook,
+      openBook
+    };
   }
-  
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  
-  .book-list {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .book-header, .book-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-  }
-  
-  .book-header {
-    font-weight: bold;
-    border-bottom: 2px solid #ccc;
-  }
-  
-  .book-item {
-    border-bottom: 1px solid #eee;
-  }
-  
-  .book-item span img {
-    width: 50px;
-    height: auto;
-  }
-  </style>
+};
+</script>
+
+<style scoped>
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.book-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.book-header,
+.book-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.book-header {
+  font-weight: bold;
+  border-bottom: 2px solid #ccc;
+}
+
+.book-item {
+  border-bottom: 1px solid #eee;
+}
+
+.book-item span img {
+  width: 50px;
+  height: auto;
+}
+</style>

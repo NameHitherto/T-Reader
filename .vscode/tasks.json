@@ -1,0 +1,38 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		// 在powershell中运行终端命令"npm run tauri dev"
+		{
+			"type": "shell",
+			"label": "npm: tauri dev",
+			"command": "npm run tauri dev",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		// 在powershell中运行终端命令"npm run tauri build"
+		{
+			"type": "shell",
+			"label": "npm: tauri build",
+			"command": "npm run tauri build",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		// 查看tauri的版本
+		{
+			"type": "shell",
+			"label": "npm: tauri info",
+			"command": "npm run tauri info",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		}
+	]
+}
