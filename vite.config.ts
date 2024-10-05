@@ -29,4 +29,13 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  // 4. 此处进行前端多页面模板的配置
+  build:{
+    rollupOptions: {
+      input:{
+        main: 'index.html',
+        reader: 'reader.html',
+      }
+    }
+  }
 }));
