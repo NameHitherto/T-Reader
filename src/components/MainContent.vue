@@ -36,7 +36,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readFile, writeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { open } from '@tauri-apps/plugin-dialog';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { listen } from '@tauri-apps/api/event';
+import { listen, UnlistenFn } from '@tauri-apps/api/event';
 
 interface Book {
   id: number;
@@ -55,6 +55,7 @@ export default {
   setup() {
     const fileInput = ref<HTMLInputElement | null>(null);
     const books = ref<Book[]>([]);
+    let unlistenReady = ref<UnlistenFn | null>(null);
 
     const loadBooks = async () => {
       try {
@@ -150,14 +151,18 @@ export default {
 
     const openBook = (id: number) => {
       console.log('Opening book:', id);
+
       const webview = new WebviewWindow('reader', {
-        url: 'reader.html'
+        url: 'reader.html',
+        title: 'T-Reader',
+        decorations: false,
       });
 
       webview.once('tauri://created', async function () {
-
+        // 先移除相同的监听器
+        unlistenReady.value?.();
         // 等待阅读器准备好接受书籍ID
-        await listen<string>('ready-to-receive-book-id', async () => {
+        unlistenReady.value = await listen<string>('ready-to-receive-book-id', async () => {
           console.log('Reader is ready to receive book ID');
           WebviewWindow.getCurrent().emitTo('reader', 'load-book-id', id.toString());
         });
@@ -165,7 +170,8 @@ export default {
       });
 
       webview.once('tauri://error', function () {
-        console.log('Error loading webview');
+        // 阅读器已加载，此时只需要发送新的书籍ID
+        WebviewWindow.getCurrent().emitTo('reader', 'load-book-id', id.toString());
       });
     };
 
@@ -189,6 +195,7 @@ export default {
   flex: 1;
   padding: 20px;
   overflow: auto;
+  user-select: none;
 }
 
 .header {
