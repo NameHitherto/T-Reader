@@ -4,8 +4,8 @@
     <div id="epub-reader"></div>
     <!-- 翻页按钮 -->
     <div class="pagination">
-      <button @click="prevPage">上一页</button>
-      <button @click="nextPage">下一页</button>
+      <button @click="prevPage"><font-awesome-icon icon="fa-solid fa-less-than"/></button>
+      <button @click="nextPage"><font-awesome-icon icon="fa-solid fa-greater-than"/></button>
     </div>
   </div>
 </template>
@@ -116,5 +116,46 @@ export default {
 #epub-reader {
   width: 100%;
   height: 100%;
+}
+
+.pagination {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.pagination button {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: auto;
+}
+
+.pagination button:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.reader:hover .pagination button {
+  opacity: 1;
+}
+
+.prev-page {
+  position: absolute;
+  left: 10px;
+}
+
+.next-page {
+  position: absolute;
+  right: 10px;
 }
 </style>
