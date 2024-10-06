@@ -4,8 +4,8 @@
     <div id="epub-reader"></div>
     <!-- 翻页按钮 -->
     <div class="pagination">
-      <button @click="prevPage"><font-awesome-icon icon="fa-solid fa-less-than"/></button>
-      <button @click="nextPage"><font-awesome-icon icon="fa-solid fa-greater-than"/></button>
+      <button class="prev-page" @click="prevPage"><font-awesome-icon icon="fa-solid fa-less-than"/></button>
+      <button class="next-page" @click="nextPage"><font-awesome-icon icon="fa-solid fa-greater-than"/></button>
     </div>
   </div>
 </template>
@@ -61,10 +61,6 @@ export default {
         // 解析并呈现 EPUB 内容
         const ePubBook = ePub(bookArrayBuffer);
 
-        console.log(ePubBook);
-
-        console.log('Book loaded:', bookIsReading.value);
-
         // 清空阅读器内容
         document.getElementById('epub-reader')!.innerHTML = '';
 
@@ -114,16 +110,34 @@ export default {
 }
 
 #epub-reader {
+  position: absolute;
+  padding: 30px 0px 30px 0px;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - 60px);
+}
+
+/* 滚动条样式 */ 
+#epub-reader :deep(.epub-container){
+  overflow-x: hidden !important;
+}
+#epub-reader :deep(.epub-container)::-webkit-scrollbar{
+  width: 12px;
+}
+#epub-reader :deep(.epub-container)::-webkit-scrollbar-track{
+  background: transparent;
+}
+#epub-reader :deep(.epub-container)::-webkit-scrollbar-thumb{
+  background-color: rgb(216, 216, 216); /* 浅色背景 */
+  border-radius: 6px;
+  background-clip: content-box;
 }
 
 .pagination {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -131,9 +145,11 @@ export default {
 }
 
 .pagination button {
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
+  height: 80px;
+  background-color: rgba(240, 240, 240, 0.85); /* 浅色背景 */
+  color: #585858; 
   border: none;
+  border-radius: 6px;
   padding: 10px;
   cursor: pointer;
   opacity: 0;
@@ -142,10 +158,6 @@ export default {
 }
 
 .pagination button:hover {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-.reader:hover .pagination button {
   opacity: 1;
 }
 
@@ -158,4 +170,6 @@ export default {
   position: absolute;
   right: 10px;
 }
+
+
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="main-content">
     <header class="header">
-      <h1>全部图书</h1>
+      <span>全部图书</span>
       <button @click="addBook">添加图书</button>
     </header>
     <div class="book-list">
@@ -202,7 +202,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin: 10px 0 10px 0;
 }
 
 .book-list {
