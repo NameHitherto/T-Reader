@@ -1,8 +1,15 @@
 <template>
   <div class="main-content">
     <header class="header">
-      <span>全部图书</span>
-      <button @click="addBook">添加图书</button>
+      <span style="font-size: large; font-weight: 600;">全部图书</span>
+      <button class="button" @click="addBook">
+        <div class="icon">
+          <span class="text-icon hide">ePub</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+            <path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"/>
+          </svg>
+        </div>
+      </button>
     </header>
     <div class="book-list">
       <div class="book-header">
@@ -37,6 +44,7 @@ import { readFile, writeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { open } from '@tauri-apps/plugin-dialog';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
+import '../css/Coolbutton.css';
 
 interface Book {
   id: number;
@@ -202,9 +210,9 @@ export default {
 
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin: 10px 0 10px 0;
+  gap: 10px;
 }
 
 .book-list {
@@ -232,4 +240,5 @@ export default {
   width: 50px;
   height: auto;
 }
+
 </style>

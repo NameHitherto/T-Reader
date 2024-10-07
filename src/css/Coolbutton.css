@@ -1,0 +1,82 @@
+/* 定义颜色常量 */
+:root {
+    --button-color: #ffffff;
+    --button-background: #ffffff;
+    --button-radius: #ffffff;
+}
+
+/* 风格按钮样式 */
+.button {
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    color: white;
+    border: none;
+    height: 50px;
+    padding: 0px 20px;
+    border-radius: 5px;
+    font-weight: 600;
+    transform: scale(0.89);
+    position: relative;
+}
+
+.button:not(:hover) .hide,
+.button:not(:hover) .icon::before,
+.button:not(:hover) .icon::after {
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(1.4);
+}
+
+.hide {
+    transition: all 0.2s ease;
+}
+
+.icon {
+    position: relative;
+}
+
+.icon::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 6px;
+    height: 6px;
+    transform: translate(-50%, -50%);
+    background-color: var(--button-color);
+    border-radius: 100%;
+}
+
+.icon::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    transform: translate(-19%, -60%);
+    width: 100px;
+    height: 33px;
+    background-color: transparent;
+    border-radius: 12px 22px 2px 2px;
+    border-right: solid 2px var(--button-color);
+    border-top: solid 2px transparent;
+}
+
+.icon .text-icon {
+    color: var(--button-color);
+    position: absolute;
+    font-size: 12px;
+    left: -37px;
+    top: -38px;
+}
+
+.icon svg {
+    width: 20px;
+    height: 20px;
+    border: solid 2px transparent;
+    display: flex;
+}
