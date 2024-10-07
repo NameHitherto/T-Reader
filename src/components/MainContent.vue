@@ -48,6 +48,7 @@ interface Book {
   lastRead: string;
   added: string;
   path: string;
+  location: string;
 }
 
 export default {
@@ -123,7 +124,8 @@ export default {
             size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
             lastRead: new Date().toLocaleDateString(),
             added: new Date().toLocaleDateString(),
-            path: selectedFilePath
+            path: selectedFilePath,
+            location: '0'
           };
 
           await invoke('save_file', {

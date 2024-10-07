@@ -16,6 +16,8 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { readFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import ePub from 'epubjs';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export default {
   name: 'ReaderApp',
@@ -29,6 +31,8 @@ export default {
     const rendition = ref<any>(null);
     // 用于存储解除监听函数
     let unlistenBook = ref<UnlistenFn | null>(null);
+    // 用于存储解除监听函数
+    let unlistenClosed = ref<UnlistenFn | null>(null);
 
     // 监听主程序发送的书籍ID
     listen<string>('load-book-id', (event) => {
@@ -36,6 +40,26 @@ export default {
       loadBook();
     }).then((fn) => {
       unlistenBook.value = fn;
+    });
+
+    // 监听阅读器窗口关闭
+    getCurrentWindow().onCloseRequested(async() => {
+      // 保存阅读进度
+      if(rendition.value && bookIsReading.value){
+        const currentLocation = rendition.value.currentLocation();
+        if(currentLocation){
+          const cfi = currentLocation.start.cfi;
+          // 打开本地配置文件
+          const bookConfigData = await readFile(`T-Reader/${bookIsReading.value}.json`, { baseDir: BaseDirectory.Document });
+          const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData));
+
+          // 覆写本地配置文件
+          bookConfig.location = cfi;
+          await invoke('save_file', {filename: `${bookIsReading.value}.json`, contents: JSON.stringify(bookConfig)});
+        }
+      };
+    }).then((fn) => {
+      unlistenClosed.value = fn;
     });
 
     // 告知主程序已准备好接受书籍ID
@@ -53,6 +77,9 @@ export default {
       bookId.value = null;
 
       try {
+        // 打开本地配置文件
+        const bookConfigData = await readFile(`T-Reader/${bookIsReading.value}.json`, { baseDir: BaseDirectory.Document });
+        const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData));
         // 读取书籍信息
         const bookData = await readFile(`T-Reader/${bookIsReading.value}.epub`, { baseDir: BaseDirectory.Document });
         const bookArrayBuffer = bookData.buffer;
@@ -66,7 +93,14 @@ export default {
 
         rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', flow: 'scrolled', allowScriptedContent: true });
 
-        rendition.value.display();
+        // 恢复阅读进度
+        const savedLocation = bookConfig.location;
+
+        if(savedLocation){
+          rendition.value.display(savedLocation);
+        }else{
+          rendition.value.display();
+        }
 
       } catch (e) {
         console.log(e);

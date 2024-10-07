@@ -16,6 +16,7 @@ struct Book {
     last_read: String,
     added: String,
     path: String,
+    location: String,
 }
 
 #[tauri::command]
