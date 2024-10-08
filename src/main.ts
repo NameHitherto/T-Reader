@@ -7,6 +7,8 @@ import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faBookOpen} from '@fortawesome/free-solid-svg-icons';
 import {faBookmark} from '@fortawesome/free-regular-svg-icons';
 import {faStackOverflow} from '@fortawesome/free-brands-svg-icons';
+import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
+import ContextMenu from '@imengyu/vue3-context-menu';
 
 // FontAwesome 图标库 https://fontawesome.com/search
 library.add(faBookOpen); //book-open
@@ -15,6 +17,7 @@ library.add(faStackOverflow); //stack-overflow
 
 const app = createApp(App);
 app.use(router);
+app.use(ContextMenu);
 app.component('font-awesome-icon', FontAwesomeIcon);
 app.mount("#app");
 

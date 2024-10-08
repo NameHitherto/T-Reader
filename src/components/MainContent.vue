@@ -20,9 +20,8 @@
         <span>大小</span>
         <span>上次阅读时间</span>
         <span>加入时间</span>
-        <span>操作</span>
       </div>
-      <div class="book-item" v-for="book in books" :key="book.id" @dblclick="openBook(book.id)">
+      <div class="book-item" v-for="book in books" :key="book.id" @dblclick="openBook(book.id)" @contextmenu="onContextMenu($event, book.id)">
         <span><img :src="book.cover" alt="封面" /></span>
         <span>{{ book.title }}</span>
         <span>{{ book.author }}</span>
@@ -30,7 +29,6 @@
         <span>{{ book.size }}</span>
         <span>{{ book.lastRead }}</span>
         <span>{{ book.added }}</span>
-        <span><button @click="deleteBook(book.id)">删除</button></span>
       </div>
     </div>
   </div>
@@ -45,6 +43,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import '../css/Coolbutton.css';
+import ContextMenu from '@imengyu/vue3-context-menu';
 
 interface Book {
   id: number;
@@ -166,6 +165,8 @@ export default {
         url: 'reader.html',
         title: 'T-Reader',
         decorations: false,
+        minHeight: 600,
+        minWidth: 600,
       });
 
       webview.once('tauri://created', async function () {
@@ -185,6 +186,26 @@ export default {
       });
     };
 
+    // 右键菜单
+    const onContextMenu = (e: MouseEvent, bookId: number) => {
+      e.preventDefault();
+      ContextMenu.showContextMenu({
+        theme: 'default',
+        x: e.x,
+        y: e.y,
+        items: [
+          { 
+            label: "打开图书", 
+            onClick: () => openBook(bookId)
+          },
+          { 
+            label: "删除图书", 
+            onClick: () => deleteBook(bookId)
+          },
+        ]
+      });
+    };
+
     onMounted(() => {
       loadBooks();
     });
@@ -194,7 +215,8 @@ export default {
       books,
       addBook,
       deleteBook,
-      openBook
+      openBook,
+      onContextMenu
     };
   }
 };
@@ -222,9 +244,18 @@ export default {
 
 .book-header,
 .book-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  /* 1fr表示它将占据剩余的空间，而不是固定的大小。 */
+  grid-template-columns: 50px 1fr 100px 50px 60px 90px 80px;
+  gap: 10px;
   padding: 10px 0;
+}
+
+.book-header span,
+.book-item span {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .book-header {
