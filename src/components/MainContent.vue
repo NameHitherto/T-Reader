@@ -43,6 +43,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import '../css/Coolbutton.css';
+import '../js/iconfont.js';
 import ContextMenu from '@imengyu/vue3-context-menu';
 
 interface Book {
@@ -195,13 +196,21 @@ export default {
         y: e.y,
         items: [
           { 
-            label: "打开图书", 
+            label: "打开", 
+            svgIcon: '#icon-arrow-double-right',
             onClick: () => openBook(bookId)
           },
           { 
-            label: "删除图书", 
+            label: "删除", 
+            svgIcon: '#icon-ashbin',
             onClick: () => deleteBook(bookId)
           },
+          {
+            label: "信息",
+            svgIcon: '#icon-prompt-filling',
+            // 尚未完成，暂时只打印ID
+            onClick: () => console.log('Info:', bookId)
+          }
         ]
       });
     };

@@ -1,25 +1,53 @@
 .titlebar {
-    height: 30px;
-    background: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-    display: flex;
-    justify-content: flex-end;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-  }
-  .titlebar-button {
+  height: 30px;
+  background: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  justify-content: flex-end;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.titlebar-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 30px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.titlebar-button:hover {
+  background: rgb(216, 216, 216);
+}
+
+.titlebar-font-group{
+  display: flex;
+  /* 使该元素相对于父元素以flex-start的方式布局 */
+  margin-right: auto;
+  margin-left: 10px;
+
+  .titlebar-font-button{
     display: inline-flex;
-    justify-content: center;
+    opacity: 0;
+    width: 40px;
+    height: 25px;
     align-items: center;
-    width: 30px;
-    height: 30px;
-    -webkit-user-select: none;
-    user-select: none;
+    justify-content: center;
+    margin-top: 5px;
+    border-radius: 5px;
   }
-  .titlebar-button:hover {
-    background: grey;
+  .titlebar-font-button:hover{
+    background: rgba(216, 216, 216, 0.75);
   }
+}
+
+.titlebar-font-group:hover > .titlebar-font-button{
+  opacity: 1;
+  transition: all 0.3s ease-in;
+}
