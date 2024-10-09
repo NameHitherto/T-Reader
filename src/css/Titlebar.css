@@ -26,13 +26,13 @@
   background: rgb(216, 216, 216);
 }
 
-.titlebar-font-group{
+.titlebar-front-group{
   display: flex;
   /* 使该元素相对于父元素以flex-start的方式布局 */
   margin-right: auto;
   margin-left: 10px;
 
-  .titlebar-font-button{
+  .titlebar-front-button{
     display: inline-flex;
     opacity: 0;
     width: 40px;
@@ -42,12 +42,16 @@
     margin-top: 5px;
     border-radius: 5px;
   }
-  .titlebar-font-button:hover{
+  .titlebar-front-button:hover{
     background: rgba(216, 216, 216, 0.75);
   }
 }
 
-.titlebar-font-group:hover > .titlebar-font-button{
+.titlebar-front-group:hover > .titlebar-front-button{
   opacity: 1;
   transition: all 0.3s ease-in;
+}
+/* 当同时包含两个类时 */
+.titlebar-front-button.active{
+  opacity: 1;
 }

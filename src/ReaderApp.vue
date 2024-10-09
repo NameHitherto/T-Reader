@@ -22,7 +22,6 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 export default {
   name: 'ReaderApp',
   setup() {
-
     // 阅读时书籍ID
     const bookIsReading = ref<string | null>(null);
     // 加载时书籍ID
@@ -91,7 +90,7 @@ export default {
         // 清空阅读器内容
         document.getElementById('epub-reader')!.innerHTML = '';
 
-        rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', flow: 'scrolled', allowScriptedContent: true });
+        rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', manager: 'continuous', flow: 'paginated', spread: 'true', allowScriptedContent: true, script: '../../src/js/iframe.js' });
 
         // 恢复阅读进度
         const savedLocation = bookConfig.location;
@@ -121,7 +120,35 @@ export default {
       }
     };
 
-    onMounted(async () => {
+    // 监听键盘方向事件
+    const keydownHandler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        prevPage();
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        nextPage();
+      }
+    };
+
+    onMounted(() => {
+      // 监听键盘事件
+      document.addEventListener('keydown', keydownHandler);
+      // 监听iframe中的点击事件
+      window.addEventListener('message', (event) => {
+        if (event.data.type === 'iframe-click') {
+          // 如果此时样式菜单已打开，则关闭
+          document.getElementById('customer-menu')?.remove();
+        }
+      });
+      // 监听iframe中的键盘事件
+      window.addEventListener('message', (event) => {
+        if (event.data.type === 'iframe-keydown') {
+          if (event.data.key === 'ArrowLeft' || event.data.key === 'ArrowUp') {
+            prevPage();
+          } else if (event.data.key === 'ArrowRight' || event.data.key === 'ArrowDown') {
+            nextPage();
+          }
+        }
+      });
     });
 
     onUnmounted(() => {

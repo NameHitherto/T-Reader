@@ -6,6 +6,7 @@ import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faGreaterThan, faLessThan} from '@fortawesome/free-solid-svg-icons';
 import {} from '@fortawesome/free-regular-svg-icons';
 import {} from '@fortawesome/free-brands-svg-icons';
+import showStyleMenu from '../src/js/showStyleMenu.ts';
 
 // FontAwesome 图标库 https://fontawesome.com/search
 library.add(faGreaterThan); //greater-than
@@ -27,3 +28,10 @@ document
 document
   .getElementById('titlebar-close')
   ?.addEventListener('click', () => appWindow.close());
+// 样式调整菜单
+document
+  .getElementById('titlebar-customer')
+  ?.addEventListener('click', () => showStyleMenu());
+document
+  .getElementById('titlebar-about')
+  ?.addEventListener('click', () => console.log('About'));
