@@ -1,5 +1,5 @@
 <template>
-    <div class="menu">
+    <div class="menu fade-in">
         <div class="color-section section">
             <span class="section-title">背景</span>
             <div id="color-box-selector">
@@ -90,6 +90,22 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* 组件浮现动画 */ 
+@keyframes fadeIn{
+    0% {
+        opacity: 0;
+        transform: translateY(-100px) scale(0.8);
+    }
+    100%{
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.fade-in{
+    animation: fadeIn 0.15s ease-in-out;
+}
+
 label{
     font-size: 14px;
 }
