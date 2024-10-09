@@ -137,6 +137,10 @@ export default {
         if (event.data.type === 'iframe-click') {
           // 如果此时样式菜单已打开，则关闭
           document.getElementById('customer-menu')?.remove();
+          const frontButtons = document.getElementsByClassName('titlebar-front-button');
+          for (let i = 0; i < frontButtons.length; i++) {
+            frontButtons[i].classList.remove('active');
+          }
         }
       });
       // 监听iframe中的键盘事件
