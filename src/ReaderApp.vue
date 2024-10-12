@@ -18,6 +18,8 @@ import { readFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import ePub from 'epubjs';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { useReaderConfigStore } from './store/readerConfigStore';
+import { storeToRefs } from 'pinia';
 
 export default {
   name: 'ReaderApp',
@@ -32,6 +34,75 @@ export default {
     let unlistenBook = ref<UnlistenFn | null>(null);
     // 用于存储解除监听函数
     let unlistenClosed = ref<UnlistenFn | null>(null);
+    // 用于存储解除监听函数
+    let unlistenStyle = ref<UnlistenFn | null>(null);
+    // 正式全局变量
+    const readerConfigStore = useReaderConfigStore();
+    // 全局状态变量，但只能访问不能修改
+    const {readerConfig} = storeToRefs(readerConfigStore);
+
+    // 加载或更新阅读器样式
+    const applyReaderStyle = async () => {
+      // 背景颜色
+      document.body.style.backgroundColor = readerConfig.value.color;
+      if(readerConfig.value.color === '#000000'){
+        // 图标颜色反转
+        document.querySelectorAll('img').forEach((img) => {
+          img.style.filter = 'invert(1)';
+        });
+        // 按钮悬浮效果,根据类名选择
+        document.querySelectorAll('.titlebar-front-button').forEach((button) => {
+          button.classList.add('dark');
+        });
+        document.querySelectorAll('.titlebar-button').forEach((button) => {
+          button.classList.add('dark');
+        });
+      }else{
+        document.querySelectorAll('img').forEach((img) => {
+          img.style.filter = 'invert(0)';
+        });
+        document.querySelectorAll('.titlebar-front-button').forEach((button) => {
+          button.classList.remove('dark');
+        });
+        document.querySelectorAll('.titlebar-button').forEach((button) => {
+          button.classList.remove('dark');
+        });
+      }
+
+      // 阅读器样式
+      rendition.value.themes.default({
+        "body":{
+          "font-family": `${readerConfig.value.font}`,
+          "font-size": `${readerConfig.value.fontSize}px`,
+          "font-weight": readerConfig.value.fontWeight,
+          "padding-left": `${readerConfig.value.firstLineMargin}px !important`,
+          "padding-right": `${readerConfig.value.lastLineMargin}px !important`,
+          "padding-top": `${readerConfig.value.headerMargin}px !important`,
+          "padding-bottom": `${readerConfig.value.footerMargin}px !important`,
+        },
+        "p":{
+          "line-height": `${readerConfig.value.lineSpacing}em`,
+          "margin-bottom": `${readerConfig.value.paragraphSpacing}em`,
+          "text-indent": `${readerConfig.value.indent}em`,
+        }
+      })
+    }
+
+    // 读取配置文件
+    const loadReaderConfig = async () => {
+      try{
+        const configData = await readFile('T-Reader/ReaderConfig.json', {baseDir: BaseDirectory.Document});
+        const configTemp = JSON.parse(new TextDecoder().decode(configData));
+        readerConfigStore.setReaderConfig(configTemp);
+      }catch(e){
+
+      }
+    }
+
+    // 保存配置文件
+    const saveReaderConfig = async () => {
+      await invoke('save_file', {filename: 'ReaderConfig.json', contents: JSON.stringify(readerConfig.value)});
+    }
 
     // 监听主程序发送的书籍ID
     listen<string>('load-book-id', (event) => {
@@ -39,6 +110,13 @@ export default {
       loadBook();
     }).then((fn) => {
       unlistenBook.value = fn;
+    });
+
+    // 监听样式调整
+    listen('update-reader-style', async() => {
+      await applyReaderStyle();
+    }).then((fn) => {
+      unlistenStyle.value = fn;
     });
 
     // 监听阅读器窗口关闭
@@ -57,6 +135,8 @@ export default {
           await invoke('save_file', {filename: `${bookIsReading.value}.json`, contents: JSON.stringify(bookConfig)});
         }
       };
+      // 保存全局配置
+      await saveReaderConfig();
     }).then((fn) => {
       unlistenClosed.value = fn;
     });
@@ -64,6 +144,7 @@ export default {
     // 告知主程序已准备好接受书籍ID
     getCurrentWebviewWindow().emitTo('main', 'ready-to-receive-book-id');
 
+    // 加载书籍
     const loadBook = async () => {
       if (!bookId.value) {
         setTimeout(loadBook, 500); // 500ms 后再次尝试加载书籍
@@ -101,6 +182,9 @@ export default {
           rendition.value.display();
         }
 
+        // 应用阅读器样式
+        await applyReaderStyle();
+
       } catch (e) {
         console.log(e);
       }
@@ -129,7 +213,10 @@ export default {
       }
     };
 
-    onMounted(() => {
+    onMounted(async () => {
+      // 加载阅读器配置
+      await loadReaderConfig();
+
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler);
       // 监听iframe中的点击事件
@@ -163,6 +250,7 @@ export default {
       nextPage,
       prevPage,
       bookIsReading,
+      readerConfig,
     };
   }
 };
@@ -211,7 +299,7 @@ export default {
 
 .pagination button {
   height: 80px;
-  background-color: rgba(240, 240, 240, 0.85); /* 浅色背景 */
+  background-color: rgba(0, 0, 0, 0.1); /* 浅色背景 */
   color: #585858; 
   border: none;
   border-radius: 6px;

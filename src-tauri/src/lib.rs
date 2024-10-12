@@ -73,8 +73,13 @@ fn load_books() -> Result<Vec<Book>, String> {
             let mut contents = String::new();
             file.read_to_string(&mut contents)
                 .map_err(|e| e.to_string())?;
-            let book: Book = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
-            books.push(book);
+            match serde_json::from_str::<Book>(&contents){
+                Ok(book) => books.push(book),
+                Err(e) => {
+                    println!("解析书籍失败: {}", e);
+                    continue;
+                }
+            }
         }
     }
 

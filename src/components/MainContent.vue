@@ -76,11 +76,12 @@ export default {
             const epub = ePub(arrayBuffer);
             const cover = await epub.coverUrl();
             book.cover = cover ?? 'unknown';
+            // 正常添加该书籍
+            books.value.push(book);
           } catch (error) {
             console.error('Error loading cover for book:', book.title, error);
           }
         }
-        books.value = loadedBooks;
       } catch (error) {
         console.error('Error loading books:', error);
       }
@@ -258,6 +259,10 @@ export default {
   grid-template-columns: 50px 1fr 100px 50px 60px 90px 80px;
   gap: 10px;
   padding: 10px 0;
+}
+
+.book-item:hover{
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .book-header span,

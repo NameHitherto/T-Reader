@@ -7,14 +7,20 @@ import {faGreaterThan, faLessThan} from '@fortawesome/free-solid-svg-icons';
 import {} from '@fortawesome/free-regular-svg-icons';
 import {} from '@fortawesome/free-brands-svg-icons';
 import showStyleMenu from '../src/js/showStyleMenu.ts';
+import { createPinia } from 'pinia';
 
 // FontAwesome 图标库 https://fontawesome.com/search
 library.add(faGreaterThan); //greater-than
 library.add(faLessThan); //less-than
 
-createApp(ReaderApp)
-.component('font-awesome-icon', FontAwesomeIcon)
-.mount('#reader-app');
+const app = createApp(ReaderApp);
+
+// 定义pinia
+const pinia = createPinia();
+
+app.use(pinia);
+app.component('font-awesome-icon', FontAwesomeIcon);
+app.mount('#reader-app');
 
 // 自定义Titlebar
 const appWindow = getCurrentWindow();
