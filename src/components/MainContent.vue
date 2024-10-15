@@ -115,6 +115,13 @@ export default {
       const newBookId = Date.now();
       const newBookPath = `T-Reader/${newBookId}.epub`;
       const contents = new Uint8Array(bufferFile);
+
+      // 上传到云服务器
+      invoke('webdav_upload', {
+        filename: `${newBookId}.epub`,
+        contents: contents
+      });
+
       await writeFile(newBookPath, contents, { baseDir: BaseDirectory.Document });
 
       const reader = new FileReader();
@@ -143,6 +150,12 @@ export default {
           });
 
           books.value.push(newBook);
+
+          // 上传到webDAV服务器中
+          invoke('webdav_upload', {
+            filename: `${newBook.id}.json`,
+            contents: new TextEncoder().encode(JSON.stringify(newBook))
+          });
         } catch (error) {
           console.error('Error reading or saving the file:', error);
         }
@@ -154,6 +167,8 @@ export default {
       try {
         await invoke('delete_book', { filename: `${id}.json` });
         await invoke('delete_book', { filename: `${id}.epub` });
+        await invoke('webdav_delete', { filename: `${id}.json` });
+        await invoke('webdav_delete', { filename: `${id}.epub` });
         books.value = books.value.filter(book => book.id !== id);
       } catch (error) {
         console.error('Error deleting the book:', error);
@@ -236,7 +251,7 @@ export default {
 .main-content {
   flex: 1;
   padding: 20px;
-  overflow: auto;
+  overflow: hidden;
   user-select: none;
 }
 
@@ -250,6 +265,19 @@ export default {
 .book-list {
   display: flex;
   flex-direction: column;
+  overflow-y: scroll;
+  height: calc(100vh - 110px);
+}
+
+.book-list::-webkit-scrollbar{
+  width: 6px;
+}
+.book-list::-webkit-scrollbar-thumb{
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+.book-list::-webkit-scrollbar-track{
+  background-color: transparent;
 }
 
 .book-header,

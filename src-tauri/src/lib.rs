@@ -3,6 +3,8 @@ use dirs::document_dir;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{Read, Write};
+extern crate rustydav;
+use rustydav::client;
 
 #[derive(Serialize, Deserialize)]
 struct Book {
@@ -73,7 +75,7 @@ fn load_books() -> Result<Vec<Book>, String> {
             let mut contents = String::new();
             file.read_to_string(&mut contents)
                 .map_err(|e| e.to_string())?;
-            match serde_json::from_str::<Book>(&contents){
+            match serde_json::from_str::<Book>(&contents) {
                 Ok(book) => books.push(book),
                 Err(e) => {
                     println!("解析书籍失败: {}", e);
@@ -113,13 +115,79 @@ fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
     Ok(contents)
 }
 
+// webDAV相关api
+
+const WEBDAV_URL: &str = "https://dav.jianguoyun.com/dav/T-Reader/";
+const WEBDAV_USER: &str = "605351778@qq.com";
+const WEBDAV_PASS: &str = "ayntpghyezyf7pna";
+
+#[tauri::command]
+fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
+    let webdav_client = client::Client::init(WEBDAV_USER, WEBDAV_PASS);
+    // 确保目标目录存在
+    let result = webdav_client.mkcol(WEBDAV_URL);
+    if result.is_err() {
+        println!("创建目录失败: {:?}", result.err());
+    }
+    // 上传文件
+    let result = webdav_client.put(contents, &(WEBDAV_URL.to_string() + filename));
+
+    if result.is_ok() {
+        println!("云同步文件上传成功");
+    } else {
+        println!("云同步文件上传失败: {:?}", result.err());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
+    let webdav_client = client::Client::init(WEBDAV_USER, WEBDAV_PASS);
+    let result = webdav_client.get(&(WEBDAV_URL.to_string() + filename));
+
+    match result {
+        Ok(mut response) => {
+            let mut body = Vec::new();
+            response.read_to_end(&mut body).map_err(|e| e.to_string())?;
+            Ok(body)
+        },
+        Err(e) => {
+            println!("云同步文件获取失败: {:?}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn webdav_delete(filename: &str) -> Result<(), String> {
+    let webdav_client = client::Client::init(WEBDAV_USER, WEBDAV_PASS);
+    let result = webdav_client.delete(&(WEBDAV_URL.to_string() + filename));
+
+    if result.is_ok() {
+        println!("云同步文件删除成功");
+    } else {
+        println!("云同步文件删除失败: {:?}", result.err());
+    }
+    Ok(())
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![save_file, load_books, delete_book, read_file_by_path])
+        .invoke_handler(tauri::generate_handler![
+            save_file,
+            load_books,
+            delete_book,
+            read_file_by_path,
+            webdav_upload,
+            webdav_get,
+            webdav_delete
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -33,6 +33,39 @@
 				"isDefault": true
 			},
 			"problemMatcher": []
-		}
+		},
+		// 更新Tauri
+		{
+			"type": "shell",
+			"label": "npm: tauri upgrade",
+			"command": "npm run tauri migrate",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		// 运行Tauri安卓
+		{
+			"type": "shell",
+			"label": "npm: tauri run --target android",
+			"command": "npm run tauri android dev",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		// 构建Tauri安卓
+		{
+			"type": "shell",
+			"label": "npm: tauri build --target android",
+			"command": "npm run tauri android build",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
 	]
 }

@@ -14,7 +14,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
-import { readFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { readFile, BaseDirectory, writeFile } from "@tauri-apps/plugin-fs";
 import ePub from 'epubjs';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -104,8 +104,40 @@ export default {
       await invoke('save_file', {filename: 'ReaderConfig.json', contents: JSON.stringify(readerConfig.value)});
     }
 
+    // 保存阅读进度
+    const saveReaderRendition = async () => {
+      if (rendition.value && bookIsReading.value) {
+        const currentLocation = rendition.value.currentLocation();
+        if (currentLocation) {
+          const cfi = currentLocation.start.cfi;
+          // 配置文件
+          let bookConfigData;
+          try {
+            // 尝试获取云同步配置文件
+            const cloudConfigData = await invoke('webdav_get', { filename: `${bookIsReading.value}.json` });
+            bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike);
+            console.log('使用云同步配置文件');
+          } catch (e) {
+            // 获取云同步配置文件失败，使用本地配置文件
+            bookConfigData = await readFile(`T-Reader/${bookIsReading.value}.json`, { baseDir: BaseDirectory.Document });
+            console.log('使用本地配置文件');
+          }
+          const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData));
+          // 覆写本地配置文件
+          bookConfig.location = cfi;
+          const jsonString = JSON.stringify(bookConfig);
+          const jsonUint8Array = new TextEncoder().encode(jsonString);
+          await invoke('save_file', { filename: `${bookIsReading.value}.json`, contents: jsonString });
+          await invoke('webdav_upload', { filename: `${bookIsReading.value}.json`, contents: Array.from(jsonUint8Array) });
+        }
+      };
+    }
+
     // 监听主程序发送的书籍ID
     listen<string>('load-book-id', (event) => {
+      // 保存之前的阅读进度
+      saveReaderRendition();
+      // 加载新书籍
       bookId.value = event.payload;
       loadBook();
     }).then((fn) => {
@@ -122,19 +154,7 @@ export default {
     // 监听阅读器窗口关闭
     getCurrentWindow().onCloseRequested(async() => {
       // 保存阅读进度
-      if(rendition.value && bookIsReading.value){
-        const currentLocation = rendition.value.currentLocation();
-        if(currentLocation){
-          const cfi = currentLocation.start.cfi;
-          // 打开本地配置文件
-          const bookConfigData = await readFile(`T-Reader/${bookIsReading.value}.json`, { baseDir: BaseDirectory.Document });
-          const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData));
-
-          // 覆写本地配置文件
-          bookConfig.location = cfi;
-          await invoke('save_file', {filename: `${bookIsReading.value}.json`, contents: JSON.stringify(bookConfig)});
-        }
-      };
+      await saveReaderRendition();
       // 保存全局配置
       await saveReaderConfig();
     }).then((fn) => {
@@ -157,11 +177,34 @@ export default {
       bookId.value = null;
 
       try {
-        // 打开本地配置文件
-        const bookConfigData = await readFile(`T-Reader/${bookIsReading.value}.json`, { baseDir: BaseDirectory.Document });
+        let bookConfigData;
+        try{
+          // 尝试获取云同步配置文件
+          const cloudConfigData = await invoke('webdav_get', { filename: `${bookIsReading.value}.json` });
+          bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike);
+          console.log('使用云同步配置文件');
+        }catch(e){
+          // 获取云同步配置文件失败，使用本地配置文件
+          bookConfigData = await readFile(`T-Reader/${bookIsReading.value}.json`, { baseDir: BaseDirectory.Document });
+          console.log('使用本地配置文件');
+        }
         const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData));
-        // 读取书籍信息
-        const bookData = await readFile(`T-Reader/${bookIsReading.value}.epub`, { baseDir: BaseDirectory.Document });
+
+        let bookData;
+        try {
+          // 尝试读取本地书籍信息
+          bookData = await readFile(`T-Reader/${bookIsReading.value}.epub`, { baseDir: BaseDirectory.Document });
+          console.log('使用本地书籍信息');
+        } catch (e) {
+          // 读取本地书籍信息失败，尝试获取云同步文件的 EPUB 资源
+          const cloudBookData = await invoke('webdav_get', { filename: `${bookIsReading.value}.epub` });
+          bookData = new Uint8Array(cloudBookData as ArrayBufferLike);
+          console.log('使用云同步书籍信息');
+
+          // 将云同步文件复制到本地
+          await writeFile(`T-Reader/${bookIsReading.value}.epub`, bookData, { baseDir: BaseDirectory.Document });
+          console.log('云同步书籍信息已复制到本地');
+        }
         const bookArrayBuffer = bookData.buffer;
         //const bookBlob = new Blob([bookArrayBuffer], { type: 'application/epub+zip' });
 
