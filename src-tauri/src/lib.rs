@@ -3,8 +3,7 @@ use dirs::document_dir;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-extern crate rustydav;
-use rustydav::client;
+use reqwest::Client;
 
 #[derive(Serialize, Deserialize)]
 struct Book {
@@ -122,52 +121,76 @@ const WEBDAV_USER: &str = "605351778@qq.com";
 const WEBDAV_PASS: &str = "ayntpghyezyf7pna";
 
 #[tauri::command]
-fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
-    let webdav_client = client::Client::init(WEBDAV_USER, WEBDAV_PASS);
-    // 确保目标目录存在
-    let result = webdav_client.mkcol(WEBDAV_URL);
-    if result.is_err() {
-        println!("创建目录失败: {:?}", result.err());
-    }
-    // 上传文件
-    let result = webdav_client.put(contents, &(WEBDAV_URL.to_string() + filename));
+async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
+    let client = Client::new();
+    let url = format!("{}{}", WEBDAV_URL, filename);
 
-    if result.is_ok() {
+    // 确保目标目录存在
+    let mkcol_url = WEBDAV_URL.to_string();
+    let _ = client
+        .request(http::Method::from_bytes(b"MKCOL").unwrap(), &mkcol_url)
+        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .send()
+        .await
+        .map_err(|e| format!("创建目录失败: {:?}", e))?;
+
+    // 上传文件
+    let response = client
+        .put(&url)
+        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .body(contents)
+        .send()
+        .await
+        .map_err(|e| format!("云同步文件上传失败: {:?}", e))?;
+
+    if response.status().is_success() {
         println!("云同步文件上传成功");
     } else {
-        println!("云同步文件上传失败: {:?}", result.err());
+        println!("云同步文件上传失败: {:?}", response.status());
     }
+
     Ok(())
 }
 
 #[tauri::command]
-fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
-    let webdav_client = client::Client::init(WEBDAV_USER, WEBDAV_PASS);
-    let result = webdav_client.get(&(WEBDAV_URL.to_string() + filename));
+async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
+    let client = Client::new();
+    let url = format!("{}{}", WEBDAV_URL, filename);
 
-    match result {
-        Ok(mut response) => {
-            let mut body = Vec::new();
-            response.read_to_end(&mut body).map_err(|e| e.to_string())?;
-            Ok(body)
-        },
-        Err(e) => {
-            println!("云同步文件获取失败: {:?}", e);
-            Err(e.to_string())
-        }
+    let response = client
+        .get(&url)
+        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .send()
+        .await
+        .map_err(|e| format!("云同步文件获取失败: {:?}", e))?;
+
+    if response.status().is_success() {
+        let body = response.bytes().await.map_err(|e| e.to_string())?;
+        Ok(body.to_vec())
+    } else {
+        println!("云同步文件获取失败: {:?}", response.status());
+        Err(format!("云同步文件获取失败: {:?}", response.status()))
     }
 }
 
 #[tauri::command]
-fn webdav_delete(filename: &str) -> Result<(), String> {
-    let webdav_client = client::Client::init(WEBDAV_USER, WEBDAV_PASS);
-    let result = webdav_client.delete(&(WEBDAV_URL.to_string() + filename));
+async fn webdav_delete(filename: &str) -> Result<(), String> {
+    let client = Client::new();
+    let url = format!("{}{}", WEBDAV_URL, filename);
 
-    if result.is_ok() {
+    let response = client
+        .delete(&url)
+        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .send()
+        .await
+        .map_err(|e| format!("云同步文件删除失败: {:?}", e))?;
+
+    if response.status().is_success() {
         println!("云同步文件删除成功");
     } else {
-        println!("云同步文件删除失败: {:?}", result.err());
+        println!("云同步文件删除失败: {:?}", response.status());
     }
+
     Ok(())
 }
 

@@ -134,12 +134,12 @@ export default {
     }
 
     // 监听主程序发送的书籍ID
-    listen<string>('load-book-id', (event) => {
+    listen<string>('load-book-id', async (event) => {
       // 保存之前的阅读进度
-      saveReaderRendition();
+      await saveReaderRendition();
       // 加载新书籍
       bookId.value = event.payload;
-      loadBook();
+      await loadBook();
     }).then((fn) => {
       unlistenBook.value = fn;
     });

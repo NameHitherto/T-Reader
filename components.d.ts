@@ -8,13 +8,10 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BookMark: typeof import('./src/components/BookMark.vue')['default']
-    ColorDropdownMenu: typeof import('./src/components/ColorDropdownMenu.vue')['default']
     Greet: typeof import('./src/components/Greet.vue')['default']
     MainContent: typeof import('./src/components/MainContent.vue')['default']
     MenuComponent: typeof import('./src/components/MenuComponent.vue')['default']
-    MenuContent: typeof import('./src/components/MenuContent.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    Sidebar: typeof import('./src/components/Sidebar.vue')['default']
   }
 }
