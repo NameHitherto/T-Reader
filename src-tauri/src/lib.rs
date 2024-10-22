@@ -1,9 +1,12 @@
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 use dirs::document_dir;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use reqwest::Client;
+use quick_xml::Reader;
+use quick_xml::events::Event;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 struct Book {
@@ -21,11 +24,27 @@ struct Book {
 }
 
 #[tauri::command]
-fn save_file(filename: &str, contents: &str) -> Result<(), String> {
-    // 获取项目文档目录
-    let mut path = document_dir().ok_or("err finding document_dir")?;
-    path.push("T-Reader");
-
+fn save_file(filename: &str, contents: &str, directory: Option<&str>) -> Result<(), String> {
+    let mut path;
+    #[cfg(target_os = "android")]
+    {
+        // 此时文档目录需要前端提供
+        path = directory
+            .map(|s| std::path::PathBuf::from(s))
+            .unwrap_or_else(|| {
+                document_dir()
+                    .expect("err finding document_dir")
+                    .join("T-Reader")
+            });
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        // 在非安卓平台上显式忽略directory变量
+        let _ = directory;
+        // 获取项目文档目录
+        path = document_dir().ok_or("err finding document_dir")?;
+        path.push("T-Reader");
+    }
     // 检查目录是否存在，如果不存在则创建
     if !path.exists() {
         println!("目录 'T-Reader' 不存在，正在创建...");
@@ -55,9 +74,26 @@ fn save_file(filename: &str, contents: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn load_books() -> Result<Vec<Book>, String> {
-    let mut path = document_dir().ok_or("err finding document_dir")?;
-    path.push("T-Reader");
+fn load_books(directory: Option<&str>) -> Result<Vec<Book>, String> {
+    let mut path;
+    #[cfg(target_os = "android")]
+    {
+        // 此时文档目录需要前端提供
+        path = directory
+            .map(|s| std::path::PathBuf::from(s))
+            .unwrap_or_else(|| {
+                document_dir()
+                    .expect("err finding document_dir")
+                    .join("T-Reader")
+            });
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        path = document_dir().ok_or("err finding document_dir")?;
+        path.push("T-Reader");
+        // 在非安卓平台上显式忽略directory变量
+        let _ = directory;
+    }
 
     if !path.exists() {
         println!("目录 'T-Reader' 不存在，正在创建...");
@@ -88,9 +124,26 @@ fn load_books() -> Result<Vec<Book>, String> {
 }
 
 #[tauri::command]
-fn delete_book(filename: &str) -> Result<(), String> {
-    let mut path = document_dir().ok_or("err finding document_dir")?;
-    path.push("T-Reader");
+fn delete_book(filename: &str, directory: Option<&str>) -> Result<(), String> {
+    let mut path;
+    #[cfg(target_os = "android")]
+    {
+        // 此时文档目录需要前端提供
+        path = directory
+            .map(|s| std::path::PathBuf::from(s))
+            .unwrap_or_else(|| {
+                document_dir()
+                    .expect("err finding document_dir")
+                    .join("T-Reader")
+            });
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        path = document_dir().ok_or("err finding document_dir")?;
+        path.push("T-Reader");
+        // 在非安卓平台上显式忽略directory变量
+        let _ = directory;
+    }
     path.push(filename);
 
     if path.exists() {
@@ -194,10 +247,115 @@ async fn webdav_delete(filename: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
+    let client = Client::new();
+    let url = WEBDAV_URL.to_string();
+
+    // 获取云端文件列表
+    let response = client
+        .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
+        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .header("Depth", "1")
+        .send()
+        .await
+        .map_err(|e| format!("获取云端文件列表失败: {:?}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("获取云端文件列表失败: {:?}", response.status()));
+    }
+
+    let body = response.text().await.map_err(|e| e.to_string())?;
+    let files: Vec<String> = parse_webdav_response(&body)?;
+
+    let mut path;
+    #[cfg(target_os = "android")]
+    {
+        // 此时文档目录需要前端提供
+        path = directory
+            .map(|s| std::path::PathBuf::from(s))
+            .unwrap_or_else(|| {
+                document_dir()
+                    .expect("err finding document_dir")
+                    .join("T-Reader")
+            });
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        path = document_dir().ok_or("err finding document_dir")?;
+        path.push("T-Reader");
+        // 在非安卓平台上显式忽略directory变量
+        let _ = directory;
+    }
+
+    // 检查目录是否存在，如果不存在则创建
+    if !path.exists() {
+        println!("目录 'T-Reader' 不存在，正在创建...");
+        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+        println!("目录 'T-Reader' 创建成功。");
+    } else {
+        println!("目录 'T-Reader' 已存在。");
+    }
+
+    // 下载并保存每个文件
+    for file in files {
+        let file_url = format!("{}{}", WEBDAV_URL, file);
+        let response = client
+            .get(&file_url)
+            .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+            .send()
+            .await
+            .map_err(|e| format!("下载文件失败: {:?}", e))?;
+
+        if response.status().is_success() {
+            let contents = response.bytes().await.map_err(|e| e.to_string())?;
+            let mut file_path = path.clone();
+            file_path.push(file);
+            let mut local_file = File::create(&file_path).map_err(|e| e.to_string())?;
+            local_file.write_all(&contents).map_err(|e| e.to_string())?;
+            println!("文件 '{}' 下载并保存成功。", file_path.display());
+        } else {
+            println!("下载文件失败: {:?}", response.status());
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
+    // 解析 WebDAV 响应，提取文件列表
+    let mut reader = Reader::from_str(response);
+    reader.trim_text(true);
+    let mut buf = Vec::new();
+    let mut files = Vec::new();
+
+    loop {
+        match reader.read_event(&mut buf) {
+            Ok(Event::Start(ref e)) if e.name() == b"d:href" => {
+                if let Ok(href) = reader.read_text(b"d:href", &mut Vec::new()) {
+                    if !href.ends_with('/') {
+                        if let Some(file_name) = Path::new(&href).file_name() {
+                            if let Some(file_name_str) = file_name.to_str() {
+                                files.push(file_name_str.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(format!("解析 WebDAV 响应失败: {:?}", e)),
+            _ => (),
+        }
+        buf.clear();
+    }
+
+    Ok(files)
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -209,7 +367,8 @@ pub fn run() {
             read_file_by_path,
             webdav_upload,
             webdav_get,
-            webdav_delete
+            webdav_delete,
+            webdav_sync_files
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

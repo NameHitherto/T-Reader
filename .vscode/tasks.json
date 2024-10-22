@@ -56,11 +56,11 @@
 			},
 			"problemMatcher": []
 		},
-		// 构建Tauri安卓
+		// 构建Tauri安卓正式版
 		{
 			"type": "shell",
 			"label": "npm: tauri build --target android",
-			"command": "npm run tauri android build",
+			"command": "npm run tauri android build --release",
 			"group": {
 				"kind": "build",
 				"isDefault": true

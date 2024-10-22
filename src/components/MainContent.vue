@@ -4,9 +4,21 @@
       <span style="font-size: large; font-weight: 600;">全部图书</span>
       <button class="button" @click="addBook">
         <div class="icon">
-          <span class="text-icon hide">ePub</span>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-            <path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"/>
+            <path
+              d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z" />
+          </svg>
+        </div>
+      </button>
+      <button class="button" @click="syncFiles">
+        <div class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48">
+            <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+              <path d="M42 8V24" />
+              <path d="M6 24L6 40" />
+              <path
+                d="M42 24C42 14.0589 33.9411 6 24 6C18.9145 6 14.3216 8.10896 11.0481 11.5M6 24C6 33.9411 14.0589 42 24 42C28.8556 42 33.2622 40.0774 36.5 36.9519" />
+            </g>
           </svg>
         </div>
       </button>
@@ -21,7 +33,8 @@
         <span>上次阅读时间</span>
         <span>加入时间</span>
       </div>
-      <div class="book-item" v-for="book in books" :key="book.id" @dblclick="openBook(book.id)" @contextmenu="onContextMenu($event, book.id)">
+      <div class="book-item" v-for="book in books" :key="book.id" @dblclick="openBook(book.id)"
+        @contextmenu="onContextMenu($event, book.id)">
         <span><img :src="book.cover" alt="封面" /></span>
         <span>{{ book.title }}</span>
         <span>{{ book.author }}</span>
@@ -62,7 +75,6 @@ interface Book {
 export default {
   name: 'MainContent',
   setup() {
-    const fileInput = ref<HTMLInputElement | null>(null);
     const books = ref<Book[]>([]);
     let unlistenReady = ref<UnlistenFn | null>(null);
 
@@ -86,6 +98,16 @@ export default {
         console.error('Error loading books:', error);
       }
     };
+
+    const syncFiles = async () => {
+      try {
+        await invoke('webdav_sync_files');
+        console.log('文件同步成功');
+        await loadBooks();
+      } catch (error) {
+        console.error('文件同步失败:', error);
+      }
+    }
 
     const addBook = async () => {
       const selectedFilePath = await open({
@@ -236,12 +258,12 @@ export default {
     });
 
     return {
-      fileInput,
       books,
       addBook,
       deleteBook,
       openBook,
-      onContextMenu
+      onContextMenu,
+      syncFiles
     };
   }
 };
