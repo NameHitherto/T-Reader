@@ -2,6 +2,12 @@
   <div class="reader">
     <!-- EPUB 阅读器内容 -->
     <div id="epub-reader"></div>
+    <!-- 手势识别区域 -->
+    <div class="gesture-area">
+      <div class="gesture-left" @click="prevPage"></div>
+      <div class="gesture-center" @click="openMenu"></div>
+      <div class="gesture-right" @click="nextPage"></div>
+    </div>
   </div>
 </template>
 
@@ -114,7 +120,7 @@ export default {
       unlistenStyle.value = fn;
     });
 
-    // 监听阅读器窗口关闭
+    // 监听阅读器窗口关闭、刷新或导航离开页面事件
 
     // 加载书籍
     const loadBook = async () => {
@@ -159,7 +165,7 @@ export default {
         // 清空阅读器内容
         document.getElementById('epub-reader')!.innerHTML = '';
 
-        rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', manager: 'continuous', flow: 'paginated', allowScriptedContent: true, script: '../../src/js/iframe.js' });
+        rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', flow: 'paginated', allowScriptedContent: true, script: '../../src/js/android.js' });
 
         // 恢复阅读进度
         const savedLocation = bookConfig.location;
@@ -192,6 +198,12 @@ export default {
       }
     };
 
+    // 打开菜单
+    const openMenu = () => {
+      console.log('打开菜单');
+      // 在这里添加打开菜单的逻辑
+    };
+
     // 监听键盘方向事件
     const keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
@@ -201,35 +213,16 @@ export default {
       }
     };
 
+
     onMounted(async () => {
       // 加载阅读器配置
       await loadReaderConfig();
       // 加载书籍
       await loadBook();
-
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler);
-      // 监听iframe中的点击事件
-      window.addEventListener('message', (event) => {
-        if (event.data.type === 'iframe-click') {
-          // 如果此时样式菜单已打开，则关闭
-          document.getElementById('customer-menu')?.remove();
-          const frontButtons = document.getElementsByClassName('titlebar-front-button');
-          for (let i = 0; i < frontButtons.length; i++) {
-            frontButtons[i].classList.remove('active');
-          }
-        }
-      });
-      // 监听iframe中的键盘事件
-      window.addEventListener('message', (event) => {
-        if (event.data.type === 'iframe-keydown') {
-          if (event.data.key === 'ArrowLeft' || event.data.key === 'ArrowUp') {
-            prevPage();
-          } else if (event.data.key === 'ArrowRight' || event.data.key === 'ArrowDown') {
-            nextPage();
-          }
-        }
-      });
+      // 监听窗口关闭、刷新或导航离开页面事件
+
     });
 
     onUnmounted(async () => {
@@ -244,6 +237,7 @@ export default {
       prevPage,
       bookIsReading,
       readerConfig,
+      openMenu,
     };
   }
 };
@@ -276,7 +270,7 @@ export default {
   background-clip: content-box;
 }
 
-.pagination {
+.gesture-area {
   position: fixed;
   top: 0;
   left: 0;
@@ -284,35 +278,11 @@ export default {
   height: 100vh;
   display: flex;
   justify-content: space-between;
-  align-items: center;
   pointer-events: none;
 }
 
-.pagination button {
-  height: 80px;
-  background-color: rgba(0, 0, 0, 0.1);
-  /* 浅色背景 */
-  color: #585858;
-  border: none;
-  border-radius: 6px;
-  padding: 10px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.3s;
+.gesture-area > div {
+  flex: 1;
   pointer-events: auto;
-}
-
-.pagination button:hover {
-  opacity: 1;
-}
-
-.prev-page {
-  position: absolute;
-  left: 10px;
-}
-
-.next-page {
-  position: absolute;
-  right: 10px;
 }
 </style>
