@@ -1,11 +1,11 @@
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 use dirs::document_dir;
+use quick_xml::events::Event;
+use quick_xml::Reader;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use quick_xml::Reader;
-use quick_xml::events::Event;
 use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
@@ -355,6 +355,7 @@ fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())

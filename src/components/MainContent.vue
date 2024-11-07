@@ -81,6 +81,7 @@ export default {
     const loadBooks = async () => {
       try {
         const loadedBooks: Book[] = await invoke('load_books');
+        books.value = [];
         for (const book of loadedBooks) {
           try {
             const solidBook = await readFile(`T-Reader/${book.id}.epub`, { baseDir: BaseDirectory.Document });

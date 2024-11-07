@@ -35,6 +35,8 @@ export default {
     const rendition = ref<any>(null);
     // 用于存储解除监听函数
     let unlistenStyle = ref<UnlistenFn | null>(null);
+    // 用于存储生命周期函数
+    // let unlistenLifecycle = ref<UnlistenFn | null>(null);
     // 正式全局变量
     const readerConfigStore = useReaderConfigStore();
     // 全局状态变量，但只能访问不能修改
@@ -47,7 +49,7 @@ export default {
     // 加载或更新阅读器样式
     const applyReaderStyle = async () => {
       // 背景颜色
-      document.body.style.backgroundColor = readerConfig.value.color;
+      document.body.style.backgroundColor = '#faebd7';
 
       // 阅读器样式
       // rendition.value.themes.default({
@@ -120,7 +122,7 @@ export default {
       unlistenStyle.value = fn;
     });
 
-    // 监听阅读器窗口关闭、刷新或导航离开页面事件
+    // 阅读器生命周期
 
     // 加载书籍
     const loadBook = async () => {
@@ -213,7 +215,6 @@ export default {
       }
     };
 
-
     onMounted(async () => {
       // 加载阅读器配置
       await loadReaderConfig();
@@ -221,15 +222,17 @@ export default {
       await loadBook();
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler);
-      // 监听窗口关闭、刷新或导航离开页面事件
-
     });
 
     onUnmounted(async () => {
-      // 临时，后续监听页面关闭时将其代替
-      await saveReaderConfig();
-      // 由于rendition实例大概率已经取消挂载，因此无法保存阅读进度
-      await saveReaderRendition();
+      console.log('Reader unmounted');
+    });
+
+    router.beforeEach((_, __, next) => {
+      // 保存阅读器配置和进度
+      saveReaderRendition();
+      saveReaderConfig();
+      next();
     });
 
     return {

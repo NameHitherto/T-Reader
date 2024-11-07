@@ -66,7 +66,7 @@ export default defineComponent({
         ]);
 
         const fonts = [
-            { name: 'unset', display: '默认' },
+            { name: 'system-ui', display: '默认' },
             { name: 'cursive', display: 'cursive' },
             { name: 'fangsong', display: '仿宋' },
             { name: 'monospace', display: 'monospace' },

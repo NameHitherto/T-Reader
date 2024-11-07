@@ -20,7 +20,7 @@ library.add(faBookmark); //bookmark
 library.add(faStackOverflow); //stack-overflow
 
 // 根据当前平台创建不同实例
-const currentPlatform = await platform();
+const currentPlatform = platform();
 if(currentPlatform === 'windows') {
   // windows平台
   const app = createApp(App);
