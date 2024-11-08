@@ -8,6 +8,16 @@
       <button class="next-page" @click="nextPage"><font-awesome-icon icon="fa-solid fa-greater-than"/></button>
     </div>
   </div>
+  <el-drawer v-model="tocDrawer" direction="ltr" :show-close="false">
+    <template #header>
+      <span style="font-size: large;text-align: center;">目录</span>
+    </template>
+    <el-menu :default-active="activeChapter" @select="goToChapter">
+      <el-menu-item v-for="item in toc" :key="item.id" :index="item.href">
+        {{ item.label }}
+      </el-menu-item>
+    </el-menu>
+  </el-drawer>
 </template>
 
 <script lang="ts">
@@ -40,6 +50,12 @@ export default {
     const readerConfigStore = useReaderConfigStore();
     // 全局状态变量，但只能访问不能修改
     const {readerConfig} = storeToRefs(readerConfigStore);
+    // 目录抽屉是否显示
+    const tocDrawer = ref(false);
+    // 目录信息
+    const toc = ref<any[]>([]);
+    // 当前章节
+    const activeChapter = ref<string>('');
 
     // 加载或更新阅读器样式
     const applyReaderStyle = async () => {
@@ -231,8 +247,16 @@ export default {
           rendition.value.display();
         }
 
+        // 获取书籍目录
+        const tocData = await ePubBook.loaded.navigation;
+        toc.value = tocData.toc;
+
         // 应用阅读器样式
         await applyReaderStyle();
+
+        // 此时允许查看书籍目录
+        document.getElementById('titlebar-toc')
+        ?.addEventListener('click', () => tocDrawer.value = true);
 
       } catch (e) {
         console.log(e);
@@ -250,6 +274,15 @@ export default {
     const nextPage = () => {
       if (rendition.value) {
         rendition.value.next();
+      }
+    };
+
+    // 跳转到指定章节
+    const goToChapter = (href: string) => {
+      if (rendition.value) {
+        rendition.value.display(href);
+        tocDrawer.value = false;
+        activeChapter.value = href;
       }
     };
 
@@ -300,12 +333,35 @@ export default {
       prevPage,
       bookIsReading,
       readerConfig,
+      tocDrawer,
+      toc,
+      goToChapter,
+      activeChapter
     };
   }
 };
 </script>
 
 <style scoped>
+/* 全局样式 */
+:global(.el-drawer__header){
+  margin-bottom: 0!important;
+}
+:global(.el-menu.el-menu--vertical){
+  border:none;
+}
+:global(.el-drawer__body::-webkit-scrollbar){
+  width: 8px;
+}
+:global(.el-drawer__body::-webkit-scrollbar-track){
+  background: transparent;
+}
+:global(.el-drawer__body::-webkit-scrollbar-thumb){
+  background-color: rgb(216, 216, 216); /* 浅色背景 */
+  border-radius: 6px;
+  background-clip: content-box;
+}
+
 .reader {
   width: 100%;
   height: 100%;
@@ -347,12 +403,12 @@ export default {
 }
 
 .pagination button {
-  height: 80px;
+  height: 100px;
   background-color: rgba(0, 0, 0, 0.1); /* 浅色背景 */
   color: #585858; 
   border: none;
   border-radius: 6px;
-  padding: 10px;
+  padding: 15px;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.3s;
@@ -372,6 +428,4 @@ export default {
   position: absolute;
   right: 10px;
 }
-
-
 </style>
