@@ -3,6 +3,7 @@
 
 <template>
   <div id="app">
+
     <div class="sidebar">
       <div class="logo">
         <font-awesome-icon icon="fa-solid fa-book-open" style="height: 1.5em;"/>
@@ -69,6 +70,7 @@
     gap: 10px;
     margin-bottom: 10px;
     font-size: 18px;
+    align-items: center;
 
     a {
       text-decoration: none;

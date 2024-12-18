@@ -1,5 +1,6 @@
 <template>
   <div class="main-content">
+    <loadingBlockade v-if="isLoading"/>
     <header class="header">
       <span style="font-size: large; font-weight: 600;">全部图书</span>
       <button class="button" @click="addBook">
@@ -58,6 +59,7 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import '../css/Coolbutton.css';
 import '../js/iconfont.js';
 import ContextMenu from '@imengyu/vue3-context-menu';
+import loadingBlockade from './loadingBlockade.vue';
 
 interface Book {
   id: number;
@@ -74,9 +76,13 @@ interface Book {
 
 export default {
   name: 'MainContent',
+  components: {
+    loadingBlockade
+  },
   setup() {
     const books = ref<Book[]>([]);
     let unlistenReady = ref<UnlistenFn | null>(null);
+    const isLoading = ref(false); // 是否正在加载
 
     const loadBooks = async () => {
       try {
@@ -101,13 +107,16 @@ export default {
     };
 
     const syncFiles = async () => {
+      isLoading.value = true;
       try {
         await invoke('webdav_sync_files');
         console.log('文件同步成功');
         await loadBooks();
       } catch (error) {
+        isLoading.value = false;
         console.error('文件同步失败:', error);
       }
+      isLoading.value = false;
     }
 
     const addBook = async () => {
@@ -130,7 +139,7 @@ export default {
         console.log("该文件已经添加过了");
         return;
       }
-
+      isLoading.value = true;
       const u8File: Uint8Array = await invoke('read_file_by_path', { filepath: selectedFilePath });
       const bufferFile = new Uint8Array(u8File).buffer;
       const file = new Blob([bufferFile], { type: 'application/epub+zip' });
@@ -180,10 +189,12 @@ export default {
             contents: new TextEncoder().encode(JSON.stringify(newBook))
           });
         } catch (error) {
+          isLoading.value = false;
           console.error('Error reading or saving the file:', error);
         }
       };
       reader.readAsArrayBuffer(file);
+      isLoading.value = false;
     };
 
     const deleteBook = async (id: number) => {
@@ -264,7 +275,8 @@ export default {
       deleteBook,
       openBook,
       onContextMenu,
-      syncFiles
+      syncFiles,
+      isLoading
     };
   }
 };
