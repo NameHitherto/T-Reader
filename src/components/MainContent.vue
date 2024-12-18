@@ -307,7 +307,7 @@ export default {
 .book-item {
   display: grid;
   /* 1fr表示它将占据剩余的空间，而不是固定的大小。 */
-  grid-template-columns: 50px 1fr 100px 50px 60px 90px 80px;
+  grid-template-columns: 50px 1fr 100px 50px 60px 100px 100px;
   gap: 10px;
   padding: 10px 0;
 }

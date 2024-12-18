@@ -11,11 +11,11 @@
       <nav>
         <ul class="menu">
           <li>
-            <font-awesome-icon icon="fa-brands fa-stack-overflow" />
+            <font-awesome-icon icon="fa-solid fa-book" />
             <router-link to="/">全部图书</router-link>
           </li>
           <li>
-            <font-awesome-icon icon="fa-regular fa-bookmark" />
+            <font-awesome-icon icon="fa-solid fa-book-bookmark" />
             <router-link to="/bookmark">笔记</router-link>
           </li>
         </ul>
