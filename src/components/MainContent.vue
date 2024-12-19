@@ -103,8 +103,9 @@ export default {
   },
   setup() {
     const books = ref<Book[]>([])
-    let unlistenReady = ref<UnlistenFn | null>(null)
     const isLoading = ref(false) // 是否正在加载
+    const defaultCover = './src/assets/default-cover.png';
+    let unlistenReady = ref<UnlistenFn | null>(null);
 
     const loadBooks = async () => {
       try {
@@ -112,13 +113,11 @@ export default {
         books.value = []
         for (const book of loadedBooks) {
           try {
-            const solidBook = await readFile(`T-Reader/${book.id}.epub`, {
-              baseDir: BaseDirectory.Document,
-            })
-            const arrayBuffer = solidBook.buffer
-            const epub = ePub(arrayBuffer)
-            const cover = await epub.coverUrl()
-            book.cover = cover ?? 'unknown'
+            const solidBook = await readFile(`T-Reader/${book.id}.epub`, { baseDir: BaseDirectory.Document });
+            const arrayBuffer = solidBook.buffer;
+            const epub = ePub(arrayBuffer);
+            const cover = await epub.coverUrl();
+            book.cover = cover ?? defaultCover;
             // 正常添加该书籍
             books.value.push(book)
           } catch (error) {
@@ -193,7 +192,7 @@ export default {
 
           const newBook: Book = {
             id: newBookId,
-            cover: cover ?? 'unknown',
+            cover: cover ?? defaultCover,
             title: metadata.title,
             author: metadata.creator,
             language: metadata.language,

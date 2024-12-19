@@ -292,9 +292,12 @@ async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     if !path.exists() {
         println!("目录 'T-Reader' 不存在，正在创建...");
         fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-        println!("目录 'T-Reader' 创建成功。");
     } else {
         println!("目录 'T-Reader' 已存在。");
+        // 清空目录
+        fs::remove_dir_all(&path).map_err(|e| e.to_string())?;
+        // 重新创建目录
+        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     }
 
     // 下载并保存每个文件
