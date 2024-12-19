@@ -49,20 +49,22 @@
         <span>上次阅读时间</span>
         <span>加入时间</span>
       </div>
-      <div
-        class="book-item"
-        v-for="book in books"
-        :key="book.id"
-        @dblclick="openBook(book.id)"
-        @contextmenu="onContextMenu($event, book.id)"
-      >
-        <span><img :src="book.cover" alt="封面" /></span>
-        <span>{{ book.title }}</span>
-        <span>{{ book.author }}</span>
-        <span>{{ book.language }}</span>
-        <span>{{ book.size }}</span>
-        <span>{{ book.lastRead }}</span>
-        <span>{{ book.added }}</span>
+      <div class="bookcase">
+        <div
+          class="book-item"
+          v-for="book in books"
+          :key="book.id"
+          @dblclick="openBook(book.id)"
+          @contextmenu="onContextMenu($event, book.id)"
+        >
+          <span><img :src="book.cover" alt="封面" /></span>
+          <span>{{ book.title }}</span>
+          <span>{{ book.author }}</span>
+          <span>{{ book.language }}</span>
+          <span>{{ book.size }}</span>
+          <span>{{ book.lastRead }}</span>
+          <span>{{ book.added }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -321,14 +323,14 @@ export default {
 <style scoped>
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: 20px 0 20px 0;
   overflow: hidden;
   user-select: none;
 
   .header {
     display: flex;
     align-items: center;
-    margin: 10px 0 10px 0;
+    margin: 10px 0 10px 20px;
     gap: 10px;
   }
 
@@ -355,7 +357,6 @@ export default {
       /* 1fr表示它将占据剩余的空间，而不是固定的大小。 */
       grid-template-columns: 50px 1fr 100px 50px 60px 100px 100px;
       gap: 10px;
-      padding: 10px 0;
 
       span {
         display: flex;
@@ -364,21 +365,33 @@ export default {
       }
     }
 
-    .book-item:hover {
-      background: rgba(0, 0, 0, 0.15);
-    }
-
     .book-header {
       font-weight: bold;
       border-bottom: 2px solid #ccc;
+      padding: 10px 0;
+      margin: 0 20px;
     }
 
-    .book-item {
-      border-bottom: 1px solid #eee;
+    .bookcase {
+      .book-item {
+        border-bottom: 1px solid #eee;
+        padding: 10px;
+        margin: 5px 10px 0 10px;
+        background: #f2f3f7;
+        border-radius: 10px;
+        cursor: pointer;
+        border: 1.5px solid #f2f3f7;
+        transition: ease 0.2s;
 
-      img {
-        width: 50px;
-        height: auto;
+        &:hover {
+          background-color: #d3ddf1;
+          border: 1.5px solid #1677ff;
+        }
+
+        img {
+          width: 50px;
+          height: auto;
+        }
       }
     }
   }
