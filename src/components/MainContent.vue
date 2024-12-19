@@ -1,6 +1,8 @@
 <template>
   <div class="main-content">
-    <loadingBlockade v-if="isLoading"/>
+    <Transition name="loading">
+      <loadingBlockade v-if="isLoading" class="loading"/>
+    </Transition>
     <header class="header">
       <span style="font-size: large; font-weight: 600;">全部图书</span>
       <button class="button" @click="addBook">
@@ -349,4 +351,16 @@ export default {
   height: auto;
 }
 
+.loading {
+  backdrop-filter: blur(1px) brightness(0.6);
+}
+.loading-enter-active,
+.loading-leave-active {
+  transition: all 0.5s ease;
+}
+.loading-enter-from,
+.loading-leave-to {
+  opacity: 0;
+  backdrop-filter: 0;
+}
 </style>

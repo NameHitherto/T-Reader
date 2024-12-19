@@ -59,7 +59,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(1px) brightness(0.6);
   z-index: 99;
 
   .blockade-box {
