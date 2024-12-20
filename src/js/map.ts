@@ -1,13 +1,13 @@
+type iconType = 'bookOpen' | 'delete' | 'info' | 'goBack';
+type themeType = 'light' | 'dark';
 // 右键菜单ContextMenu
 export interface ContextMenuData {
   x: number;
   y: number;
   width: number;
-  theme: string;
+  theme: themeType;
   items: ContextMenuItem[];
 }
-
-type iconType = 'bookOpen' | 'delete' | 'info' | 'goBack';
 
 export interface ContextMenuItem {
   label: string;

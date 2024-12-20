@@ -131,11 +131,30 @@ export default {
 
     .menu-item {
       &:hover {
-        background: #333333;
+        background: #4d4d4d;
       }
 
       img {
         filter: invert(100%);
+      }
+    }
+  }
+}
+
+.light {
+  background: #f9f9f9;
+  border: 2px solid #e9e9e9;
+
+  .menu-list {
+    color: #333;
+
+    .menu-item {
+      &:hover {
+        background: #e9e9e9;
+      }
+
+      img {
+        filter: invert(0%);
       }
     }
   }

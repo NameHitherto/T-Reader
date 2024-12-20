@@ -287,17 +287,17 @@ export default {
       // 菜单选项
       const menuItems: ContextMenuItem[] = [
         {
-          label: '打开',
+          label: '打开 | 开始阅读',
           type: 'bookOpen',
           onClick: () => openBook(bookId),
         },
         {
-          label: '删除',
+          label: '删除 | 更新云同步',
           type: 'delete',
           onClick: () => deleteBook(bookId),
         },
         {
-          label: '信息',
+          label: '信息 | 详细信息',
           type: 'info',
           onClick: () => console.log('Info:', bookId),
         },
