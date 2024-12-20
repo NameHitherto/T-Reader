@@ -105,11 +105,14 @@ export default {
           'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
         },
         p: {
-          color: `${readerConfig.value.fontColor}`,
+          'color': `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
         },
+        font: {
+          'color': `${readerConfig.value.fontColor}`,
+        }
       })
     }
 
