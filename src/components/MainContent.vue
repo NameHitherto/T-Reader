@@ -1,7 +1,7 @@
 <template>
   <div class="main-content">
     <Transition name="loading">
-      <loadingBlockade v-if="isLoading" class="loading" />
+      <loadingBlockade v-if="isLoading" class="loading" :warn-text="loadingText"/>
     </Transition>
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions"/>
     <header class="header">
@@ -51,21 +51,36 @@
         <span>加入时间</span>
       </div>
       <div class="bookcase">
-        <div
-          class="book-item"
-          v-for="book in books"
-          :key="book.id"
-          @dblclick="openBook(book.id)"
-          @contextmenu="onContextMenu($event, book.id)"
-        >
-          <span><img :src="book.cover" alt="封面" /></span>
-          <span>{{ book.title }}</span>
-          <span>{{ book.author }}</span>
-          <span>{{ book.language }}</span>
-          <span>{{ book.size }}</span>
-          <span>{{ book.lastRead }}</span>
-          <span>{{ book.added }}</span>
-        </div>
+        <el-skeleton :loading="booksLoading" animated>
+          <template #template>
+            <div class="book-item" style="background-color: white;">
+              <span><el-skeleton-item variant="image" style="width: 50px; height: 75px;" /></span>
+              <span><el-skeleton-item variant="text" style="width: 100px; height: 40px;" /></span>
+              <span><el-skeleton-item variant="text" style="width: 80px; height: 22px;" /></span>
+              <span><el-skeleton-item variant="text" style="width: 50px; height: 18px;" /></span>
+              <span><el-skeleton-item variant="text" style="width: 60px; height: 18px;" /></span>
+              <span><el-skeleton-item variant="text" style="width: 100px; height: 18px;" /></span>
+              <span><el-skeleton-item variant="text" style="width: 100px; height: 18px;" /></span>
+            </div>
+          </template>
+          <template #default>
+            <div
+              class="book-item"
+              v-for="book in books"
+              :key="book.id"
+              @dblclick="openBook(book.id)"
+              @contextmenu="onContextMenu($event, book.id)"
+            >
+              <span><img :src="book.cover" alt="封面" /></span>
+              <span>{{ book.title }}</span>
+              <span>{{ book.author }}</span>
+              <span>{{ book.language }}</span>
+              <span>{{ book.size }}</span>
+              <span>{{ book.lastRead }}</span>
+              <span>{{ book.added }}</span>
+            </div>
+          </template>
+        </el-skeleton>
       </div>
     </div>
   </div>
@@ -107,6 +122,8 @@ export default {
   setup() {
     const books = ref<Book[]>([])
     const isLoading = ref(false) // 是否正在加载
+    const booksLoading = ref(false) // 书籍是否加载完成
+    const loadingText = ref("Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross") // 加载时的提示文字
     const defaultCover = './src/assets/default-cover.png';
     let unlistenReady = ref<UnlistenFn | null>(null);
     const showMenu = ref(false)
@@ -114,6 +131,7 @@ export default {
 
     const loadBooks = async () => {
       try {
+        booksLoading.value = true
         const loadedBooks: Book[] = await invoke('load_books')
         books.value = []
         for (const book of loadedBooks) {
@@ -129,12 +147,14 @@ export default {
             console.error('Error loading cover for book:', book.title, error)
           }
         }
+        booksLoading.value = false
       } catch (error) {
         console.error('Error loading books:', error)
       }
     }
 
     const syncFiles = async () => {
+      loadingText.value = 'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server'
       isLoading.value = true
       try {
         await invoke('webdav_sync_files')
@@ -167,6 +187,7 @@ export default {
         console.log('该文件已经添加过了')
         return
       }
+      loadingText.value = 'Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file'
       isLoading.value = true
       const u8File: Uint8Array = await invoke('read_file_by_path', {
         filepath: selectedFilePath,
@@ -177,6 +198,8 @@ export default {
       const newBookId = Date.now()
       const newBookPath = `T-Reader/${newBookId}.epub`
       const contents = new Uint8Array(bufferFile)
+
+      loadingText.value = 'Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server'
 
       // 上传到云服务器
       invoke('webdav_upload', {
@@ -343,8 +366,10 @@ export default {
       onContextMenu,
       syncFiles,
       isLoading,
+      loadingText,
       showMenu,
       menuOptions,
+      booksLoading,
     }
   },
 }
