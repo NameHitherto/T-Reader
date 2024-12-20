@@ -3,6 +3,7 @@
     <Transition name="loading">
       <loadingBlockade v-if="isLoading" class="loading" />
     </Transition>
+    <ContextMenu v-model:show="showMenu" :menu-data="menuOptions"/>
     <header class="header">
       <span style="font-size: large; font-weight: 600">全部图书</span>
       <button class="button" @click="addBook">
@@ -80,8 +81,9 @@ import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import '../css/Coolbutton.css'
 import '../js/iconfont.js'
-import ContextMenu from '@imengyu/vue3-context-menu'
 import loadingBlockade from './loadingBlockade.vue'
+import ContextMenu from './ContextMenu/index.vue'
+import { ContextMenuData, ContextMenuItem } from '../js/map'
 
 interface Book {
   id: number
@@ -100,12 +102,15 @@ export default {
   name: 'MainContent',
   components: {
     loadingBlockade,
+    ContextMenu,
   },
   setup() {
     const books = ref<Book[]>([])
     const isLoading = ref(false) // 是否正在加载
     const defaultCover = './src/assets/default-cover.png';
     let unlistenReady = ref<UnlistenFn | null>(null);
+    const showMenu = ref(false)
+    const menuOptions = ref({} as ContextMenuData)
 
     const loadBooks = async () => {
       try {
@@ -277,29 +282,53 @@ export default {
     // 右键菜单
     const onContextMenu = (e: MouseEvent, bookId: number) => {
       e.preventDefault()
-      ContextMenu.showContextMenu({
-        theme: 'default',
-        x: e.x,
-        y: e.y,
-        items: [
-          {
-            label: '打开',
-            svgIcon: '#icon-arrow-double-right',
-            onClick: () => openBook(bookId),
-          },
-          {
-            label: '删除',
-            svgIcon: '#icon-ashbin',
-            onClick: () => deleteBook(bookId),
-          },
-          {
-            label: '信息',
-            svgIcon: '#icon-prompt-filling',
-            // 尚未完成，暂时只打印ID
-            onClick: () => console.log('Info:', bookId),
-          },
-        ],
-      })
+      let menuX = e.x
+      let menuY = e.y
+      // 菜单选项
+      const menuItems: ContextMenuItem[] = [
+        {
+          label: '打开',
+          type: 'bookOpen',
+          onClick: () => openBook(bookId),
+        },
+        {
+          label: '删除',
+          type: 'delete',
+          onClick: () => deleteBook(bookId),
+        },
+        {
+          label: '信息',
+          type: 'info',
+          onClick: () => console.log('Info:', bookId),
+        },
+      ]
+      const menuWidth = 200 // 菜单宽度
+      const menuHeight = 35 * menuItems.length // 菜单预估高度
+      const pageWidth = document.documentElement.clientWidth // 页面宽度
+      const pageHeight = document.documentElement.clientHeight // 页面高度
+      const precision = 20 // 菜单距离页面边缘的最小距离
+      // 如果菜单最右边超过页面宽度，则调整位置
+      if (menuX + menuWidth > pageWidth) {
+        menuX -= menuWidth
+      } 
+      menuX = Math.max(precision, menuX)
+      menuX = Math.min(pageWidth - precision - menuWidth, menuX)
+      // 如果菜单最下边超过页面高度，则调整位置
+      if (menuY + menuHeight > pageHeight) {
+        menuY -= menuHeight
+      }
+      menuY = Math.max(precision, menuY)
+      menuY = Math.min(pageHeight - precision - menuHeight, menuY)
+      // 赋值
+      menuOptions.value = {
+        x: menuX,
+        y: menuY,
+        width: menuWidth,
+        items: menuItems,
+        theme: 'dark',
+      }
+      // 显示菜单
+      showMenu.value = true
     }
 
     onMounted(() => {
@@ -314,6 +343,8 @@ export default {
       onContextMenu,
       syncFiles,
       isLoading,
+      showMenu,
+      menuOptions,
     }
   },
 }
