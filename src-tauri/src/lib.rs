@@ -294,10 +294,8 @@ async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
         fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     } else {
         println!("目录 'T-Reader' 已存在。");
-        // 清空目录
-        fs::remove_dir_all(&path).map_err(|e| e.to_string())?;
-        // 重新创建目录
-        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+        // 删除目录下的书籍和同名JSON文件
+        delete_books_and_configs(&path.to_string_lossy())?;
     }
 
     // 下载并保存每个文件
@@ -353,6 +351,36 @@ fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
     }
 
     Ok(files)
+}
+
+// 删除目录下的书籍和同名JSON文件
+fn delete_books_and_configs(directory: &str) -> Result<(), String>{
+    let dir = fs::read_dir(directory).map_err(|e| e.to_string())?;
+
+    for entry in dir {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        // 只处理扩展名为`.epub`的文件
+        if let Some(extension) = path.extension() {
+            if extension == "epub" {
+                if let Some(file_stem) = path.file_stem() {
+                    // 获取同名的`.json`文件路径
+                    let json_file_path = format!("{}.json", file_stem.to_string_lossy());
+                    let json_path = Path::new(directory).join(json_file_path);
+
+                    // 删除`.epub`文件
+                    fs::remove_file(&path).map_err(|e| e.to_string())?;
+
+                    // 删除同名的`.json`文件
+                    if json_path.exists() {
+                        fs::remove_file(&json_path).map_err(|e| e.to_string())?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
