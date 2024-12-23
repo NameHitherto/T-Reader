@@ -1,9 +1,13 @@
 <template>
   <div class="main-content">
     <Transition name="loading">
-      <loadingBlockade v-if="isLoading" class="loading" :warn-text="loadingText"/>
+      <loadingBlockade
+        v-if="isLoading"
+        class="loading"
+        :warn-text="loadingText"
+      />
     </Transition>
-    <ContextMenu v-model:show="showMenu" :menu-data="menuOptions"/>
+    <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <header class="header">
       <span style="font-size: large; font-weight: 600">全部图书</span>
       <button class="button" @click="addBook">
@@ -51,16 +55,44 @@
         <span>加入时间</span>
       </div>
       <div class="bookcase">
-        <el-skeleton :loading="booksLoading" animated>
+        <el-skeleton :loading="booksLoading" animated :count="10">
           <template #template>
-            <div class="book-item" style="background-color: white;">
-              <span><el-skeleton-item variant="image" style="width: 50px; height: 75px;" /></span>
-              <span><el-skeleton-item variant="text" style="width: 100px; height: 40px;" /></span>
-              <span><el-skeleton-item variant="text" style="width: 80px; height: 22px;" /></span>
-              <span><el-skeleton-item variant="text" style="width: 50px; height: 18px;" /></span>
-              <span><el-skeleton-item variant="text" style="width: 60px; height: 18px;" /></span>
-              <span><el-skeleton-item variant="text" style="width: 100px; height: 18px;" /></span>
-              <span><el-skeleton-item variant="text" style="width: 100px; height: 18px;" /></span>
+            <div class="book-item" style="background-color: white">
+              <span
+                ><el-skeleton-item
+                  variant="image"
+                  style="width: 50px; height: 75px"
+              /></span>
+              <span
+                ><el-skeleton-item
+                  variant="text"
+                  style="width: 100px; height: 40px"
+              /></span>
+              <span
+                ><el-skeleton-item
+                  variant="text"
+                  style="width: 80px; height: 22px"
+              /></span>
+              <span
+                ><el-skeleton-item
+                  variant="text"
+                  style="width: 50px; height: 18px"
+              /></span>
+              <span
+                ><el-skeleton-item
+                  variant="text"
+                  style="width: 60px; height: 18px"
+              /></span>
+              <span
+                ><el-skeleton-item
+                  variant="text"
+                  style="width: 100px; height: 18px"
+              /></span>
+              <span
+                ><el-skeleton-item
+                  variant="text"
+                  style="width: 100px; height: 18px"
+              /></span>
             </div>
           </template>
           <template #default>
@@ -123,9 +155,11 @@ export default {
     const books = ref<Book[]>([])
     const isLoading = ref(false) // 是否正在加载
     const booksLoading = ref(false) // 书籍是否加载完成
-    const loadingText = ref("Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross") // 加载时的提示文字
-    const defaultCover = './src/assets/default-cover.png';
-    let unlistenReady = ref<UnlistenFn | null>(null);
+    const loadingText = ref(
+      'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
+    ) // 加载时的提示文字
+    const defaultCover = './src/assets/default-cover.png'
+    let unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
 
@@ -136,11 +170,13 @@ export default {
         books.value = []
         for (const book of loadedBooks) {
           try {
-            const solidBook = await readFile(`T-Reader/${book.id}.epub`, { baseDir: BaseDirectory.Document });
-            const arrayBuffer = solidBook.buffer;
-            const epub = ePub(arrayBuffer);
-            const cover = await epub.coverUrl();
-            book.cover = cover ?? defaultCover;
+            const solidBook = await readFile(`T-Reader/${book.id}.epub`, {
+              baseDir: BaseDirectory.Document,
+            })
+            const arrayBuffer = solidBook.buffer
+            const epub = ePub(arrayBuffer)
+            const cover = await epub.coverUrl()
+            book.cover = cover ?? defaultCover
             // 正常添加该书籍
             books.value.push(book)
           } catch (error) {
@@ -154,7 +190,8 @@ export default {
     }
 
     const syncFiles = async () => {
-      loadingText.value = 'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server'
+      loadingText.value =
+        'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server'
       isLoading.value = true
       try {
         await invoke('webdav_sync_files')
@@ -187,7 +224,8 @@ export default {
         console.log('该文件已经添加过了')
         return
       }
-      loadingText.value = 'Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file'
+      loadingText.value =
+        'Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file'
       isLoading.value = true
       const u8File: Uint8Array = await invoke('read_file_by_path', {
         filepath: selectedFilePath,
@@ -199,7 +237,8 @@ export default {
       const newBookPath = `T-Reader/${newBookId}.epub`
       const contents = new Uint8Array(bufferFile)
 
-      loadingText.value = 'Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server'
+      loadingText.value =
+        'Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server'
 
       // 上传到云服务器
       invoke('webdav_upload', {
@@ -315,14 +354,14 @@ export default {
           onClick: () => openBook(bookId),
         },
         {
-          label: '删除 | 更新云同步',
-          type: 'delete',
-          onClick: () => deleteBook(bookId),
-        },
-        {
           label: '信息 | 详细信息',
           type: 'info',
           onClick: () => console.log('Info:', bookId),
+        },
+        {
+          label: '删除 | 更新云同步',
+          type: 'delete',
+          onClick: () => deleteBook(bookId),
         },
       ]
       const menuWidth = 200 // 菜单宽度
@@ -333,7 +372,7 @@ export default {
       // 如果菜单最右边超过页面宽度，则调整位置
       if (menuX + menuWidth > pageWidth) {
         menuX -= menuWidth
-      } 
+      }
       menuX = Math.max(precision, menuX)
       menuX = Math.min(pageWidth - precision - menuWidth, menuX)
       // 如果菜单最下边超过页面高度，则调整位置
@@ -428,6 +467,26 @@ export default {
     }
 
     .bookcase {
+      min-height: 0;
+      overflow: auto;
+
+      &:hover {
+        &::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background-color: transparent;
+        border-radius: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background-color: transparent;
+      }
+
       .book-item {
         border-bottom: 1px solid #eee;
         padding: 10px;

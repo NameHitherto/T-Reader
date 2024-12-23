@@ -11,6 +11,7 @@
       >
         <div class="menu-body">
           <div class="menu-list" v-for="(item, idx) in menuData.items" :key="idx">
+            <div class="separator" v-if="item.type === 'delete'"></div>
             <div class="menu-item" @click="(event) => handleClick(item, event)">
               <span class="label">{{ item.label }}</span>
               <img :src="svgIcons[item.type === undefined ? 'default' : item.type]" />
@@ -91,10 +92,19 @@ export default {
   padding: 3px 4px;
 
   .menu-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
     .menu-list {
       display: flex;
       flex-direction: column;
-      gap: 3px;
+
+      .separator {
+        width: 100%;
+        border-radius: 10px;
+        margin: 2px 0 5px 0;
+      }
 
       .menu-item {
         display: flex;
@@ -129,6 +139,10 @@ export default {
   .menu-list {
     color: #e9e9e9;
 
+    .separator {
+      border: 1px solid #444444;
+    }
+
     .menu-item {
       &:hover {
         background: #4d4d4d;
@@ -147,6 +161,10 @@ export default {
 
   .menu-list {
     color: #333;
+
+    .separator {
+      border: 1px solid #e9e9e9;
+    }
 
     .menu-item {
       &:hover {
