@@ -15,6 +15,10 @@
             <font-awesome-icon icon="fa-solid fa-book-bookmark" />
             <router-link to="/bookmark">笔记</router-link>
           </li>
+          <li>
+            <font-awesome-icon icon="fa-solid fa-flask" />
+            <router-link to="/experiment">实验区</router-link>
+          </li>
         </ul>
       </nav>
     </div>

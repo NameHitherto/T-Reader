@@ -1,6 +1,6 @@
 <template>
-  <div class="bookmark">
-    <h1>BookMark Component</h1>
+  <div class="exp">
+    <h1>Experiment Content</h1>
   </div>
 </template>
 
@@ -8,7 +8,7 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: 'BookMark',
+  name: 'Experiment',
   components: {
   },
   data() {
@@ -20,13 +20,12 @@ export default defineComponent({
   watch: {
   },
   methods: {
-    
-  },
+  }
 })
 </script>
 
 <style scoped>
-.bookmark {
+.exp {
   width: 100%;
 }
 </style>
