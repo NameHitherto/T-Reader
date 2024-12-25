@@ -40,6 +40,7 @@ if(currentPlatform === 'windows') {
   document
     .getElementById('titlebar-close')
     ?.addEventListener('click', () => appWindow.close());
+  document.addEventListener('contextmenu', (event) => {event.preventDefault();});
 }else if(currentPlatform === 'android'){
   // android平台
   const app = createApp(AndroidApp);

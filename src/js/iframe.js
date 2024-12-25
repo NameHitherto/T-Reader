@@ -10,3 +10,9 @@ document.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
     window.parent.postMessage({ type: 'iframe-keydown', key: event.key }, '*');
 });
+
+// 监听右键菜单事件
+document.addEventListener('contextmenu', (event) => {
+    // 阻止默认右键菜单
+    event.preventDefault();
+});

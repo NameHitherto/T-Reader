@@ -355,7 +355,7 @@ export default {
 
     // 右键菜单
     const onContextMenu = (e: MouseEvent, bookId: number) => {
-      e.preventDefault()
+      //e.preventDefault()
       let menuX = e.x
       let menuY = e.y
       // 菜单选项

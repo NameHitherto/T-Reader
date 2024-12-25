@@ -41,3 +41,4 @@ document
 document
   .getElementById('titlebar-about')
   ?.addEventListener('click', () => console.log('About'));
+document.addEventListener('contextmenu', (event) => {event.preventDefault();});
