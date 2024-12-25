@@ -23,6 +23,7 @@ declare module 'vue' {
     LoadingBlockade: typeof import('./src/components/loadingBlockade.vue')['default']
     MainContent: typeof import('./src/components/MainContent.vue')['default']
     MenuComponent: typeof import('./src/components/MenuComponent.vue')['default']
+    Notification: typeof import('./src/components/Notice/Notification.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']

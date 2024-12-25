@@ -6,6 +6,8 @@
     title="设置中心"
     class="dialog-wrapper"
     append-to-body="true"
+    :show-close="false"
+    :close-on-press-escape="false"
     @open="onOpen"
   >
     <div class="section">

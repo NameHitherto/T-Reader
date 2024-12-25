@@ -134,13 +134,13 @@ import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { open } from '@tauri-apps/plugin-dialog'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import '../css/Coolbutton.css'
-import '../js/iconfont.js'
 import loadingBlockade from './loadingBlockade.vue'
 import ContextMenu from './ContextMenu/index.vue'
 import { ContextMenuData, ContextMenuItem } from '../js/map'
 import settingIcon from '../assets/setting.svg'
 import SettingDialog from './SettingDialog/index.vue'
+import '../css/Coolbutton.css'
+import '../js/iconfont.js'
 
 interface Book {
   id: number
