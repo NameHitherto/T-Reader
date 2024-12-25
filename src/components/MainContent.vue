@@ -1,5 +1,6 @@
 <template>
   <div class="main-content">
+    <!-- 加载条动画 -->
     <Transition name="loading">
       <loadingBlockade
         v-if="isLoading"
@@ -7,6 +8,7 @@
         :warn-text="loadingText"
       />
     </Transition>
+    <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <header class="header">
       <span style="font-size: large; font-weight: 600">全部图书</span>
@@ -43,6 +45,12 @@
           </svg>
         </div>
       </button>
+      <button class="button" @click="openSetting">
+        <div class="icon">
+          <img :src="settingIcon" alt="设置" />
+        </div>
+      </button>
+      <SettingDialog v-model="settingVisible" @close-dialog="settingVisible = false"/>
     </header>
     <div class="book-list">
       <div class="book-header">
@@ -131,6 +139,8 @@ import '../js/iconfont.js'
 import loadingBlockade from './loadingBlockade.vue'
 import ContextMenu from './ContextMenu/index.vue'
 import { ContextMenuData, ContextMenuItem } from '../js/map'
+import settingIcon from '../assets/setting.svg'
+import SettingDialog from './SettingDialog/index.vue'
 
 interface Book {
   id: number
@@ -150,6 +160,7 @@ export default {
   components: {
     loadingBlockade,
     ContextMenu,
+    SettingDialog
   },
   setup() {
     const books = ref<Book[]>([])
@@ -158,6 +169,7 @@ export default {
     const loadingText = ref(
       'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
     ) // 加载时的提示文字
+    const settingVisible = ref(false) // 设置中心
     const defaultCover = './src/assets/default-cover.png'
     let unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
@@ -393,6 +405,11 @@ export default {
       showMenu.value = true
     }
 
+    // 打开设置
+    const openSetting = () => {
+      settingVisible.value = true
+    }
+
     onMounted(() => {
       loadBooks()
     })
@@ -409,6 +426,9 @@ export default {
       showMenu,
       menuOptions,
       booksLoading,
+      settingIcon,
+      openSetting,
+      settingVisible,
     }
   },
 }
@@ -426,6 +446,16 @@ export default {
     align-items: center;
     margin: 10px 0 10px 20px;
     gap: 10px;
+    
+    .button {
+      .icon {
+        img {
+          width: 25px;
+          height: 25px;
+        }
+      }
+    }
+
   }
 
   .book-list {
@@ -449,7 +479,7 @@ export default {
     .book-item {
       display: grid;
       /* 1fr表示它将占据剩余的空间，而不是固定的大小。 */
-      grid-template-columns: 50px 1fr 100px 50px 60px 100px 100px;
+      grid-template-columns: 50px 1fr 100px 40px 60px 100px 100px;
       gap: 10px;
 
       span {
@@ -490,7 +520,7 @@ export default {
       .book-item {
         border-bottom: 1px solid #eee;
         padding: 10px;
-        margin: 5px 10px 0 10px;
+        margin: 5px 4px 0 10px;
         background: #f2f3f7;
         border-radius: 10px;
         cursor: pointer;

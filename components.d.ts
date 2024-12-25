@@ -9,7 +9,11 @@ declare module 'vue' {
   export interface GlobalComponents {
     BookMark: typeof import('./src/components/BookMark.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
+    ElButton: typeof import('element-plus/es')['ElButton']
+    ElDialog: typeof import('element-plus/es')['ElDialog']
+    ElDivider: typeof import('element-plus/es')['ElDivider']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
+    ElInput: typeof import('element-plus/es')['ElInput']
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
@@ -21,5 +25,6 @@ declare module 'vue' {
     MenuComponent: typeof import('./src/components/MenuComponent.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']
   }
 }

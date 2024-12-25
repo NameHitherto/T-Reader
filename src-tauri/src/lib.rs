@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]
 struct Book {
@@ -21,6 +22,63 @@ struct Book {
     added: String,
     path: String,
     location: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Settings {
+    #[serde(rename = "webdavUrl")]
+    webdav_url: String,
+    #[serde(rename = "webdavUser")]
+    webdav_user: String,
+    #[serde(rename = "webdavPass")]
+    webdav_pass: String,
+}
+
+#[tauri::command]
+fn save_settings(json_str: &str) -> Result<(), String> {
+    let settings_path = document_dir()
+        .ok_or("err finding document_dir")?
+        .join("T-Reader")
+        .join("setting.json");
+
+    let mut settings: HashMap<String, String> = if settings_path.exists() {
+        let mut file = File::open(&settings_path).map_err(|e| e.to_string())?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).map_err(|e| e.to_string())?;
+        serde_json::from_str(&contents).map_err(|e| e.to_string())?
+    } else {
+        HashMap::new()
+    };
+
+    let new_settings: HashMap<String, String> = serde_json::from_str(json_str).map_err(|e| e.to_string())?;
+    for (key, value) in new_settings {
+        settings.insert(key, value);
+    }
+
+    let settings_json = serde_json::to_string(&settings).map_err(|e| e.to_string())?;
+    let mut file = File::create(&settings_path).map_err(|e| e.to_string())?;
+    file.write_all(settings_json.as_bytes()).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn load_settings() -> Result<Settings, String> {
+    let settings_path = document_dir()
+        .ok_or("err finding document_dir")?
+        .join("T-Reader")
+        .join("setting.json");
+
+    if !settings_path.exists() {
+        return Err("Settings file not found".to_string());
+    }
+
+    let mut file = File::open(&settings_path).map_err(|e| e.to_string())?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).map_err(|e| e.to_string())?;
+    let settings: Settings = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+
+    Ok(settings)
 }
 
 #[tauri::command]
@@ -169,20 +227,21 @@ fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
 
 // webDAV相关api
 
-const WEBDAV_URL: &str = "https://dav.jianguoyun.com/dav/T-Reader/";
-const WEBDAV_USER: &str = "605351778@qq.com";
-const WEBDAV_PASS: &str = "ayntpghyezyf7pna";
+// const WEBDAV_URL: &str = "https://dav.jianguoyun.com/dav/T-Reader/";
+// const WEBDAV_USER: &str = "605351778@qq.com";
+// const WEBDAV_PASS: &str = "ayntpghyezyf7pna";
 
 #[tauri::command]
 async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
+    let settings = load_settings()?;
     let client = Client::new();
-    let url = format!("{}{}", WEBDAV_URL, filename);
+    let url = format!("{}{}", settings.webdav_url, filename);
 
     // 确保目标目录存在
-    let mkcol_url = WEBDAV_URL.to_string();
+    let mkcol_url = settings.webdav_url.to_string();
     let _ = client
         .request(http::Method::from_bytes(b"MKCOL").unwrap(), &mkcol_url)
-        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
         .map_err(|e| format!("创建目录失败: {:?}", e))?;
@@ -190,7 +249,7 @@ async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> 
     // 上传文件
     let response = client
         .put(&url)
-        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .body(contents)
         .send()
         .await
@@ -207,12 +266,13 @@ async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> 
 
 #[tauri::command]
 async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
+    let settings = load_settings()?;
     let client = Client::new();
-    let url = format!("{}{}", WEBDAV_URL, filename);
+    let url = format!("{}{}", settings.webdav_url, filename);
 
     let response = client
         .get(&url)
-        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
         .map_err(|e| format!("云同步文件获取失败: {:?}", e))?;
@@ -228,12 +288,13 @@ async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
 
 #[tauri::command]
 async fn webdav_delete(filename: &str) -> Result<(), String> {
+    let settings = load_settings()?;
     let client = Client::new();
-    let url = format!("{}{}", WEBDAV_URL, filename);
+    let url = format!("{}{}", settings.webdav_url, filename);
 
     let response = client
         .delete(&url)
-        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
         .map_err(|e| format!("云同步文件删除失败: {:?}", e))?;
@@ -249,13 +310,14 @@ async fn webdav_delete(filename: &str) -> Result<(), String> {
 
 #[tauri::command]
 async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
+    let settings = load_settings()?;
     let client = Client::new();
-    let url = WEBDAV_URL.to_string();
+    let url = settings.webdav_url.to_string();
 
     // 获取云端文件列表
     let response = client
         .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
-        .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .header("Depth", "1")
         .send()
         .await
@@ -300,10 +362,10 @@ async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
 
     // 下载并保存每个文件
     for file in files {
-        let file_url = format!("{}{}", WEBDAV_URL, file);
+        let file_url = format!("{}{}", settings.webdav_url, file);
         let response = client
             .get(&file_url)
-            .basic_auth(WEBDAV_USER, Some(WEBDAV_PASS))
+            .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
             .send()
             .await
             .map_err(|e| format!("下载文件失败: {:?}", e))?;
@@ -400,7 +462,9 @@ pub fn run() {
             webdav_upload,
             webdav_get,
             webdav_delete,
-            webdav_sync_files
+            webdav_sync_files,
+            save_settings,
+            load_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
