@@ -11,48 +11,32 @@
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息框 -->
-    <BookInfoDialog v-model="bookInfoVisible" :bookId="bookInfoId"/>
+    <BookInfoDialog v-model="bookInfoVisible" :bookId="bookInfoId" />
     <header class="header">
-      <span style="font-size: large; font-weight: 600">全部图书</span>
-      <button class="button" @click="addBook">
-        <div class="icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-            <path
-              d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"
-            />
-          </svg>
-        </div>
-      </button>
-      <button class="button" @click="syncFiles">
-        <div class="icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="1em"
-            height="1em"
-            viewBox="0 0 48 48"
-          >
-            <g
-              fill="none"
-              stroke="#000"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="4"
-            >
-              <path d="M42 8V24" />
-              <path d="M6 24L6 40" />
-              <path
-                d="M42 24C42 14.0589 33.9411 6 24 6C18.9145 6 14.3216 8.10896 11.0481 11.5M6 24C6 33.9411 14.0589 42 24 42C28.8556 42 33.2622 40.0774 36.5 36.9519"
-              />
-            </g>
-          </svg>
-        </div>
-      </button>
-      <button class="button" @click="openSetting">
-        <div class="icon">
-          <img :src="settingIcon" alt="设置" />
-        </div>
-      </button>
-      <SettingDialog v-model="settingVisible" @close-dialog="settingVisible = false"/>
+      <div class="header-menu">
+        <button class="button" @click="addBook">
+          <div class="button-icon">
+            <img :src="addBookIcon" alt="添加书籍" />
+          </div>
+          <span class="button-text">导入书籍</span>
+        </button>
+        <button class="button" @click="syncFiles">
+          <div class="button-icon">
+            <img :src="refreshIcon" alt="云同步" />
+          </div>
+          <span class="button-text">云同步</span>
+        </button>
+        <button class="button" @click="openSetting">
+          <div class="button-icon">
+            <img :src="settingIcon" alt="设置" />
+          </div>
+          <span class="button-text">设置中心</span>
+        </button>
+      </div>
+      <SettingDialog
+        v-model="settingVisible"
+        @close-dialog="settingVisible = false"
+      />
     </header>
     <div class="book-list">
       <div class="book-header">
@@ -139,10 +123,11 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import loadingBlockade from './loadingBlockade.vue'
 import ContextMenu from './ContextMenu/index.vue'
 import { ContextMenuData, ContextMenuItem } from '../js/map'
+import addBookIcon from '../assets/addBook.svg'
+import refreshIcon from '../assets/refresh.svg'
 import settingIcon from '../assets/setting.svg'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
-import '../css/Coolbutton.css'
 import '../js/iconfont.js'
 
 interface Book {
@@ -437,6 +422,8 @@ export default {
       showMenu,
       menuOptions,
       booksLoading,
+      addBookIcon,
+      refreshIcon,
       settingIcon,
       openSetting,
       settingVisible,
@@ -457,18 +444,64 @@ export default {
   .header {
     display: flex;
     align-items: center;
-    margin: 10px 0 10px 20px;
+    justify-content: center;
+    margin: 10px 0;
     gap: 10px;
-    
-    .button {
-      .icon {
-        img {
-          width: 25px;
-          height: 25px;
+
+    .header-menu {
+      display: flex;
+      gap: 30px;
+      width: 100%;
+      justify-content: center;
+
+      .button {
+        border: none;
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition-duration: .4s;
+        cursor: pointer;
+        position: relative;
+        background-color: rgb(31, 31, 31);
+        overflow: hidden;
+
+        .button-icon {
+          transition-duration: .3s;
+
+          img {
+            width: 25px;
+            height: 25px;
+          }
+        }
+        .button-text {
+          position: absolute;
+          color: rgb(255, 255, 255);
+          width: 120px;
+          font-weight: 600;
+          opacity: 0;
+          transition-duration: .4s;
+        }
+
+        &:hover {
+          width: 110px;
+          transition-duration: .4s;
+          border-radius: 30px;
+
+          .button-icon {
+            opacity: 0;
+            transition-duration: .3s;
+          }
+
+          .button-text {
+            opacity: 1;
+            transition-duration: .4s;
+          }
         }
       }
     }
-
   }
 
   .book-list {
@@ -499,6 +532,7 @@ export default {
         display: flex;
         align-items: center;
         justify-content: flex-start;
+        font-weight: bold;
       }
     }
 
