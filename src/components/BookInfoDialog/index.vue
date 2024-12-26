@@ -117,6 +117,7 @@ export default {
   transition: all 0.3s ease-in;
   padding: 0;
   background-color: var(--t-color-light-cyan);
+  box-shadow: var(--t-box-shadow-medium-light);
 
   .info-container {
     width: 100%;
@@ -188,6 +189,7 @@ export default {
 
   &:hover {
     transform: scale(1.05);
+    box-shadow: none;
 
     .book-details {
       scale: 1;

@@ -12,6 +12,8 @@
 
   /* 盒子浅阴影 */
   --t-box-shadow-light: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* 盒子中等浅阴影 */
+  --t-box-shadow-medium-light: 0 0 0 5px #ffffff80;
 
   /* 细边框 */
   --t-border-thin: 1px #dcdfe6 solid;
