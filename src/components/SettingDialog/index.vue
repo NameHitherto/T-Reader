@@ -1,11 +1,10 @@
 <template>
   <el-dialog
-    v-model="visible"
     align-center
     destroy-on-close
     title="设置中心"
     class="dialog-wrapper"
-    append-to-body="true"
+    :append-to-body="true"
     :show-close="false"
     :close-on-press-escape="false"
     @open="onOpen"
@@ -46,7 +45,6 @@ export default {
   },  
   data() {
     return {
-      visible: true,
       settings: {},
       webdavUrl: '',
       webdavUsername: '',

@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import ReaderApp from './ReaderApp.vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import {library} from '@fortawesome/fontawesome-svg-core';
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
 import {faGreaterThan, faLessThan} from '@fortawesome/free-solid-svg-icons';
@@ -38,7 +39,8 @@ document
 document
   .getElementById('titlebar-customer')
   ?.addEventListener('click', () => showStyleMenu());
+// 关于本书信息
 document
   .getElementById('titlebar-about')
-  ?.addEventListener('click', () => console.log('About'));
+  ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-book-info')});
 document.addEventListener('contextmenu', (event) => {event.preventDefault();});

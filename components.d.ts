@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BookInfoDialog: typeof import('./src/components/BookInfoDialog/index.vue')['default']
     BookMark: typeof import('./src/components/BookMark.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']

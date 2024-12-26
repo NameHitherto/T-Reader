@@ -10,6 +10,8 @@
     </Transition>
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
+    <!-- 书籍信息框 -->
+    <BookInfoDialog v-model="bookInfoVisible" :bookId="bookInfoId"/>
     <header class="header">
       <span style="font-size: large; font-weight: 600">全部图书</span>
       <button class="button" @click="addBook">
@@ -139,6 +141,7 @@ import ContextMenu from './ContextMenu/index.vue'
 import { ContextMenuData, ContextMenuItem } from '../js/map'
 import settingIcon from '../assets/setting.svg'
 import SettingDialog from './SettingDialog/index.vue'
+import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../css/Coolbutton.css'
 import '../js/iconfont.js'
 
@@ -160,7 +163,8 @@ export default {
   components: {
     loadingBlockade,
     ContextMenu,
-    SettingDialog
+    SettingDialog,
+    BookInfoDialog,
   },
   setup() {
     const books = ref<Book[]>([])
@@ -170,6 +174,8 @@ export default {
       'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
     ) // 加载时的提示文字
     const settingVisible = ref(false) // 设置中心
+    const bookInfoVisible = ref(false) // 书籍信息框
+    const bookInfoId = ref<String>('') // 书籍ID
     const defaultCover = './src/assets/default-cover.png'
     let unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
@@ -353,6 +359,11 @@ export default {
       })
     }
 
+    const showBookInfo = (id: number) => {
+      bookInfoId.value = id.toString()
+      bookInfoVisible.value = true
+    }
+
     // 右键菜单
     const onContextMenu = (e: MouseEvent, bookId: number) => {
       //e.preventDefault()
@@ -368,7 +379,7 @@ export default {
         {
           label: '信息 | 详细信息',
           type: 'info',
-          onClick: () => console.log('Info:', bookId),
+          onClick: () => showBookInfo(bookId),
         },
         {
           label: '删除 | 更新云同步',
@@ -429,6 +440,8 @@ export default {
       settingIcon,
       openSetting,
       settingVisible,
+      bookInfoVisible,
+      bookInfoId,
     }
   },
 }

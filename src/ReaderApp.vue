@@ -22,6 +22,7 @@
       </el-menu-item>
     </el-menu>
   </el-drawer>
+  <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading"/>
 </template>
 
 <script lang="ts">
@@ -34,14 +35,20 @@ import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
 import { storeToRefs } from 'pinia'
+import BookInfoDialog from './components/BookInfoDialog/index.vue'
 
 export default {
   name: 'ReaderApp',
+  components: {
+    BookInfoDialog,
+  },
   setup() {
     // 阅读时书籍ID
     const bookIsReading = ref<string | null>(null)
     // 加载时书籍ID
     const bookId = ref<string | null>(null)
+    // 书籍信息
+    const bookInfoVisible = ref(false)
     // 用于存储EPUB渲染对象
     const rendition = ref<any>(null)
     // 用于存储解除监听函数
@@ -186,6 +193,11 @@ export default {
       await loadBook()
     }).then((fn) => {
       unlistenBook.value = fn
+    })
+
+    // 监听显示书籍信息
+    listen('show-book-info', () => {
+      bookInfoVisible.value = true
     })
 
     // 监听样式调整
@@ -389,6 +401,7 @@ export default {
       toc,
       goToChapter,
       activeChapter,
+      bookInfoVisible,
     }
   },
 }
