@@ -116,7 +116,7 @@ export default {
   display: flex;
   transition: all 0.3s ease-in;
   padding: 0;
-  background-color: rgb(240 253 244);
+  background-color: var(--t-color-light-cyan);
 
   .info-container {
     width: 100%;
@@ -178,10 +178,10 @@ export default {
     .h1-title {
       font-size: 20px;
       font-weight: bold;
-      color: rgb(22 101 52);
+      color: var(--t-color-dark-cyan);
     }
     .h2-title {
-      color: rgb(21 128 61);
+      color: var(--t-color-cyan);
       margin-left: 5px;
     }
   }

@@ -88,9 +88,9 @@ export default {
 <style scoped>
 .dialog-wrapper {
   .section {
-    border-left: 1px #dcdfe6 solid;
-    border-right: 1px #dcdfe6 solid;
-    border-bottom: 1px #dcdfe6 solid;
+    border-left: var(--t-border-thin);
+    border-right: var(--t-border-thin);
+    border-bottom: var(--t-border-thin);
     margin-bottom: 6px;
 
     .divider {
@@ -104,7 +104,7 @@ export default {
 
       .input-label {
         font-size: 14px;
-        color: #8b8e98;
+        color: var(--t-color-dark-grey);
         font-weight: 600;
       }
     }

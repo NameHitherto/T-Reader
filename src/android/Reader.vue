@@ -267,7 +267,7 @@ export default {
 }
 
 #epub-reader :deep(.epub-container)::-webkit-scrollbar-thumb {
-  background-color: rgb(216, 216, 216);
+  background-color: var(--t-color-grey);
   /* 浅色背景 */
   border-radius: 6px;
   background-clip: content-box;

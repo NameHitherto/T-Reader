@@ -9,6 +9,7 @@ import {} from '@fortawesome/free-regular-svg-icons';
 import {} from '@fortawesome/free-brands-svg-icons';
 import showStyleMenu from '../src/js/showStyleMenu.ts';
 import { createPinia } from 'pinia';
+import './css/global.css';
 
 // FontAwesome 图标库 https://fontawesome.com/search
 library.add(faGreaterThan); //greater-than

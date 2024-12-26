@@ -416,7 +416,7 @@ export default {
   background: transparent;
 }
 :global(.el-drawer__body::-webkit-scrollbar-thumb) {
-  background-color: rgb(216, 216, 216); /* 浅色背景 */
+  background-color: var(--t-color-grey); /* 浅色背景 */
   border-radius: 6px;
   background-clip: content-box;
 }
@@ -443,7 +443,7 @@ export default {
     background: transparent;
   }
   #epub-reader :deep(.epub-container)::-webkit-scrollbar-thumb {
-    background-color: rgb(216, 216, 216); /* 浅色背景 */
+    background-color: var(--t-color-grey); /* 浅色背景 */
     border-radius: 6px;
     background-clip: content-box;
   }

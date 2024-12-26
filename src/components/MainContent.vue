@@ -504,7 +504,7 @@ export default {
 
     .book-header {
       font-weight: bold;
-      border-bottom: 2px solid #ccc;
+      border-bottom: var(--t-border-medium-grey);
       padding: 10px 0;
       margin: 0 20px;
     }
@@ -542,7 +542,7 @@ export default {
 
         &:hover {
           background-color: #d3ddf1;
-          border: 1.5px solid #1677ff;
+          border: var(--t-border-thin-blue);
         }
 
         img {

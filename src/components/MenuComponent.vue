@@ -263,7 +263,7 @@ label {
   padding: 10px;
   width: 200px;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--t-box-shadow-light);
   overflow: auto;
 
   &::-webkit-scrollbar {
@@ -275,7 +275,7 @@ label {
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: rgb(216, 216, 216);
+    background-color: var(--t-color-grey);
     /* 浅色背景 */
     border-radius: 6px;
     background-clip: content-box;
@@ -283,7 +283,7 @@ label {
 
   .section {
     padding-bottom: 10px;
-    border-bottom: 1px solid #ebebeb;
+    border-bottom: var(--t-border-thin-light);
 
     .section-title {
       font-size: 14px;
