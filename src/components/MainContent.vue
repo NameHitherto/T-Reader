@@ -328,8 +328,8 @@ export default {
         url: 'reader.html',
         title: 'T-Reader',
         decorations: false,
-        minHeight: 600,
-        minWidth: 600,
+        minHeight: 660,
+        minWidth: 880,
       })
 
       webview.once('tauri://created', async function () {
@@ -339,7 +339,6 @@ export default {
         unlistenReady.value = await listen<string>(
           'ready-to-receive-book-id',
           async () => {
-            console.log('Reader is ready to receive book ID')
             WebviewWindow.getCurrent().emitTo(
               'reader',
               'load-book-id',
@@ -350,6 +349,7 @@ export default {
       })
 
       webview.once('tauri://error', function () {
+        console.log('阅读器已打开...')
         // 阅读器已加载，此时只需要发送新的书籍ID
         WebviewWindow.getCurrent().emitTo(
           'reader',

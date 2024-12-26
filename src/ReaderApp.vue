@@ -228,12 +228,6 @@ export default {
         setTimeout(loadBook, 500) // 500ms 后再次尝试加载书籍
         return
       }
-
-      // 防止重复加载
-      if (rendition.value) {
-        return
-      }
-
       // 自用书籍ID备份
       bookIsReading.value = bookId.value
       // 书籍加载完毕书籍ID置空，防止浏览器缓存
