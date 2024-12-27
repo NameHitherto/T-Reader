@@ -25,10 +25,7 @@
   <!-- 书籍详细信息展示 -->
   <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading" />
   <!-- 右键菜单 -->
-   <ContextMenu
-    v-model:show="showContextMenu"
-    :menu-data="contextMenuOptions"
-   />
+  <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
 </template>
 
 <script lang="ts">
@@ -82,6 +79,8 @@ export default {
     const contextMenuOptions = ref({} as ContextMenuData)
     // 当前选中的文本
     const selectedText = ref<string>('')
+    // 选中文本的Range对象
+    const selectedRange = ref<string>('')
 
     // 加载或更新阅读器样式
     const applyReaderStyle = async () => {
@@ -150,7 +149,9 @@ export default {
         })
         const configTemp = JSON.parse(new TextDecoder().decode(configData))
         readerConfigStore.setReaderConfig(configTemp)
-      } catch (e) {}
+      } catch (e) {
+        console.log(e)
+      }
     }
 
     // 保存配置文件
@@ -201,6 +202,15 @@ export default {
           })
         }
       }
+    }
+
+    // 添加笔记
+    const addBookMark = async () => {
+      // 向子iframe发送消息
+      document.querySelector('iframe')!.contentWindow!.postMessage(
+        { type: 'to-iframe-bookmark', range: selectedRange },
+        '*'
+      )
     }
 
     // 监听主程序发送的书籍ID
@@ -402,9 +412,14 @@ export default {
         }
         // 监听iframe中的特殊右键菜单事件
         if (event.data.type === 'iframe-contextmenu') {
+          // 更新选中文本
           selectedText.value = event.data.text
+          // 更新选中文本的Range对象
+          selectedRange.value = JSON.stringify(event.data.range)
           // 获取iframe在主页面中的位置
-          const iframeRect = document.querySelectorAll('iframe')[0].getBoundingClientRect()
+          const iframeRect = document
+            .querySelectorAll('iframe')[0]
+            .getBoundingClientRect()
           let menuX = iframeRect.left + event.data.mousePos.x
           let menuY = iframeRect.top + event.data.mousePos.y
           // 菜单选项
@@ -412,7 +427,7 @@ export default {
             {
               label: '标记 | 添加标签',
               type: 'bookmark',
-              onClick: () => console.log('添加笔记'),
+              onClick: () => addBookMark(),
             },
             {
               label: '注释 | 个人评论',
