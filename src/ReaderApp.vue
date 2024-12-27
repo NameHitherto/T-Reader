@@ -22,7 +22,13 @@
       </el-menu-item>
     </el-menu>
   </el-drawer>
+  <!-- 书籍详细信息展示 -->
   <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading" />
+  <!-- 右键菜单 -->
+   <ContextMenu
+    v-model:show="showContextMenu"
+    :menu-data="contextMenuOptions"
+   />
 </template>
 
 <script lang="ts">
@@ -36,11 +42,14 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
 import { storeToRefs } from 'pinia'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
+import ContextMenu from './components/ContextMenu/index.vue'
+import { ContextMenuData, ContextMenuItem } from './js/map'
 
 export default {
   name: 'ReaderApp',
   components: {
     BookInfoDialog,
+    ContextMenu,
   },
   setup() {
     // 阅读时书籍ID
@@ -67,6 +76,12 @@ export default {
     const toc = ref<any[]>([])
     // 当前章节
     const activeChapter = ref<string>('')
+    // 右键笔记菜单
+    const showContextMenu = ref(false)
+    // 右键菜单选项
+    const contextMenuOptions = ref({} as ContextMenuData)
+    // 当前选中的文本
+    const selectedText = ref<string>('')
 
     // 加载或更新阅读器样式
     const applyReaderStyle = async () => {
@@ -112,18 +127,18 @@ export default {
           'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
         },
         p: {
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
         },
         font: {
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
         },
         '::selection': {
-          'background': '#00c4b6',
-          'color': '#f7f7f7', 
-        }
+          background: '#00c4b6',
+          color: '#f7f7f7',
+        },
       })
     }
 
@@ -371,6 +386,8 @@ export default {
           for (let i = 0; i < frontButtons.length; i++) {
             frontButtons[i].classList.remove('active')
           }
+          // 关闭右键菜单
+          showContextMenu.value = false
         }
         // 监听iframe中的键盘事件
         if (event.data.type === 'iframe-keydown') {
@@ -383,10 +400,62 @@ export default {
             nextPage()
           }
         }
-        // 监听iframe中的文本选中事件
-        if (event.data.type === 'iframe-selection') {
-          // 暂不作实现
-          console.log(event.data);
+        // 监听iframe中的特殊右键菜单事件
+        if (event.data.type === 'iframe-contextmenu') {
+          selectedText.value = event.data.text
+          // 获取iframe在主页面中的位置
+          const iframeRect = document.querySelectorAll('iframe')[0].getBoundingClientRect()
+          let menuX = iframeRect.left + event.data.mousePos.x
+          let menuY = iframeRect.top + event.data.mousePos.y
+          // 菜单选项
+          const menuItems: ContextMenuItem[] = [
+            {
+              label: '标记 | 添加标签',
+              type: 'bookmark',
+              onClick: () => console.log('添加笔记'),
+            },
+            {
+              label: '注释 | 个人评论',
+              type: 'comment',
+              onClick: () => console.log('个人评论'),
+            },
+            {
+              label: '删除 | 删除笔记',
+              type: 'delBookMark',
+              onClick: () => console.log('删除笔记'),
+            },
+          ]
+          const menuWidth = 160 // 菜单宽度
+          const menuHeight = 35 * menuItems.length // 菜单预估高度
+          const pageWidth = document.documentElement.clientWidth // 页面宽度
+          const pageHeight = document.documentElement.clientHeight // 页面高度
+          const precision = 20 // 菜单距离页面边缘的最小距离
+          // 如果菜单最右边超过页面宽度，则调整位置
+          if (menuX + menuWidth > pageWidth) {
+            menuX -= menuWidth
+          }
+          menuX = Math.max(precision, menuX)
+          menuX = Math.min(pageWidth - precision - menuWidth, menuX)
+          // 如果菜单最下边超过页面高度，则调整位置
+          if (menuY + menuHeight > pageHeight) {
+            menuY -= menuHeight
+          }
+          menuY = Math.max(precision, menuY)
+          menuY = Math.min(pageHeight - precision - menuHeight, menuY)
+          // 赋值
+          contextMenuOptions.value = {
+            x: menuX,
+            y: menuY,
+            width: menuWidth,
+            items: menuItems,
+            theme: 'light',
+          }
+          // 显示菜单
+          showContextMenu.value = true
+        }
+        // 监听iframe中的一般右键菜单事件
+        if (event.data.type === 'iframe-contextmenu-casual') {
+          showContextMenu.value = false
         }
       })
     })
@@ -404,6 +473,8 @@ export default {
       goToChapter,
       activeChapter,
       bookInfoVisible,
+      showContextMenu,
+      contextMenuOptions,
     }
   },
 }

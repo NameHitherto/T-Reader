@@ -29,6 +29,9 @@ import bookOpenIcon from './assets/book-open.svg'
 import deleteIcon from './assets/delete.svg'
 import goBackIcon from './assets/go-back.svg'
 import infoIcon from './assets/info.svg'
+import bookmarkIcon from './assets/bookmark.svg'
+import delBookMarkIcon from './assets/delBookMark.svg'
+import commentIcon from './assets/comment.svg'
 import defaultIcon from './assets/default.svg'
 export default {
   name: 'ContextMenu',
@@ -46,6 +49,9 @@ export default {
         delete: deleteIcon,
         goBack: goBackIcon,
         info: infoIcon,
+        bookmark: bookmarkIcon,
+        delBookMark: delBookMarkIcon,
+        comment: commentIcon,
         default: defaultIcon
       },
       menuActive: true

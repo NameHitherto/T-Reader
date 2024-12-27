@@ -15,13 +15,24 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('contextmenu', (event) => {
     // 阻止默认右键菜单
     event.preventDefault();
-});
 
-// 监听文本选中事件
-document.addEventListener('selectionchange', (event) => {
+    const mousePos = {x: event.clientX, y: event.clientY};
+
+    // 获取选中的文本
     const selection = window.getSelection();
-    const range = selection.getRangeAt(0);
-    const text = range.toString();
-    const rect = range.getBoundingClientRect();
-    window.parent.postMessage({ type: 'iframe-selection', text, rect }, '*');
+    const text = selection.toString();
+
+    // 检查鼠标位置是否在选中区域内
+    if (text) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        if (event.clientX >= rect.left && event.clientX <= rect.right &&
+            event.clientY >= rect.top && event.clientY <= rect.bottom) {
+            window.parent.postMessage({ type: 'iframe-contextmenu', text, rect, mousePos }, '*');
+        } else {
+            window.parent.postMessage({ type: 'iframe-contextmenu-casual' }, '*');
+        }
+    } else {
+        window.parent.postMessage({ type: 'iframe-contextmenu-casual' }, '*');
+    }
 });

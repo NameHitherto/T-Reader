@@ -1,4 +1,4 @@
-type iconType = 'bookOpen' | 'delete' | 'info' | 'goBack';
+type iconType = 'bookOpen' | 'delete' | 'info' | 'goBack' | 'bookmark' | 'delBookMark' | 'comment';
 type themeType = 'light' | 'dark';
 // 右键菜单ContextMenu
 export interface ContextMenuData {
