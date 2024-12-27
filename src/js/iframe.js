@@ -16,3 +16,12 @@ document.addEventListener('contextmenu', (event) => {
     // 阻止默认右键菜单
     event.preventDefault();
 });
+
+// 监听文本选中事件
+document.addEventListener('selectionchange', (event) => {
+    const selection = window.getSelection();
+    const range = selection.getRangeAt(0);
+    const text = range.toString();
+    const rect = range.getBoundingClientRect();
+    window.parent.postMessage({ type: 'iframe-selection', text, rect }, '*');
+});

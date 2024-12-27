@@ -22,7 +22,7 @@
       </el-menu-item>
     </el-menu>
   </el-drawer>
-  <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading"/>
+  <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading" />
 </template>
 
 <script lang="ts">
@@ -119,6 +119,10 @@ export default {
         },
         font: {
           'color': `${readerConfig.value.fontColor}`,
+        },
+        '::selection': {
+          'background': '#00c4b6',
+          'color': '#f7f7f7', 
         }
       })
     }
@@ -355,8 +359,9 @@ export default {
 
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler)
-      // 监听iframe中的点击事件
+      // 监听iframe中传递的事件
       window.addEventListener('message', (event) => {
+        // 监听iframe中的点击事件
         if (event.data.type === 'iframe-click') {
           // 如果此时样式菜单已打开，则关闭
           document.getElementById('customer-menu')?.remove()
@@ -367,9 +372,7 @@ export default {
             frontButtons[i].classList.remove('active')
           }
         }
-      })
-      // 监听iframe中的键盘事件
-      window.addEventListener('message', (event) => {
+        // 监听iframe中的键盘事件
         if (event.data.type === 'iframe-keydown') {
           if (event.data.key === 'ArrowLeft' || event.data.key === 'ArrowUp') {
             prevPage()
@@ -379,6 +382,11 @@ export default {
           ) {
             nextPage()
           }
+        }
+        // 监听iframe中的文本选中事件
+        if (event.data.type === 'iframe-selection') {
+          // 暂不作实现
+          console.log(event.data);
         }
       })
     })
