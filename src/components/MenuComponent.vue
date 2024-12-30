@@ -305,7 +305,7 @@ label {
         border-radius: 50%;
         border: 2px solid #ccc;
         margin-right: 8px;
-        cursor: pointer;
+        cursor: var(--t-mouse-cursor-link), pointer;
         transition: border 0.3s;
 
         &:hover {
@@ -346,7 +346,6 @@ label {
 button {
   width: 20px;
   height: 20px;
-  cursor: pointer;
   padding: 0 5px;
   border: none;
   background-color: transparent;

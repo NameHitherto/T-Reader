@@ -11,7 +11,7 @@ import {faBookmark} from '@fortawesome/free-regular-svg-icons';
 import {faStackOverflow} from '@fortawesome/free-brands-svg-icons';
 import { platform } from '@tauri-apps/plugin-os';
 import { createPinia } from 'pinia';
-import './css/global.css';
+import './css/global.scss';
 
 // FontAwesome 图标库 https://fontawesome.com/search
 library.add(faBookOpen); //book-open

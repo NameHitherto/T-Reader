@@ -463,7 +463,6 @@ export default {
         align-items: center;
         justify-content: center;
         transition-duration: .4s;
-        cursor: pointer;
         position: relative;
         background-color: rgb(31, 31, 31);
         overflow: hidden;
@@ -570,7 +569,7 @@ export default {
         margin: 5px 4px 0 10px;
         background: #f2f3f7;
         border-radius: 10px;
-        cursor: pointer;
+        cursor: var(--t-mouse-cursor-link), pointer;
         border: 1.5px solid #f2f3f7;
         transition: ease 0.2s;
 

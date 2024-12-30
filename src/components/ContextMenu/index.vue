@@ -119,7 +119,7 @@ export default {
         transition: all 0.3s ease;
         padding: 6px 8px;
         border-radius: 5px;
-        cursor: pointer;
+        cursor: var(--t-mouse-cursor-link), pointer;
         position: relative;
         overflow: hidden;
         user-select: none;

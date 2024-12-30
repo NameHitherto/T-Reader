@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { readFile, BaseDirectory, writeFile } from '@tauri-apps/plugin-fs'
@@ -82,6 +82,36 @@ export default {
     // 选中文本的Range对象
     const selectedRange = ref<string>('')
 
+    // 阅读器动态样式
+    const readerDefaultTheme = computed(() => {
+      const themeReturned = {
+        body: {
+          'font-family': `${readerConfig.value.font}`,
+          'font-size': `${readerConfig.value.fontSize}px`,
+          'font-weight': readerConfig.value.fontWeight,
+          'padding-left': `${readerConfig.value.firstLineMargin}px !important`,
+          'padding-right': `${readerConfig.value.lastLineMargin}px !important`,
+          'padding-top': `${readerConfig.value.headerMargin}px !important`,
+          'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
+          'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
+        },
+        p: {
+          color: `${readerConfig.value.fontColor}`,
+          'line-height': `${readerConfig.value.lineSpacing}em`,
+          'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
+          'text-indent': `${readerConfig.value.indent}em`,
+        },
+        font: {
+          color: `${readerConfig.value.fontColor}`,
+        },
+        '::selection': {
+          background: '#00c4b6',
+          color: '#f7f7f7',
+        },
+      }
+      return themeReturned
+    })
+
     // 加载或更新阅读器样式
     const applyReaderStyle = async () => {
       // 背景颜色
@@ -115,30 +145,7 @@ export default {
       }
 
       // 阅读器样式
-      rendition.value.themes.default({
-        body: {
-          'font-family': `${readerConfig.value.font}`,
-          'font-size': `${readerConfig.value.fontSize}px`,
-          'font-weight': readerConfig.value.fontWeight,
-          'padding-left': `${readerConfig.value.firstLineMargin}px !important`,
-          'padding-right': `${readerConfig.value.lastLineMargin}px !important`,
-          'padding-top': `${readerConfig.value.headerMargin}px !important`,
-          'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
-        },
-        p: {
-          color: `${readerConfig.value.fontColor}`,
-          'line-height': `${readerConfig.value.lineSpacing}em`,
-          'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
-          'text-indent': `${readerConfig.value.indent}em`,
-        },
-        font: {
-          color: `${readerConfig.value.fontColor}`,
-        },
-        '::selection': {
-          background: '#00c4b6',
-          color: '#f7f7f7',
-        },
-      })
+      rendition.value.themes.default(readerDefaultTheme.value)
     }
 
     // 读取配置文件
@@ -560,7 +567,6 @@ export default {
       border: none;
       border-radius: 6px;
       padding: 15px;
-      cursor: pointer;
       opacity: 0;
       transition: opacity 0.3s;
       pointer-events: auto;
