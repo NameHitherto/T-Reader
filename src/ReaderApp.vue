@@ -208,7 +208,7 @@ export default {
     const addBookMark = async () => {
       // 向子iframe发送消息
       document.querySelector('iframe')!.contentWindow!.postMessage(
-        { type: 'to-iframe-bookmark', range: selectedRange },
+        { type: 'to-iframe-bookmark', range: selectedRange, theme: readerConfig.value.color === '#000000' ? 'dark' : 'light' },
         '*'
       )
     }

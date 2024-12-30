@@ -51,22 +51,28 @@ document.addEventListener('contextmenu', (event) => {
 
 // 监听通信事件
 window.addEventListener('message', (event) => {
+  // 定义样式常量
+  const fontColor = {'light': '#000', 'dark': '#fff'}
+  const markerBgColor = { 'light': '#a6e3e9', 'dark': '#1a1a1a' }
   // 添加书签事件
   if (event.data.type === 'to-iframe-bookmark') {
+    const theme = event.data.theme
     // 创建书签标记元素
     const marker = document.createElement('span')
     marker.className = 'text-marker'
-    marker.style.backgroundColor = '#a6e3e9'
-    marker.style.color = '#000'
+    marker.style.backgroundColor = markerBgColor[theme]
+    marker.style.color = fontColor[theme]
     marker.style.fontWeight = 'bold'
     marker.style.position = 'relative'
     // 添加标签图标icon
     const icon = document.createElement('span')
-    icon.textContent = '🔖'
+    icon.textContent = '🏷️'
+    icon.style.textIndent = '0'
     icon.style.position = 'absolute'
-    icon.style.fontSize = '12px'
-    icon.style.top = '-10px'
-    icon.style.left = '-10px'
+    icon.style.fontSize = '0.8em'
+    icon.style.lineHeight = '0.8em'
+    icon.style.top = '-0.6em'
+    icon.style.left = '-0.6em'
     // 将icon添加到标记中
     marker.appendChild(icon)
     // 将标记元素包裹选中的文本
@@ -78,6 +84,15 @@ window.addEventListener('message', (event) => {
       const selectedContents = range.extractContents()
       marker.appendChild(selectedContents)
       range.insertNode(marker)
+      // 部分DOM文档可能仍在使用已弃用的<font>标签
+      marker.querySelectorAll('font').forEach((fontElement) => {
+        fontElement.style.color = fontColor[theme];
+      });
+      // 若文字外面还有其它标签, 如<p>标签
+      marker.querySelectorAll('p').forEach((pElement) => {
+        pElement.style.color = fontColor[theme];
+        pElement.style.backgroundColor = markerBgColor[theme];
+      });
     } catch (e) {
       console.error(e)
     }
