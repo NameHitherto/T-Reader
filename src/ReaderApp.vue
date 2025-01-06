@@ -93,21 +93,23 @@ export default {
           'padding-right': `${readerConfig.value.lastLineMargin}px !important`,
           'padding-top': `${readerConfig.value.headerMargin}px !important`,
           'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
-          'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
         },
         p: {
-          color: `${readerConfig.value.fontColor}`,
+          'color': `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
         },
         font: {
-          color: `${readerConfig.value.fontColor}`,
+          'color': `${readerConfig.value.fontColor}`,
         },
         '::selection': {
-          background: '#00c4b6',
-          color: '#f7f7f7',
+          'background': '#00c4b6',
+          'color': '#f7f7f7',
         },
+        'html': {
+          'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
+        }
       }
       return themeReturned
     })
@@ -397,9 +399,7 @@ export default {
         if (event.data.type === 'iframe-click') {
           // 如果此时样式菜单已打开，则关闭
           document.getElementById('customer-menu')?.remove()
-          const frontButtons = document.getElementsByClassName(
-            'titlebar-front-button'
-          )
+          const frontButtons = document.getElementsByClassName('titlebar-front-button')
           for (let i = 0; i < frontButtons.length; i++) {
             frontButtons[i].classList.remove('active')
           }

@@ -25,6 +25,7 @@ document.addEventListener('contextmenu', (event) => {
   // 检查鼠标位置是否在选中区域内
   if (text) {
     const range = selection.getRangeAt(0)
+    console.log(serializeRange(range))
     const rect = range.getBoundingClientRect()
     if (
       event.clientX >= rect.left &&
@@ -56,6 +57,7 @@ window.addEventListener('message', (event) => {
   const markerBgColor = { 'light': '#a6e3e9', 'dark': '#1a1a1a' }
   // 添加书签事件
   if (event.data.type === 'to-iframe-bookmark') {
+    console.log(event.data.range)
     const theme = event.data.theme
     // 创建书签标记元素
     const marker = document.createElement('span')
