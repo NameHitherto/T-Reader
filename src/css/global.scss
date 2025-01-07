@@ -55,7 +55,16 @@
   --t-scrollbar-width-thin: 6px;
 }
 
+@font-face {
+  font-family: 'pingfang';
+  src: url('/src/font/pingfang.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 body {
+  margin: 0;
+  font-family: 'pingfang', sans-serif;
   cursor: var(--t-mouse-cursor-pointer), default;
 }
 

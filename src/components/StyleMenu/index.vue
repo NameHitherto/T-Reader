@@ -27,7 +27,7 @@
             @click="selectFont(font.name)" 
             border
           >
-            {{ font.display }}
+            <span :style="`font-family: ${font.name};`">{{ font.display }}</span>
           </el-radio>
         </el-radio-group>
       </div>
@@ -181,10 +181,10 @@ export default defineComponent({
 
     const fonts = [
       { name: 'system-ui', display: '默认' },
-      { name: 'cursive', display: 'cursive' },
-      { name: 'fangsong', display: '仿宋' },
-      { name: 'monospace', display: 'monospace' },
-      { name: 'serif', display: 'serif' },
+      { name: 'pingfang', display: '苹方' },
+      { name: 'cursive', display: '草书' },
+      { name: 'Roboto', display: 'Google Roboto' },
+      { name: 'HiraginoMin', display: 'ヒラギノ明朝体' },
     ]
 
     // 样式视觉化更新
