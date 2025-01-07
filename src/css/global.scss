@@ -50,6 +50,9 @@
   --t-mouse-cursor-diag1: url('/src/assets/cursor/dgn1.cur');
   /* 对角调整2 */
   --t-mouse-cursor-diag2: url('/src/assets/cursor/dgn2.cur');
+
+  // 滚动条宽度
+  --t-scrollbar-width-thin: 6px;
 }
 
 body {
@@ -62,4 +65,19 @@ a {
 
 button {
   cursor: var(--t-mouse-cursor-link), pointer;
+}
+
+/* element-plus 默认样式 */
+.el-radio {
+  cursor: var(--t-mouse-cursor-link), pointer;
+
+  .el-radio__inner {
+    cursor: var(--t-mouse-cursor-link), pointer;
+  }
+}
+
+.el-input-number {
+  span {
+    cursor: var(--t-mouse-cursor-link), pointer;
+  }
 }

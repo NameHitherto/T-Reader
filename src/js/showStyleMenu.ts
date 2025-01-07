@@ -1,4 +1,4 @@
-import MenuComponent from '../components/MenuComponent.vue';
+import MenuComponent from '../components/StyleMenu/index.vue';
 import { createApp, h } from 'vue';
 export default function showStyleMenu() {
     // 给所有类名为titlebar-front-button的元素添加active类

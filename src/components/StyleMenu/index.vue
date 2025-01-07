@@ -15,14 +15,21 @@
     </div>
     <div class="font-section section">
       <span class="section-title">字体</span>
-      <div v-for="font in fonts" :key="font.name" class="font-option">
-        <input
-          type="radio"
-          :value="font.name"
+      <div class="font-option">
+        <el-radio-group
+          class="font-radio-group"
           v-model="selectedFont"
-          @click="selectFont(font.name)"
-        />
-        <label>{{ font.display }}</label>
+        >
+          <el-radio 
+            v-for="font in fonts" 
+            :key="font.name" 
+            :value="font.name" 
+            @click="selectFont(font.name)" 
+            border
+          >
+            {{ font.display }}
+          </el-radio>
+        </el-radio-group>
       </div>
     </div>
     <div class="basic-section section">
@@ -32,17 +39,16 @@
         :key="index"
       >
         <label>{{ setting.label }}</label>
-        <div class="adjust-button-group">
-          <button
-            class="minus"
-            @click="adjustSetting(setting.key, setting.amount * -1)"
-          ></button>
-          <span>{{ setting.value }}</span>
-          <button
-            class="plus"
-            @click="adjustSetting(setting.key, setting.amount)"
-          ></button>
-        </div>
+        <el-input-number
+          v-model="setting.value"
+          class="input-number"
+          :min="setting.min"
+          :max="setting.max"
+          :precision="setting.precision"
+          :step="setting.amount"
+          size="small"
+          @change="adjustSetting(setting.key, setting.value)"
+        />
       </div>
     </div>
     <div id="reset-button" @click="resetStyle">
@@ -56,11 +62,11 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
-import { useReaderConfigStore } from '../store/readerConfigStore'
+import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import '../css/ResetButton.css'
+import '@/css/ResetButton.css'
 
 export default defineComponent({
   setup() {
@@ -77,66 +83,99 @@ export default defineComponent({
         value: readerConfig.value.indent,
         key: 'indent',
         amount: 1,
+        min: 0,
+        max: 10,
+        precision: 0,
       },
       {
         label: '字体大小',
         value: readerConfig.value.fontSize,
         key: 'fontSize',
         amount: 1,
+        min: 10,
+        max: 30,
+        precision: 0,
       },
       {
         label: '字重',
         value: readerConfig.value.fontWeight,
         key: 'fontWeight',
         amount: 100,
+        min: 100,
+        max: 900,
+        precision: 0,
       },
       {
         label: '行距',
         value: readerConfig.value.lineSpacing,
         key: 'lineSpacing',
         amount: 0.1,
+        min: 0,
+        max: 2,
+        precision: 1,
       },
       {
         label: '段距',
         value: readerConfig.value.paragraphSpacing,
         key: 'paragraphSpacing',
         amount: 0.1,
+        min: 0,
+        max: 2,
+        precision: 1,
       },
       {
         label: '行首边距',
         value: readerConfig.value.firstLineMargin,
         key: 'firstLineMargin',
         amount: 1,
+        min: 0,
+        max: 100,
+        precision: 0,
       },
       {
         label: '行尾边距',
         value: readerConfig.value.lastLineMargin,
         key: 'lastLineMargin',
         amount: 1,
+        min: 0,
+        max: 100,
+        precision: 0,
       },
       {
         label: '页眉边距',
         value: readerConfig.value.headerMargin,
         key: 'headerMargin',
         amount: 1,
+        min: 0,
+        max: 100,
+        precision: 0,
       },
       {
         label: '页脚边距',
         value: readerConfig.value.footerMargin,
         key: 'footerMargin',
         amount: 1,
+        min: 0,
+        max: 100,
+        precision: 0,
       },
       {
         label: '最小栏宽',
         value: readerConfig.value.minColumnWidth,
         key: 'minColumnWidth',
         amount: 1,
+        min: 0,
+        max: 100,
+        precision: 0,
       },
       {
         label: '栏间距',
         value: readerConfig.value.columnSpacing,
         key: 'columnSpacing',
         amount: 1,
+        min: 0,
+        max: 100,
+        precision: 0,
       },
     ])
 
@@ -198,18 +237,11 @@ export default defineComponent({
     }
 
     // 调整样式设置
-    const adjustSetting = (key: string, amount: number) => {
+    const adjustSetting = (key: string, value: number) => {
       // 更新状态全局变量
-      readerConfigStore.calculate(key, amount)
+      readerConfigStore.changeState(key, value)
       // 通知阅读器更新样式
       emitStyleApplication()
-      // 更新可视化
-      settings.value = settings.value.map((setting) => {
-        if (setting.key === key) {
-          setting.value = readerConfig.value[key]
-        }
-        return setting
-      })
     }
 
     onMounted(() => {
@@ -238,7 +270,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 组件浮现动画 */
 @keyframes fadeIn {
   0% {
@@ -267,7 +299,7 @@ label {
   overflow: auto;
 
   &::-webkit-scrollbar {
-    width: 6px;
+    width: var(--t-scrollbar-width-thin);
   }
 
   &::-webkit-scrollbar-track {
@@ -279,6 +311,11 @@ label {
     /* 浅色背景 */
     border-radius: 6px;
     background-clip: content-box;
+    display: none;
+  }
+
+  &:hover::-webkit-scrollbar-thumb {
+    display: unset;
   }
 
   .section {
@@ -321,6 +358,20 @@ label {
     .font-option {
       display: flex;
       align-items: center;
+      margin-top: 0.225rem;
+
+      .font-radio-group {
+        gap: 0.25rem;
+
+        :deep(.el-radio) {
+          width: 100%;
+          margin: 0;
+        }
+        :deep(.el-radio__label) {
+          width: 100%;
+          text-align: center;
+        }
+      }
     }
   }
 
@@ -333,38 +384,14 @@ label {
 
       label {
         margin-right: 10px;
+        font-size: 15px;
+        font-weight: bold;
       }
 
-      .adjust-button-group {
-        display: flex;
-        gap: 10px;
+      .input-number {
+        width: 100px;
       }
     }
   }
-}
-
-button {
-  width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border: none;
-  background-color: transparent;
-  border-radius: 50%;
-  transition: background-color 0.3s;
-  background-position: center;
-  background-repeat: no-repeat;
-
-  &:hover {
-    background-color: #c0c0c0;
-    border-radius: 50%;
-  }
-}
-
-.minus {
-  background-image: url('../assets/minus.svg');
-}
-
-.plus {
-  background-image: url('../assets/plus.svg');
 }
 </style>
