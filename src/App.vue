@@ -33,11 +33,9 @@
   overflow: hidden; /* 隐藏全局滚动条 */
 
   .sidebar {
-    flex: 0 0 160px;
+    flex: 0 0 200px;
     user-select: none;
-    width: 200px;
     background-color: #f4f4f4;
-    padding: 20px;
     overflow: hidden;
 
     .logo {
@@ -45,7 +43,7 @@
       flex-direction: column;
       font-size: 24px;
       font-weight: bold;
-      margin-bottom: 20px;
+      margin: 20px 0;
     }
 
     .menu {
@@ -53,6 +51,7 @@
       flex-direction: column;
       list-style: none;
       padding: 0;
+      margin-left: 20px;
 
       li {
         display: flex;

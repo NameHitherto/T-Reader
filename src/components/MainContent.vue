@@ -440,6 +440,7 @@ export default {
   padding: 20px 0 20px 0;
   overflow: hidden;
   user-select: none;
+  background: var(--t-color-grey);
 
   .header {
     display: flex;
@@ -566,16 +567,23 @@ export default {
       .book-item {
         border-bottom: 1px solid #eee;
         padding: 10px;
-        margin: 5px 4px 0 10px;
-        background: #f2f3f7;
+        margin: 6px 4px 10px 10px;
+        background: #f2f3f5;
         border-radius: 10px;
         cursor: var(--t-mouse-cursor-link), pointer;
-        border: 1.5px solid #f2f3f7;
+        border: 1.5px solid #f2f3f5;
         transition: ease 0.2s;
+        box-shadow: var(--t-box-shadow-3d-inactive);
 
         &:hover {
-          background-color: #d3ddf1;
-          border: var(--t-border-thin-blue);
+          translate: 0 0.225em;
+          background: transparent;
+          border: var(--t-border-thin-yellow);
+          box-shadow: var(--t-box-shadow-3d-active);
+
+          span {
+            color: var(--t-color-light-yellow);
+          }
         }
 
         img {
