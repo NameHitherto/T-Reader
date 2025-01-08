@@ -19,13 +19,9 @@
   /* 盒子中等浅阴影 */
   --t-box-shadow-medium-light: 0 0 0 5px #ffffff80;
   /* 盒子立体阴影——未激活 */
-  --t-box-shadow-3d-inactive: inset 0 0.0625em 0 0 #f4f4f4, 0 0.0625em 0 0 #efefef,
-    0 0.125em 0 0 #ececec, 0 0.25em 0 0 #e0e0e0, 0 0.3125em 0 0 #dedede,
-    0 0.375em 0 0 #dcdcdc, 0 0.425em 0 0 #cacaca, 0 0.425em 0.5em 0 #cecece;
+  --t-box-shadow-3d-inactive: 0 0.03em 0 #f4f4f4, 0 0.06em 0 #efefef, 0 0.09em 0 #ececec, 0 0.12em 0 #e0e0e0, 0 0.15em 0 #dedede, 0 0.18em 0 #dcdcdc, 0 0.21em 0 #cacaca, 0 0.24em 0.2em #cecece;
   /* 盒子立体阴影——激活 */
-  --t-box-shadow-3d-active: inset 0 0.03em 0 0 #f4f4f4, 0 0.03em 0 0 #efefef,
-    0 0.0625em 0 0 #ececec, 0 0.125em 0 0 #e0e0e0, 0 0.125em 0 0 #dedede,
-    0 0.2em 0 0 #dcdcdc, 0 0.225em 0 0 #cacaca, 0 0.225em 0.375em 0 #cecece;
+  --t-box-shadow-3d-active: none;
 
   /* 细边框 */
   --t-border-thin: 1px #dcdfe6 solid;
