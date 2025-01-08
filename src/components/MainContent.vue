@@ -14,24 +14,24 @@
     <BookInfoDialog v-model="bookInfoVisible" :bookId="bookInfoId" />
     <header class="header">
       <div class="header-menu">
-        <button class="button" @click="addBook">
-          <div class="button-icon">
+        <div class="header-menu-item" @click="addBook">
+          <span class="header-menu-icon">
             <img :src="addBookIcon" alt="添加书籍" />
-          </div>
-          <span class="button-text">导入书籍</span>
-        </button>
-        <button class="button" @click="syncFiles">
-          <div class="button-icon">
+          </span>
+          <span class="header-menu-label">导入书籍</span>
+        </div>
+        <div class="header-menu-item" @click="syncFiles">
+          <span class="header-menu-icon">
             <img :src="refreshIcon" alt="云同步" />
-          </div>
-          <span class="button-text">云同步</span>
-        </button>
-        <button class="button" @click="openSetting">
-          <div class="button-icon">
+          </span>
+          <span class="header-menu-label">云同步</span>
+        </div>
+        <div class="header-menu-item" @click="openSetting">
+          <span class="header-menu-icon">
             <img :src="settingIcon" alt="设置" />
-          </div>
-          <span class="button-text">设置中心</span>
-        </button>
+          </span>
+          <span class="header-menu-label">设置中心</span>
+        </div>
       </div>
       <SettingDialog
         v-model="settingVisible"
@@ -434,7 +434,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .main-content {
   flex: 1;
   padding: 20px 0 20px 0;
@@ -447,59 +447,77 @@ export default {
     align-items: center;
     justify-content: center;
     margin: 10px 0;
-    gap: 10px;
 
     .header-menu {
+      padding: 0.5rem;
+      background-color: #fff;
+      position: relative;
       display: flex;
-      gap: 30px;
-      width: 100%;
       justify-content: center;
+      border-radius: 15px;
+      box-shadow: var(--t-box-shadow-3d-inactive);
 
-      .button {
-        border: none;
-        border-radius: 50%;
-        width: 45px;
-        height: 45px;
-        display: flex;
-        align-items: center;
+      &-item {
+        display: inline-flex;
         justify-content: center;
-        transition-duration: .4s;
+        align-items: center;
+        width: 56px;
+        height: 40px;
+        border-radius: 8px;
         position: relative;
-        background-color: rgb(31, 31, 31);
+        z-index: 1;
         overflow: hidden;
+        transform-origin: center left;
+        transition: width 0.2s ease-in;
+        text-decoration: none;
+        cursor: var(--t-mouse-cursor-link), pointer;
 
-        .button-icon {
-          transition-duration: .3s;
-
-          img {
-            width: 25px;
-            height: 25px;
-          }
-        }
-        .button-text {
+        &::before {
           position: absolute;
-          color: rgb(255, 255, 255);
-          width: 120px;
-          font-weight: 600;
-          opacity: 0;
-          transition-duration: .4s;
+          z-index: -1;
+          content: "";
+          display: block;
+          border-radius: 8px;
+          width: 100%;
+          height: 100%;
+          top: 0;
+          transform: translateX(100%);
+          transition: transform 0.2s ease-in;
+          transform-origin: center right;
+          background-color: #eee;
         }
 
         &:hover {
-          width: 110px;
-          transition-duration: .4s;
-          border-radius: 30px;
+          outline: 0;
+          width: 130px;
 
-          .button-icon {
-            opacity: 0;
-            transition-duration: .3s;
-          }
-
-          .button-text {
+          &::before,
+          .header-menu-label {
+            transform: translateX(0);
             opacity: 1;
-            transition-duration: .4s;
           }
         }
+      }
+      &-icon {
+        width: 24px;
+        height: 24px;
+        display: block;
+        flex-shrink: 0;
+        left: 17px;
+        position: absolute;
+        img {
+          width: 100%;
+          height: 100%;
+        }
+      }
+      &-label {
+        transform: translateX(100%);
+        transition: transform 0.2s ease-in;
+        transform-origin: center right;
+        display: block;
+        text-align: center;
+        text-indent: 28px;
+        width: 100%;
       }
     }
   }

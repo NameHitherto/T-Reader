@@ -4,22 +4,9 @@ import AndroidApp from "./android/App.vue";
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import router from './router';
 import androidRouter from './router/android';
-import {library} from '@fortawesome/fontawesome-svg-core';
-import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome';
-import {faBookOpen, faBook, faBookBookmark, faFlask} from '@fortawesome/free-solid-svg-icons';
-import {faBookmark} from '@fortawesome/free-regular-svg-icons';
-import {faStackOverflow} from '@fortawesome/free-brands-svg-icons';
 import { platform } from '@tauri-apps/plugin-os';
 import { createPinia } from 'pinia';
 import './css/global.scss';
-
-// FontAwesome 图标库 https://fontawesome.com/search
-library.add(faBookOpen); //book-open
-library.add(faBookmark); //bookmark
-library.add(faStackOverflow); //stack-overflow
-library.add(faBook); //book
-library.add(faBookBookmark); //book-bookmark
-library.add(faFlask); //flask
 
 // 根据当前平台创建不同实例
 const currentPlatform = platform();
@@ -27,7 +14,6 @@ if(currentPlatform === 'windows') {
   // windows平台
   const app = createApp(App);
   app.use(router);
-  app.component('font-awesome-icon', FontAwesomeIcon);
   app.mount("#app");
   
   // 自定义Titlebar

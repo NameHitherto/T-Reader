@@ -4,11 +4,11 @@
     <div id="epub-reader"></div>
     <!-- 翻页按钮 -->
     <div class="pagination">
-      <button class="prev-page" @click="prevPage">
-        <font-awesome-icon icon="fa-solid fa-less-than" />
+      <button class="prev-page button" @click="prevPage">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20"><path fill="#000000" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z"/></svg>
       </button>
-      <button class="next-page" @click="nextPage">
-        <font-awesome-icon icon="fa-solid fa-greater-than" />
+      <button class="next-page button" @click="nextPage">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20"><path fill="#000000" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z"/></svg>
       </button>
     </div>
   </div>
@@ -146,6 +146,9 @@ export default {
         document.querySelectorAll('.titlebar-button').forEach((button) => {
           button.classList.add('dark')
         })
+        document.querySelectorAll('.button').forEach((button) => {
+          button.classList.add('dark')
+        })
       } else {
         document.querySelectorAll('img').forEach((img) => {
           img.style.filter = 'invert(0)'
@@ -156,6 +159,9 @@ export default {
             button.classList.remove('dark')
           })
         document.querySelectorAll('.titlebar-button').forEach((button) => {
+          button.classList.remove('dark')
+        })
+        document.querySelectorAll('.button').forEach((button) => {
           button.classList.remove('dark')
         })
       }
@@ -574,7 +580,7 @@ export default {
     align-items: center;
     pointer-events: none;
 
-    button {
+    .button {
       height: 100px;
       background-color: rgba(0, 0, 0, 0.1); /* 浅色背景 */
       color: #585858;
@@ -598,6 +604,14 @@ export default {
     .next-page {
       position: absolute;
       right: 10px;
+    }
+
+    .button.dark {
+      background: #e8e8e8;
+
+      &:hover {
+        opacity: 0.5;
+      }
     }
   }
 }
