@@ -39,54 +39,38 @@
       />
     </header>
     <div class="book-list">
-      <div class="book-header">
-        <span>封面</span>
-        <span>书名</span>
-        <span>作者</span>
-        <span>语言</span>
-        <span>大小</span>
-        <span>上次阅读时间</span>
-        <span>加入时间</span>
-      </div>
+      <el-divider border-style="dashed"/>
       <div class="bookcase">
         <el-skeleton :loading="booksLoading" animated :count="10">
           <template #template>
             <div class="book-item" style="background-color: white">
-              <span
-                ><el-skeleton-item
-                  variant="image"
-                  style="width: 50px; height: 75px"
-              /></span>
-              <span
-                ><el-skeleton-item
-                  variant="text"
-                  style="width: 100px; height: 40px"
-              /></span>
-              <span
-                ><el-skeleton-item
-                  variant="text"
-                  style="width: 80px; height: 22px"
-              /></span>
-              <span
-                ><el-skeleton-item
-                  variant="text"
-                  style="width: 50px; height: 18px"
-              /></span>
-              <span
-                ><el-skeleton-item
-                  variant="text"
-                  style="width: 60px; height: 18px"
-              /></span>
-              <span
-                ><el-skeleton-item
-                  variant="text"
-                  style="width: 100px; height: 18px"
-              /></span>
-              <span
-                ><el-skeleton-item
-                  variant="text"
-                  style="width: 100px; height: 18px"
-              /></span>
+              <div class="book-cover">
+                <el-skeleton-item style="width: 80px; height: 100px" />
+              </div>
+              <div class="book-desc">
+                <div class="book-desc-header">
+                  <div class="book-title">
+                    <el-skeleton-item style="width: 200px; height: 30px" />
+                  </div>
+                  <div>
+                    <el-skeleton-item style="width: 100px; height: 30px" />
+                  </div>
+                </div>
+                <div class="book-desc-more">
+                  <div class="book-desc-more-item" style="border: none;">
+                    <el-skeleton-item style="width: 100px; height: 30px" />
+                  </div>
+                  <div class="book-desc-more-item" style="border: none;">
+                    <el-skeleton-item style="width: 100px; height: 30px" />
+                  </div>
+                  <div class="book-desc-more-item" style="border: none;">
+                    <el-skeleton-item style="width: 100px; height: 30px" />
+                  </div>
+                  <div class="book-desc-more-item" style="border: none;">
+                    <el-skeleton-item style="width: 100px; height: 30px" />
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
           <template #default>
@@ -94,16 +78,42 @@
               class="book-item"
               v-for="book in books"
               :key="book.id"
-              @dblclick="openBook(book.id)"
+              @click="openBook(book.id)"
               @contextmenu="onContextMenu($event, book.id)"
             >
-              <span><img :src="book.cover" alt="封面" /></span>
-              <span>{{ book.title }}</span>
-              <span>{{ book.author }}</span>
-              <span>{{ book.language }}</span>
-              <span>{{ book.size }}</span>
-              <span>{{ book.lastRead }}</span>
-              <span>{{ book.added }}</span>
+              <div class="book-cover">
+                <span>
+                  <img :src="book.cover" alt="封面" />
+                </span>
+              </div>
+              <div class="book-desc">
+                <div class="book-desc-header">
+                  <div class="book-title">
+                    <span>{{ book.title }}</span>
+                  </div>
+                  <div class="book-author">
+                    <span>{{ book.author }}</span>
+                  </div>
+                </div>
+                <div class="book-desc-more">
+                  <div class="book-desc-more-item">
+                    <span>语言</span>
+                    <span>{{ book.language }}</span>
+                  </div>
+                  <div class="book-desc-more-item">
+                    <span>书籍大小</span>
+                    <span>{{ book.size }}</span>
+                  </div>
+                  <div class="book-desc-more-item">
+                    <span>上次阅读</span>
+                    <span>{{ book.lastRead }}</span>
+                  </div>
+                  <div class="book-desc-more-item">
+                    <span>添加时间</span>
+                    <span>{{ book.added }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
         </el-skeleton>
@@ -440,7 +450,7 @@ export default {
   padding: 20px 0 20px 0;
   overflow: hidden;
   user-select: none;
-  background: var(--t-color-grey);
+  background: #f5f6fa;
 
   .header {
     display: flex;
@@ -539,26 +549,100 @@ export default {
       background-color: transparent;
     }
 
-    .book-header,
-    .book-item {
-      display: grid;
-      /* 1fr表示它将占据剩余的空间，而不是固定的大小。 */
-      grid-template-columns: 50px 1fr 100px 40px 60px 100px 100px;
-      gap: 10px;
-
-      span {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        font-weight: bold;
-      }
+    :deep(.el-divider) {
+      width: auto;
+      margin: 12px 12px 6px 12px;
+      border-top-width: 3px;
     }
 
-    .book-header {
-      font-weight: bold;
-      border-bottom: var(--t-border-medium-grey);
-      padding: 10px 0;
-      margin: 0 20px;
+    .book-item {
+      display: flex;
+
+      .book-cover {
+        width: 80px;
+
+        span {
+          width: 100%;
+          display: flex;
+
+          img {
+            width: 100%;
+            border-radius: 10px;
+          }
+        }
+      }
+      .book-desc {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        margin-left: 10px;
+
+        &-header {
+          display: inline-flex;
+          gap: 8px;
+
+          .book-title {
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: all 0.2s ease-in;
+
+            span {
+              position: relative;
+              padding: 0 4px;
+            }
+
+            span::after {
+              content: "";
+              position: absolute;
+              left: 0;
+              bottom: 0;
+              width: 0;
+              height: 2px;
+              background: var(--t-color-light-yellow);
+              transition: width 0.2s ease-in
+            }
+          }
+          .book-author {
+            background: var(--t-color-light-blue);
+            color: #ffffff;
+            padding: 0 5px;
+            border-radius: 6px;
+            text-align: center;
+            align-content: center;
+          }
+        }
+        &-more {
+          display: inline-flex;
+          flex: 1;
+          align-items: center;
+
+          &-item:last-child {
+            border-right: none;
+          }
+
+          &-item {
+            display: inline-flex;
+            flex-direction: column;
+            width: 120px;
+            height: 44px;
+            padding: 0 10px;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px dashed var(--t-color-cyan-blue);
+
+            span {
+              line-height: 22px;
+            }
+
+            span:first-child{
+              color: var(--t-color-dark-grey);
+              font-weight: 900;
+            }
+          }
+        }
+      }
+      
     }
 
     .bookcase {
@@ -584,9 +668,9 @@ export default {
 
       .book-item {
         border-bottom: 1px solid #eee;
-        padding: 10px;
+        padding: 8px;
         margin: 6px 4px 10px 10px;
-        background: #f2f3f5;
+        background: #ffffff;
         border-radius: 10px;
         cursor: var(--t-mouse-cursor-link), pointer;
         border: 1.5px solid #f2f3f5;
@@ -599,14 +683,26 @@ export default {
           border: var(--t-border-thin-yellow);
           box-shadow: var(--t-box-shadow-3d-active);
 
-          span {
-            color: var(--t-color-light-yellow);
+          .book-title {
+            span::after {
+              width: 100%;
+            }
           }
         }
 
-        img {
-          width: 50px;
-          height: auto;
+        .book-title:hover {
+          color: #ffffff;
+          background: var(--t-color-light-yellow);
+
+          span::after {
+            opacity: 0;
+          }
+        }
+
+        .book-desc-more-item:hover {
+          span {
+            color: var(--t-color-light-yellow);
+          }
         }
       }
     }
