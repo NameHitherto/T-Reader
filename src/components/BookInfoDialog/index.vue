@@ -13,30 +13,51 @@
         <img :src="bookCover"/>
       </div>
       <div class="book-details">
-        <span class="book-title h1-title">
-          {{ title }}
-        </span>
-        <span class="book-description h2-title">
-          {{ description }}
-        </span>
-        <span class="book-creator h2-title">
-          <span style="font-weight: bold;">作者:</span> {{ creator }}
-        </span>
-        <span class="book-publisher h2-title">
-          <span style="font-weight: bold;">出版社:</span> {{ publisher }}
-        </span>
-        <span class="book-pubdate h2-title">
-          <span style="font-weight: bold;">出版日期:</span> {{ pubdate }}
-        </span>
-        <span class="book-language h2-title">
-          <span style="font-weight: bold;">语言:</span> {{ language }}
-        </span>
-        <span class="book-rights h2-title">
-          <span style="font-weight: bold;">版权信息:</span> {{ rights }}
-        </span>
-        <span class="book-identifier h2-title">
-          <span style="font-weight: bold;">唯一标识:</span> {{ identifier }}
-        </span>
+        <el-scrollbar class="book-details-scrollbar">
+          <el-row class="row">
+            <el-col class="col title" :span="24">
+              <span class="book-title">{{ title }}</span>
+            </el-col>
+          </el-row>
+          <el-row class="row">
+            <el-col class="col description" :span="24">
+              <span class="col-title">简介</span>
+              <span class="col-text">{{ description }}</span>
+            </el-col>
+          </el-row>
+          <el-row class="row">
+            <el-col class="col creator" :span="6">
+              <span class="col-title">作者</span>
+              <span class="col-h">{{ creator }}</span>
+            </el-col>
+            <el-col class="col publisher" :span="17">
+              <span class="col-title">出版社</span>
+              <span class="col-h">{{ publisher }}</span>
+            </el-col>
+          </el-row>
+          <el-row class="row">
+            <el-col class="col pubdate" :span="24">
+              <span class="col-title">出版日期</span>
+              <span class="col-h">{{ pubdate }}</span>
+            </el-col>
+          </el-row>
+          <el-row class="row">
+            <el-col class="col language" :span="6">
+              <span class="col-title">语言</span>
+              <span class="col-h">{{ language }}</span>
+            </el-col>
+            <el-col class="col rights" :span="17">
+              <span class="col-title">版权信息</span>
+              <span class="col-h">{{ rights }}</span>
+            </el-col>
+          </el-row>
+          <el-row class="row">
+            <el-col class="col identifier" :span="24">
+              <span class="col-title">唯一标识</span>
+              <span class="col-h">{{ identifier }}</span>
+            </el-col>
+          </el-row>
+        </el-scrollbar>
       </div>
     </div>
   </el-dialog>
@@ -95,7 +116,7 @@ export default {
       this.rights = metadata.rights
       this.title = metadata.title
     }
-  }
+  },
 };
 </script>
 
@@ -109,14 +130,14 @@ export default {
   }
 }
 </style>
-<style>
+<style lang="scss">
 .info-dialog-wrapper {
   max-height: 70%;
   width: auto;
   display: flex;
   transition: all 0.3s ease-in;
   padding: 0;
-  background-color: var(--t-color-light-cyan);
+  background-color: #0d0d0d;
   box-shadow: var(--t-box-shadow-medium-light);
 
   .info-container {
@@ -169,21 +190,73 @@ export default {
       background: transparent;
     }
 
-    .book-title {
-      text-align: center;
-      margin-top: 10px;
-    }
-    .book-description {
-      text-indent: 2em;
-    }
-    .h1-title {
-      font-size: 20px;
-      font-weight: bold;
-      color: var(--t-color-dark-cyan);
-    }
-    .h2-title {
-      color: var(--t-color-cyan);
-      margin-left: 5px;
+    &-scrollbar {
+      height: 100%;
+      padding: 5px;
+
+      .row {
+        margin-bottom: 10px;
+        gap: 10px;
+
+        .col {
+          display: flex;
+          flex-direction: column;
+          padding: 5px 10px;
+          border-radius: 16px;
+          background: #1d1e22;
+          box-shadow: 0 8px 16px -4px rgba(44, 45, 48, 0.047);
+          position: relative;
+          color: rgba(255, 255, 255, 0.7);
+
+          .book-title {
+            font-size: 22px;
+            font-weight: bold;
+          }
+          .col-title {
+            opacity: .8;
+            font-size: 12px;
+            margin-bottom: .5rem;
+          }
+          .col-text {
+            font-size: 16px;
+            line-height: 2;
+          }
+          .col-h {
+            margin-bottom: .5rem;
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1;
+          }
+
+          &.title {
+            background: #3b82f6;
+          }
+          &.description {
+            background: #059669;
+          }
+          &.creator {
+            background: #f59e0b;
+          }
+          &.publisher {
+            background: #c2410c;
+          }
+          &.pubdate {
+            background: #7c3aed;
+          }
+          &.language {
+            background: #e11d48;
+          }
+          &.rights {
+            background: #1e40af;
+          }
+          &.identifier {
+            background: #d946ef;
+          }
+        }
+      }
+      .row:last-child {
+        margin-bottom: 0;
+      }
     }
   }
 

@@ -139,7 +139,7 @@ export default {
 }
 
 .dark {
-  background: #222222;
+  background: #363636;
   border: 2px solid #313131;
 
   .menu-list {
@@ -151,7 +151,7 @@ export default {
 
     .menu-item {
       &:hover {
-        background: #4d4d4d;
+        background: #6a6c6d;
       }
 
       img {
