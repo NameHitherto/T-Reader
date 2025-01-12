@@ -14,49 +14,52 @@
       </div>
       <div class="book-details">
         <el-scrollbar class="book-details-scrollbar">
-          <el-row class="row">
-            <el-col class="col title" :span="24">
-              <span class="book-title">{{ title }}</span>
-            </el-col>
-          </el-row>
-          <el-row class="row">
-            <el-col class="col description" :span="24">
-              <span class="col-title">简介</span>
-              <span class="col-text">{{ description }}</span>
-            </el-col>
-          </el-row>
-          <el-row class="row">
-            <el-col class="col creator" :span="6">
-              <span class="col-title">作者</span>
-              <span class="col-h">{{ creator }}</span>
-            </el-col>
-            <el-col class="col publisher" :span="17">
-              <span class="col-title">出版社</span>
-              <span class="col-h">{{ publisher }}</span>
-            </el-col>
-          </el-row>
-          <el-row class="row">
-            <el-col class="col pubdate" :span="24">
-              <span class="col-title">出版日期</span>
-              <span class="col-h">{{ pubdate }}</span>
-            </el-col>
-          </el-row>
-          <el-row class="row">
-            <el-col class="col language" :span="6">
-              <span class="col-title">语言</span>
-              <span class="col-h">{{ language }}</span>
-            </el-col>
-            <el-col class="col rights" :span="17">
-              <span class="col-title">版权信息</span>
-              <span class="col-h">{{ rights }}</span>
-            </el-col>
-          </el-row>
-          <el-row class="row">
-            <el-col class="col identifier" :span="24">
-              <span class="col-title">唯一标识</span>
-              <span class="col-h">{{ identifier }}</span>
-            </el-col>
-          </el-row>
+          <div>
+            <el-row class="row">
+              <el-col class="col title" :span="24">
+                <span class="col-title">书名</span>
+                <span class="book-title">{{ title }}</span>
+              </el-col>
+            </el-row>
+            <el-row class="row">
+              <el-col class="col description" :span="24">
+                <span class="col-title">简介</span>
+                <span class="col-text">{{ description }}</span>
+              </el-col>
+            </el-row>
+            <el-row class="row">
+              <el-col class="col creator" :span="6">
+                <span class="col-title">作者</span>
+                <span class="col-h">{{ creator }}</span>
+              </el-col>
+              <el-col class="col publisher" :span="17">
+                <span class="col-title">出版社</span>
+                <span class="col-h">{{ publisher }}</span>
+              </el-col>
+            </el-row>
+            <el-row class="row">
+              <el-col class="col pubdate" :span="24">
+                <span class="col-title">出版日期</span>
+                <span class="col-h">{{ pubdate }}</span>
+              </el-col>
+            </el-row>
+            <el-row class="row">
+              <el-col class="col language" :span="6">
+                <span class="col-title">语言</span>
+                <span class="col-h">{{ language }}</span>
+              </el-col>
+              <el-col class="col rights" :span="17">
+                <span class="col-title">版权信息</span>
+                <span class="col-h">{{ rights }}</span>
+              </el-col>
+            </el-row>
+            <el-row class="row">
+              <el-col class="col identifier" :span="24">
+                <span class="col-title">唯一标识</span>
+                <span class="col-h">{{ identifier }}</span>
+              </el-col>
+            </el-row>
+          </div>
         </el-scrollbar>
       </div>
     </div>
@@ -94,7 +97,7 @@ export default {
         'zh-TW': '繁体中文',
         'en': '英文',
         'jp': '日文',
-      }
+      },
     };
   },
   methods: {
@@ -175,6 +178,7 @@ export default {
     letter-spacing: 1px;
     transition: all 0.4s ease-in-out;
     overflow: auto;
+    z-index: 1;
 
     &::-webkit-scrollbar {
       width: 10px;
