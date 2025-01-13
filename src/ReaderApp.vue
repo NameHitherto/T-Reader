@@ -89,8 +89,6 @@ export default {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
-          'padding-left': `${readerConfig.value.firstLineMargin}px !important`,
-          'padding-right': `${readerConfig.value.lastLineMargin}px !important`,
           'padding-top': `${readerConfig.value.headerMargin}px !important`,
           'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
         },
