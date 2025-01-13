@@ -276,7 +276,7 @@ export default {
     }
 
     img {
-      opacity: 0.5;
+      opacity: 0.4;
       animation: imgBlendIn 1.2s ease-in-out;
     }
   }
@@ -296,7 +296,7 @@ export default {
     scale: 1;
   }
   100% {
-    opacity: 0.5;
+    opacity: 0.4;
     scale: 1;
     backdrop-filter: blur(10px);
   }
