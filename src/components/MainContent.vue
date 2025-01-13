@@ -40,7 +40,15 @@
     </header>
     <div class="book-list">
       <el-divider border-style="dashed"/>
-      <div class="bookcase">
+      <el-empty
+        v-if="isBooksEmpty"
+        :image="emptyStateImage"
+        image-size="160px"
+        description="点击添加书籍吧"
+        style="flex: 1;"
+        @click="addBook"
+      />
+      <div v-else class="bookcase">
         <el-skeleton :loading="booksLoading" animated :count="10">
           <template #template>
             <div class="book-item" style="background-color: white">
@@ -136,6 +144,7 @@ import { ContextMenuData, ContextMenuItem } from '../js/map'
 import addBookIcon from '../assets/addBook.svg'
 import refreshIcon from '../assets/refresh.svg'
 import settingIcon from '../assets/setting.svg'
+import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
@@ -163,6 +172,7 @@ export default {
   },
   setup() {
     const books = ref<Book[]>([])
+    const isBooksEmpty = ref(false)
     const isLoading = ref(false) // 是否正在加载
     const booksLoading = ref(false) // 书籍是否加载完成
     const loadingText = ref(
@@ -197,6 +207,7 @@ export default {
           }
         }
         booksLoading.value = false
+        isBooksEmpty.value = books.value.length === 0
       } catch (error) {
         console.error('Error loading books:', error)
       }
@@ -439,6 +450,8 @@ export default {
       settingVisible,
       bookInfoVisible,
       bookInfoId,
+      emptyStateImage,
+      isBooksEmpty,
     }
   },
 }
