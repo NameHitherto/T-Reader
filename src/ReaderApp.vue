@@ -168,6 +168,10 @@ export default {
 
       // 阅读器样式
       rendition.value.themes.default(readerDefaultTheme.value)
+      // 阅读器翻页模式
+      rendition.value.flow(readerConfig.value.flow)
+      // 刷新呈现，应用更改
+      rendition.value.layout()
     }
 
     // 读取配置文件
@@ -344,7 +348,7 @@ export default {
           width: '100%',
           height: '100%',
           manager: 'continuous',
-          flow: 'paginated',
+          flow: readerConfig.value.flow,
           spread: 'true',
           allowScriptedContent: true,
           script: '../../src/js/iframe.js',

@@ -14,17 +14,17 @@ export const useReaderConfigStore = defineStore('readerConfig', () => {
         // 段间距
         paragraphSpacing: 0.2,
         // 行首边距
-        firstLineMargin: 30,
+        firstLineMargin: 36,
         // 行尾边距
-        lastLineMargin: 30,
+        lastLineMargin: 36,
         // 页眉边距
         headerMargin: 20,
         // 页脚边距
         footerMargin: 20,
         // 最小栏宽
-        minColumnWidth: 18,
+        minColumnWidth: 23,
         // 栏间距
-        columnSpacing: 3.5,
+        columnSpacing: 72,
         // 首行缩进
         indent: 2,
         // 字体
@@ -33,6 +33,8 @@ export const useReaderConfigStore = defineStore('readerConfig', () => {
         color: '#FFFFFF',
         // 字体颜色
         fontColor: '#000000',
+        // 翻页模式
+        flow: 'paginated'
     });
 
     // 此处可以定义一个恢复默认设置的方法
@@ -42,16 +44,17 @@ export const useReaderConfigStore = defineStore('readerConfig', () => {
             fontWeight: 400, // 字重默认400
             lineSpacing: 1.3, // 行距默认1.3em
             paragraphSpacing: 0.2, // 段间距默认0.2em
-            firstLineMargin: 33, // 行首边距默认33px
-            lastLineMargin: 33, // 行尾边距默认33px
+            firstLineMargin: 36, // 行首边距默认36px
+            lastLineMargin: 36, // 行尾边距默认36px
             headerMargin: 20, // 页眉边距默认20px
             footerMargin: 20, // 页脚边距默认20px
-            minColumnWidth: 18,
-            columnSpacing: 3.5,
+            minColumnWidth: 23, // 最小栏宽默认23em
+            columnSpacing: 72, // 栏间距默认72px
             indent: 2, // 首行缩进默认2em
             font: 'system-ui', // 默认字体
             color: '#FFFFFF', // 默认白色
             fontColor: '#000000', // 默认黑色
+            flow: 'paginated' // 默认翻页模式
     }};
 
     // 更新状态变量

@@ -51,6 +51,22 @@
         />
       </div>
     </div>
+    <div class="extra-section section">
+      <span class="section-title">其他</span>
+      <div class="flow-option">
+        <label>翻页模式</label>
+        <el-tooltip :content="flowMode" placement="top">
+          <el-switch
+            v-model="flow"
+            style="--el-switch-on-color: #f2b94b; --el-switch-off-color: #13ce66"
+            active-value="scrolled"
+            inactive-value="paginated"
+            @change="switchFlow"
+          >
+          </el-switch>
+        </el-tooltip>
+      </div>
+    </div>
     <div id="reset-button" @click="resetStyle">
       <span class="circle" aria-hidden="true">
         <span class="icon arrow"></span>
@@ -61,7 +77,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue'
+import { defineComponent, ref, onMounted, computed } from 'vue'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
@@ -111,7 +127,7 @@ export default defineComponent({
         key: 'lineSpacing',
         amount: 0.1,
         min: 0,
-        max: 2,
+        max: 5,
         precision: 1,
       },
       {
@@ -120,7 +136,7 @@ export default defineComponent({
         key: 'paragraphSpacing',
         amount: 0.1,
         min: 0,
-        max: 2,
+        max: 5,
         precision: 1,
       },
       {
@@ -128,8 +144,8 @@ export default defineComponent({
         value: readerConfig.value.firstLineMargin,
         key: 'firstLineMargin',
         amount: 1,
-        min: 0,
-        max: 100,
+        min: 36,
+        max: 36,
         precision: 0,
       },
       {
@@ -137,8 +153,8 @@ export default defineComponent({
         value: readerConfig.value.lastLineMargin,
         key: 'lastLineMargin',
         amount: 1,
-        min: 0,
-        max: 100,
+        min: 36,
+        max: 36,
         precision: 0,
       },
       {
@@ -165,7 +181,7 @@ export default defineComponent({
         key: 'minColumnWidth',
         amount: 1,
         min: 0,
-        max: 100,
+        max: 150,
         precision: 0,
       },
       {
@@ -174,7 +190,7 @@ export default defineComponent({
         key: 'columnSpacing',
         amount: 1,
         min: 0,
-        max: 100,
+        max: 150,
         precision: 0,
       },
     ])
@@ -186,6 +202,12 @@ export default defineComponent({
       { name: 'Roboto', display: 'Google Roboto' },
       { name: 'HiraginoMin', display: 'ヒラギノ明朝体' },
     ]
+
+    // 翻页模式
+    const flow = ref(readerConfig.value.flow)
+    const flowMode = computed(() => {
+      return flow.value === 'scrolled' ? '滚动翻页' : '分页翻页' 
+    })
 
     // 样式视觉化更新
     const updateVisual = () => {
@@ -236,6 +258,12 @@ export default defineComponent({
       updateVisual()
     }
 
+    // 切换翻页模式
+    const switchFlow = () => {
+      readerConfigStore.changeState('flow', flow.value)
+      emitStyleApplication()
+    }
+ 
     // 调整样式设置
     const adjustSetting = (key: string, value: number) => {
       // 更新状态全局变量
@@ -265,6 +293,9 @@ export default defineComponent({
       adjustSetting,
       resetStyle,
       selectFont,
+      flow,
+      flowMode,
+      switchFlow
     }
   },
 })
@@ -390,6 +421,19 @@ label {
 
       .input-number {
         width: 100px;
+      }
+    }
+  }
+
+  .extra-section {
+    .flow-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      label {
+        font-size: 15px;
+        font-weight: bold;
       }
     }
   }
