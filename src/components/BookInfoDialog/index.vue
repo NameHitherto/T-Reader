@@ -18,45 +18,45 @@
             <el-row class="row">
               <el-col class="col title" :span="24">
                 <span class="col-title">书名</span>
-                <span class="book-title">{{ title }}</span>
+                <span class="book-title">{{ title ? title : '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col description" :span="24">
                 <span class="col-title">简介</span>
-                <span class="col-text">{{ description }}</span>
+                <span class="col-text">{{ description ? description : '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col creator" :span="6">
                 <span class="col-title">作者</span>
-                <span class="col-h">{{ creator }}</span>
+                <span class="col-h">{{ creator ? creator : '--' }}</span>
               </el-col>
               <el-col class="col publisher" :span="17">
                 <span class="col-title">出版社</span>
-                <span class="col-h">{{ publisher }}</span>
+                <span class="col-h">{{ publisher ? publisher : '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col pubdate" :span="24">
                 <span class="col-title">出版日期</span>
-                <span class="col-h">{{ pubdate }}</span>
+                <span class="col-h">{{ pubdate ? pubdate : '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col language" :span="6">
                 <span class="col-title">语言</span>
-                <span class="col-h">{{ language }}</span>
+                <span class="col-h">{{ language ? language : '--' }}</span>
               </el-col>
               <el-col class="col rights" :span="17">
                 <span class="col-title">版权信息</span>
-                <span class="col-h">{{ rights }}</span>
+                <span class="col-h">{{ rights ? rights : '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col identifier" :span="24">
                 <span class="col-title">唯一标识</span>
-                <span class="col-h">{{ identifier }}</span>
+                <span class="col-h">{{ identifier ? identifier : '--' }}</span>
               </el-col>
             </el-row>
           </div>
@@ -178,6 +178,7 @@ export default {
     letter-spacing: 1px;
     transition: all 0.4s ease-in-out;
     overflow: auto;
+    background: rgba(255, 255, 255, 0.15);
     z-index: 1;
 
     &::-webkit-scrollbar {
@@ -200,7 +201,7 @@ export default {
 
       .row {
         margin-bottom: 10px;
-        gap: 10px;
+        gap: 8px;
 
         .col {
           display: flex;
@@ -211,6 +212,7 @@ export default {
           box-shadow: 0 8px 16px -4px rgba(44, 45, 48, 0.047);
           position: relative;
           color: rgba(255, 255, 255, 0.7);
+          opacity: 0.95;
 
           .book-title {
             font-size: 22px;
@@ -274,9 +276,29 @@ export default {
     }
 
     img {
-      scale: 0.8;
-      opacity: 0;
+      opacity: 0.5;
+      animation: imgBlendIn 1.2s ease-in-out;
     }
+  }
+}
+@keyframes imgBlendIn {
+  0% {
+    opacity: 1;
+    scale: 1;
+    backdrop-filter: none;
+  }
+  20% {
+    opacity: 0;
+    scale: 0.8;
+  }
+  25% {
+    opacity: 0;
+    scale: 1;
+  }
+  100% {
+    opacity: 0.5;
+    scale: 1;
+    backdrop-filter: blur(10px);
   }
 }
 </style>
