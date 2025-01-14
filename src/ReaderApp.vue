@@ -26,6 +26,8 @@
   <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading" />
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
+  <!-- 阅读进度 -->
+  <div v-if="readingPercentage" class="reading-percentage">{{ readingPercentage }}%</div>
 </template>
 
 <script lang="ts">
@@ -81,6 +83,8 @@ export default {
     const selectedText = ref<string>('')
     // 选中文本的Range对象
     const selectedRange = ref<string>('')
+    // 阅读进度百分比
+    const readingPercentage = ref('')
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -361,6 +365,20 @@ export default {
           rendition.value.display()
         }
 
+        // 等待书籍加载完成
+        await ePubBook.ready
+
+        // 生成位置索引
+        await ePubBook.locations.generate(1000)
+
+        // 监听阅读进度
+        rendition.value.on('relocated', (location: any) => {
+          if(ePubBook){
+            const percentage = ePubBook.locations.percentageFromCfi(location.start.cfi)
+            readingPercentage.value = (percentage * 100).toFixed(1)
+          }
+        })
+
         // 获取书籍目录
         const tocData = await ePubBook.loaded.navigation
         toc.value = tocData.toc
@@ -519,6 +537,7 @@ export default {
       bookInfoVisible,
       showContextMenu,
       contextMenuOptions,
+      readingPercentage,
     }
   },
 }
@@ -616,5 +635,14 @@ export default {
       }
     }
   }
+}
+
+.reading-percentage {
+  position: fixed;
+  bottom: 15px;
+  line-height: 15px;
+  left: 50px;
+  color: var(--t-color-dark-grey);
+  font-weight: bold;
 }
 </style>
