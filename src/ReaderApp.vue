@@ -5,10 +5,24 @@
     <!-- 翻页按钮 -->
     <div class="pagination">
       <button class="prev-page button" @click="prevPage">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20"><path fill="#000000" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z"/></svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 20 20"
+        >
+          <path fill="#000000" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z" />
+        </svg>
       </button>
       <button class="next-page button" @click="nextPage">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20"><path fill="#000000" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z"/></svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 20 20"
+        >
+          <path fill="#000000" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z" />
+        </svg>
       </button>
     </div>
   </div>
@@ -27,7 +41,9 @@
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 阅读进度 -->
-  <div v-if="readingPercentage" class="reading-percentage">{{ readingPercentage }}%</div>
+  <div v-if="readingPercentage" class="reading-percentage">
+    {{ readingPercentage }}%
+  </div>
 </template>
 
 <script lang="ts">
@@ -43,6 +59,8 @@ import { storeToRefs } from 'pinia'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import { ContextMenuData, ContextMenuItem } from './js/map'
+import { useBookMarkStore, BookMark } from './store/bookMark'
+import { generateID } from './js/utils'
 
 export default {
   name: 'ReaderApp',
@@ -65,6 +83,8 @@ export default {
     let unlistenClosed = ref<UnlistenFn | null>(null)
     // 用于存储解除监听函数
     let unlistenStyle = ref<UnlistenFn | null>(null)
+    // 用于存储解除监听函数
+    let unlistenResize = ref<UnlistenFn | null>(null)
     // 正式全局变量
     const readerConfigStore = useReaderConfigStore()
     // 全局状态变量，但只能访问不能修改
@@ -82,27 +102,31 @@ export default {
     // 当前选中的文本
     const selectedText = ref<string>('')
     // 选中文本的Range对象
-    const selectedRange = ref<string>('')
+    const selectedRange = ref<string | null>(null)
     // 阅读进度百分比
     const readingPercentage = ref('')
+    // 阅读注释笔记
+    const bookMarkStore = useBookMarkStore()
+    // 全局状态变量，但只能访问不能修改
+    const { bookMarks } = storeToRefs(bookMarkStore)
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
       const themeReturned = {
-        body: {
+        'body': {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
           'padding-top': `${readerConfig.value.headerMargin}px !important`,
           'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
         },
-        p: {
+        'p': {
           'color': `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
         },
-        font: {
+        'font': {
           'color': `${readerConfig.value.fontColor}`,
         },
         '::selection': {
@@ -241,10 +265,21 @@ export default {
 
     // 添加笔记
     const addBookMark = async () => {
-      // 向子iframe发送消息
-      document.querySelector('iframe')!.contentWindow!.postMessage(
-        { type: 'to-iframe-bookmark', range: selectedRange, theme: readerConfig.value.color === '#000000' ? 'dark' : 'light' },
-        '*'
+      const bookMark: BookMark = {
+        id: generateID(3),
+        bookId: bookIsReading.value ? bookIsReading.value : '',
+        bookCfi: selectedRange.value ? selectedRange.value : '',
+        bookTitle: '测试123',
+        content: selectedText.value,
+        createTime: new Date().toString(),
+      }
+      bookMarkStore.addBookMark(bookMark)
+      rendition.value.annotations.add(
+        'highlight',
+        selectedRange.value,
+        {},
+        null,
+        'bookmark-highlight'
       )
     }
 
@@ -371,13 +406,45 @@ export default {
         // 生成位置索引
         await ePubBook.locations.generate(1000)
 
-        // 监听阅读进度
+        // 页面重新排版
         rendition.value.on('relocated', (location: any) => {
-          if(ePubBook){
-            const percentage = ePubBook.locations.percentageFromCfi(location.start.cfi)
+          // 更新阅读进度
+          if (ePubBook) {
+            const percentage = ePubBook.locations.percentageFromCfi(
+              location.start.cfi
+            )
             readingPercentage.value = (percentage * 100).toFixed(1)
           }
         })
+
+        // 监听文本选择
+        rendition.value.on('selected', (cfiRange: any, contents: any) => {
+          // 更新选中文本
+          selectedText.value = contents.window.getSelection().toString()
+          // 更新选中文本的Range对象
+          selectedRange.value = cfiRange
+        })
+
+        // 监听窗口大小调整
+        getCurrentWebviewWindow()
+          .onResized(async () => {
+            // 重新应用注释高亮
+            bookMarks.value.forEach((bookMark: BookMark) => {
+              if (bookMark.bookId === bookIsReading.value) {
+                rendition.value.annotations.remove(bookMark.bookCfi, 'highlight')
+                rendition.value.annotations.add(
+                  'highlight',
+                  bookMark.bookCfi,
+                  {},
+                  null,
+                  'bookmark-highlight'
+                )
+              }
+            })
+          })
+          .then((fn) => {
+            unlistenResize.value = fn
+          })
 
         // 获取书籍目录
         const tocData = await ePubBook.loaded.navigation
@@ -401,14 +468,12 @@ export default {
         rendition.value.prev()
       }
     }
-
     // 下一章
     const nextPage = () => {
       if (rendition.value) {
         rendition.value.next()
       }
     }
-
     // 跳转到指定章节
     const goToChapter = (href: string) => {
       if (rendition.value) {
@@ -439,7 +504,9 @@ export default {
         if (event.data.type === 'iframe-click') {
           // 如果此时样式菜单已打开，则关闭
           document.getElementById('customer-menu')?.remove()
-          const frontButtons = document.getElementsByClassName('titlebar-front-button')
+          const frontButtons = document.getElementsByClassName(
+            'titlebar-front-button'
+          )
           for (let i = 0; i < frontButtons.length; i++) {
             frontButtons[i].classList.remove('active')
           }
@@ -459,10 +526,6 @@ export default {
         }
         // 监听iframe中的特殊右键菜单事件
         if (event.data.type === 'iframe-contextmenu') {
-          // 更新选中文本
-          selectedText.value = event.data.text
-          // 更新选中文本的Range对象
-          selectedRange.value = JSON.stringify(event.data.range)
           // 获取iframe在主页面中的位置
           const iframeRect = document
             .querySelectorAll('iframe')[0]
@@ -561,6 +624,10 @@ export default {
   background-color: var(--t-color-grey); /* 浅色背景 */
   border-radius: 6px;
   background-clip: content-box;
+}
+:global(.bookmark-highlight) {
+  fill: #00c4b6;
+  fill-opacity: 0.4;
 }
 
 .reader {
