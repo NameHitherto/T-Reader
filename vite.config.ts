@@ -21,6 +21,7 @@ export default defineConfig(async () => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "libs": path.resolve(__dirname, "libs")
     },
   },
 
