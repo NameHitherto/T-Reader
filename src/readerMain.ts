@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 import ReaderApp from './ReaderApp.vue';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import showStyleMenu from '../src/js/showStyleMenu.ts';
 import { createPinia } from 'pinia';
@@ -14,18 +13,6 @@ const pinia = createPinia();
 app.use(pinia);
 app.mount('#reader-app');
 
-// 自定义Titlebar
-const appWindow = getCurrentWindow();
-
-document
-  .getElementById('titlebar-minimize')
-  ?.addEventListener('click', () => appWindow.minimize());
-document
-  .getElementById('titlebar-maximize')
-  ?.addEventListener('click', () => appWindow.toggleMaximize());
-document
-  .getElementById('titlebar-close')
-  ?.addEventListener('click', () => appWindow.close());
 // 样式调整菜单
 document
   .getElementById('titlebar-customer')
