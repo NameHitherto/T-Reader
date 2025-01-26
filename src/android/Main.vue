@@ -30,7 +30,7 @@ import { ref, onMounted } from 'vue';
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { readFile, writeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
-import ePub from 'epubjs';
+import ePub from 'libs/epub.js';
 import {documentDir, join} from '@tauri-apps/api/path';
 import router from '../router/android';
 

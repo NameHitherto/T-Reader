@@ -132,7 +132,7 @@
 
 <script lang="ts">
 import { ref, onMounted } from 'vue'
-import ePub from 'epubjs'
+import ePub from 'libs/epub.js'
 import { invoke } from '@tauri-apps/api/core'
 import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { open } from '@tauri-apps/plugin-dialog'

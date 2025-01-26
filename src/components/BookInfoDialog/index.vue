@@ -68,7 +68,7 @@
 
 <script>
 import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
-import ePub from 'epubjs'
+import ePub from 'libs/epub.js'
 export default {
   name: 'BookInfoDialog',
   props: {

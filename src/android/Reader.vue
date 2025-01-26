@@ -15,7 +15,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { readFile, BaseDirectory, writeFile } from "@tauri-apps/plugin-fs";
-import ePub from 'epubjs';
+import ePub from 'libs/epub.js';
 import { invoke } from '@tauri-apps/api/core';
 import { useReaderConfigStore } from '../store/readerConfigStore';
 import { storeToRefs } from 'pinia';
@@ -167,7 +167,7 @@ export default {
         // 清空阅读器内容
         document.getElementById('epub-reader')!.innerHTML = '';
 
-        rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', flow: 'paginated', allowScriptedContent: true, script: '../../src/js/android.js' });
+        rendition.value = ePubBook.renderTo('epub-reader', { width: '100%', height: '100%', flow: 'paginated', script: '../../src/js/android.js' });
 
         // 恢复阅读进度
         const savedLocation = bookConfig.location;

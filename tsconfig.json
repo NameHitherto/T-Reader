@@ -12,7 +12,7 @@
     "skipLibCheck": true,
     "typeRoots": [
       "./node_modules/@types",
-      "./types"
+      "./libs/epub.js/types"
     ],
 
     /* Bundler mode */
@@ -29,6 +29,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "libs/**/*.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

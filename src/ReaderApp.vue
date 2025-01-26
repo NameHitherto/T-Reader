@@ -51,7 +51,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { readFile, BaseDirectory, writeFile } from '@tauri-apps/plugin-fs'
-import ePub from 'epubjs'
+import ePub from 'libs/epub.js'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
@@ -387,7 +387,6 @@ export default {
           manager: 'continuous',
           flow: readerConfig.value.flow,
           spread: 'true',
-          allowScriptedContent: true,
           script: '../../src/js/iframe.js',
         })
 
