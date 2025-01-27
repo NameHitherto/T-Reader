@@ -90,6 +90,19 @@ button {
   cursor: var(--t-mouse-cursor-link), pointer;
 }
 
+textarea {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb{
+    background-color: #0003;
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-track{
+    border-radius: 10px;
+  }
+}
+
 /* element-plus 默认样式 */
 .el-radio {
   cursor: var(--t-mouse-cursor-link), pointer;
@@ -104,3 +117,4 @@ button {
     cursor: var(--t-mouse-cursor-link), pointer;
   }
 }
+

@@ -40,9 +40,9 @@ document.addEventListener('contextmenu', (event) => {
         '*'
       )
     } else {
-      window.parent.postMessage({ type: 'iframe-contextmenu-casual' }, '*')
+      window.parent.postMessage({ type: 'iframe-contextmenu-casual', mousePos }, '*')
     }
   } else {
-    window.parent.postMessage({ type: 'iframe-contextmenu-casual' }, '*')
+    window.parent.postMessage({ type: 'iframe-contextmenu-casual', mousePos }, '*')
   }
 })

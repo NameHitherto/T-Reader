@@ -40,6 +40,8 @@
   <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading" />
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
+  <!-- 笔记编辑框 -->
+  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" />
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%
@@ -47,7 +49,7 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { readFile, BaseDirectory, writeFile } from '@tauri-apps/plugin-fs'
@@ -58,6 +60,7 @@ import { useReaderConfigStore } from './store/readerConfigStore'
 import { storeToRefs } from 'pinia'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
+import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import { ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID } from './js/utils'
@@ -67,6 +70,7 @@ export default {
   components: {
     BookInfoDialog,
     ContextMenu,
+    BookMarkDialog
   },
   setup() {
     // 阅读时书籍ID
@@ -109,6 +113,16 @@ export default {
     const bookMarkStore = useBookMarkStore()
     // 全局状态变量，但只能访问不能修改
     const { bookMarks } = storeToRefs(bookMarkStore)
+    // 笔记编辑框是否显示
+    const bookMarkEditionVisible = ref(false)
+    // 笔记编辑内容
+    const bookMarkEditionContent = ref<string>('')
+    // 监听笔记编辑内容
+    watch(bookMarkEditionContent, (newVal) => {
+      if (newVal) {
+        bookMarkStore.updateBookMark(JSON.parse(newVal))
+      }
+    })
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -235,20 +249,22 @@ export default {
               filename: `${bookIsReading.value}.json`,
             })
             bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
-            console.log('使用云同步配置文件')
           } catch (e) {
             // 获取云同步配置文件失败，使用本地配置文件
             bookConfigData = await readFile(
               `T-Reader/${bookIsReading.value}.json`,
               { baseDir: BaseDirectory.Document }
             )
-            console.log('使用本地配置文件')
           }
           const bookConfig = JSON.parse(
             new TextDecoder().decode(bookConfigData)
           )
-          // 覆写本地配置文件
+          // 覆盖阅读进度
           bookConfig.location = cfi
+          // 覆盖阅读笔记
+          if (bookMarks.value.length > 0) {
+            bookConfig.bookMarks = bookMarks.value
+          }
           const jsonString = JSON.stringify(bookConfig)
           const jsonUint8Array = new TextEncoder().encode(jsonString)
           await invoke('save_file', {
@@ -263,10 +279,57 @@ export default {
       }
     }
 
+    // 笔记绑定点击事件
+    const bindBookMarkClick = (markId: string) => {
+      const bookMarkElement = document.querySelector(`[data-mark-id="${markId}"]`)
+      // 若元素不存在则等待再次尝试
+      if (!bookMarkElement) {
+        // 可以设置一个尝试次数，超过次数则不再尝试
+        setTimeout(() => bindBookMarkClick(markId), 50)
+        return
+      }
+      bookMarkElement.addEventListener('click', () => {
+        bookMarkEditionContent.value = JSON.stringify(bookMarkStore.getBookMark(markId)[0])
+        bookMarkEditionVisible.value = true
+      })
+      bookMarkElement.addEventListener('contextmenu', (event: Event) => {
+        // 菜单选项
+        const menuItems: ContextMenuItem[] = [
+          {
+            label: '删除 | 删除笔记',
+            type: 'delBookMark',
+            onClick: () => delBookMark(markId),
+          },
+        ]
+        const x = (event as MouseEvent).clientX
+        const y = (event as MouseEvent).clientY
+        // 显示菜单
+        openContextMenu('root', x, y, menuItems)
+      })
+    }
+
+    // 初始化所有笔记
+    const initAllBookMarks = async () => {
+      bookMarks.value.forEach((bookMark: BookMark) => {
+        if (bookMark.bookId === bookIsReading.value) {
+          rendition.value.annotations.remove(bookMark.bookCfi, 'highlight')
+          rendition.value.annotations.add(
+            'highlight',
+            bookMark.bookCfi,
+            {'markId': bookMark.id},
+            null,
+            'bookmark-highlight'
+          )
+          bindBookMarkClick(bookMark.id)
+        }
+      })
+    }
+
     // 添加笔记
     const addBookMark = async () => {
+      const tempId = generateID(3)
       const bookMark: BookMark = {
-        id: generateID(3),
+        id: tempId,
         bookId: bookIsReading.value ? bookIsReading.value : '',
         bookCfi: selectedRange.value ? selectedRange.value : '',
         bookTitle: '测试123',
@@ -277,10 +340,26 @@ export default {
       rendition.value.annotations.add(
         'highlight',
         selectedRange.value,
-        {},
+        {'markId': tempId},
         null,
         'bookmark-highlight'
       )
+      bindBookMarkClick(tempId)
+      return tempId
+    }
+
+    // 添加笔记并评论
+    const addBookMarkComment = async () => {
+      const bookMarkId = await addBookMark()
+      bookMarkEditionContent.value = JSON.stringify(bookMarkStore.getBookMark(bookMarkId)[0])
+      bookMarkEditionVisible.value = true
+    }
+
+    // 删除笔记
+    const delBookMark = async (markId: string) => {
+      const bookMark = bookMarkStore.getBookMark(markId)[0]
+      rendition.value.annotations.remove(bookMark.bookCfi, 'highlight')
+      bookMarkStore.removeBookMark(markId)
     }
 
     // 监听主程序发送的书籍ID
@@ -428,18 +507,7 @@ export default {
         getCurrentWebviewWindow()
           .onResized(async () => {
             // 重新应用注释高亮
-            bookMarks.value.forEach((bookMark: BookMark) => {
-              if (bookMark.bookId === bookIsReading.value) {
-                rendition.value.annotations.remove(bookMark.bookCfi, 'highlight')
-                rendition.value.annotations.add(
-                  'highlight',
-                  bookMark.bookCfi,
-                  {},
-                  null,
-                  'bookmark-highlight'
-                )
-              }
-            })
+            await initAllBookMarks()
           })
           .then((fn) => {
             unlistenResize.value = fn
@@ -456,6 +524,12 @@ export default {
         document
           .getElementById('titlebar-toc')
           ?.addEventListener('click', () => (tocDrawer.value = true))
+
+        // 生成笔记注释
+        if (bookConfig.bookMarks !== undefined && bookConfig.bookMarks.length > 0) {
+          bookMarkStore.importBookMark(bookConfig.bookMarks)
+          await initAllBookMarks()
+        }
       } catch (e) {
         console.log(e)
       }
@@ -489,6 +563,49 @@ export default {
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         nextPage()
       }
+    }
+
+    // 打开自定义右键菜单
+    const openContextMenu = (mode: string, x: number, y:number, options: ContextMenuItem[]) => {
+      let menuX = 0 
+      let menuY = 0
+      if (mode === 'root') {
+        menuX = x
+        menuY = y
+      }else if (mode === 'iframe') {
+        // 获取iframe在主页面中的位置
+        const iframeRect = document.querySelectorAll('iframe')[0].getBoundingClientRect()
+        menuX = iframeRect.left + x
+        menuY = iframeRect.top + y
+      }
+      const menuItems = options
+      const menuWidth = 160 // 菜单宽度
+      const menuHeight = 35 * menuItems.length // 菜单预估高度
+      const pageWidth = document.documentElement.clientWidth // 页面宽度
+      const pageHeight = document.documentElement.clientHeight // 页面高度
+      const precision = 20 // 菜单距离页面边缘的最小距离
+      // 如果菜单最右边超过页面宽度，则调整位置
+      if (menuX + menuWidth > pageWidth) {
+        menuX -= menuWidth
+      }
+      menuX = Math.max(precision, menuX)
+      menuX = Math.min(pageWidth - precision - menuWidth, menuX)
+      // 如果菜单最下边超过页面高度，则调整位置
+      if (menuY + menuHeight > pageHeight) {
+        menuY -= menuHeight
+      }
+      menuY = Math.max(precision, menuY)
+      menuY = Math.min(pageHeight - precision - menuHeight, menuY)
+      // 赋值
+      contextMenuOptions.value = {
+        x: menuX,
+        y: menuY,
+        width: menuWidth,
+        items: menuItems,
+        theme: 'light',
+      }
+      // 显示菜单
+      showContextMenu.value = true
     }
 
     onMounted(async () => {
@@ -525,12 +642,6 @@ export default {
         }
         // 监听iframe中的特殊右键菜单事件
         if (event.data.type === 'iframe-contextmenu') {
-          // 获取iframe在主页面中的位置
-          const iframeRect = document
-            .querySelectorAll('iframe')[0]
-            .getBoundingClientRect()
-          let menuX = iframeRect.left + event.data.mousePos.x
-          let menuY = iframeRect.top + event.data.mousePos.y
           // 菜单选项
           const menuItems: ContextMenuItem[] = [
             {
@@ -541,41 +652,11 @@ export default {
             {
               label: '注释 | 个人评论',
               type: 'comment',
-              onClick: () => console.log('个人评论'),
-            },
-            {
-              label: '删除 | 删除笔记',
-              type: 'delBookMark',
-              onClick: () => console.log('删除笔记'),
+              onClick: () => addBookMarkComment(),
             },
           ]
-          const menuWidth = 160 // 菜单宽度
-          const menuHeight = 35 * menuItems.length // 菜单预估高度
-          const pageWidth = document.documentElement.clientWidth // 页面宽度
-          const pageHeight = document.documentElement.clientHeight // 页面高度
-          const precision = 20 // 菜单距离页面边缘的最小距离
-          // 如果菜单最右边超过页面宽度，则调整位置
-          if (menuX + menuWidth > pageWidth) {
-            menuX -= menuWidth
-          }
-          menuX = Math.max(precision, menuX)
-          menuX = Math.min(pageWidth - precision - menuWidth, menuX)
-          // 如果菜单最下边超过页面高度，则调整位置
-          if (menuY + menuHeight > pageHeight) {
-            menuY -= menuHeight
-          }
-          menuY = Math.max(precision, menuY)
-          menuY = Math.min(pageHeight - precision - menuHeight, menuY)
-          // 赋值
-          contextMenuOptions.value = {
-            x: menuX,
-            y: menuY,
-            width: menuWidth,
-            items: menuItems,
-            theme: 'light',
-          }
           // 显示菜单
-          showContextMenu.value = true
+          openContextMenu('iframe', event.data.mousePos.x, event.data.mousePos.y, menuItems)
         }
         // 监听iframe中的一般右键菜单事件
         if (event.data.type === 'iframe-contextmenu-casual') {
@@ -600,6 +681,8 @@ export default {
       showContextMenu,
       contextMenuOptions,
       readingPercentage,
+      bookMarkEditionVisible,
+      bookMarkEditionContent,
     }
   },
 }
@@ -627,6 +710,9 @@ export default {
 :global(.bookmark-highlight) {
   fill: #00c4b6;
   fill-opacity: 0.4;
+  pointer-events: all;
+  cursor: var(--t-mouse-cursor-link), default;
+  user-select: none;
 }
 
 .reader {

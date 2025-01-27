@@ -3,19 +3,19 @@ import { ref } from 'vue';
 
 export interface BookMark {
   // 唯一标识
-  id: String,
+  id: string,
   // 笔记内容
-  content: String,
+  content: string,
   // 笔记所属书籍ID
-  bookId: String,
+  bookId: string,
   // 笔记所属书籍标题
-  bookTitle: String,
+  bookTitle: string,
   // 笔记cfi位置
-  bookCfi: String,
+  bookCfi: string,
   // 笔记创建时间
-  createTime: String,
+  createTime: string,
   // 个人评价, 可以置空
-  comments?: String
+  comments?: string
 }
 
 export const useBookMarkStore = defineStore('bookMark', () => {
@@ -42,11 +42,31 @@ export const useBookMarkStore = defineStore('bookMark', () => {
         bookMarks.value = [];
     };
 
+    // 根据书籍ID获取笔记
+    const getBookMark = (id: string) => {
+      return bookMarks.value.filter((item) => item.id === id);
+    };
+
+    // 通过JSON字符串更新笔记
+    const updateBookMark = (jsonStr: any) => {
+      if (jsonStr.id) {
+        // 更新指定id的笔记
+        bookMarks.value = bookMarks.value.map((item) => {
+          if (item.id === jsonStr.id) {
+            return jsonStr;
+          }
+          return item;
+        });
+      }
+    }
+
     return {
         bookMarks,
         addBookMark,
         removeBookMark,
         clearBookMark,
         importBookMark,
+        getBookMark,
+        updateBookMark
     };
 });
