@@ -17,6 +17,7 @@
                 v-model="comments"
                 maxlength="100"
                 :autosize="{minRows: 2, maxRows: 6}"
+                resize="none"
                 type="textarea"
                 placeholder="在此编辑个人感想"
                 show-word-limit

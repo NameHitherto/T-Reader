@@ -31,6 +31,11 @@ export const useBookMarkStore = defineStore('bookMark', () => {
         bookMarks.value.push(mark);
     };
 
+    // 添加复数笔记
+    const addBookMarks = (marks: BookMark[]) => {
+        bookMarks.value = bookMarks.value.concat(marks);
+    };
+
     // 删除笔记
     const removeBookMark = (id: String) => {
       // 删除指定id的笔记
@@ -38,7 +43,7 @@ export const useBookMarkStore = defineStore('bookMark', () => {
     };
 
     // 清空笔记
-    const clearBookMark = () => {
+    const clearBookMarks = () => {
         bookMarks.value = [];
     };
 
@@ -63,8 +68,9 @@ export const useBookMarkStore = defineStore('bookMark', () => {
     return {
         bookMarks,
         addBookMark,
+        addBookMarks,
         removeBookMark,
-        clearBookMark,
+        clearBookMarks,
         importBookMark,
         getBookMark,
         updateBookMark
