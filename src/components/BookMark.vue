@@ -163,6 +163,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   min-width: 0;
+  user-select: none;
 
   &-header {
     height: 15%;

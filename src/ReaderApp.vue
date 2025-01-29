@@ -63,7 +63,7 @@ import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import { ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
-import { generateID } from './js/utils'
+import { generateID, formatDate } from './js/utils'
 
 export default {
   name: 'ReaderApp',
@@ -334,7 +334,7 @@ export default {
         bookCfi: selectedRange.value ? selectedRange.value : '',
         bookTitle: '测试123',
         content: selectedText.value,
-        createTime: new Date().toString(),
+        createTime: formatDate(new Date()),
       }
       bookMarkStore.addBookMark(bookMark)
       rendition.value.annotations.add(
