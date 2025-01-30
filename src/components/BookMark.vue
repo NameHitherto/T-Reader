@@ -7,9 +7,11 @@
       <el-scrollbar ref="scrollbar" class="tag-scrollbar" @wheel.native="handleWheel" @scroll="handleScroll">
         <div class="tag-wrapper">
           <BookMarkTag
-            v-for="bookmark in booksMarks"
+            v-for="(bookmark, idx) in rankedBooksMarks"
             :key="bookmark.id"
             :bookMark="bookmark"
+            :isFirst="idx === 0"
+            :isLast="idx === booksMarks.length - 1"
             @delete="deleteBookMark(bookmark)"
           />
         </div>
@@ -24,6 +26,7 @@ import BookMarkTag from './BookMark/bookMarkTag.vue'
 import { BookMark } from '@/store/bookMark'
 import { invoke } from '@tauri-apps/api/core'
 import { readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
+import { formatDateToNumber } from '@/js/utils'
 
 interface Book {
   id: number
@@ -63,6 +66,10 @@ export default defineComponent({
         return acc
       }, {} as Record<string, BookMark[]>)
       return groupedBooksMarks
+    },
+    // 按照时间排序的书签列表
+    rankedBooksMarks() {
+      return this.booksMarks.sort((a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime))
     },
     scrollLeftMax() {
       const wrapperWidth = document.querySelector('.el-scrollbar__view')?.clientWidth

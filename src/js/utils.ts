@@ -14,5 +14,13 @@ const formatDate = (date: Date) => {
 
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
+// 将格式化的时间转换成可比较的数值
+const formatDateToNumber = (date: string) => {
+  // xxxx-xx-xx xx:xx
+  const dateArr = date.split(' ');
+  const [year, month, day] = dateArr[0].split('-');
+  const [hours, minutes] = dateArr[1].split(':');
+  return new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes)).getTime();
+}
 
-export { generateID, formatDate };
+export { generateID, formatDate, formatDateToNumber };

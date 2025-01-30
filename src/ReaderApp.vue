@@ -259,6 +259,8 @@ export default {
           const bookConfig = JSON.parse(
             new TextDecoder().decode(bookConfigData)
           )
+          // 覆盖上次阅读时间
+          bookConfig.lastRead = new Date().toLocaleDateString()
           // 覆盖阅读进度
           bookConfig.location = cfi
           // 覆盖阅读笔记
