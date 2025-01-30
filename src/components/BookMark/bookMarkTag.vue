@@ -24,7 +24,7 @@
                     effect="light"
                     placement="right-start"
                 >
-                    <span class="tag-option second">
+                    <span class="tag-option second" @click="deleteBookMark">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="#999999" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14m-6-8h6m-6 4h6m4.506-1.494L15.012 12m0 0l1.506-1.506M15.012 12l1.506 1.506M15.012 12l-1.506-1.506M20 19H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1"/></svg>
                     </span>
                 </el-tooltip>
@@ -127,7 +127,7 @@ export default defineComponent({
         })
     },
     openBook(id: string, cfi: string) {
-      let unlistenReady = this.unlistenReady
+      let unlistenReady = this.unlistenReady;
 
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
@@ -135,7 +135,7 @@ export default defineComponent({
         decorations: false,
         minHeight: 660,
         minWidth: 880,
-      })
+      });
 
       webview.once('tauri://created', async function () {
         // 先移除相同的监听器
@@ -154,7 +154,7 @@ export default defineComponent({
             )
           }
         )
-      })
+      });
 
       webview.once('tauri://error', function () {
         console.log('阅读器已打开...')
@@ -167,7 +167,25 @@ export default defineComponent({
             cfi: cfi,
           }
         )
-      })
+      });
+    },
+    deleteBookMark() {
+        ElMessageBox.confirm(
+            '是否删除此笔记？',
+            '提示',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning',
+                center: true,
+                showClose: false
+            }
+        ).then(() => {
+            // 删除此笔记
+            this.$emit('delete')
+        }).catch(() => {
+            return
+        })
     }
   },
   mounted() {

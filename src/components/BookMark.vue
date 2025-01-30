@@ -10,6 +10,7 @@
             v-for="bookmark in booksMarks"
             :key="bookmark.id"
             :bookMark="bookmark"
+            @delete="deleteBookMark(bookmark)"
           />
         </div>
       </el-scrollbar>
@@ -45,6 +46,7 @@ export default defineComponent({
   data() {
     return {
       booksMarks: [] as BookMark[],
+      loadedBooks: [] as Book[],
       scrollLeft: 0
     }
   },
@@ -75,9 +77,9 @@ export default defineComponent({
   },
   methods: {
     async loadBookMarks() {
-      const loadedBooks: Book[] = await invoke('load_books')
+      this.loadedBooks = await invoke('load_books')
       this.booksMarks = []
-      for(const book of loadedBooks) {
+      for(const book of this.loadedBooks) {
         let bookConfigData
         try {
           // 尝试获取云同步配置文件
@@ -85,14 +87,12 @@ export default defineComponent({
             filename: `${book.id}.json`,
           })
           bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
-          console.log('使用云同步配置文件')
         } catch (e) {
           // 获取云同步配置文件失败，使用本地配置文件
           bookConfigData = await readFile(
             `T-Reader/${book.id}.json`,
             { baseDir: BaseDirectory.Document }
           )
-          console.log('使用本地配置文件')
         }
         const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
         if (bookConfig.bookMarks) {
@@ -101,38 +101,46 @@ export default defineComponent({
       }
     },
     async saveBookMarks() {
+      console.log('save before' ,this.groupedBooksMarks)
       // 根据分组后的书签列表更新配置文件
-      for (const bookId in this.groupedBooksMarks) {
-        const bookMarks = this.groupedBooksMarks[bookId]
+      this.loadedBooks.forEach(async(book) => {
         let bookConfigData
         try {
           // 尝试获取云同步配置文件
           const cloudConfigData = await invoke('webdav_get', {
-            filename: `${bookId}.json`,
+            filename: `${book.id}.json`,
           })
           bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
-          console.log('使用云同步配置文件')
         } catch (e) {
           // 获取云同步配置文件失败，使用本地配置文件
           bookConfigData = await readFile(
-            `T-Reader/${bookId}.json`,
+            `T-Reader/${book.id}.json`,
             { baseDir: BaseDirectory.Document }
           )
-          console.log('使用本地配置文件')
         }
         const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
-        bookConfig.bookMarks = bookMarks
+        if (!this.groupedBooksMarks[book.id]) {
+          delete bookConfig.bookMarks
+        } else {
+          bookConfig.bookMarks = this.groupedBooksMarks[book.id]
+        }
         const jsonString = JSON.stringify(bookConfig)
         const jsonUint8Array = new TextEncoder().encode(jsonString)
         await invoke('save_file', {
-          filename: `${bookId}.json`,
+          filename: `${book.id}.json`,
           contents: jsonString,
         })
         await invoke('webdav_upload', {
-          filename: `${bookId}.json`,
+          filename: `${book.id}.json`,
           contents: Array.from(jsonUint8Array),
         })
-      }
+      })
+    },
+    async deleteBookMark(bookMark: BookMark) {
+      console.log('delete before', this.booksMarks)
+      this.booksMarks = this.booksMarks.filter((item) => item.id !== bookMark.id)
+      console.log('delete after', this.booksMarks)
+      await this.saveBookMarks()
     },
     handleWheel(e: WheelEvent) {
       e.preventDefault()
@@ -148,6 +156,8 @@ export default defineComponent({
   },
   async mounted() {
     await this.loadBookMarks()
+    console.log('load', this.booksMarks)
+    console.log('grouped', this.groupedBooksMarks)
   }
 })
 </script>
@@ -185,6 +195,7 @@ export default defineComponent({
     .tag-scrollbar {
       .tag-wrapper {
         display: inline-flex;
+        padding-right: 20px;
       }
     }
   }
