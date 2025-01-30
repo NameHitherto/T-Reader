@@ -363,12 +363,16 @@ export default {
     }
 
     // 监听主程序发送的书籍ID
-    listen<string>('load-book-id', async (event) => {
+    listen<any>('load-book-id', async (event) => {
       // 保存之前的阅读进度
       await saveReaderRendition()
       // 加载新书籍
-      bookId.value = event.payload
-      await loadBook()
+      bookId.value = event.payload.id
+      if (event.payload.cfi !== ''){
+        await loadBook(event.payload.cfi)
+      }else {
+        await loadBook()
+      }
     }).then((fn) => {
       unlistenBook.value = fn
     })
@@ -401,7 +405,7 @@ export default {
     getCurrentWebviewWindow().emitTo('main', 'ready-to-receive-book-id')
 
     // 加载书籍
-    const loadBook = async () => {
+    const loadBook = async (cfi? : string) => {
       if (!bookId.value) {
         setTimeout(loadBook, 500) // 500ms 后再次尝试加载书籍
         return
@@ -471,11 +475,21 @@ export default {
 
         // 恢复阅读进度
         const savedLocation = bookConfig.location
-
-        if (savedLocation) {
-          rendition.value.display(savedLocation)
+        if (cfi) {
+          console.log('使用笔记位置cfi:', cfi)
+          // 笔记位置
+          try {
+            rendition.value.display(cfi)
+          }catch (e) {
+            console.log(e)
+          }
         } else {
-          rendition.value.display()
+          console.log('使用自动保存位置cfi:', savedLocation)
+          if (savedLocation) {
+            rendition.value.display(savedLocation)
+          } else {
+            rendition.value.display()
+          }
         }
 
         // 等待书籍加载完成

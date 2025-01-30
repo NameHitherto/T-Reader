@@ -348,7 +348,10 @@ export default {
             WebviewWindow.getCurrent().emitTo(
               'reader',
               'load-book-id',
-              id.toString()
+              {
+                id: id.toString(),
+                cfi: '',
+              }
             )
           }
         )
@@ -360,7 +363,10 @@ export default {
         WebviewWindow.getCurrent().emitTo(
           'reader',
           'load-book-id',
-          id.toString()
+          {
+            id: id.toString(),
+            cfi: '',
+          }
         )
       })
     }
