@@ -101,7 +101,6 @@ export default defineComponent({
       }
     },
     async saveBookMarks() {
-      console.log('save before' ,this.groupedBooksMarks)
       // 根据分组后的书签列表更新配置文件
       this.loadedBooks.forEach(async(book) => {
         let bookConfigData
@@ -137,9 +136,7 @@ export default defineComponent({
       })
     },
     async deleteBookMark(bookMark: BookMark) {
-      console.log('delete before', this.booksMarks)
       this.booksMarks = this.booksMarks.filter((item) => item.id !== bookMark.id)
-      console.log('delete after', this.booksMarks)
       await this.saveBookMarks()
     },
     handleWheel(e: WheelEvent) {
@@ -156,8 +153,6 @@ export default defineComponent({
   },
   async mounted() {
     await this.loadBookMarks()
-    console.log('load', this.booksMarks)
-    console.log('grouped', this.groupedBooksMarks)
   }
 })
 </script>

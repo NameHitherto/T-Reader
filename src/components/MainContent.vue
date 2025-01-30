@@ -358,7 +358,6 @@ export default {
       })
 
       webview.once('tauri://error', function () {
-        console.log('阅读器已打开...')
         // 阅读器已加载，此时只需要发送新的书籍ID
         WebviewWindow.getCurrent().emitTo(
           'reader',

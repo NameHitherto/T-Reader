@@ -263,7 +263,7 @@ export default {
           bookConfig.location = cfi
           // 覆盖阅读笔记
           if (bookMarks.value.length > 0) {
-            bookConfig.bookMarks = bookMarks.value
+            bookConfig.bookMarks = bookMarks.value.filter((mark: BookMark) => mark.bookId === bookIsReading.value)
           }
           const jsonString = JSON.stringify(bookConfig)
           const jsonUint8Array = new TextEncoder().encode(jsonString)
@@ -462,7 +462,12 @@ export default {
         const ePubBook = ePub(bookArrayBuffer)
 
         // 清空阅读器内容
-        document.getElementById('epub-reader')!.innerHTML = ''
+        //document.getElementById('epub-reader')!.innerHTML = ''
+        try {
+          await rendition.value?.destroy()
+        }catch (e) {
+          console.log('遇到了令人在意的问题', e)
+        }
 
         rendition.value = ePubBook.renderTo('epub-reader', {
           width: '100%',
