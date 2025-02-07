@@ -21,4 +21,8 @@ document
 document
   .getElementById('titlebar-about')
   ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-book-info')});
+// AI助手
+document
+  .getElementById('titlebar-assistant')
+  ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-assistant')});
 document.addEventListener('contextmenu', (event) => {event.preventDefault();});

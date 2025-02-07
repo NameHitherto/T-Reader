@@ -95,6 +95,8 @@ button {
 }
 
 textarea {
+  cursor: var(--t-mouse-cursor-handwriting), text;
+
   &::-webkit-scrollbar {
     width: 6px;
   }

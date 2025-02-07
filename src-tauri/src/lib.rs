@@ -4,10 +4,13 @@ use quick_xml::events::Event;
 use quick_xml::Reader;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::collections::HashMap;
+use serde_json::json;
+use futures_util::StreamExt;
 
 #[derive(Serialize, Deserialize)]
 struct Book {
@@ -32,6 +35,14 @@ struct Settings {
     webdav_user: String,
     #[serde(rename = "webdavPass")]
     webdav_pass: String,
+    #[serde(rename = "isAiEnabled")]
+    is_ai_enabled: String,
+    #[serde(rename = "modelName")]
+    model_name: String,
+    #[serde(rename = "modelUrl")]
+    model_url: String,
+    #[serde(rename = "modelApiKey")]
+    model_api_key: String,
 }
 
 #[tauri::command]
@@ -445,6 +456,67 @@ fn delete_books_and_configs(directory: &str) -> Result<(), String>{
     Ok(())
 }
 
+#[tauri::command]
+async fn start_stream(app: AppHandle, messages: String) -> Result<(), String> {
+    let setting = load_settings()?;
+    let client = Client::new();
+    const EVENT_NAME: &str = "stream-chunk";
+    if setting.is_ai_enabled != "true" {
+        return Err("AI 功能未启用".to_string());
+    }
+    let api_key = setting.model_api_key;
+    let api_url = setting.model_url;
+    let model_name = setting.model_name;
+
+    // 构建请求体
+    let request_body = json!({
+        "model": model_name,
+        "messages": serde_json::from_str::<serde_json::Value>(&messages)
+            .map_err(|e| format!("解析messages失败: {:?}", e))?,
+        "stream": true
+    }).to_string();
+
+    // 发起SSE请求
+    let response = client
+        .post(api_url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Accept", "text/event-stream")
+        .body(request_body)
+        .send()
+        .await
+        .map_err(|e| format!("发起SSE请求失败: {:?}", e))?;
+
+    let mut stream = response.bytes_stream();
+
+    // 处理流数据
+    while let Some(chunk) = stream.next().await {
+        match chunk {
+            Ok(bytes) => {
+                let chunk_vec: Vec<u8> = bytes.to_vec();
+                let chunk_str = String::from_utf8_lossy(&chunk_vec);
+
+                // 根据 "data:" 分割内容
+                for data in chunk_str.split("data:") {
+                    let data = data.trim(); // 去除前后空白
+                    if data.is_empty() {
+                        continue;
+                    }
+                    let json_str = data.trim_end_matches('\n');
+
+                    app.emit_to("reader", EVENT_NAME, json!({"chunk": json_str}))
+                        .map_err(|e| format!("发送流数据失败: {:?}", e))?;
+                }
+            }
+            Err(e) => {
+                return Err(format!("接收流数据失败: {:?}", e));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -464,7 +536,8 @@ pub fn run() {
             webdav_delete,
             webdav_sync_files,
             save_settings,
-            load_settings
+            load_settings,
+            start_stream
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

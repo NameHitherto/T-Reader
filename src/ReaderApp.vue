@@ -42,6 +42,8 @@
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
   <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" />
+  <!-- AI助手 -->
+  <AssistantDialog v-model="assistantVisible" />
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%
@@ -61,6 +63,7 @@ import { storeToRefs } from 'pinia'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
+import AssistantDialog from './components/AssistantDialog/index.vue'
 import { ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID, formatDate } from './js/utils'
@@ -70,7 +73,8 @@ export default {
   components: {
     BookInfoDialog,
     ContextMenu,
-    BookMarkDialog
+    BookMarkDialog,
+    AssistantDialog,
   },
   setup() {
     // 阅读时书籍ID
@@ -123,6 +127,8 @@ export default {
         bookMarkStore.updateBookMark(JSON.parse(newVal))
       }
     })
+    // AI助手是否显示
+    const assistantVisible = ref(false)
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -382,6 +388,11 @@ export default {
     // 监听显示书籍信息
     listen('show-book-info', () => {
       bookInfoVisible.value = true
+    })
+
+    // 监听显示AI助手
+    listen('show-assistant', () => {
+      assistantVisible.value = true
     })
 
     // 监听样式调整
@@ -704,6 +715,7 @@ export default {
       readingPercentage,
       bookMarkEditionVisible,
       bookMarkEditionContent,
+      assistantVisible,
     }
   },
 }

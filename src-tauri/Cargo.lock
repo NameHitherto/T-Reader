@@ -3178,10 +3178,12 @@ dependencies = [
  "system-configuration 0.5.1",
  "tokio",
  "tokio-rustls 0.24.1",
+ "tokio-util",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
  "web-sys",
  "webpki-roots 0.25.4",
  "winreg 0.50.0",
@@ -3925,6 +3927,7 @@ name = "t2-reader"
 version = "0.3.0"
 dependencies = [
  "dirs 4.0.0",
+ "futures-util",
  "http 0.2.12",
  "quick-xml 0.22.0",
  "reqwest 0.11.27",
