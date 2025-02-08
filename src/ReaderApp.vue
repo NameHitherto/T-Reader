@@ -67,6 +67,8 @@ import AssistantDialog from './components/AssistantDialog/index.vue'
 import { ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID, formatDate } from './js/utils'
+import { ElLoading } from 'element-plus'
+import 'element-plus/es/components/loading/style/css'
 
 export default {
   name: 'ReaderApp',
@@ -428,6 +430,13 @@ export default {
       // 书籍加载完毕书籍ID置空，防止浏览器缓存
       bookId.value = null
 
+      // 开始加载
+      const loading = ElLoading.service({
+        lock: true,
+        text: '正在加载书籍...',
+        background: 'rgba(0, 0, 0, 0.7)',
+      })
+
       try {
         let bookConfigData
         try {
@@ -562,8 +571,12 @@ export default {
           bookMarkStore.importBookMark(bookConfig.bookMarks)
           await initAllBookMarks()
         }
+
+        // 关闭加载动画
+        loading.close()
       } catch (e) {
         console.log(e)
+        loading.close()
       }
     }
 

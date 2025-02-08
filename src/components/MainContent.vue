@@ -131,10 +131,10 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ePub from 'libs/epub.js'
 import { invoke } from '@tauri-apps/api/core'
-import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
+import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { open } from '@tauri-apps/plugin-dialog'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
@@ -148,6 +148,7 @@ import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
+import { convertBlobToBase64 } from '@/js/utils.js'
 
 interface Book {
   id: number
@@ -172,7 +173,6 @@ export default {
   },
   setup() {
     const books = ref<Book[]>([])
-    const isBooksEmpty = ref(false)
     const isLoading = ref(false) // 是否正在加载
     const booksLoading = ref(false) // 书籍是否加载完成
     const loadingText = ref(
@@ -185,29 +185,14 @@ export default {
     let unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
+    const isBooksEmpty = computed(() => books.value.length === 0)
 
     const loadBooks = async () => {
       try {
         booksLoading.value = true
         const loadedBooks: Book[] = await invoke('load_books')
-        books.value = []
-        for (const book of loadedBooks) {
-          try {
-            const solidBook = await readFile(`T-Reader/${book.id}.epub`, {
-              baseDir: BaseDirectory.Document,
-            })
-            const arrayBuffer = solidBook.buffer
-            const epub = ePub(arrayBuffer)
-            const cover = await epub.coverUrl()
-            book.cover = cover ?? defaultCover
-            // 正常添加该书籍
-            books.value.push(book)
-          } catch (error) {
-            console.error('Error loading cover for book:', book.title, error)
-          }
-        }
+        books.value = loadedBooks
         booksLoading.value = false
-        isBooksEmpty.value = books.value.length === 0
       } catch (error) {
         console.error('Error loading books:', error)
       }
@@ -279,11 +264,12 @@ export default {
         try {
           const book = ePub(e.target?.result as ArrayBuffer)
           const metadata = await book.loaded.metadata
-          const cover = await book.coverUrl()
+          const coverBlob = await book.coverUrl()
+          const cover = coverBlob ? await convertBlobToBase64(coverBlob) : defaultCover
 
           const newBook: Book = {
             id: newBookId,
-            cover: cover ?? defaultCover,
+            cover: cover,
             title: metadata.title,
             author: metadata.creator,
             language: metadata.language,

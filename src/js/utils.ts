@@ -22,5 +22,21 @@ const formatDateToNumber = (date: string) => {
   const [hours, minutes] = dateArr[1].split(':');
   return new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes)).getTime();
 }
+// 将blob格式的图片数据转化为可持久化保存的base64格式
+const convertBlobToBase64 = async (blobUrl: string): Promise<string> => {
+  // 使用fetch获取Blob数据
+  const response = await fetch(blobUrl)
+  const blob = await response.blob()
 
-export { generateID, formatDate, formatDateToNumber };
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64Data = reader.result as string
+      resolve(base64Data)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+export { generateID, formatDate, formatDateToNumber, convertBlobToBase64 };

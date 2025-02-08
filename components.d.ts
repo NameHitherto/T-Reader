@@ -41,4 +41,7 @@ declare module 'vue' {
     SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
   }
+  export interface ComponentCustomProperties {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
+  }
 }
