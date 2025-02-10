@@ -215,7 +215,7 @@ export default {
 
     const addBook = async () => {
       const selectedFilePath = await open({
-        multiple: false,
+        multiple: true,
         directory: false,
         filters: [
           {
@@ -225,11 +225,17 @@ export default {
         ],
       })
 
-      if (Array.isArray(selectedFilePath) || selectedFilePath === null) {
+      if (selectedFilePath === null) {
         return
       }
 
-      if (books.value.find((book) => book.path === selectedFilePath)) {
+      for (const path of selectedFilePath) {
+        await addBookByPath(path)
+      }
+    }
+
+    const addBookByPath = async (path: string) => {
+      if (books.value.find((book) => book.path === path)) {
         console.log('该文件已经添加过了')
         return
       }
@@ -237,7 +243,7 @@ export default {
         'Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file'
       isLoading.value = true
       const u8File: Uint8Array = await invoke('read_file_by_path', {
-        filepath: selectedFilePath,
+        filepath: path,
       })
       const bufferFile = new Uint8Array(u8File).buffer
       const file = new Blob([bufferFile], { type: 'application/epub+zip' })
@@ -276,7 +282,7 @@ export default {
             size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
             lastRead: new Date().toLocaleDateString(),
             added: new Date().toLocaleDateString(),
-            path: selectedFilePath,
+            path: path,
             location: '0',
           }
 

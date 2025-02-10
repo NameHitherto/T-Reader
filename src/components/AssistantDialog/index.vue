@@ -30,14 +30,14 @@
                       <div class="chat-favicon">
                         <img :src="faviconImg"/>
                       </div>
-                      <div class="chat-content">{{ chat.content }}</div>
+                      <div class="chat-content" v-html="convertToMd(chat.content)"></div>
                     </div>
                   </template>
                   <div v-if="responseMessage" class="chat-go-on chat-assistant">
                     <div class="chat-favicon">
                       <img :src="faviconImg"/>
                     </div>
-                    <div class="chat-content">{{ responseMessage }}</div>
+                    <div class="chat-content" v-html="convertToMd(responseMessage)"></div>
                   </div>
                 </div>
               </el-scrollbar>
@@ -81,6 +81,9 @@ import { defineComponent, ref, nextTick } from 'vue'
 import favicon from '@/assets/images/roxy.png'
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import MarkdownIt from 'markdown-it/index';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/vs.css';
 
 interface StreamPayload {
   chunk: string
@@ -98,7 +101,7 @@ export default defineComponent({
       isCanceled: false, // 是否取消本次对话
       responseMessage: ref(''),
       chatHistory: [] as Array<{ role: string; content: string }>,
-      faviconImg: favicon
+      faviconImg: favicon,
     }
   },
   watch: {
@@ -186,6 +189,30 @@ export default defineComponent({
         // 滚动到底部，滚动量足够大
         scrollbar?.setScrollTop(999999)
       })
+    },
+    convertToMd(originMsg: string) {
+      // 初始化markdown-it实例
+      const md: MarkdownIt = new MarkdownIt({
+        html: true,         // 允许HTML标签
+        breaks: true,       // 转换换行符为<br>
+        linkify: true,      // 自动转换URL为链接
+        highlight: (str: string, lang: string): string => {
+          if (lang && hljs.getLanguage(lang)) {
+            try {
+              return `<pre><code class="hljs">${
+                hljs.highlight(str, { 
+                  language: lang, 
+                  ignoreIllegals: true 
+                }).value
+              }</code></pre>`;
+            } catch (e) {
+              console.error(e)
+            }
+          }
+          return `<pre><code class="hljs">${md.utils.escapeHtml(str)}</code></pre>`;
+        }
+      });
+      return md.render(originMsg)
     }
   }
 })
@@ -255,7 +282,6 @@ export default defineComponent({
           justify-content: flex-start;
           margin-bottom: 16px;
 
-
           .chat-favicon {
             width: 40px;
             height: 40px;
@@ -272,7 +298,7 @@ export default defineComponent({
             font-size: 16px;
             line-height: 20px;
             color: rgb(64 64 64);
-            padding: 10px;
+            padding: 0 10px;
             max-width: calc(100% - 60px);
           }
         }
