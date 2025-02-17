@@ -29,6 +29,10 @@ struct Book {
 
 #[derive(Serialize, Deserialize)]
 struct Settings {
+    #[serde(rename = "webdavUrlRoot")]
+    webdav_url_root: String,
+    #[serde(rename = "webdavUrlFolder")]
+    webdav_url_folder: String,
     #[serde(rename = "webdavUrl")]
     webdav_url: String,
     #[serde(rename = "webdavUser")]
@@ -235,12 +239,6 @@ fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
     file.read_to_end(&mut contents).map_err(|e| e.to_string())?;
     Ok(contents)
 }
-
-// webDAV相关api
-
-// const WEBDAV_URL: &str = "https://dav.jianguoyun.com/dav/T-Reader/";
-// const WEBDAV_USER: &str = "605351778@qq.com";
-// const WEBDAV_PASS: &str = "ayntpghyezyf7pna";
 
 #[tauri::command]
 async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {

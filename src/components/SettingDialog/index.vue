@@ -11,10 +11,21 @@
   >
     <div class="section">
       <el-divider class="divider" content-position="left">云同步</el-divider>
+      <div class="select-container">
+        <label class="select-label">云同步平台</label>
+        <el-select v-model="webdavUrlRoot" placeholder="请选择">
+          <el-option 
+            v-for="item in platformList"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </div>
       <div class="input-container">
-        <label class="input-label">webDAV服务器</label>
-        <el-input class="input-button" v-model="webdavUrl" placeholer="请输入云同步的目录">
-          <template #prepend>(https://)</template>
+        <label class="input-label">文件目录</label>
+        <el-input class="input-button" v-model="webdavUrlFolder" placeholer="请输入云同步的目录">
+          <template #prepend>({{ webdavUrlRoot }})</template>
         </el-input>
       </div>
       <div class="input-container">
@@ -72,9 +83,13 @@ export default {
   data() {
     return {
       settings: {},
-      webdavUrl: '',
+      webdavUrlRoot: '',
+      webdavUrlFolder: '',
       webdavUsername: '',
       webdavPassword: '',
+      platformList: [
+        { value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' }
+      ],
       isAiAssistantEnabled: false,
       modelValue: '',
       modelList: [
@@ -84,6 +99,12 @@ export default {
     };
   },
   computed: {
+    webdavUrl() {
+      if (this.webdavUrlFolder.endsWith('/')) {
+        return this.webdavUrlRoot + this.webdavUrlFolder
+      }
+      return this.webdavUrlRoot + this.webdavUrlFolder + '/'
+    },
     modelUrl() {
       if (this.modelValue === '') {
         return ''
@@ -105,7 +126,8 @@ export default {
         modelApiKey: ''
       };
       this.settings = { ...defaults, ...loadedSettings };
-      this.webdavUrl = this.settings.webdavUrl;
+      this.webdavUrlRoot = this.settings.webdavUrlRoot;
+      this.webdavUrlFolder = this.settings.webdavUrlFolder;
       this.webdavUsername = this.settings.webdavUser;
       this.webdavPassword = this.settings.webdavPass;
       this.isAiAssistantEnabled = this.settings.isAiEnabled === 'true';
@@ -114,6 +136,8 @@ export default {
     },
     async saveSetting() {
       this.settings = {
+        webdavUrlRoot: this.webdavUrlRoot,
+        webdavUrlFolder: this.webdavUrlFolder,
         webdavUrl: this.webdavUrl,
         webdavUser: this.webdavUsername,
         webdavPass: this.webdavPassword,
@@ -186,8 +210,24 @@ export default {
   }
 }
 </style>
-<style>
+<style lang="scss">
 .dialog-wrapper {
   max-width: 550px;
+  max-height: 75vh;
+  overflow-y: auto;
+
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+  }
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: transparent;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 </style>
