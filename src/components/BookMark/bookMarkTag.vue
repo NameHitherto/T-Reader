@@ -5,8 +5,18 @@
         <div class="tag-node"></div>
         <div class="tag-link"></div>
         <div class="tag-body" @click="handleOptions">
-            <span class="tag-content">{{ bookMark.content }}</span>
-            <span class="tag-comment" :class="bookMark.comments ? 'primary' : 'info'">{{ bookMark.comments ? bookMark.comments : '你还未对此作出评价' }}</span>
+            <div class="tag-inner">
+                <div class="front">
+                    <div class="tag-hole"></div>
+                    <div class="tag-content">{{ bookMark.content }}</div>
+                </div>
+                <div class="back">
+                    <div class="tag-hole"></div>
+                    <div class="tag-comment" :class="bookMark.comments ? 'primary' : 'info'">
+                        {{ bookMark.comments ? bookMark.comments : '你还未对此作出评价' }}
+                    </div>
+                </div>
+            </div>
             <div class="tag-options">
                 <el-tooltip
                     class="tag-tooltip"
@@ -211,81 +221,111 @@ export default defineComponent({
         width: 50%;
         top: 8px;
         left: 0;
-        border-top: 2px dashed #ccc;
+        border-top: 2px dashed #ffe7ce;
     }
     &-tail-right {
         position: absolute;
         width: 50%;
         top: 8px;
         left: 50%;
-        border-top: 2px dashed #ccc;
+        border-top: 2px dashed #ffe7ce;
     }
     &-node {
         width: 16px;
         height: 16px;
-        background-color: var(--t-color-light-grey);
+        background: linear-gradient(120deg, bisque 60%, rgb(255, 231, 222) 88%, rgb(255, 211, 195) 40%, rgba(255, 127, 80, 0.603) 48%);
         border-radius: 50%;
-        border-color: var(--t-color-light-grey);
+        border: 2px solid rgba(255, 211, 195, 0.8);
         z-index: 1;
     }
     &-link {
         width: 3px;
         height: 20px;
-        background-color: var(--t-color-light-grey);
+        background-color: #ffd8a8;
     }
     &-body {
-        position: relative;
         width: 100px;
         height: 400px;
-        display: inline-flex;
         justify-content: center;
         font-size: 18px;
-        padding: 10px 0;
-        border: var(--t-border-medium-grey);
-        border-radius: 10px;
         backdrop-filter: blur(2px);
         cursor: var(--t-mouse-cursor-link), default;
+        background-color: transparent;
 
-        .tag-content {
-            writing-mode: vertical-lr;
-            width: 3.6em;
-            line-height: 1.2em;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-            -webkit-box-orient: vertical;
-            user-select: none;
+        &:hover .tag-inner{
+            transform: rotateY(180deg);
         }
 
-        .tag-comment {
-            writing-mode: vertical-lr;
-            opacity: 0;
-            position: absolute;
-            top: 10px;
-            max-width: 150px;
-            height: 90%;
-            line-height: 1.1em;
-            min-width: 3.3em;
-            border-radius: 6px;
-            padding: 0.5em 0;
-            transition: all .3s ease-in-out;
-            box-shadow: #b3b3b3 0px 0px 5px 3px;
-            text-align: center;
-            align-content: center;
-            user-select: none;
+        .tag-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform .8s;
+            transform-style: preserve-3d;
 
-            &:hover{
-                opacity: 1;
-                background-color: #000;
+            .front, .back{
+                display: flex;
+                position: absolute;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                height: 100%;
+
+                .tag-hole {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    background-color: #fff;
+                    box-shadow: inset 0 0 3px bisque;
+                    position: absolute;
+                    top: 12px;
+                }
             }
+            .front {
+                border-radius: 10px;
+                background: linear-gradient(120deg, bisque 60%, rgb(255, 231, 222) 88%, rgb(255, 211, 195) 40%, rgba(255, 127, 80, 0.603) 48%);
+                color: coral;
 
-            &.primary {
-                color: #fff;
+                .tag-content {
+                    display: -webkit-box;
+                    max-width: 3.6em;
+                    margin: 40px 0 10px 0;
+                    writing-mode: vertical-lr;
+                    line-height: 1.2em;
+                    overflow: hidden;
+                    -webkit-line-clamp: 3;
+                    line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    user-select: none;
+                }
             }
+            .back {
+                transform: rotateY(180deg);
+                border-radius: 10px;
+                background: linear-gradient(120deg, rgb(255, 174, 145) 30%, coral 88%, bisque 40%, rgb(255, 185, 160) 78%);
 
-            &.info {
-                color: var(--t-color-dark-grey);
+                .tag-comment {
+                    display: -webkit-box;
+                    max-width: 3.3em;
+                    margin: 40px 0 10px 0;
+                    writing-mode: vertical-lr;
+                    line-height: 1.1em;
+                    -webkit-line-clamp: 3;
+                    line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    user-select: none;
+
+                    &.primary {
+                        color: #fff;
+                    }
+
+                    &.info {
+                        color: var(--t-color-dark-grey);
+                    }
+                }
             }
         }
 
@@ -387,7 +427,7 @@ export default defineComponent({
 
         .tag-time {
             font-size: 14px;
-            color: #909399;
+            color: #ff8d00;
             line-height: 1em;
         }
     }
