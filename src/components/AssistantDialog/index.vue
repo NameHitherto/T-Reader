@@ -10,7 +10,7 @@
         <div class="assistant-dialog-view">
             <div class="assistant-chat-container">
               <el-scrollbar ref="scrollbar" max-height="50vh">
-                <div v-if="!chatHistory.length && !responseMessage" class="chat-welcome">
+                <div v-if="chatHistory.length <= 1 && !responseMessage" class="chat-welcome">
                   <div class="chat-welcome-title">
                     <div class="chat-welcome-favicon">
                       <img :src="faviconImg"/>
@@ -26,7 +26,7 @@
                     <div v-if="chat.role==='user'" class="chat-user">
                       <div class="chat-content">{{ chat.content }}</div>
                     </div>
-                    <div v-else class="chat-assistant">
+                    <div v-else-if="chat.role==='assistant'" class="chat-assistant">
                       <div class="chat-favicon">
                         <img :src="faviconImg"/>
                       </div>
@@ -84,6 +84,7 @@ import { listen } from '@tauri-apps/api/event';
 import MarkdownIt from 'markdown-it/index';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/vs.css';
+import { extractEpubContent } from '@/js/utils';
 
 interface StreamPayload {
   chunk: string
@@ -92,7 +93,10 @@ interface StreamPayload {
 export default defineComponent({
   name: 'AssistantDialog',
   props: {
-    
+    bookId: {
+      type: [String, null],
+      required: true
+    }
   },
   data() {
     return {
@@ -102,6 +106,7 @@ export default defineComponent({
       responseMessage: ref(''),
       chatHistory: [] as Array<{ role: string; content: string }>,
       faviconImg: favicon,
+      referedBookInfo: ref(''), // 书籍内容
     }
   },
   watch: {
@@ -113,9 +118,18 @@ export default defineComponent({
     }
   },
   methods: {
-    onOpen() {
+    async onOpen() {
       // 禁用原有的键盘事件
-      
+      // 解析epub并获取正文内容
+      if (this.bookId === null) {
+        console.error('bookId is required')
+        return
+      }
+      this.referedBookInfo = await extractEpubContent(this.bookId)
+      this.chatHistory.push({
+        role: 'system',
+        content: '你是一名对话助手，接下来用户可能会提问有关一本书内容的问题，你需要基于原文进行回答，这本书的原文如下:\n\n' + this.referedBookInfo
+      })
     },
     async sendMessage() {
       if (!this.inputMessage) return
@@ -174,6 +188,10 @@ export default defineComponent({
     reset() {
       this.inputMessage = ''
       this.chatHistory = []
+      this.chatHistory.push({
+        role: 'system',
+        content: '你是一名对话助手，接下来用户可能会提问有关一本书内容的问题，你需要基于原文进行回答，这本书的原文如下:\n\n' + this.referedBookInfo
+      })
     },
     handleInputEnter(event: KeyboardEvent) {
       if (event.shiftKey) {

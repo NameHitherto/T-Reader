@@ -93,7 +93,8 @@ export default {
       isAiAssistantEnabled: false,
       modelValue: '',
       modelList: [
-        { value: 'glm-4-flash', label: '智谱清言' }
+        { value: 'glm-4-flash', label: '智谱清言' },
+        { value: 'deepseek-v3', label: 'DeepSeek-V3(阿里云百炼)' }
       ],
       modelAPIKey: ''
     };
@@ -110,6 +111,8 @@ export default {
         return ''
       } else if (this.modelValue === 'glm-4-flash') {
         return 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+      } else if (this.modelValue === 'deepseek-v3') {
+        return 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
       }
     }
   },

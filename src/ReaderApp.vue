@@ -43,7 +43,7 @@
   <!-- 笔记编辑框 -->
   <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" />
   <!-- AI助手 -->
-  <AssistantDialog v-model="assistantVisible" />
+  <AssistantDialog v-model="assistantVisible" :bookId="bookIsReading"/>
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%

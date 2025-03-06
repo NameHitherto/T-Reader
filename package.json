@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-window-state": "^2.0.0",
     "element-plus": "^2.8.4",
     "highlight.js": "^11.11.1",
+    "jszip": "^3.10.1",
     "markdown-it": "^14.1.0",
     "pinia": "^2.2.4",
     "vue": "^3.3.4",
