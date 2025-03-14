@@ -12,7 +12,7 @@
     "skipLibCheck": true,
     "typeRoots": [
       "./node_modules/@types",
-      "./libs/epub.js/types"
+      "./libs"
     ],
 
     /* Bundler mode */
