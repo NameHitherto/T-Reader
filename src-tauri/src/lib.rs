@@ -14,7 +14,7 @@ use futures_util::StreamExt;
 
 #[derive(Serialize, Deserialize)]
 struct Book {
-    id: u64,
+    id: String,
     cover: String,
     title: String,
     author: String,

@@ -27,19 +27,7 @@ import { BookMark } from '@/store/bookMark'
 import { invoke } from '@tauri-apps/api/core'
 import { readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { formatDateToNumber } from '@/js/utils'
-
-interface Book {
-  id: number
-  cover: string
-  title: string
-  author: string
-  language: string
-  size: string
-  lastRead: string
-  added: string
-  path: string
-  location: string
-}
+import { Book } from '@/js/map'
 
 export default defineComponent({
   name: 'BookMark',

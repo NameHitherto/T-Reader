@@ -149,19 +149,7 @@ import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
 import { convertBlobToBase64 } from '@/js/utils.js'
-
-interface Book {
-  id: number
-  cover: string
-  title: string
-  author: string
-  language: string
-  size: string
-  lastRead: string
-  added: string
-  path: string
-  location: string
-}
+import { Book } from '../js/map'
 
 export default {
   name: 'MainContent',
@@ -248,7 +236,7 @@ export default {
       const bufferFile = new Uint8Array(u8File).buffer
       const file = new Blob([bufferFile], { type: 'application/epub+zip' })
 
-      const newBookId = Date.now()
+      const newBookId = Date.now().toString()
       const newBookPath = `T-Reader/${newBookId}.epub`
       const contents = new Uint8Array(bufferFile)
 
@@ -307,7 +295,7 @@ export default {
       isLoading.value = false
     }
 
-    const deleteBook = async (id: number) => {
+    const deleteBook = async (id: string) => {
       try {
         await invoke('delete_book', { filename: `${id}.json` })
         await invoke('delete_book', { filename: `${id}.epub` })
@@ -319,7 +307,7 @@ export default {
       }
     }
 
-    const openBook = (id: number) => {
+    const openBook = (id: string) => {
       console.log('Opening book:', id)
 
       const webview = new WebviewWindow('reader', {
@@ -362,13 +350,13 @@ export default {
       })
     }
 
-    const showBookInfo = (id: number) => {
+    const showBookInfo = (id: string) => {
       bookInfoId.value = id.toString()
       bookInfoVisible.value = true
     }
 
     // 右键菜单
-    const onContextMenu = (e: MouseEvent, bookId: number) => {
+    const onContextMenu = (e: MouseEvent, bookId: string) => {
       //e.preventDefault()
       let menuX = e.x
       let menuY = e.y
@@ -570,9 +558,12 @@ export default {
 
       .book-cover {
         width: 80px;
+        min-height: 120px;
+        display: inline-flex;
 
         span {
           width: 100%;
+          align-self: center;
           display: flex;
 
           img {

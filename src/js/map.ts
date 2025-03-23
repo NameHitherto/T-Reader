@@ -14,3 +14,17 @@ export interface ContextMenuItem {
   type?: iconType; 
   onClick?: (e: MouseEvent | KeyboardEvent) => void;
 }
+
+// [ID].json配置文件参数
+export interface Book {
+  id: string
+  cover: string
+  title: string
+  author: string
+  language: string
+  size: string
+  lastRead: string
+  added: string
+  path: string
+  location: string
+}
