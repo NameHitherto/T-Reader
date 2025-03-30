@@ -31,9 +31,15 @@
       <span style="font-size: large; text-align: center">目录</span>
     </template>
     <el-menu :default-active="activeChapter" @select="goToChapter">
-      <el-menu-item v-for="item in toc" :key="item.id" :index="item.href">
-        {{ item.label }}
-      </el-menu-item>
+      <template v-for="item in toc">
+        <toc-menu
+          v-if="item.subitems.length > 0"
+          :subToc="item"
+        />
+        <el-menu-item v-else :key="item.id" :index="item.href">
+          {{ item.label }}
+        </el-menu-item>
+      </template>
     </el-menu>
   </el-drawer>
   <!-- 书籍详细信息展示 -->
@@ -64,6 +70,7 @@ import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import AssistantDialog from './components/AssistantDialog/index.vue'
+import TocMenu from './components/TocMenu/index.vue'
 import { ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID, formatDate } from './js/utils'
@@ -77,6 +84,7 @@ export default {
     ContextMenu,
     BookMarkDialog,
     AssistantDialog,
+    TocMenu,
   },
   setup() {
     // 阅读时书籍ID
@@ -523,7 +531,7 @@ export default {
         await ePubBook.ready
 
         // 生成位置索引
-        await ePubBook.locations.generate(1000)
+        ePubBook.locations.generate(1000)
 
         // 页面重新排版
         rendition.value.on('relocated', (location: any) => {

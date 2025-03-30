@@ -31,6 +31,7 @@ declare module 'vue' {
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSkeletonItem: typeof import('element-plus/es')['ElSkeletonItem']
+    ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Experiment: typeof import('./src/components/Experiment.vue')['default']
@@ -40,5 +41,6 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
+    TocMenu: typeof import('./src/components/TocMenu/index.vue')['default']
   }
 }
