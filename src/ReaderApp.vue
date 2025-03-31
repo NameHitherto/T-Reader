@@ -535,11 +535,13 @@ export default {
 
         // 页面重新排版
         rendition.value.on('relocated', (location: any) => {
-          // 更新阅读进度
-          if (ePubBook) {
-            const percentage = ePubBook.locations.percentageFromCfi(
-              location.start.cfi
-            )
+          // 更新当前章节href
+          if (location.start) {
+            activeChapter.value = location.end.href
+          } 
+          // 更新阅读进度百分比
+          const percentage = location.start.percentage
+          if (percentage) {
             readingPercentage.value = (percentage * 100).toFixed(1)
           }
         })

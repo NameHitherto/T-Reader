@@ -1,5 +1,5 @@
 <template>
-    <el-sub-menu :index="subToc.id || subToc.href">
+    <el-sub-menu :index="subToc.href || subToc.id">
         <template #title>
             <span>{{ subToc.label }}</span>
         </template>
