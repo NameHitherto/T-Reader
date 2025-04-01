@@ -26,11 +26,15 @@
       </button>
     </div>
   </div>
-  <el-drawer v-model="tocDrawer" direction="ltr" :show-close="false">
+  <el-drawer v-model="tocDrawer" direction="ltr" :show-close="false" @open="handleTocOpen">
     <template #header>
       <span style="font-size: large; text-align: center">目录</span>
     </template>
-    <el-menu :default-active="activeChapter" @select="goToChapter">
+    <el-menu 
+      ref="tocMenuRef"
+      :default-active="activeChapter" 
+      @select="goToChapter"
+    >
       <template v-for="item in toc">
         <toc-menu
           v-if="item.subitems.length > 0"
@@ -109,6 +113,8 @@ export default {
     const { readerConfig } = storeToRefs(readerConfigStore)
     // 目录抽屉是否显示
     const tocDrawer = ref(false)
+    // 目录菜单引用
+    const tocMenuRef = ref<any>(null)
     // 目录信息
     const toc = ref<any[]>([])
     // 当前章节
@@ -607,6 +613,49 @@ export default {
       }
     }
 
+    // 目录打开的回调
+    const handleTocOpen = () => {
+      // 当前章节的所有上级navItem的href(index)集
+      let indexGroup: string[] = []
+      const book = rendition.value?.book
+      
+      if (book) {
+        // 定义递归解析函数
+        function parseParentNavItem(nav: any) {
+          if (nav && nav.parent && nav.parent !== undefined) {
+            const parentNavItem = book?.navigation.get(`#${nav.parent}`)
+            if (parentNavItem) {
+              indexGroup.push(parentNavItem.href)
+              parseParentNavItem(parentNavItem)
+            }
+          }
+          return;
+        }
+        const currentNavItem = book.navigation.get(activeChapter.value)
+        if (currentNavItem) {
+          parseParentNavItem(currentNavItem)
+        }
+      }
+      // 打开当前章节的所有上级菜单
+      if (tocMenuRef.value && typeof tocMenuRef.value.open === 'function') {
+        for (const index of indexGroup) {
+          tocMenuRef.value.open(index)
+        }
+      }
+      // 滚动到当前章节的逻辑
+      const scrollbar = document.querySelector('.el-drawer__body')
+      const targetChapter = document.querySelector('.el-menu-item.is-active')
+      if (scrollbar && targetChapter) {
+        const targetRect = targetChapter.getBoundingClientRect()
+        const drawerRect = scrollbar.getBoundingClientRect()
+        const scrollTop = targetRect.top - drawerRect.top + scrollbar.scrollTop
+        scrollbar.scrollTo({
+          top: scrollTop,
+          behavior: 'auto',
+        })
+      }
+    }
+
     // 上一章
     const prevPage = () => {
       if (rendition.value) {
@@ -746,9 +795,11 @@ export default {
       bookIsReading,
       readerConfig,
       tocDrawer,
+      tocMenuRef,
       toc,
       goToChapter,
       activeChapter,
+      handleTocOpen,
       bookInfoVisible,
       showContextMenu,
       contextMenuOptions,
