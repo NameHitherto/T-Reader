@@ -186,7 +186,7 @@ fn load_books(directory: Option<&str>) -> Result<Vec<Book>, String> {
             match serde_json::from_str::<Book>(&contents) {
                 Ok(book) => books.push(book),
                 Err(e) => {
-                    println!("解析书籍失败: {}", e);
+                    println!("解析{}失败: {}", path.display(), e);
                     continue;
                 }
             }

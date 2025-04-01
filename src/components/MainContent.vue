@@ -149,7 +149,7 @@ import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
 import { convertBlobToBase64 } from '@/js/utils.js'
-import { Book } from '../js/map'
+import { BookConfig } from '../js/map'
 
 export default {
   name: 'MainContent',
@@ -160,7 +160,7 @@ export default {
     BookInfoDialog,
   },
   setup() {
-    const books = ref<Book[]>([])
+    const books = ref<BookConfig[]>([])
     const isLoading = ref(false) // 是否正在加载
     const booksLoading = ref(false) // 书籍是否加载完成
     const loadingText = ref(
@@ -178,7 +178,7 @@ export default {
     const loadBooks = async () => {
       try {
         booksLoading.value = true
-        const loadedBooks: Book[] = await invoke('load_books')
+        const loadedBooks: BookConfig[] = await invoke('load_books')
         books.value = loadedBooks
         booksLoading.value = false
       } catch (error) {
@@ -261,7 +261,7 @@ export default {
           const coverBlob = await book.coverUrl()
           const cover = coverBlob ? await convertBlobToBase64(coverBlob) : defaultCover
 
-          const newBook: Book = {
+          const newBook: BookConfig = {
             id: newBookId,
             cover: cover,
             title: metadata.title,
@@ -271,7 +271,7 @@ export default {
             lastRead: new Date().toLocaleDateString(),
             added: new Date().toLocaleDateString(),
             path: path,
-            location: '0',
+            location: '',
           }
 
           await invoke('save_file', {
@@ -312,7 +312,7 @@ export default {
 
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
-        title: 'T-Reader',
+        title: '阅读',
         decorations: false,
         minHeight: 660,
         minWidth: 880,

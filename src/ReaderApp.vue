@@ -61,7 +61,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { readFile, BaseDirectory, writeFile } from '@tauri-apps/plugin-fs'
-import ePub from 'libs/epub.js'
+import ePub, { Rendition } from 'libs/epub.js'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
@@ -71,7 +71,7 @@ import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import AssistantDialog from './components/AssistantDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
-import { ContextMenuData, ContextMenuItem } from './js/map'
+import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID, formatDate } from './js/utils'
 import { ElLoading } from 'element-plus'
@@ -94,7 +94,7 @@ export default {
     // 书籍信息
     const bookInfoVisible = ref(false)
     // 用于存储EPUB渲染对象
-    const rendition = ref<any>(null)
+    const rendition = ref<Rendition | null>(null)
     // 用于存储解除监听函数
     let unlistenBook = ref<UnlistenFn | null>(null)
     // 用于存储解除监听函数
@@ -223,11 +223,11 @@ export default {
       }
 
       // 阅读器样式
-      rendition.value.themes.default(readerDefaultTheme.value)
+      rendition.value?.themes.default(readerDefaultTheme.value)
       // 阅读器翻页模式
-      rendition.value.flow(readerConfig.value.flow)
+      rendition.value?.flow(readerConfig.value.flow)
       // 刷新呈现，应用更改
-      rendition.value.layout()
+      rendition.value?.layout(null)
     }
 
     // 读取配置文件
@@ -272,7 +272,7 @@ export default {
               { baseDir: BaseDirectory.Document }
             )
           }
-          const bookConfig = JSON.parse(
+          const bookConfig: BookConfig = JSON.parse(
             new TextDecoder().decode(bookConfigData)
           )
           // 覆盖上次阅读时间
@@ -330,12 +330,12 @@ export default {
     const initAllBookMarks = async () => {
       bookMarks.value.forEach((bookMark: BookMark) => {
         if (bookMark.bookId === bookIsReading.value) {
-          rendition.value.annotations.remove(bookMark.bookCfi, 'highlight')
-          rendition.value.annotations.add(
+          rendition.value?.annotations.remove(bookMark.bookCfi, 'highlight')
+          rendition.value?.annotations.add(
             'highlight',
             bookMark.bookCfi,
             {'markId': bookMark.id},
-            null,
+            undefined,
             'bookmark-highlight'
           )
           bindBookMarkClick(bookMark.id)
@@ -355,11 +355,11 @@ export default {
         createTime: formatDate(new Date()),
       }
       bookMarkStore.addBookMark(bookMark)
-      rendition.value.annotations.add(
+      rendition.value?.annotations.add(
         'highlight',
-        selectedRange.value,
+        selectedRange.value ? selectedRange.value : '',
         {'markId': tempId},
-        null,
+        undefined,
         'bookmark-highlight'
       )
       bindBookMarkClick(tempId)
@@ -376,7 +376,7 @@ export default {
     // 删除笔记
     const delBookMark = async (markId: string) => {
       const bookMark = bookMarkStore.getBookMark(markId)[0]
-      rendition.value.annotations.remove(bookMark.bookCfi, 'highlight')
+      rendition.value?.annotations.remove(bookMark.bookCfi, 'highlight')
       bookMarkStore.removeBookMark(markId)
     }
 
@@ -506,6 +506,7 @@ export default {
           flow: readerConfig.value.flow,
           spread: 'true',
           script: '../../src/js/iframe.js',
+          allowScriptedContent: true,
         })
 
         // 恢复阅读进度
