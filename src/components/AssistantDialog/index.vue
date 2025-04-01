@@ -10,7 +10,7 @@
         <div class="assistant-dialog-view">
             <div class="assistant-chat-container">
               <el-scrollbar ref="scrollbar" max-height="50vh">
-                <div v-if="chatHistory.length <= 1 && !responseMessage" class="chat-welcome">
+                <div v-if="chatHistory.length === 0 && !responseMessage" class="chat-welcome">
                   <div class="chat-welcome-title">
                     <div class="chat-welcome-favicon">
                       <img :src="faviconImg"/>
@@ -126,14 +126,16 @@ export default defineComponent({
         return
       }
       this.referedBookInfo = await extractEpubContent(this.bookId)
-      this.chatHistory.push({
-        role: 'system',
-        content: '你是一名对话助手，接下来用户可能会提问有关一本书内容的问题，你需要基于原文进行回答，这本书的原文如下:\n\n' + this.referedBookInfo
-      })
     },
     async sendMessage() {
       if (!this.inputMessage) return
       this.isWaiting = true
+
+      // 系统prompt
+      const systemMessage = {
+        role: 'system',
+        content: '你是一名对话助手，接下来用户可能会提问有关一本书内容的问题，你需要基于原文进行回答，这本书的原文如下:\n\n' + this.referedBookInfo
+      }
 
       // 用户发送的消息
       this.chatHistory.push({
@@ -173,7 +175,7 @@ export default defineComponent({
           }
         })
 
-        await invoke('start_stream', { messages: JSON.stringify(this.chatHistory) })
+        await invoke('start_stream', { messages: JSON.stringify([systemMessage, ...this.chatHistory]) })
         
       }catch (e) {
         // 取消本次提问, 可能还有其它异常
@@ -188,10 +190,6 @@ export default defineComponent({
     reset() {
       this.inputMessage = ''
       this.chatHistory = []
-      this.chatHistory.push({
-        role: 'system',
-        content: '你是一名对话助手，接下来用户可能会提问有关一本书内容的问题，你需要基于原文进行回答，这本书的原文如下:\n\n' + this.referedBookInfo
-      })
     },
     handleInputEnter(event: KeyboardEvent) {
       if (event.shiftKey) {

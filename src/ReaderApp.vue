@@ -486,105 +486,121 @@ export default {
           console.log('云同步书籍信息已复制到本地')
         }
         const bookArrayBuffer = bookData.buffer
-        //const bookBlob = new Blob([bookArrayBuffer], { type: 'application/epub+zip' });
 
-        // 解析并呈现 EPUB 内容
-        const ePubBook = ePub(bookArrayBuffer)
-
-        // 清空阅读器内容
-        //document.getElementById('epub-reader')!.innerHTML = ''
         try {
-          await rendition.value?.destroy()
-        }catch (e) {
-          console.log('遇到了令人在意的问题', e)
-        }
+          // 检查并安全销毁旧的rendition
+          if (rendition.value) {
+            console.log('开始销毁旧的Rendition')
+            if (rendition.value.hooks && rendition.value.hooks.content) {
+              rendition.value.hooks.content.clear();
+            }
 
-        rendition.value = ePubBook.renderTo('epub-reader', {
-          width: '100%',
-          height: '100%',
-          manager: 'continuous',
-          flow: readerConfig.value.flow,
-          spread: 'true',
-          script: '../../src/js/iframe.js',
-          allowScriptedContent: true,
-        })
+            try {
+              rendition.value.destroy()
+            } catch (e) {
+              console.log('销毁旧的Rendition失败', e)
+            }
 
-        // 恢复阅读进度
-        const savedLocation = bookConfig.location
-        if (cfi) {
-          console.log('使用笔记位置cfi:', cfi)
-          // 笔记位置
-          try {
-            rendition.value.display(cfi)
-          }catch (e) {
-            console.log(e)
+            rendition.value = null
           }
-        } else {
-          console.log('使用自动保存位置cfi:', savedLocation)
-          if (savedLocation) {
-            rendition.value.display(savedLocation)
+
+          // 解析并呈现 EPUB 内容
+          const ePubBook = ePub(bookArrayBuffer)
+
+          // 确保 ePubBook已完全加载
+          await ePubBook.ready;
+
+          // 创建新的 Rendition 对象
+          rendition.value = ePubBook.renderTo('epub-reader', {
+            width: '100%',
+            height: '100%',
+            manager: 'continuous',
+            flow: readerConfig.value.flow,
+            spread: 'true',
+            script: '../../src/js/iframe.js',
+            allowScriptedContent: true,
+          })
+
+          // 恢复阅读进度
+          const savedLocation = bookConfig.location
+          if (cfi) {
+            console.log('使用笔记位置cfi:', cfi)
+            // 笔记位置
+            try {
+              rendition.value.display(cfi)
+            }catch (e) {
+              console.log(e)
+            }
           } else {
-            rendition.value.display()
+            console.log('使用自动保存位置cfi:', savedLocation)
+            if (savedLocation) {
+              rendition.value.display(savedLocation)
+            } else {
+              rendition.value.display()
+            }
           }
-        }
 
-        // 等待书籍加载完成
-        await ePubBook.ready
+          // 等待书籍加载完成
+          await ePubBook.ready
 
-        // 生成位置索引
-        ePubBook.locations.generate(1000)
+          // 生成位置索引
+          ePubBook.locations.generate(1000)
 
-        // 页面重新排版
-        rendition.value.on('relocated', (location: any) => {
-          // 更新当前章节href
-          if (location.start) {
-            activeChapter.value = location.end.href
-          } 
-          // 更新阅读进度百分比
-          const percentage = location.start.percentage
-          if (percentage) {
-            readingPercentage.value = (percentage * 100).toFixed(1)
-          }
-        })
+          // 页面重新排版
+          rendition.value.on('relocated', (location: any) => {
+            // 更新当前章节href
+            if (location.start) {
+              activeChapter.value = location.end.href
+            } 
+            // 更新阅读进度百分比
+            const percentage = location.start.percentage
+            if (percentage) {
+              readingPercentage.value = (percentage * 100).toFixed(1)
+            }
+          })
 
-        // 监听文本选择
-        rendition.value.on('selected', (cfiRange: any, contents: any) => {
-          // 更新选中文本
-          selectedText.value = contents.window.getSelection().toString()
-          // 更新选中文本的Range对象
-          selectedRange.value = cfiRange
-        })
+          // 监听文本选择
+          rendition.value.on('selected', (cfiRange: any, contents: any) => {
+            // 更新选中文本
+            selectedText.value = contents.window.getSelection().toString()
+            // 更新选中文本的Range对象
+            selectedRange.value = cfiRange
+          })
 
-        // 监听窗口大小调整
-        getCurrentWebviewWindow()
-          .onResized(async () => {
-            // 重新应用注释高亮
+          // 监听窗口大小调整
+          getCurrentWebviewWindow()
+            .onResized(async () => {
+              // 重新应用注释高亮
+              await initAllBookMarks()
+            })
+            .then((fn) => {
+              unlistenResize.value = fn
+            })
+
+          // 获取书籍目录
+          const tocData = await ePubBook.loaded.navigation
+          toc.value = tocData.toc
+
+          // 应用阅读器样式
+          await applyReaderStyle()
+
+          // 此时允许查看书籍目录
+          document
+            .getElementById('titlebar-toc')
+            ?.addEventListener('click', () => (tocDrawer.value = true))
+
+          // 生成笔记注释
+          if (bookConfig.bookMarks !== undefined && bookConfig.bookMarks.length > 0) {
+            bookMarkStore.importBookMark(bookConfig.bookMarks)
             await initAllBookMarks()
-          })
-          .then((fn) => {
-            unlistenResize.value = fn
-          })
+          }
 
-        // 获取书籍目录
-        const tocData = await ePubBook.loaded.navigation
-        toc.value = tocData.toc
-
-        // 应用阅读器样式
-        await applyReaderStyle()
-
-        // 此时允许查看书籍目录
-        document
-          .getElementById('titlebar-toc')
-          ?.addEventListener('click', () => (tocDrawer.value = true))
-
-        // 生成笔记注释
-        if (bookConfig.bookMarks !== undefined && bookConfig.bookMarks.length > 0) {
-          bookMarkStore.importBookMark(bookConfig.bookMarks)
-          await initAllBookMarks()
+          // 关闭加载动画
+          loading.close()
+        } catch (e) {
+          console.log('EPUB解析失败', e)
+          loading.close()
         }
-
-        // 关闭加载动画
-        loading.close()
       } catch (e) {
         console.log(e)
         loading.close()
