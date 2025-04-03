@@ -642,18 +642,10 @@ export default {
           tocMenuRef.value.open(index)
         }
       }
-      // 滚动到当前章节的逻辑
-      const scrollbar = document.querySelector('.el-drawer__body')
-      const targetChapter = document.querySelector('.el-menu-item.is-active')
-      if (scrollbar && targetChapter) {
-        const targetRect = targetChapter.getBoundingClientRect()
-        const drawerRect = scrollbar.getBoundingClientRect()
-        const scrollTop = targetRect.top - drawerRect.top + scrollbar.scrollTop
-        scrollbar.scrollTo({
-          top: scrollTop,
-          behavior: 'auto',
-        })
-      }
+      // 滚动到当前章节
+      setTimeout(() => {
+        scrollToCurrentChapter()
+      }, 500)
     }
 
     // 上一章
@@ -674,6 +666,20 @@ export default {
         rendition.value.display(href)
         tocDrawer.value = false
         activeChapter.value = href
+      }
+    }
+    // 滚动到当前章节
+    const scrollToCurrentChapter = () => {
+      const scrollbar = document.querySelector('.el-drawer__body')
+      const targetChapter = document.querySelector('.el-menu-item.is-active')
+      if (scrollbar && targetChapter) {
+        const targetRect = targetChapter.getBoundingClientRect()
+        const drawerRect = scrollbar.getBoundingClientRect()
+        const scrollTop = targetRect.top - drawerRect.top + scrollbar.scrollTop
+        scrollbar.scrollTo({
+          top: scrollTop,
+          behavior: 'auto',
+        })
       }
     }
 
