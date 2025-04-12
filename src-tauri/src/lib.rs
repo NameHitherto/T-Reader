@@ -337,7 +337,7 @@ async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     }
 
     let body = response.text().await.map_err(|e| e.to_string())?;
-    let files: Vec<String> = parse_webdav_response(&body)?;
+    let cloud_files: Vec<String> = parse_webdav_response(&body)?;
 
     let mut path;
     #[cfg(target_os = "android")]
@@ -363,34 +363,89 @@ async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     if !path.exists() {
         println!("目录 'T-Reader' 不存在，正在创建...");
         fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-    } else {
-        println!("目录 'T-Reader' 已存在。");
-        // 删除目录下的书籍和同名JSON文件
-        delete_books_and_configs(&path.to_string_lossy())?;
     }
 
-    // 下载并保存每个文件
-    for file in files {
-        let file_url = format!("{}{}", settings.webdav_url, file);
-        let response = client
-            .get(&file_url)
-            .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
-            .send()
-            .await
-            .map_err(|e| format!("下载文件失败: {:?}", e))?;
-
-        if response.status().is_success() {
-            let contents = response.bytes().await.map_err(|e| e.to_string())?;
-            let mut file_path = path.clone();
-            file_path.push(file);
-            let mut local_file = File::create(&file_path).map_err(|e| e.to_string())?;
-            local_file.write_all(&contents).map_err(|e| e.to_string())?;
-            println!("文件 '{}' 下载并保存成功。", file_path.display());
-        } else {
-            println!("下载文件失败: {:?}", response.status());
+    // 获取本地文件列表
+    let mut local_files = Vec::new();
+    for entry in fs::read_dir(&path).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let file_path = entry.path();
+        if let Some(file_name) = file_path.file_name() {
+            if let Some(file_name_str) = file_name.to_str() {
+                local_files.push(file_name_str.to_string());
+            }
         }
     }
 
+    // 分离出本地和云端的 epub 和 json 文件
+    let local_epubs: Vec<String> = local_files.iter()
+        .filter(|f| f.ends_with(".epub"))
+        .cloned()
+        .collect();
+    
+    let cloud_epubs: Vec<String> = cloud_files.iter()
+        .filter(|f| f.ends_with(".epub"))
+        .cloned()
+        .collect();
+
+    // 1. 处理本地和云端都存在的文件 - 保留epub，但下载json覆盖本地
+    for epub in &local_epubs {
+        if cloud_epubs.contains(epub) {
+            let json_name = epub.replace(".epub", ".json");
+            if cloud_files.contains(&json_name) {
+                // 下载云端json文件覆盖本地
+                let json_content = webdav_get(&json_name).await?;
+                let json_path = path.join(&json_name);
+                let mut file = File::create(json_path).map_err(|e| e.to_string())?;
+                file.write_all(&json_content).map_err(|e| e.to_string())?;
+                println!("同步: 下载云端 {} 覆盖本地配置", json_name);
+            }
+        }
+    }
+
+    // 2. 处理本地有但云端没有的文件 - 上传到云端
+    for epub in &local_epubs {
+        if !cloud_epubs.contains(epub) {
+            // 上传epub文件
+            let epub_path = path.join(epub);
+            let epub_content = fs::read(&epub_path).map_err(|e| format!("读取文件失败: {}", e))?;
+            webdav_upload(epub, epub_content).await?;
+            println!("同步: 上传本地 {} 到云端", epub);
+
+            // 检查并上传对应的json文件
+            let json_name = epub.replace(".epub", ".json");
+            let json_path = path.join(&json_name);
+            if json_path.exists() {
+                let json_content = fs::read(&json_path).map_err(|e| format!("读取文件失败: {}", e))?;
+                webdav_upload(&json_name, json_content).await?;
+                println!("同步: 上传本地 {} 到云端", json_name);
+            }
+        }
+    }
+
+    // 3. 处理云端有但本地没有的文件 - 下载到本地
+    for epub in &cloud_epubs {
+        if !local_epubs.contains(epub) {
+            // 下载epub文件
+            let epub_content = webdav_get(epub).await?;
+            let epub_path = path.join(epub);
+            let mut file = File::create(epub_path).map_err(|e| e.to_string())?;
+            file.write_all(&epub_content).map_err(|e| e.to_string())?;
+            println!("同步: 下载云端 {} 到本地", epub);
+
+            // 检查并下载对应的json文件
+            let json_name = epub.replace(".epub", ".json");
+            if cloud_files.contains(&json_name) {
+                let json_content = webdav_get(&json_name).await?;
+                let json_path = path.join(&json_name);
+                let mut file = File::create(json_path).map_err(|e| e.to_string())?;
+                file.write_all(&json_content).map_err(|e| e.to_string())?;
+                println!("同步: 下载云端 {} 到本地", json_name);
+            }
+        }
+    }
+
+    println!("云同步完成");
     Ok(())
 }
 
@@ -422,36 +477,6 @@ fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
     }
 
     Ok(files)
-}
-
-// 删除目录下的书籍和同名JSON文件
-fn delete_books_and_configs(directory: &str) -> Result<(), String>{
-    let dir = fs::read_dir(directory).map_err(|e| e.to_string())?;
-
-    for entry in dir {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let path = entry.path();
-        // 只处理扩展名为`.epub`的文件
-        if let Some(extension) = path.extension() {
-            if extension == "epub" {
-                if let Some(file_stem) = path.file_stem() {
-                    // 获取同名的`.json`文件路径
-                    let json_file_path = format!("{}.json", file_stem.to_string_lossy());
-                    let json_path = Path::new(directory).join(json_file_path);
-
-                    // 删除`.epub`文件
-                    fs::remove_file(&path).map_err(|e| e.to_string())?;
-
-                    // 删除同名的`.json`文件
-                    if json_path.exists() {
-                        fs::remove_file(&json_path).map_err(|e| e.to_string())?;
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 #[tauri::command]
