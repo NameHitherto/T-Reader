@@ -5,15 +5,15 @@
         <div class="logo-icon">
           <img :src="logoIcon" />
         </div>
-        <span style="text-align: center">T-Reader</span>
+        <span>T-Reader</span>
       </div>
       <nav>
         <ul class="menu">
           <li :class="{active: currentView === 'Home'}">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="28"
-              height="28"
+              :width="svgSize"
+              :height="svgSize"
               viewBox="0 0 48 48"
             >
               <path
@@ -30,8 +30,8 @@
           <li :class="{active: currentView === 'Bookmark'}">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="28"
-              height="28"
+              :width="svgSize"
+              :height="svgSize"
               viewBox="0 0 24 24"
             >
               <path
@@ -44,8 +44,8 @@
           <li :class="{active: currentView === 'Experiment'}">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="28"
-              height="28"
+              :width="svgSize"
+              :height="svgSize"
               viewBox="0 0 48 48"
             >
               <g fill="none" :stroke="currentView === 'Experiment' ? '#409eff' : '#000000'" stroke-width="4">
@@ -78,6 +78,7 @@ export default {
     return {
       logoIcon,
       currentView: '',
+      svgSize: 24,
     }
   },
   methods: {
@@ -125,6 +126,12 @@ export default {
           border-radius: 50%;
         }
       }
+
+      span {
+        text-align: center;
+        font-size: 22px;
+        color: var(--t-color-grey);
+      }
     }
 
     .menu {
@@ -141,6 +148,9 @@ export default {
         font-size: 18px;
         align-items: center;
         padding: 8px;
+        cursor: var(--t-mouse-cursor-link), pointer;
+        border-radius: 8px;
+        border: transparent 1.5px solid;
 
         a {
           text-decoration: none;
@@ -148,18 +158,44 @@ export default {
           color: #000000;
         }
 
-        a:hover {
-          color: #409eff ;
+        &:hover {
+          border-color: var(--t-color-light-yellow);
+          border-style: dashed;
+
+          a {
+            color: #409eff;
+          }
         }
       }
 
       .active {
-        border-radius: 8px;
         background: var(--t-color-slight-blue);
 
         a {
           color: #409eff;
           font-weight: bold;
+        }
+      }
+
+      li:nth-child(1):hover {
+        svg{
+          path {
+            stroke: #409eff;
+          }
+        }
+      }
+      li:nth-child(2):hover {
+        svg{
+          path {
+            fill: #409eff;
+          }
+        }
+      }
+      li:nth-child(3):hover {
+        svg{
+          g {
+            stroke: #409eff;
+          }
         }
       }
     }
