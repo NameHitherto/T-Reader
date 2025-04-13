@@ -356,7 +356,7 @@ export default {
         id: tempId,
         bookId: bookIsReading.value ? bookIsReading.value : '',
         bookCfi: selectedRange.value ? selectedRange.value : '',
-        bookTitle: '测试123',
+        bookTitle: (await rendition.value?.book?.loaded?.metadata)?.title || '未知书籍',
         content: selectedText.value,
         createTime: formatDate(new Date()),
       }

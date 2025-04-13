@@ -56,12 +56,9 @@
     </div>
 </template>
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 import { BookMark } from '@/store/bookMark';
-import { ElMessageBox } from 'element-plus';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import 'element-plus/es/components/message-box/style/css'
+
 export default defineComponent({
   name: 'BookMarkTag',
   props: {
@@ -82,7 +79,7 @@ export default defineComponent({
   },
   data() {
     return {
-        unlistenReady : ref<UnlistenFn | null>(null)
+        
     }
   },
   computed: {
@@ -118,83 +115,12 @@ export default defineComponent({
         })
     },
     jumpToRead() {
-        ElMessageBox.confirm(
-            '是否前往阅读？',
-            '提示',
-            {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'info',
-                center: true,
-                showClose: false
-            }
-        ).then(() => {
-            // 跳转到阅读处
-            console.log('即将跳转:', this.bookMark.bookId)
-            this.openBook(this.bookMark.bookId, this.bookMark.bookCfi)
-        }).catch(() => {
-            return
-        })
-    },
-    openBook(id: string, cfi: string) {
-      let unlistenReady = this.unlistenReady;
-
-      const webview = new WebviewWindow('reader', {
-        url: 'reader.html',
-        title: 'T-Reader',
-        decorations: false,
-        minHeight: 660,
-        minWidth: 880,
-      });
-
-      webview.once('tauri://created', async function () {
-        // 先移除相同的监听器
-        unlistenReady?.()
-        // 等待阅读器准备好接受书籍ID
-        unlistenReady = await listen<string>(
-          'ready-to-receive-book-id',
-          async () => {
-            WebviewWindow.getCurrent().emitTo(
-              'reader',
-              'load-book-id',
-              {
-                id: id,
-                cfi: cfi,
-              }
-            )
-          }
-        )
-      });
-
-      webview.once('tauri://error', function () {
-        // 阅读器已加载，此时只需要发送新的书籍ID
-        WebviewWindow.getCurrent().emitTo(
-          'reader',
-          'load-book-id',
-          {
-            id: id,
-            cfi: cfi,
-          }
-        )
-      });
+        // 跳转到笔记处
+        this.$emit('jump')
     },
     deleteBookMark() {
-        ElMessageBox.confirm(
-            '是否删除此笔记？',
-            '提示',
-            {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning',
-                center: true,
-                showClose: false
-            }
-        ).then(() => {
-            // 删除此笔记
-            this.$emit('delete')
-        }).catch(() => {
-            return
-        })
+        // 删除此笔记
+        this.$emit('delete')
     }
   },
   mounted() {

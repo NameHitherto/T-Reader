@@ -148,7 +148,6 @@ export default {
         font-size: 18px;
         align-items: center;
         padding: 8px;
-        cursor: var(--t-mouse-cursor-link), pointer;
         border-radius: 8px;
         border: transparent 1.5px solid;
 
