@@ -15,10 +15,10 @@
                     <div class="chat-welcome-favicon">
                       <img :src="faviconImg"/>
                     </div> 
-                    我是洛琪希，很高兴见到你!
+                    我是对话助手，很高兴见到你!
                   </div>
                   <div class="chat-welcome-desc">
-                    如果你对本书有任何疑惑，我或许可以帮你解答~
+                    如果你对本书有任何疑惑，我或许可以帮你解答...
                   </div>
                 </div>
                 <div v-else class="chat-history">

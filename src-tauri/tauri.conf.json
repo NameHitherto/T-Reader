@@ -28,9 +28,8 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/Roxy.png",
-      "icons/Roxy.ico",
-      "icons/Roxy.icns"
+      "icons/reader.png",
+      "icons/reader.ico"
     ]
   }
 }
