@@ -1,6 +1,8 @@
 <template>
   <div class="exp">
-    <h1>Experiment Content</h1>
+    <div class="skeleton">
+      <el-skeleton :rows="8" animated />
+    </div>
   </div>
 </template>
 
@@ -27,5 +29,14 @@ export default defineComponent({
 <style scoped>
 .exp {
   width: 100%;
+  padding: 200px;
+
+  .skeleton {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 }
 </style>
