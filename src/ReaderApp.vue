@@ -80,6 +80,7 @@ import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID, formatDate } from './js/utils'
 import { ElLoading } from 'element-plus'
 import 'element-plus/es/components/loading/style/css'
+import { iframeContent } from './js/iframe.ts'
 
 export default {
   name: 'ReaderApp',
@@ -523,8 +524,16 @@ export default {
             manager: 'continuous',
             flow: readerConfig.value.flow,
             spread: 'true',
-            script: '../../src/js/iframe.js',
             allowScriptedContent: true,
+          })
+
+          // 利用钩子注册脚本
+          rendition.value.hooks.content.register(function(contents: any) {
+            const script = document.createElement('script');
+            script.innerHTML = iframeContent;
+            script.type = 'text/javascript';
+            contents.document.head.appendChild(script);
+            return contents;
           })
 
           // 恢复阅读进度

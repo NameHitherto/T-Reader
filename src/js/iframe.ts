@@ -1,6 +1,7 @@
 // iframe.js
 // epubjs 渲染的iframe子页面，该脚本用于与父页面通信
 
+export const iframeContent = `
 // 监听点击事件
 document.addEventListener('click', (event) => {
   window.parent.postMessage({ type: 'iframe-click' }, '*')
@@ -46,3 +47,4 @@ document.addEventListener('contextmenu', (event) => {
     window.parent.postMessage({ type: 'iframe-contextmenu-casual', mousePos }, '*')
   }
 })
+`
