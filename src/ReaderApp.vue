@@ -157,6 +157,15 @@ export default {
           'padding-top': `${readerConfig.value.headerMargin}px !important`,
           'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
         },
+        'h1': {
+          'color': `${readerConfig.value.fontColor}`,
+        },
+        'h2': {
+          'color': `${readerConfig.value.fontColor}`,
+        },
+        'h3': {
+          'color': `${readerConfig.value.fontColor}`,
+        },
         'p': {
           'color': `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
