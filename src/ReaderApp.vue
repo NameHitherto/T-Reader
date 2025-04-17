@@ -51,7 +51,7 @@
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
-  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" />
+  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId) => delBookMark(markId)"/>
   <!-- AI助手 -->
   <AssistantDialog v-model="assistantVisible" :bookId="bookIsReading"/>
   <!-- 阅读进度 -->
@@ -105,8 +105,6 @@ export default {
     let unlistenClosed = ref<UnlistenFn | null>(null)
     // 用于存储解除监听函数
     let unlistenStyle = ref<UnlistenFn | null>(null)
-    // 用于存储解除监听函数
-    let unlistenResize = ref<UnlistenFn | null>(null)
     // 正式全局变量
     const readerConfigStore = useReaderConfigStore()
     // 全局状态变量，但只能访问不能修改
@@ -312,35 +310,6 @@ export default {
       }
     }
 
-    // 笔记绑定点击事件
-    const bindBookMarkClick = (markId: string) => {
-      const bookMarkElement = document.querySelector(`[data-mark-id="${markId}"]`)
-      // 若元素不存在则等待再次尝试
-      if (!bookMarkElement) {
-        // 可以设置一个尝试次数，超过次数则不再尝试
-        setTimeout(() => bindBookMarkClick(markId), 50)
-        return
-      }
-      bookMarkElement.addEventListener('click', () => {
-        bookMarkEditionContent.value = JSON.stringify(bookMarkStore.getBookMark(markId)[0])
-        bookMarkEditionVisible.value = true
-      })
-      bookMarkElement.addEventListener('contextmenu', (event: Event) => {
-        // 菜单选项
-        const menuItems: ContextMenuItem[] = [
-          {
-            label: '删除 | 删除笔记',
-            type: 'delBookMark',
-            onClick: () => delBookMark(markId),
-          },
-        ]
-        const x = (event as MouseEvent).clientX
-        const y = (event as MouseEvent).clientY
-        // 显示菜单
-        openContextMenu('root', x, y, menuItems)
-      })
-    }
-
     // 初始化所有笔记
     const initAllBookMarks = async () => {
       bookMarks.value.forEach((bookMark: BookMark) => {
@@ -353,7 +322,6 @@ export default {
             undefined,
             'bookmark-highlight'
           )
-          bindBookMarkClick(bookMark.id)
         }
       })
     }
@@ -377,7 +345,6 @@ export default {
         undefined,
         'bookmark-highlight'
       )
-      bindBookMarkClick(tempId)
       return tempId
     }
 
@@ -393,6 +360,7 @@ export default {
       const bookMark = bookMarkStore.getBookMark(markId)[0]
       rendition.value?.annotations.remove(bookMark.bookCfi, 'highlight')
       bookMarkStore.removeBookMark(markId)
+      bookMarkEditionVisible.value = false
     }
 
     // 监听主程序发送的书籍ID
@@ -490,6 +458,12 @@ export default {
           }
           // 关闭右键菜单
           showContextMenu.value = false
+        })
+
+        // 注释点击事件
+        rendition.value.on('markClicked', (_cfiRange: string, data: any, _contents: any) => {
+          bookMarkEditionContent.value = JSON.stringify(bookMarkStore.getBookMark(data.markId)[0])
+          bookMarkEditionVisible.value = true
         })
 
         // 利用钩子注册脚本和事件
@@ -681,16 +655,6 @@ export default {
           // 挂载事件监听器
           handleRenditionEvents()
 
-          // 监听窗口大小调整
-          getCurrentWebviewWindow()
-            .onResized(async () => {
-              // 重新应用注释高亮
-              await initAllBookMarks()
-            })
-            .then((fn) => {
-              unlistenResize.value = fn
-            })
-
           // 获取书籍目录
           const tocData = await ePubBook.loaded.navigation
           toc.value = tocData.toc
@@ -867,6 +831,7 @@ export default {
       bookMarkEditionVisible,
       bookMarkEditionContent,
       assistantVisible,
+      delBookMark,
     }
   },
 }
