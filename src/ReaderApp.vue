@@ -80,7 +80,6 @@ import { useBookMarkStore, BookMark } from './store/bookMark'
 import { generateID, formatDate } from './js/utils'
 import { ElLoading } from 'element-plus'
 import 'element-plus/es/components/loading/style/css'
-import { iframeContent } from './js/iframe.ts'
 
 export default {
   name: 'ReaderApp',
@@ -443,6 +442,124 @@ export default {
     // 告知主程序已准备好接受书籍ID
     getCurrentWebviewWindow().emitTo('main', 'ready-to-receive-book-id')
 
+    // 处理Rendition事件
+    const handleRenditionEvents = () => {
+      if (rendition.value) {
+        // 页面重新排版
+        rendition.value.on('relocated', (location: any) => {
+          // 更新当前章节href
+          if (location.start) {
+            activeChapter.value = location.end.href
+          } 
+          // 更新阅读进度百分比
+          const percentage = location.start.percentage
+          if (percentage) {
+            readingPercentage.value = (percentage * 100).toFixed(1)
+          }
+        })
+
+        // 监听文本选择
+        rendition.value.on('selected', (cfiRange: any, contents: any) => {
+          // 更新选中文本
+          selectedText.value = contents.window.getSelection().toString()
+          // 更新选中文本的Range对象
+          selectedRange.value = cfiRange
+        })
+
+        // 监听键盘事件
+        rendition.value.on('keydown', (event: any) => {
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+            prevPage()
+          } else if (
+            event.key === 'ArrowRight' ||
+            event.key === 'ArrowDown'
+          ) {
+            nextPage()
+          }
+        })
+
+        // 监听点击事件
+        rendition.value.on('click', () => {
+          // 如果此时样式菜单已打开，则关闭
+          document.getElementById('customer-menu')?.remove()
+          const frontButtons = document.getElementsByClassName(
+            'titlebar-front-button'
+          )
+          for (let i = 0; i < frontButtons.length; i++) {
+            frontButtons[i].classList.remove('active')
+          }
+          // 关闭右键菜单
+          showContextMenu.value = false
+        })
+
+        // 利用钩子注册脚本和事件
+        rendition.value.hooks.content.register(function(contents: any) {
+          // 监听右键事件
+          contents.document.addEventListener('contextmenu', function(event: PointerEvent) {
+            event.preventDefault();
+            const selection = contents.window.getSelection();
+            if (selection.toString()) {
+              const range = selection.getRangeAt(0);
+              const rect = range.getBoundingClientRect()
+              if (
+                event.clientX >= rect.left &&
+                event.clientX <= rect.right &&
+                event.clientY >= rect.top &&
+                event.clientY <= rect.bottom
+              ) {
+                // 找到唯一的目标iframe
+                const iframeWindow = contents.window;
+                let targetIframe: HTMLIFrameElement | null = null;
+                const iframes = document.querySelectorAll('iframe');
+                for (let i = 0; i < iframes.length; i++) {
+                  const iframe = iframes[i] as HTMLIFrameElement;
+                  if (iframe.contentWindow === iframeWindow) {
+                    targetIframe = iframe;
+                    break;
+                  }
+                }
+                if (!targetIframe) {
+                  console.log('未找到目标iframe')
+                  return;
+                }
+                // 计算iframe位置
+                const iframeRect = targetIframe.getBoundingClientRect();
+                // 计算绝对坐标
+                const absoluteX = iframeRect.left + event.clientX;
+                const absoluteY = iframeRect.top + event.clientY;
+
+                // 菜单选项
+                const menuItems: ContextMenuItem[] = [
+                  {
+                    label: '标记 | 添加标签',
+                    type: 'bookmark',
+                    onClick: () => addBookMark(),
+                  },
+                  {
+                    label: '注释 | 个人评论',
+                    type: 'comment',
+                    onClick: () => addBookMarkComment(),
+                  },
+                ]
+                // 显示菜单
+                openContextMenu('root', absoluteX, absoluteY, menuItems)
+              } else {
+                showContextMenu.value = false
+              }
+            } else {
+              showContextMenu.value = false
+            }
+          })
+          // 添加脚本
+          // const script = document.createElement('script');
+          // script.innerHTML = iframeContent;
+          // script.type = 'text/javascript';
+          // contents.document.head.appendChild(script);
+          return contents;
+        })
+      }
+    }
+
     // 加载书籍
     const loadBook = async (cfi? : string) => {
       if (!bookId.value) {
@@ -536,15 +653,6 @@ export default {
             allowScriptedContent: true,
           })
 
-          // 利用钩子注册脚本
-          rendition.value.hooks.content.register(function(contents: any) {
-            const script = document.createElement('script');
-            script.innerHTML = iframeContent;
-            script.type = 'text/javascript';
-            contents.document.head.appendChild(script);
-            return contents;
-          })
-
           // 恢复阅读进度
           const savedLocation = bookConfig.location
           if (cfi) {
@@ -570,26 +678,8 @@ export default {
           // 生成位置索引
           ePubBook.locations.generate(1000)
 
-          // 页面重新排版
-          rendition.value.on('relocated', (location: any) => {
-            // 更新当前章节href
-            if (location.start) {
-              activeChapter.value = location.end.href
-            } 
-            // 更新阅读进度百分比
-            const percentage = location.start.percentage
-            if (percentage) {
-              readingPercentage.value = (percentage * 100).toFixed(1)
-            }
-          })
-
-          // 监听文本选择
-          rendition.value.on('selected', (cfiRange: any, contents: any) => {
-            // 更新选中文本
-            selectedText.value = contents.window.getSelection().toString()
-            // 更新选中文本的Range对象
-            selectedRange.value = cfiRange
-          })
+          // 挂载事件监听器
+          handleRenditionEvents()
 
           // 监听窗口大小调整
           getCurrentWebviewWindow()
@@ -717,11 +807,6 @@ export default {
       if (mode === 'root') {
         menuX = x
         menuY = y
-      }else if (mode === 'iframe') {
-        // 获取iframe在主页面中的位置
-        const iframeRect = document.querySelectorAll('iframe')[0].getBoundingClientRect()
-        menuX = iframeRect.left + x
-        menuY = iframeRect.top + y
       }
       const menuItems = options
       const menuWidth = 160 // 菜单宽度
@@ -759,55 +844,6 @@ export default {
 
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler)
-      // 监听iframe中传递的事件
-      window.addEventListener('message', (event) => {
-        // 监听iframe中的点击事件
-        if (event.data.type === 'iframe-click') {
-          // 如果此时样式菜单已打开，则关闭
-          document.getElementById('customer-menu')?.remove()
-          const frontButtons = document.getElementsByClassName(
-            'titlebar-front-button'
-          )
-          for (let i = 0; i < frontButtons.length; i++) {
-            frontButtons[i].classList.remove('active')
-          }
-          // 关闭右键菜单
-          showContextMenu.value = false
-        }
-        // 监听iframe中的键盘事件
-        if (event.data.type === 'iframe-keydown') {
-          if (event.data.key === 'ArrowLeft' || event.data.key === 'ArrowUp') {
-            prevPage()
-          } else if (
-            event.data.key === 'ArrowRight' ||
-            event.data.key === 'ArrowDown'
-          ) {
-            nextPage()
-          }
-        }
-        // 监听iframe中的特殊右键菜单事件
-        if (event.data.type === 'iframe-contextmenu') {
-          // 菜单选项
-          const menuItems: ContextMenuItem[] = [
-            {
-              label: '标记 | 添加标签',
-              type: 'bookmark',
-              onClick: () => addBookMark(),
-            },
-            {
-              label: '注释 | 个人评论',
-              type: 'comment',
-              onClick: () => addBookMarkComment(),
-            },
-          ]
-          // 显示菜单
-          openContextMenu('iframe', event.data.mousePos.x, event.data.mousePos.y, menuItems)
-        }
-        // 监听iframe中的一般右键菜单事件
-        if (event.data.type === 'iframe-contextmenu-casual') {
-          showContextMenu.value = false
-        }
-      })
     })
 
     onUnmounted(() => {})
