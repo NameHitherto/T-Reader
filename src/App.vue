@@ -61,7 +61,7 @@
                 />
               </g>
             </svg>
-            <router-link @click="changeView('Experiment')" to="/experiment">实验区</router-link>
+            <router-link @click="changeView('Experiment')" to="/experiment">更多</router-link>
           </li>
         </ul>
       </nav>
