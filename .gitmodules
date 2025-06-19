@@ -1,0 +1,3 @@
+[submodule "libs/epub.js"]
+	path = libs/epub.js
+	url = git@github.com:NameHitherto/epub.js.git
