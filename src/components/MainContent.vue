@@ -41,7 +41,7 @@
     <div class="book-list">
       <el-divider border-style="dashed"/>
       <el-empty
-        v-if="isBooksEmpty"
+        v-if="!booksLoading && isBooksEmpty"
         :image="emptyStateImage"
         image-size="160px"
         description="点击添加书籍吧"
@@ -162,7 +162,7 @@ export default {
   setup() {
     const books = ref<BookConfig[]>([])
     const isLoading = ref(false) // 是否正在加载
-    const booksLoading = ref(false) // 书籍是否加载完成
+    const booksLoading = ref(true) // 书籍是否加载完成
     const loadingText = ref(
       'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
     ) // 加载时的提示文字
