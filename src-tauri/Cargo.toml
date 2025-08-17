@@ -1,7 +1,7 @@
 [package]
-name = "t2-reader"
+name = "T-Reader"
 version = "0.3.0"
-description = "A Tauri App"
+description = "An ePub Reader based on Tauri"
 authors = ["you"]
 edition = "2021"
 

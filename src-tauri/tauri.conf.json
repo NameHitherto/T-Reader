@@ -2,10 +2,10 @@
   "$schema": "https://schema.tauri.app/config/2.0.0-rc",
   "productName": "T-Reader",
   "version": "0.3.0",
-  "identifier": "com.t2-reader.app",
+  "identifier": "com.t-reader.app",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5151",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
