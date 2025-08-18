@@ -51,7 +51,7 @@
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
-  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId) => delBookMark(markId)"/>
+  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId: string) => delBookMark(markId)"/>
   <!-- AI助手 -->
   <AssistantDialog v-model="assistantVisible" :bookId="bookIsReading"/>
   <!-- 阅读进度 -->
@@ -612,7 +612,7 @@ export default {
           }
 
           // 解析并呈现 EPUB 内容
-          const ePubBook = ePub(bookArrayBuffer)
+          const ePubBook = ePub(bookArrayBuffer as ArrayBuffer)
 
           // 确保 ePubBook已完全加载
           await ePubBook.ready;
