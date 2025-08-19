@@ -18,6 +18,8 @@
 
 ### 初始准备
 
+> **注意**：`rustc`的版本为**1.89.0**
+
 1. 克隆该项目到本地，在项目根目录下创建`libs`目录，项目的默认分支是*develop*。
 2. 进入`[root]/libs`目录，克隆本人二次开发过的[epub.js](https://github.com/NameHitherto/epub.js.git)库。
 3. 进入`[root]/libs/epub.js`目录，运行`npm install`安装epub.js项目的依赖，注意**node**版本为**v16.20.2**。
@@ -48,3 +50,9 @@ Error: listen EACCES: permission denied 0.0.0.0:1420
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
 ```
 可考虑修改服务端口，修改根目录下`[root]/vite.config.ts`中的`port`值以及修改`[root]/src-tauri/tauri.conf.json`中的`devUrl`即可。
+
+3. Rust下载速度慢
+在终端配置环境变量，将rust下载源修改为镜像源：
+```bash
+$ENV:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
+```
