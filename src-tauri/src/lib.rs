@@ -403,22 +403,19 @@ async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
         }
     }
 
-    // 2. 处理本地有但云端没有的文件 - 上传到云端
+    // 2. 处理本地有但云端没有的文件 - 删除本地文件
     for epub in &local_epubs {
         if !cloud_epubs.contains(epub) {
-            // 上传epub文件
+            // 删除本地epub文件
             let epub_path = path.join(epub);
-            let epub_content = fs::read(&epub_path).map_err(|e| format!("读取文件失败: {}", e))?;
-            webdav_upload(epub, epub_content).await?;
-            println!("同步: 上传本地 {} 到云端", epub);
-
-            // 检查并上传对应的json文件
+            fs::remove_file(&epub_path).map_err(|e| format!("删除文件失败: {}", e))?;
+            println!("同步: 删除本地 {}", epub);
+            // 检查并删除对应的json文件
             let json_name = epub.replace(".epub", ".json");
             let json_path = path.join(&json_name);
             if json_path.exists() {
-                let json_content = fs::read(&json_path).map_err(|e| format!("读取文件失败: {}", e))?;
-                webdav_upload(&json_name, json_content).await?;
-                println!("同步: 上传本地 {} 到云端", json_name);
+                fs::remove_file(&json_path).map_err(|e| format!("删除文件失败: {}", e))?;
+                println!("同步: 删除本地 {}", json_name);
             }
         }
     }

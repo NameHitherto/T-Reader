@@ -197,10 +197,10 @@ export default defineComponent({
 
     const fonts = [
       { name: 'system-ui', display: '默认' },
-      { name: 'pingfang', display: '苹方' },
       { name: 'cursive', display: '草书' },
-      { name: 'Roboto', display: 'Google Roboto' },
-      { name: 'HiraginoMin', display: 'ヒラギノ明朝体' },
+      { name: 'Chisuga', display: '千菅書体' },
+      { name: 'Maoken', display: '猫啃珠圆体' },
+      { name: 'Chill', display: '寒蝉全圆体'}
     ]
 
     // 翻页模式

@@ -180,18 +180,8 @@ export default {
           'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
         },
         '@font-face': {
-          'font-family': 'pingfang',
-          'src': 'url("/src/font/pingfang.ttf") format("truetype")',
-        },
-        // @ts-ignore
-        '@font-face': {
-          'font-family': 'HiraginoMin',
-          'src': 'url("/src/font/HiraginoMin.ttc") format("truetype")',
-        },
-        // @ts-ignore
-        '@font-face': {
-          'font-family': 'Roboto',
-          'src': 'url("/src/font/Roboto.ttf") format("truetype")',
+          'font-family': `${readerConfig.value.font}`,
+          'src': `url("/src/font/${readerConfig.value.font}.ttf") format("truetype")`,
         },
       }
       return themeReturned
