@@ -135,10 +135,29 @@ export default {
     const bookMarkEditionVisible = ref(false)
     // 笔记编辑内容
     const bookMarkEditionContent = ref<string>('')
+    // 默认高亮颜色
+    const defaultHighlightColor = '#6b7280'
     // 监听笔记编辑内容
     watch(bookMarkEditionContent, (newVal) => {
       if (newVal) {
-        bookMarkStore.updateBookMark(JSON.parse(newVal))
+        const updated = JSON.parse(newVal)
+        // 更新bookMarkStore
+        bookMarkStore.updateBookMark(updated)
+        // 更新笔记高亮颜色和边框
+        if (rendition.value) {
+          rendition.value?.annotations.remove(updated.bookCfi, 'highlight')
+          rendition.value?.annotations.add(
+            'highlight',
+            updated.bookCfi,
+            {markId: updated.id},
+            undefined,
+            'bookmark-highlight',
+            {
+              fill: updated.color || defaultHighlightColor,
+              stroke: updated.hasBorder ? '#000' : 'none',
+            }
+          )
+        }
       }
     })
     // AI助手是否显示
@@ -173,8 +192,8 @@ export default {
           'color': `${readerConfig.value.fontColor}`,
         },
         '::selection': {
-          'background': '#00c4b6',
-          'color': '#f7f7f7',
+          'background': 'rgb(0 0 0 / 25%)',
+          'color': 'rgb(0 0 0 / 75%)',
         },
         'html': {
           'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
@@ -310,7 +329,11 @@ export default {
             bookMark.bookCfi,
             {'markId': bookMark.id},
             undefined,
-            'bookmark-highlight'
+            'bookmark-highlight',
+            {
+              fill: bookMark.color ? bookMark.color : defaultHighlightColor,
+              stroke: bookMark.hasBorder ? '#000' : 'none',
+            }
           )
         }
       })
@@ -333,7 +356,10 @@ export default {
         selectedRange.value ? selectedRange.value : '',
         {'markId': tempId},
         undefined,
-        'bookmark-highlight'
+        'bookmark-highlight',
+        {
+          fill: defaultHighlightColor, // 初始默认高亮颜色
+        }
       )
       return tempId
     }
@@ -607,6 +633,12 @@ export default {
           // 确保 ePubBook已完全加载
           await ePubBook.ready;
 
+          // 清空epub-reader容器
+          const epubReader = document.getElementById('epub-reader');
+          if (epubReader) {
+            epubReader.innerHTML = '';
+          }
+
           // 创建新的 Rendition 对象
           rendition.value = ePubBook.renderTo('epub-reader', {
             width: '100%',
@@ -847,11 +879,14 @@ export default {
   background-clip: content-box;
 }
 :global(.bookmark-highlight) {
-  fill: #00c4b6;
   fill-opacity: 0.4;
   pointer-events: all;
   cursor: var(--t-mouse-cursor-link), default;
   user-select: none;
+}
+:global(.bookmark-highlight rect) {
+  rx: 5;
+  ry: 5;
 }
 
 .reader {
