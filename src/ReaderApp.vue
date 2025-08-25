@@ -459,6 +459,8 @@ export default {
             event.key === 'ArrowDown'
           ) {
             nextPage()
+          } else if (event.key === 'F11') {
+            switchFullscreen()
           }
         })
 
@@ -742,13 +744,24 @@ export default {
       }, 500)
     }
 
-    // 上一章
+    // 切换全屏(隐藏任务栏)
+    const switchFullscreen = async() => {
+      const win = getCurrentWindow()
+      const isFullscreen = await win.isFullscreen()
+      if (!isFullscreen) {
+        await win.setFullscreen(true)
+      } else {
+        await win.setFullscreen(false)
+      }
+    }
+
+    // 上一页
     const prevPage = () => {
       if (rendition.value) {
         rendition.value.prev()
       }
     }
-    // 下一章
+    // 下一页
     const nextPage = () => {
       if (rendition.value) {
         rendition.value.next()
@@ -777,12 +790,14 @@ export default {
       }
     }
 
-    // 监听键盘方向事件
+    // 监听键盘事件
     const keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         prevPage()
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         nextPage()
+      } else if (e.key === 'F11') {
+        switchFullscreen()
       }
     }
 
