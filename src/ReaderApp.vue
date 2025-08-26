@@ -54,6 +54,8 @@
   <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId: string) => delBookMark(markId)"/>
   <!-- AI助手 -->
   <AssistantDialog v-model="assistantVisible" :bookId="bookIsReading"/>
+  <!-- 功能帮助 -->
+  <HelpDialog v-model="helpVisible"/>
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%
@@ -74,6 +76,7 @@ import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import AssistantDialog from './components/AssistantDialog/index.vue'
+import HelpDialog from './components/HelpDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
 import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
@@ -162,6 +165,8 @@ export default {
     })
     // AI助手是否显示
     const assistantVisible = ref(false)
+    // 功能帮助是否显示
+    const helpVisible = ref(false)
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -393,17 +398,18 @@ export default {
     }).then((fn) => {
       unlistenBook.value = fn
     })
-
     // 监听显示书籍信息
     listen('show-book-info', () => {
       bookInfoVisible.value = true
     })
-
     // 监听显示AI助手
     listen('show-assistant', () => {
       assistantVisible.value = true
     })
-
+    // 监听显示帮助
+    listen('show-help', () => {
+      helpVisible.value = true
+    })
     // 监听样式调整
     listen('update-reader-style', async () => {
       await applyReaderStyle()
@@ -868,6 +874,7 @@ export default {
       bookMarkEditionVisible,
       bookMarkEditionContent,
       assistantVisible,
+      helpVisible,
       delBookMark,
     }
   },

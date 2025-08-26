@@ -37,6 +37,7 @@ declare module 'vue' {
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Experiment: typeof import('./src/components/Experiment.vue')['default']
+    HelpDialog: typeof import('./src/components/HelpDialog/index.vue')['default']
     LoadingBlockade: typeof import('./src/components/loadingBlockade.vue')['default']
     MainContent: typeof import('./src/components/MainContent.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
