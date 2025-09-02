@@ -7,33 +7,43 @@
         :close-on-press-escape="false"
     >
         <div class="help-dialog-view">
-            <div class="help-function-shortcuts">
-                <div class="shortcuts-title">快捷方式</div>
-                <div class="shortcuts-table">
-                    <div class="row header">
-                        <div class="col col-desc">功能</div>
-                        <div class="col col-keys">快捷键</div>
-                    </div>
-                    <div class="row" v-for="item in groupedShortcuts" :key="item.description">
-                        <div class="col col-desc">{{ item.description }}</div>
-                        <div class="col col-keys">
-                            <template v-for="(variant, vi) in item.variants" :key="vi">
-                                <template v-if="vi > 0"> / </template>
-                                <span class="key-seq">
-                                    <template v-for="(k, ki) in variant" :key="k + ki">
-                                        <span class="key">{{ k }}</span><span v-if="ki < variant.length - 1" class="joiner">+</span>
-                                    </template>
-                                </span>
-                            </template>
+            <el-scrollbar max-height="50vh">
+                <div class="help-function-shortcuts section">
+                    <div class="title">快捷方式</div>
+                    <div class="shortcuts-table">
+                        <div class="row header">
+                            <div class="col col-desc">功能</div>
+                            <div class="col col-keys">快捷键</div>
+                        </div>
+                        <div class="row" v-for="item in groupedShortcuts" :key="item.description">
+                            <div class="col col-desc">{{ item.description }}</div>
+                            <div class="col col-keys">
+                                <template v-for="(variant, vi) in item.variants" :key="vi">
+                                    <template v-if="vi > 0"> / </template>
+                                    <span class="key-seq">
+                                        <template v-for="(k, ki) in variant" :key="k + ki">
+                                            <span class="code-style key">{{ k }}</span>
+                                            <span v-if="ki < variant.length - 1" class="joiner">+</span>
+                                        </template>
+                                    </span>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                <div class="help-font-exclusion section">
+                    <div class="title">字体排除项</div>
+                    <div class="exclusion-box">
+                        <span class="code-style exclusion-key" v-for="value in fontExclusion" :key="value">{{ value }}</span>
+                    </div>
+                </div>
+            </el-scrollbar>
         </div>
     </el-dialog>
 </template>
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { fontExclusion } from '@/constant/fontExclusion';
 
 export default defineComponent({
     name: 'HelpDialog',
@@ -47,7 +57,8 @@ export default defineComponent({
                 { description: '下一页', key: ['→'] },
                 { description: '沉浸阅读', key: ['F11'] },
                 { description: '测试', key: ['Ctrl', 'Alt', 'T'] }
-            ]
+            ],
+            fontExclusion
         }
     },
     computed: {
@@ -76,14 +87,33 @@ export default defineComponent({
         display: flex;
         flex-direction: column;
 
-        .help-function-shortcuts {
+        :deep(.el-scrollbar__view) {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section {
             width: 100%;
 
-            .shortcuts-title {
+            .title {
                 font-weight: 400;
                 font-size: 24px;
-                margin: 0 0 10px 12px;
+                margin: 0 0 6px 12px;
             }
+            .code-style {
+                font-family: 'Jetbrains';
+                background: var(--t-color-code-block-grey);
+                padding: 4px 8px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1.2;
+                color: #6c6c6c;
+            }
+        }
+
+        .help-function-shortcuts {
             .shortcuts-table {
                 display: flex;
                 position: relative;
@@ -123,19 +153,22 @@ export default defineComponent({
             }
             .key {
                 display: inline-block;
-                font-family: 'Jetbrains';
-                background: var(--t-color-code-block-grey);
-                padding: 4px 8px;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                line-height: 1.2;
-                color: #6c6c6c;
             }
             .joiner {
                 margin: 0 8px;
                 color: #999;
                 font-weight: 500;
+            }
+        }
+
+        .help-font-exclusion{
+            .exclusion-box {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 5px;
+                border: 1px solid var(--t-color-code-block-grey);
+                border-radius: 12px;
             }
         }
     }

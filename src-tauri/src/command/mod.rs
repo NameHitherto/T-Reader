@@ -1,5 +1,6 @@
 pub mod file;
 pub mod web;
+pub mod font;
 
 pub use file::{
     save_file,
@@ -16,4 +17,8 @@ pub use web::{
     webdav_delete,
     webdav_sync_files,
     start_stream
+};
+
+pub use font::{
+    get_system_fonts
 };

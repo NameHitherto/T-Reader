@@ -28,6 +28,7 @@ http = "0.2"
 tauri-plugin-os = "2"
 quick-xml = "0.22"
 futures-util = "0.3"
+fontdb = "0.23"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-window-state = "2"

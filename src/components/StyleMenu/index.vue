@@ -16,20 +16,19 @@
     <div class="font-section section">
       <span class="section-title">字体</span>
       <div class="font-option">
-        <el-radio-group
-          class="font-radio-group"
+        <el-select
           v-model="selectedFont"
+          placeholder="默认"
+          style="width: 200px;"
+          @change="selectFont(selectedFont)"
         >
-          <el-radio 
-            v-for="font in fonts" 
-            :key="font.name" 
-            :value="font.name" 
-            @click="selectFont(font.name)" 
-            border
-          >
-            <span :style="`font-family: ${font.name};`">{{ font.display }}</span>
-          </el-radio>
-        </el-radio-group>
+          <el-option
+            v-for="font in systemFonts"
+            :key="font.postscript_name || font.family"
+            :label="font.postscript_name || font.family"
+            :value="font.postscript_name || font.family"
+          />
+        </el-select>
       </div>
     </div>
     <div class="basic-section section">
@@ -83,6 +82,16 @@ import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import '@/css/ResetButton.css'
+import { invoke } from '@tauri-apps/api/core'
+import { fontExclusion } from '@/constant/fontExclusion'
+
+interface FontNameEntry {
+  family: string
+  postscript_name: string | null
+  style: string | null
+  weight: number | null
+  path: string | null
+}
 
 export default defineComponent({
   setup() {
@@ -195,13 +204,18 @@ export default defineComponent({
       },
     ])
 
-    const fonts = [
-      { name: 'system-ui', display: '默认' },
-      { name: 'cursive', display: '草书' },
-      { name: 'Chisuga', display: '千菅書体' },
-      { name: 'Maoken', display: '猫啃珠圆体' },
-      { name: 'Chill', display: '寒蝉全圆体'}
-    ]
+    // 系统字体
+    const systemFonts = ref<FontNameEntry[]>([])
+    invoke<FontNameEntry[]>('get_system_fonts').then((fonts) => {
+      // 以family值去除不常用字体
+      const filteredFonts = fonts.filter(font => !fontExclusion.includes(font.family))
+      systemFonts.value = filteredFonts
+      const family = []
+      for (const font of filteredFonts) {
+        family.push(font.family)
+      }
+      console.log(family)
+    })
 
     // 翻页模式
     const flow = ref(readerConfig.value.flow)
@@ -215,7 +229,6 @@ export default defineComponent({
         setting.value = readerConfig.value[setting.key]
         return setting
       })
-      selectedFont.value = readerConfig.value.font
     }
 
     // 通知阅读器更新样式
@@ -288,14 +301,14 @@ export default defineComponent({
       colors,
       selectedFont,
       settings,
-      fonts,
+      systemFonts,
       selectColor,
       adjustSetting,
       resetStyle,
       selectFont,
       flow,
       flowMode,
-      switchFlow
+      switchFlow,
     }
   },
 })
@@ -390,19 +403,6 @@ label {
       display: flex;
       align-items: center;
       margin-top: 0.225rem;
-
-      .font-radio-group {
-        gap: 0.25rem;
-
-        :deep(.el-radio) {
-          width: 100%;
-          margin: 0;
-        }
-        :deep(.el-radio__label) {
-          width: 100%;
-          text-align: center;
-        }
-      }
     }
   }
 

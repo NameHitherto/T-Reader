@@ -205,7 +205,7 @@ export default {
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
-          'src': `url("/src/font/${readerConfig.value.font}.ttf") format("truetype")`,
+          'src': `local("${readerConfig.value.font}")`,
         },
       }
       return themeReturned

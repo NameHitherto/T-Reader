@@ -28,7 +28,7 @@ export const useReaderConfigStore = defineStore('readerConfig', () => {
         // 首行缩进
         indent: 2,
         // 字体
-        font: 'system-ui',
+        font: 'Arial',
         // 背景颜色
         color: '#FFFFFF',
         // 字体颜色
