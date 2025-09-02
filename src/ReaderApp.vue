@@ -266,7 +266,9 @@ export default {
         const configTemp = JSON.parse(new TextDecoder().decode(configData))
         readerConfigStore.setReaderConfig(configTemp)
       } catch (e) {
-        console.log(e)
+        // 用户首次打开阅读界面或配置文件不存在
+        readerConfigStore.setDefaultConfig()
+        console.log('ReaderConfig.json文件不存在，已加载默认配置')
       }
     }
 
@@ -421,9 +423,13 @@ export default {
     getCurrentWindow()
       .onCloseRequested(async () => {
         // 保存阅读进度
-        await saveReaderRendition()
+        await saveReaderRendition().catch(() => {
+          console.error("窗口关闭异常: 阅读进度保存失败")
+        })
         // 保存全局配置
-        await saveReaderConfig()
+        await saveReaderConfig().catch(() => {
+          console.error("窗口关闭异常: 全局配置保存失败")
+        })
       })
       .then((fn) => {
         unlistenClosed.value = fn
