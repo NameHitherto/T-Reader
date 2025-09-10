@@ -171,13 +171,24 @@ export default {
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
+      const columnStyle = {}
+      if (readerConfig.value.flow === 'paginated') {
+        Object.assign(columnStyle, {
+          'column-width': 'auto !important',
+          'column-gap': `${2 * readerConfig.value.boxPaddingHorizontal}px !important`,
+          'column-count': `${readerConfig.value.columnCount}`,
+        })
+      }
       const themeReturned = {
         'body': {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
-          'padding-top': `${readerConfig.value.headerMargin}px !important`,
-          'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
+          'padding-top': `${readerConfig.value.boxPaddingTop}px !important`,
+          'padding-bottom': `${readerConfig.value.boxPaddingBottom}px !important`,
+          'padding-left': `${readerConfig.value.boxPaddingHorizontal}px !important`,
+          'padding-right': `${readerConfig.value.boxPaddingHorizontal}px !important`,
+          ...columnStyle,
         },
         'h1': {
           'color': `${readerConfig.value.fontColor}`,
@@ -193,6 +204,7 @@ export default {
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
+          'letter-spacing': `${readerConfig.value.letterSpacing}px`,
         },
         'font': {
           'color': `${readerConfig.value.fontColor}`,
@@ -203,6 +215,9 @@ export default {
         },
         'html': {
           'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
+        },
+        'img': {
+          'width': '100%',
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
@@ -770,13 +785,13 @@ export default {
 
     // 上一页
     const prevPage = () => {
-      if (rendition.value) {
+      if (rendition.value && readerConfig.value.flow === 'paginated') {
         rendition.value.prev()
       }
     }
     // 下一页
     const nextPage = () => {
-      if (rendition.value) {
+      if (rendition.value && readerConfig.value.flow === 'paginated') {
         rendition.value.next()
       }
     }

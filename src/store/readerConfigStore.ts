@@ -13,18 +13,16 @@ export const useReaderConfigStore = defineStore('readerConfig', () => {
         lineSpacing: 1.3,
         // 段间距
         paragraphSpacing: 0.2,
-        // 行首边距
-        firstLineMargin: 36,
-        // 行尾边距
-        lastLineMargin: 36,
-        // 页眉边距
-        headerMargin: 20,
-        // 页脚边距
-        footerMargin: 20,
-        // 最小栏宽
-        minColumnWidth: 23,
-        // 栏间距
-        columnSpacing: 72,
+        // 字间距
+        letterSpacing: 0,
+        // 上边距
+        boxPaddingTop: 20,
+        // 下边距
+        boxPaddingBottom: 20,
+        // 水平边距
+        boxPaddingHorizontal: 20,
+        // 栏数
+        columnCount: 2,
         // 首行缩进
         indent: 2,
         // 字体
@@ -44,12 +42,11 @@ export const useReaderConfigStore = defineStore('readerConfig', () => {
             fontWeight: 400, // 字重默认400
             lineSpacing: 1.3, // 行距默认1.3em
             paragraphSpacing: 0.2, // 段间距默认0.2em
-            firstLineMargin: 36, // 行首边距默认36px
-            lastLineMargin: 36, // 行尾边距默认36px
-            headerMargin: 20, // 页眉边距默认20px
-            footerMargin: 20, // 页脚边距默认20px
-            minColumnWidth: 23, // 最小栏宽默认23em
-            columnSpacing: 72, // 栏间距默认72px
+            letterSpacing: 0, // 字间距默认0px
+            boxPaddingTop: 20, // 盒子上边距默认20px
+            boxPaddingBottom: 20, // 盒子下边距默认20px
+            boxPaddingHorizontal: 20, // 盒子左右边距默认20px
+            columnCount: 2, // 栏数默认2
             indent: 2, // 首行缩进默认2em
             font: 'system-ui', // 默认字体
             color: '#FFFFFF', // 默认白色
