@@ -92,6 +92,7 @@ export default {
     BookMarkDialog,
     AssistantDialog,
     TocMenu,
+    HelpDialog,
   },
   setup() {
     // 阅读时书籍ID
