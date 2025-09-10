@@ -776,10 +776,14 @@ export default {
     const switchFullscreen = async() => {
       const win = getCurrentWindow()
       const isFullscreen = await win.isFullscreen()
-      if (!isFullscreen) {
-        await win.setFullscreen(true)
-      } else {
+      const isMaximized = await win.isMaximized()
+      if (isFullscreen) {
         await win.setFullscreen(false)
+      } else {
+        if (isMaximized) {
+          await win.unmaximize()
+        }
+        await win.setFullscreen(true)
       }
     }
 
