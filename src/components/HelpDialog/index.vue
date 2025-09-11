@@ -31,9 +31,15 @@
                         </div>
                     </div>
                 </div>
+                <div class="help-style-demo section">
+                    <div class="title">样式设置演示</div>
+                    <div class="style-demo-img content-box">
+                        <img :src="styleDemoImg" alt="样式设置演示" />
+                    </div>
+                </div>
                 <div class="help-font-exclusion section">
                     <div class="title">字体排除项</div>
-                    <div class="exclusion-box">
+                    <div class="content-box">
                         <span class="code-style exclusion-key" v-for="value in fontExclusion" :key="value">{{ value }}</span>
                     </div>
                 </div>
@@ -44,6 +50,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { fontExclusion } from '@/constant/fontExclusion';
+import styleDemoImg from '@/assets/images/style_demo.png';
 
 export default defineComponent({
     name: 'HelpDialog',
@@ -58,7 +65,8 @@ export default defineComponent({
                 { description: '沉浸阅读', key: ['F11'] },
                 { description: '测试', key: ['Ctrl', 'Alt', 'T'] }
             ],
-            fontExclusion
+            fontExclusion,
+            styleDemoImg
         }
     },
     computed: {
@@ -97,9 +105,17 @@ export default defineComponent({
             width: 100%;
 
             .title {
-                font-weight: 400;
+                font-weight: bold;
                 font-size: 24px;
                 margin: 0 0 6px 12px;
+            }
+            .content-box {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 5px;
+                border: 1px solid var(--t-color-code-block-grey);
+                border-radius: 12px;
             }
             .code-style {
                 font-family: 'Jetbrains';
@@ -161,14 +177,15 @@ export default defineComponent({
             }
         }
 
-        .help-font-exclusion{
-            .exclusion-box {
+        .help-style-demo {
+            .style-demo-img {
                 display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-                padding: 5px;
-                border: 1px solid var(--t-color-code-block-grey);
-                border-radius: 12px;
+                justify-content: center;
+                align-items: center;
+
+                img {
+                    width: 100%;
+                }
             }
         }
     }
