@@ -732,6 +732,9 @@ export default {
 
           // 关闭加载动画
           loading.close()
+
+          // 调试
+          console.log('EPUB解析完成:', bookIsReading.value, bookConfig.title)
         } catch (e) {
           console.log('EPUB解析失败', e)
           loading.close()
