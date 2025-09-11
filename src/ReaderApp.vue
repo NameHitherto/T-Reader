@@ -191,15 +191,19 @@ export default {
           ...columnStyle,
         },
         'h1': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         'h2': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         'h3': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         'p': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
@@ -207,6 +211,7 @@ export default {
           'letter-spacing': `${readerConfig.value.letterSpacing}px`,
         },
         'font': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         '::selection': {
