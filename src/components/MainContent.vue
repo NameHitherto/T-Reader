@@ -150,6 +150,7 @@ import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
 import { convertBlobToBase64 } from '@/js/utils.js'
 import { BookConfig } from '../js/map'
+import defaultCover from '@/assets/default-cover.png'
 
 export default {
   name: 'MainContent',
@@ -169,7 +170,6 @@ export default {
     const settingVisible = ref(false) // 设置中心
     const bookInfoVisible = ref(false) // 书籍信息框
     const bookInfoId = ref<String>('') // 书籍ID
-    const defaultCover = './src/assets/default-cover.png'
     let unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
