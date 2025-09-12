@@ -91,7 +91,7 @@
             >
               <div class="book-cover">
                 <span>
-                  <img :src="book.cover" alt="封面" />
+                  <img :src="getBookCover(book.cover)" alt="封面" />
                 </span>
               </div>
               <div class="book-desc">
@@ -259,7 +259,7 @@ export default {
           const book = ePub(e.target?.result as ArrayBuffer)
           const metadata = await book.loaded.metadata
           const coverBlob = await book.coverUrl()
-          const cover = coverBlob ? await convertBlobToBase64(coverBlob) : defaultCover
+          const cover = coverBlob ? await convertBlobToBase64(coverBlob) : ''
 
           const newBook: BookConfig = {
             id: newBookId,
@@ -412,6 +412,12 @@ export default {
       settingVisible.value = true
     }
 
+    // 获取书籍封面
+    const getBookCover = (cover?: string) => {
+      if (cover && cover.startsWith('data:image')) return cover
+      return defaultCover
+    }
+
     onMounted(() => {
       loadBooks()
     })
@@ -437,6 +443,7 @@ export default {
       bookInfoId,
       emptyStateImage,
       isBooksEmpty,
+      getBookCover,
     }
   },
 }
