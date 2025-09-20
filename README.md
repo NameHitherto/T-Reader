@@ -13,6 +13,8 @@
 
 移动端见另一个项目[T-Reader-Mobile](https://github.com/NameHitherto/T-Reader-Mobile.git)，其提供了安卓系统的安装包。
 
+## 演示
+
 ## 开发
 该项目基于Tauri框架进行开发，因此在开始前请先查阅Tauri[官方文档](https://tauri.app/zh-cn/start/prerequisites/)确认框架所需的前置环境是否已配置完成。
 
