@@ -51,9 +51,11 @@
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
-  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId) => delBookMark(markId)"/>
+  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId: string) => delBookMark(markId)"/>
   <!-- AI助手 -->
   <AssistantDialog v-model="assistantVisible" :bookId="bookIsReading"/>
+  <!-- 功能帮助 -->
+  <HelpDialog v-model="helpVisible"/>
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%
@@ -74,6 +76,7 @@ import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import AssistantDialog from './components/AssistantDialog/index.vue'
+import HelpDialog from './components/HelpDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
 import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
 import { useBookMarkStore, BookMark } from './store/bookMark'
@@ -89,6 +92,7 @@ export default {
     BookMarkDialog,
     AssistantDialog,
     TocMenu,
+    HelpDialog,
   },
   setup() {
     // 阅读时书籍ID
@@ -135,63 +139,94 @@ export default {
     const bookMarkEditionVisible = ref(false)
     // 笔记编辑内容
     const bookMarkEditionContent = ref<string>('')
+    // 默认高亮颜色
+    const defaultHighlightColor = '#6b7280'
     // 监听笔记编辑内容
     watch(bookMarkEditionContent, (newVal) => {
       if (newVal) {
-        bookMarkStore.updateBookMark(JSON.parse(newVal))
+        const updated = JSON.parse(newVal)
+        // 更新bookMarkStore
+        bookMarkStore.updateBookMark(updated)
+        // 更新笔记高亮颜色和边框
+        if (rendition.value) {
+          rendition.value?.annotations.remove(updated.bookCfi, 'highlight')
+          rendition.value?.annotations.add(
+            'highlight',
+            updated.bookCfi,
+            {markId: updated.id},
+            undefined,
+            'bookmark-highlight',
+            {
+              fill: updated.color || defaultHighlightColor,
+              stroke: updated.hasBorder ? '#000' : 'none',
+            }
+          )
+        }
       }
     })
     // AI助手是否显示
     const assistantVisible = ref(false)
+    // 功能帮助是否显示
+    const helpVisible = ref(false)
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
+      const columnStyle = {}
+      if (readerConfig.value.flow === 'paginated') {
+        Object.assign(columnStyle, {
+          'column-width': 'auto !important',
+          'column-gap': `${2 * readerConfig.value.boxPaddingHorizontal}px !important`,
+          'column-count': `${readerConfig.value.columnCount}`,
+        })
+      }
       const themeReturned = {
         'body': {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
-          'padding-top': `${readerConfig.value.headerMargin}px !important`,
-          'padding-bottom': `${readerConfig.value.footerMargin}px !important`,
+          'padding-top': `${readerConfig.value.boxPaddingTop}px !important`,
+          'padding-bottom': `${readerConfig.value.boxPaddingBottom}px !important`,
+          'padding-left': `${readerConfig.value.boxPaddingHorizontal}px !important`,
+          'padding-right': `${readerConfig.value.boxPaddingHorizontal}px !important`,
+          ...columnStyle,
         },
         'h1': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         'h2': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         'h3': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         'p': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
+          'letter-spacing': `${readerConfig.value.letterSpacing}px`,
         },
         'font': {
+          'font-family': `${readerConfig.value.font}`,
           'color': `${readerConfig.value.fontColor}`,
         },
         '::selection': {
-          'background': '#00c4b6',
-          'color': '#f7f7f7',
+          'background': 'rgb(0 0 0 / 25%)',
+          'color': 'rgb(0 0 0 / 75%)',
         },
         'html': {
           'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
         },
-        '@font-face': {
-          'font-family': 'pingfang',
-          'src': 'url("/src/font/pingfang.ttf") format("truetype")',
+        'img': {
+          'width': '100%',
         },
-        // @ts-ignore
         '@font-face': {
-          'font-family': 'HiraginoMin',
-          'src': 'url("/src/font/HiraginoMin.ttc") format("truetype")',
-        },
-        // @ts-ignore
-        '@font-face': {
-          'font-family': 'Roboto',
-          'src': 'url("/src/font/Roboto.ttf") format("truetype")',
+          'font-family': `${readerConfig.value.font}`,
+          'src': `local("${readerConfig.value.font}")`,
         },
       }
       return themeReturned
@@ -252,7 +287,9 @@ export default {
         const configTemp = JSON.parse(new TextDecoder().decode(configData))
         readerConfigStore.setReaderConfig(configTemp)
       } catch (e) {
-        console.log(e)
+        // 用户首次打开阅读界面或配置文件不存在
+        readerConfigStore.setDefaultConfig()
+        console.log('ReaderConfig.json文件不存在，已加载默认配置')
       }
     }
 
@@ -320,7 +357,11 @@ export default {
             bookMark.bookCfi,
             {'markId': bookMark.id},
             undefined,
-            'bookmark-highlight'
+            'bookmark-highlight',
+            {
+              fill: bookMark.color ? bookMark.color : defaultHighlightColor,
+              stroke: bookMark.hasBorder ? '#000' : 'none',
+            }
           )
         }
       })
@@ -343,7 +384,10 @@ export default {
         selectedRange.value ? selectedRange.value : '',
         {'markId': tempId},
         undefined,
-        'bookmark-highlight'
+        'bookmark-highlight',
+        {
+          fill: defaultHighlightColor, // 初始默认高亮颜色
+        }
       )
       return tempId
     }
@@ -377,17 +421,18 @@ export default {
     }).then((fn) => {
       unlistenBook.value = fn
     })
-
     // 监听显示书籍信息
     listen('show-book-info', () => {
       bookInfoVisible.value = true
     })
-
     // 监听显示AI助手
     listen('show-assistant', () => {
       assistantVisible.value = true
     })
-
+    // 监听显示帮助
+    listen('show-help', () => {
+      helpVisible.value = true
+    })
     // 监听样式调整
     listen('update-reader-style', async () => {
       await applyReaderStyle()
@@ -399,9 +444,13 @@ export default {
     getCurrentWindow()
       .onCloseRequested(async () => {
         // 保存阅读进度
-        await saveReaderRendition()
+        await saveReaderRendition().catch(() => {
+          console.error("窗口关闭异常: 阅读进度保存失败")
+        })
         // 保存全局配置
-        await saveReaderConfig()
+        await saveReaderConfig().catch(() => {
+          console.error("窗口关闭异常: 全局配置保存失败")
+        })
       })
       .then((fn) => {
         unlistenClosed.value = fn
@@ -443,6 +492,8 @@ export default {
             event.key === 'ArrowDown'
           ) {
             nextPage()
+          } else if (event.key === 'F11') {
+            switchFullscreen()
           }
         })
 
@@ -612,10 +663,16 @@ export default {
           }
 
           // 解析并呈现 EPUB 内容
-          const ePubBook = ePub(bookArrayBuffer)
+          const ePubBook = ePub(bookArrayBuffer as ArrayBuffer)
 
           // 确保 ePubBook已完全加载
           await ePubBook.ready;
+
+          // 清空epub-reader容器
+          const epubReader = document.getElementById('epub-reader');
+          if (epubReader) {
+            epubReader.innerHTML = '';
+          }
 
           // 创建新的 Rendition 对象
           rendition.value = ePubBook.renderTo('epub-reader', {
@@ -675,6 +732,9 @@ export default {
 
           // 关闭加载动画
           loading.close()
+
+          // 调试
+          console.log('EPUB解析完成:', bookIsReading.value, bookConfig.title)
         } catch (e) {
           console.log('EPUB解析失败', e)
           loading.close()
@@ -720,15 +780,30 @@ export default {
       }, 500)
     }
 
-    // 上一章
+    // 切换全屏(隐藏任务栏)
+    const switchFullscreen = async() => {
+      const win = getCurrentWindow()
+      const isFullscreen = await win.isFullscreen()
+      const isMaximized = await win.isMaximized()
+      if (isFullscreen) {
+        await win.setFullscreen(false)
+      } else {
+        if (isMaximized) {
+          await win.unmaximize()
+        }
+        await win.setFullscreen(true)
+      }
+    }
+
+    // 上一页
     const prevPage = () => {
-      if (rendition.value) {
+      if (rendition.value && readerConfig.value.flow === 'paginated') {
         rendition.value.prev()
       }
     }
-    // 下一章
+    // 下一页
     const nextPage = () => {
-      if (rendition.value) {
+      if (rendition.value && readerConfig.value.flow === 'paginated') {
         rendition.value.next()
       }
     }
@@ -755,12 +830,14 @@ export default {
       }
     }
 
-    // 监听键盘方向事件
+    // 监听键盘事件
     const keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         prevPage()
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         nextPage()
+      } else if (e.key === 'F11') {
+        switchFullscreen()
       }
     }
 
@@ -831,6 +908,7 @@ export default {
       bookMarkEditionVisible,
       bookMarkEditionContent,
       assistantVisible,
+      helpVisible,
       delBookMark,
     }
   },
@@ -857,11 +935,14 @@ export default {
   background-clip: content-box;
 }
 :global(.bookmark-highlight) {
-  fill: #00c4b6;
   fill-opacity: 0.4;
   pointer-events: all;
   cursor: var(--t-mouse-cursor-link), default;
   user-select: none;
+}
+:global(.bookmark-highlight rect) {
+  rx: 5;
+  ry: 5;
 }
 
 .reader {

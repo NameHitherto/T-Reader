@@ -16,20 +16,19 @@
     <div class="font-section section">
       <span class="section-title">字体</span>
       <div class="font-option">
-        <el-radio-group
-          class="font-radio-group"
+        <el-select
           v-model="selectedFont"
+          placeholder="默认"
+          style="width: 200px;"
+          @change="selectFont(selectedFont)"
         >
-          <el-radio 
-            v-for="font in fonts" 
-            :key="font.name" 
-            :value="font.name" 
-            @click="selectFont(font.name)" 
-            border
-          >
-            <span :style="`font-family: ${font.name};`">{{ font.display }}</span>
-          </el-radio>
-        </el-radio-group>
+          <el-option
+            v-for="font in systemFonts"
+            :key="font.postscript_name || font.family"
+            :label="font.postscript_name || font.family"
+            :value="font.postscript_name || font.family"
+          />
+        </el-select>
       </div>
     </div>
     <div class="basic-section section">
@@ -83,6 +82,16 @@ import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import '@/css/ResetButton.css'
+import { invoke } from '@tauri-apps/api/core'
+import { fontExclusion } from '@/constant/fontExclusion'
+
+interface FontNameEntry {
+  family: string
+  postscript_name: string | null
+  style: string | null
+  weight: number | null
+  path: string | null
+}
 
 export default defineComponent({
   setup() {
@@ -122,6 +131,15 @@ export default defineComponent({
         precision: 0,
       },
       {
+        label: '字间距',
+        value: readerConfig.value.letterSpacing,
+        key: 'letterSpacing',
+        amount: 1,
+        min: 0,
+        max: 60,
+        precision: 0,
+      },
+      {
         label: '行距',
         value: readerConfig.value.lineSpacing,
         key: 'lineSpacing',
@@ -140,68 +158,55 @@ export default defineComponent({
         precision: 1,
       },
       {
-        label: '行首边距',
-        value: readerConfig.value.firstLineMargin,
-        key: 'firstLineMargin',
+        label: '水平边距',
+        value: readerConfig.value.boxPaddingHorizontal,
+        key: 'boxPaddingHorizontal',
         amount: 1,
-        min: 36,
-        max: 36,
-        precision: 0,
-      },
-      {
-        label: '行尾边距',
-        value: readerConfig.value.lastLineMargin,
-        key: 'lastLineMargin',
-        amount: 1,
-        min: 36,
-        max: 36,
+        min: 0,
+        max: 100,
         precision: 0,
       },
       {
         label: '页眉边距',
-        value: readerConfig.value.headerMargin,
-        key: 'headerMargin',
+        value: readerConfig.value.boxPaddingTop,
+        key: 'boxPaddingTop',
         amount: 1,
-        min: 0,
+        min: 20,
         max: 100,
         precision: 0,
       },
       {
         label: '页脚边距',
-        value: readerConfig.value.footerMargin,
-        key: 'footerMargin',
+        value: readerConfig.value.boxPaddingBottom,
+        key: 'boxPaddingBottom',
         amount: 1,
-        min: 0,
+        min: 20,
         max: 100,
         precision: 0,
       },
       {
-        label: '最小栏宽',
-        value: readerConfig.value.minColumnWidth,
-        key: 'minColumnWidth',
+        label: '栏数',
+        value: readerConfig.value.columnCount,
+        key: 'columnCount',
         amount: 1,
-        min: 0,
-        max: 150,
-        precision: 0,
-      },
-      {
-        label: '栏间距',
-        value: readerConfig.value.columnSpacing,
-        key: 'columnSpacing',
-        amount: 1,
-        min: 0,
-        max: 150,
+        min: 1,
+        max: 2,
         precision: 0,
       },
     ])
 
-    const fonts = [
-      { name: 'system-ui', display: '默认' },
-      { name: 'pingfang', display: '苹方' },
-      { name: 'cursive', display: '草书' },
-      { name: 'Roboto', display: 'Google Roboto' },
-      { name: 'HiraginoMin', display: 'ヒラギノ明朝体' },
-    ]
+    // 系统字体
+    const systemFonts = ref<FontNameEntry[]>([])
+    invoke<FontNameEntry[]>('get_system_fonts').then((fonts) => {
+      // 以family值去除不常用字体
+      const filteredFonts = fonts.filter(font => !fontExclusion.includes(font.family))
+      systemFonts.value = filteredFonts
+      const family = []
+      for (const font of filteredFonts) {
+        family.push(font.family)
+      }
+      console.log(family)
+    })
 
     // 翻页模式
     const flow = ref(readerConfig.value.flow)
@@ -215,7 +220,6 @@ export default defineComponent({
         setting.value = readerConfig.value[setting.key]
         return setting
       })
-      selectedFont.value = readerConfig.value.font
     }
 
     // 通知阅读器更新样式
@@ -288,14 +292,14 @@ export default defineComponent({
       colors,
       selectedFont,
       settings,
-      fonts,
+      systemFonts,
       selectColor,
       adjustSetting,
       resetStyle,
       selectFont,
       flow,
       flowMode,
-      switchFlow
+      switchFlow,
     }
   },
 })
@@ -390,19 +394,6 @@ label {
       display: flex;
       align-items: center;
       margin-top: 0.225rem;
-
-      .font-radio-group {
-        gap: 0.25rem;
-
-        :deep(.el-radio) {
-          width: 100%;
-          margin: 0;
-        }
-        :deep(.el-radio__label) {
-          width: 100%;
-          text-align: center;
-        }
-      }
     }
   }
 

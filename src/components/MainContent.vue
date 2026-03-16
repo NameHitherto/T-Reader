@@ -91,7 +91,7 @@
             >
               <div class="book-cover">
                 <span>
-                  <img :src="book.cover" alt="封面" />
+                  <img :src="getBookCover(book.cover)" alt="封面" />
                 </span>
               </div>
               <div class="book-desc">
@@ -150,6 +150,7 @@ import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
 import { convertBlobToBase64 } from '@/js/utils.js'
 import { BookConfig } from '../js/map'
+import defaultCover from '@/assets/default-cover.png'
 
 export default {
   name: 'MainContent',
@@ -169,7 +170,6 @@ export default {
     const settingVisible = ref(false) // 设置中心
     const bookInfoVisible = ref(false) // 书籍信息框
     const bookInfoId = ref<String>('') // 书籍ID
-    const defaultCover = './src/assets/default-cover.png'
     let unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
@@ -259,7 +259,7 @@ export default {
           const book = ePub(e.target?.result as ArrayBuffer)
           const metadata = await book.loaded.metadata
           const coverBlob = await book.coverUrl()
-          const cover = coverBlob ? await convertBlobToBase64(coverBlob) : defaultCover
+          const cover = coverBlob ? await convertBlobToBase64(coverBlob) : ''
 
           const newBook: BookConfig = {
             id: newBookId,
@@ -412,6 +412,12 @@ export default {
       settingVisible.value = true
     }
 
+    // 获取书籍封面
+    const getBookCover = (cover?: string) => {
+      if (cover && cover.startsWith('data:image')) return cover
+      return defaultCover
+    }
+
     onMounted(() => {
       loadBooks()
     })
@@ -437,6 +443,7 @@ export default {
       bookInfoId,
       emptyStateImage,
       isBooksEmpty,
+      getBookCover,
     }
   },
 }

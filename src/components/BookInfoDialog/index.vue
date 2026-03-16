@@ -69,6 +69,7 @@
 <script>
 import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import ePub from 'libs/epub.js'
+import defaultCover from '@/assets/default-cover.png'
 export default {
   name: 'BookInfoDialog',
   props: {
@@ -79,7 +80,7 @@ export default {
   },  
   data() {
     return {
-      defaultCover: './src/assets/default-cover.png',
+      defaultCover, // 默认封面
       bookCover: '', // 书籍封面
       creator: '', // 作者
       description: '', // 书籍描述

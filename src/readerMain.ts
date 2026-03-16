@@ -25,4 +25,8 @@ document
 document
   .getElementById('titlebar-assistant')
   ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-assistant')});
+// 帮助
+document
+  .getElementById('titlebar-help')
+  ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-help')});
 document.addEventListener('contextmenu', (event) => {event.preventDefault();});

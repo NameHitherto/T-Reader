@@ -7,14 +7,12 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AboutView: typeof import('./src/components/AboutView.vue')['default']
     AssistantDialog: typeof import('./src/components/AssistantDialog/index.vue')['default']
     BookInfoDialog: typeof import('./src/components/BookInfoDialog/index.vue')['default']
     BookMark: typeof import('./src/components/BookMark.vue')['default']
     BookMarkDialog: typeof import('./src/components/BookMark/bookMarkDialog.vue')['default']
     BookMarkTag: typeof import('./src/components/BookMark/bookMarkTag.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
-    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElDialog: typeof import('element-plus/es')['ElDialog']
@@ -26,9 +24,6 @@ declare module 'vue' {
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElOption: typeof import('element-plus/es')['ElOption']
-    ElProgress: typeof import('element-plus/es')['ElProgress']
-    ElRadio: typeof import('element-plus/es')['ElRadio']
-    ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -40,6 +35,7 @@ declare module 'vue' {
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Experiment: typeof import('./src/components/Experiment.vue')['default']
+    HelpDialog: typeof import('./src/components/HelpDialog/index.vue')['default']
     LoadingBlockade: typeof import('./src/components/loadingBlockade.vue')['default']
     MainContent: typeof import('./src/components/MainContent.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

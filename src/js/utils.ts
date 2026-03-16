@@ -52,12 +52,18 @@ const extractEpubContent = async (bookName: string): Promise<string> => {
   const bookData = await readFile(`T-Reader/${bookName}.epub`, {
     baseDir: BaseDirectory.Document,
   })
-  const book = ePub(bookData.buffer)
+  // 将可能的 SharedArrayBuffer/Uint8Array 转成标准 ArrayBuffer
+  const arrayBuffer = (() => {
+    const buf = new ArrayBuffer(bookData.byteLength)
+    new Uint8Array(buf).set(bookData)
+    return buf
+  })()
+  const book = ePub(arrayBuffer)
   await book.ready
   let fullText = ''
   // 解压EPUB文件
   const zip = new JSZip()
-  const zipData = await zip.loadAsync(bookData.buffer);
+  const zipData = await zip.loadAsync(arrayBuffer);
   // 获取书籍章节
   const navigation = book.navigation
   const toc = navigation.toc

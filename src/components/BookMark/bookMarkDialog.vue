@@ -34,6 +34,27 @@
                 @change="bookMarkJSON.comments = comments"
             />
         </div>
+        <div class="color-picker">
+            <template v-for="color in colorChoices">
+                <span 
+                    class="color-choice" 
+                    :style="{backgroundColor: color, borderColor: color === bookMarkJSON.color ? 'rgb(0 0 0 / 70%)' : '#fff'}" 
+                    @click="updateColor(color)"
+                />
+            </template>
+        </div>
+        <div class="option-box">
+            <span class="text-border" @click="updateHasBorder">
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="32px" 
+                    height="32px" 
+                    viewBox="0 0 24 24"
+                >
+                    <path :fill="bookMarkJSON.hasBorder ? '#0284c7' : '#999999'" d="M3 16c0 2.8 2.2 5 5 5h2v-2H8c-1.7 0-3-1.3-3-3v-2H3zm18-8c0-2.8-2.2-5-5-5h-2v2h2c1.7 0 3 1.3 3 3v2h2zm-5 13c2.8 0 5-2.2 5-5v-2h-2v2c0 1.7-1.3 3-3 3h-2v2zM8 3C5.2 3 3 5.2 3 8v2h2V8c0-1.7 1.3-3 3-3h2V3z"/>
+                </svg>
+            </span>
+        </div>
     </el-dialog>
 </template>
 <script lang="ts">
@@ -48,7 +69,18 @@ export default defineComponent({
     data() {
         return {
             comments: ref(''),
-            bookMarkJSON: ref<any>({})
+            bookMarkJSON: ref<any>({}),
+            colorChoices: [
+                '#00c4b6', // Cyan
+                '#f44336', // Red
+                '#e91e63', // Pink
+                '#9c27b0', // Purple
+                '#3f51b5', // Indigo
+                '#2196f3', // Blue
+                '#4caf50', // Green
+                '#ffeb3b', // Yellow
+                '#6b7280', // Gray
+            ]
         };
     },
     methods: {
@@ -66,6 +98,14 @@ export default defineComponent({
         },
         async deleteBookMark() {
             this.$emit('delete', this.bookMarkJSON.id)
+        },
+        async updateColor(color: string) {
+            this.bookMarkJSON.color = color
+            this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+        },
+        async updateHasBorder() {
+            this.bookMarkJSON.hasBorder = !this.bookMarkJSON.hasBorder
+            this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
         }
     },
 })
@@ -75,5 +115,29 @@ export default defineComponent({
     position: absolute;
     top: 10px;
     right: 10px;
+}
+.color-picker {
+    display: inline-flex;
+    margin-top: 10px;
+    gap: 8px;
+
+    .color-choice{
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border-width: 2px;
+        border-style: solid;
+        cursor: var(--t-mouse-cursor-link), pointer;
+    }
+}
+.option-box {
+    display: flex;
+
+    .text-border {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: var(--t-mouse-cursor-link), pointer;
+    }
 }
 </style>
