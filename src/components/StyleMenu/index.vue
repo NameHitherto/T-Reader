@@ -83,7 +83,30 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import '@/css/ResetButton.css'
 import { invoke } from '@tauri-apps/api/core'
-import { fontExclusion } from '@/constant/fontExclusion'
+import { fontExclusion } from '@/constants/fontExclusion'
+import { WINDOW_EVENTS } from '@/constants/events'
+
+type NumericSettingKey =
+  | 'indent'
+  | 'fontSize'
+  | 'fontWeight'
+  | 'letterSpacing'
+  | 'lineSpacing'
+  | 'paragraphSpacing'
+  | 'boxPaddingHorizontal'
+  | 'boxPaddingTop'
+  | 'boxPaddingBottom'
+  | 'columnCount'
+
+interface ReaderNumericSetting {
+  label: string
+  value: number
+  key: NumericSettingKey
+  amount: number
+  min: number
+  max: number
+  precision: number
+}
 
 interface FontNameEntry {
   family: string
@@ -102,7 +125,7 @@ export default defineComponent({
 
     const colors = ['#FFFFFF', '#faebd7', '#000000']
     const selectedFont = ref(readerConfig.value.font)
-    const settings = ref([
+    const settings = ref<ReaderNumericSetting[]>([
       {
         label: '首行缩进',
         value: readerConfig.value.indent,
@@ -217,14 +240,14 @@ export default defineComponent({
     // 样式视觉化更新
     const updateVisual = () => {
       settings.value = settings.value.map((setting) => {
-        setting.value = readerConfig.value[setting.key]
+        setting.value = readerConfig.value[setting.key] as number
         return setting
       })
     }
 
     // 通知阅读器更新样式
     const emitStyleApplication = () => {
-      getCurrentWebviewWindow().emitTo('reader', 'update-reader-style')
+      getCurrentWebviewWindow().emitTo('reader', WINDOW_EVENTS.UPDATE_READER_STYLE)
     }
 
     // 样式恢复默认
@@ -269,7 +292,7 @@ export default defineComponent({
     }
  
     // 调整样式设置
-    const adjustSetting = (key: string, value: number) => {
+    const adjustSetting = (key: NumericSettingKey, value: number) => {
       // 更新状态全局变量
       readerConfigStore.changeState(key, value)
       // 通知阅读器更新样式

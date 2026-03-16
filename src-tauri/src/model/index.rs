@@ -1,14 +1,40 @@
 use serde::{Deserialize, Serialize};
 
+fn default_book_format() -> String {
+    "epub".to_string()
+}
+
+fn default_location_format() -> String {
+    "cfi".to_string()
+}
+
+fn default_schema_version() -> u32 {
+    1
+}
+
 // 书籍信息
 #[derive(Serialize, Deserialize)]
 pub struct Book {
+    #[serde(default = "default_schema_version", rename = "schemaVersion")]
+    pub schema_version: u32,
     pub id: String,
+    #[serde(default = "default_book_format")]
+    pub format: String,
+    #[serde(default = "default_location_format", rename = "locationFormat")]
+    pub location_format: String,
     pub cover: String,
     pub title: String,
     pub author: String,
     pub language: String,
     pub size: String,
+    #[serde(default)]
+    pub progress: Option<f64>,
+    #[serde(default)]
+    pub source: Option<String>,
+    #[serde(default, rename = "deviceId")]
+    pub device_id: Option<String>,
+    #[serde(default, rename = "updatedAt")]
+    pub updated_at: Option<String>,
     #[serde(rename = "lastRead")]
     pub last_read: String,
     pub added: String,

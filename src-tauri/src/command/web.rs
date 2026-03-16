@@ -10,6 +10,15 @@ use tauri::{AppHandle, Emitter};
 
 use crate::command::load_settings;
 
+fn is_supported_book_file(filename: &str) -> bool {
+    filename.ends_with(".epub") || filename.ends_with(".txt")
+}
+
+fn to_json_name(book_filename: &str) -> Option<String> {
+    let stem = Path::new(book_filename).file_stem()?.to_str()?;
+    Some(format!("{}.json", stem))
+}
+
 #[tauri::command]
 pub async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
     let settings = load_settings()?;
@@ -147,21 +156,25 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
         }
     }
 
-    // 分离出本地和云端的 epub 和 json 文件
-    let local_epubs: Vec<String> = local_files.iter()
-        .filter(|f| f.ends_with(".epub"))
+    // 分离出本地和云端书籍文件（epub/txt）
+    let local_books: Vec<String> = local_files
+        .iter()
+        .filter(|f| is_supported_book_file(f.as_str()))
         .cloned()
         .collect();
     
-    let cloud_epubs: Vec<String> = cloud_files.iter()
-        .filter(|f| f.ends_with(".epub"))
+    let cloud_books: Vec<String> = cloud_files
+        .iter()
+        .filter(|f| is_supported_book_file(f.as_str()))
         .cloned()
         .collect();
 
-    // 1. 处理本地和云端都存在的文件 - 保留epub，但下载json覆盖本地
-    for epub in &local_epubs {
-        if cloud_epubs.contains(epub) {
-            let json_name = epub.replace(".epub", ".json");
+    // 1. 处理本地和云端都存在的文件 - 保留书籍文件，但下载json覆盖本地
+    for book in &local_books {
+        if cloud_books.contains(book) {
+            let Some(json_name) = to_json_name(book) else {
+                continue;
+            };
             if cloud_files.contains(&json_name) {
                 // 下载云端json文件覆盖本地
                 let json_content = webdav_get(&json_name).await?;
@@ -174,14 +187,16 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     }
 
     // 2. 处理本地有但云端没有的文件 - 删除本地文件
-    for epub in &local_epubs {
-        if !cloud_epubs.contains(epub) {
-            // 删除本地epub文件
-            let epub_path = path.join(epub);
-            fs::remove_file(&epub_path).map_err(|e| format!("删除文件失败: {}", e))?;
-            println!("同步: 删除本地 {}", epub);
+    for book in &local_books {
+        if !cloud_books.contains(book) {
+            // 删除本地书籍文件
+            let book_path = path.join(book);
+            fs::remove_file(&book_path).map_err(|e| format!("删除文件失败: {}", e))?;
+            println!("同步: 删除本地 {}", book);
             // 检查并删除对应的json文件
-            let json_name = epub.replace(".epub", ".json");
+            let Some(json_name) = to_json_name(book) else {
+                continue;
+            };
             let json_path = path.join(&json_name);
             if json_path.exists() {
                 fs::remove_file(&json_path).map_err(|e| format!("删除文件失败: {}", e))?;
@@ -191,17 +206,19 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     }
 
     // 3. 处理云端有但本地没有的文件 - 下载到本地
-    for epub in &cloud_epubs {
-        if !local_epubs.contains(epub) {
-            // 下载epub文件
-            let epub_content = webdav_get(epub).await?;
-            let epub_path = path.join(epub);
-            let mut file = File::create(epub_path).map_err(|e| e.to_string())?;
-            file.write_all(&epub_content).map_err(|e| e.to_string())?;
-            println!("同步: 下载云端 {} 到本地", epub);
+    for book in &cloud_books {
+        if !local_books.contains(book) {
+            // 下载书籍文件
+            let book_content = webdav_get(book).await?;
+            let book_path = path.join(book);
+            let mut file = File::create(book_path).map_err(|e| e.to_string())?;
+            file.write_all(&book_content).map_err(|e| e.to_string())?;
+            println!("同步: 下载云端 {} 到本地", book);
 
             // 检查并下载对应的json文件
-            let json_name = epub.replace(".epub", ".json");
+            let Some(json_name) = to_json_name(book) else {
+                continue;
+            };
             if cloud_files.contains(&json_name) {
                 let json_content = webdav_get(&json_name).await?;
                 let json_path = path.join(&json_name);

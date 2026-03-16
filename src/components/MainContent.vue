@@ -132,7 +132,6 @@
 
 <script lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import ePub from 'libs/epub.js'
 import { invoke } from '@tauri-apps/api/core'
 import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -148,9 +147,15 @@ import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
-import { convertBlobToBase64 } from '@/js/utils.js'
 import { BookConfig } from '../js/map'
 import defaultCover from '@/assets/default-cover.png'
+import {
+  detectBookFormatFromPath,
+  getBookFilename,
+  getBookFormatDisplayName,
+} from '@/js/bookFormat'
+import { WINDOW_EVENTS } from '@/constants/events'
+import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 
 export default {
   name: 'MainContent',
@@ -207,8 +212,8 @@ export default {
         directory: false,
         filters: [
           {
-            name: 'ePub files',
-            extensions: ['epub'],
+            name: 'Book files',
+            extensions: ['epub', 'txt'],
           },
         ],
       })
@@ -227,17 +232,24 @@ export default {
         console.log('该文件已经添加过了')
         return
       }
+      const format = detectBookFormatFromPath(path)
+      if (!format) {
+        console.log('不支持的书籍格式:', path)
+        return
+      }
       loadingText.value =
-        'Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file - Parsing ePub file'
+        `Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file`
       isLoading.value = true
       const u8File: Uint8Array = await invoke('read_file_by_path', {
         filepath: path,
       })
       const bufferFile = new Uint8Array(u8File).buffer
-      const file = new Blob([bufferFile], { type: 'application/epub+zip' })
+      const file = new Blob([bufferFile], {
+        type: format === 'epub' ? 'application/epub+zip' : 'text/plain',
+      })
 
       const newBookId = Date.now().toString()
-      const newBookPath = `T-Reader/${newBookId}.epub`
+      const newBookPath = `T-Reader/${getBookFilename(newBookId, format)}`
       const contents = new Uint8Array(bufferFile)
 
       loadingText.value =
@@ -245,7 +257,7 @@ export default {
 
       // 上传到云服务器
       invoke('webdav_upload', {
-        filename: `${newBookId}.epub`,
+        filename: getBookFilename(newBookId, format),
         contents: contents,
       })
 
@@ -256,23 +268,13 @@ export default {
       const reader = new FileReader()
       reader.onload = async (e) => {
         try {
-          const book = ePub(e.target?.result as ArrayBuffer)
-          const metadata = await book.loaded.metadata
-          const coverBlob = await book.coverUrl()
-          const cover = coverBlob ? await convertBlobToBase64(coverBlob) : ''
-
-          const newBook: BookConfig = {
+          const newBook = await buildBookConfigFromImport({
             id: newBookId,
-            cover: cover,
-            title: metadata.title,
-            author: metadata.creator,
-            language: metadata.language,
-            size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-            lastRead: new Date().toLocaleDateString(),
-            added: new Date().toLocaleDateString(),
-            path: path,
-            location: '',
-          }
+            sourcePath: path,
+            format,
+            fileSizeMB: (file.size / 1024 / 1024).toFixed(2),
+            fileBuffer: e.target?.result as ArrayBuffer,
+          })
 
           await invoke('save_file', {
             filename: `${newBook.id}.json`,
@@ -299,8 +301,10 @@ export default {
       try {
         await invoke('delete_book', { filename: `${id}.json` })
         await invoke('delete_book', { filename: `${id}.epub` })
+        await invoke('delete_book', { filename: `${id}.txt` })
         await invoke('webdav_delete', { filename: `${id}.json` })
         await invoke('webdav_delete', { filename: `${id}.epub` })
+        await invoke('webdav_delete', { filename: `${id}.txt` })
         books.value = books.value.filter((book) => book.id !== id)
       } catch (error) {
         console.error('Error deleting the book:', error)
@@ -323,11 +327,11 @@ export default {
         unlistenReady.value?.()
         // 等待阅读器准备好接受书籍ID
         unlistenReady.value = await listen<string>(
-          'ready-to-receive-book-id',
+          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_ID,
           async () => {
             WebviewWindow.getCurrent().emitTo(
               'reader',
-              'load-book-id',
+              WINDOW_EVENTS.LOAD_BOOK_ID,
               {
                 id: id.toString(),
                 cfi: '',
@@ -341,7 +345,7 @@ export default {
         // 阅读器已加载，此时只需要发送新的书籍ID
         WebviewWindow.getCurrent().emitTo(
           'reader',
-          'load-book-id',
+          WINDOW_EVENTS.LOAD_BOOK_ID,
           {
             id: id.toString(),
             cfi: '',

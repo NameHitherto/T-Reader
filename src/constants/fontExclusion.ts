@@ -1,5 +1,5 @@
 // 系统自带的阅读不常用字体
-export const fontExclusion = [ 
+export const fontExclusion = [
   "Agency FB",
   "Algerian",
   "Arial",

@@ -1,4 +1,5 @@
 import { BookMark } from '../store/bookMark';
+import { BookFormat } from './bookFormat';
 
 type iconType = 'bookOpen' | 'delete' | 'info' | 'goBack' | 'bookmark' | 'delBookMark' | 'comment';
 type themeType = 'light' | 'dark';
@@ -21,12 +22,27 @@ export interface ContextMenuItem {
  * [ID].json配置文件参数
  */
 export interface BookConfig {
+  schemaVersion?: number;
   id: string;
+  format?: BookFormat;
+  locationFormat?: 'cfi' | 'paragraph';
+  source?: string;
+  deviceId?: string;
+  updatedAt?: string;
+  legacySync?: {
+    bookId: string;
+    progress: number;
+    location: string;
+    updatedAt: string;
+    source: string;
+    deviceId: string;
+  };
   cover: string;
   title: string;
   author: string;
   language: string;
   size: string;
+  progress?: number;
   lastRead: string;
   added: string;
   path: string;
