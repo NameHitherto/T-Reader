@@ -1,3 +1,3 @@
-package com.t2_reader.app
+package com.t_reader.app
 
 class MainActivity : TauriActivity()

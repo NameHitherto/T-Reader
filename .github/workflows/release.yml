@@ -14,11 +14,13 @@ jobs:
         include:
           - platform: windows-latest
             args: ''
-            target: ''
+            target: 'x86_64-pc-windows-msvc'
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,7 +39,10 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          npm ci
+          cd libs/epub.js
+          npm ci
 
       - name: Read Release Notes
         id: read_release_notes
@@ -47,6 +52,7 @@ jobs:
             EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
             echo "notes<<$EOF" >> $GITHUB_OUTPUT
             cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
             echo "$EOF" >> $GITHUB_OUTPUT
           else
             echo "notes=Update ${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
