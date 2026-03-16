@@ -1,4 +1,4 @@
-/src/main/java/com/t2_reader/app/generated
+/src/main/java/com/t_reader/app/generated
 /src/main/jniLibs/**/*.so
 /src/main/assets/tauri.conf.json
 /tauri.build.gradle.kts
