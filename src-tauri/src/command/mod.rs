@@ -1,6 +1,7 @@
 pub mod file;
 pub mod web;
 pub mod font;
+pub mod proxy;
 
 pub use file::{
     save_file,
@@ -21,4 +22,8 @@ pub use web::{
 
 pub use font::{
     get_system_fonts
+};
+
+pub use proxy::{
+    prepare_updater_proxy
 };
