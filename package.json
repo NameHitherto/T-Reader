@@ -1,13 +1,14 @@
 {
-  "name": "t-reader",
+  "name": "t2-reader",
   "private": true,
-  "version": "0.3.3",
+  "version": "0.4.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "release": "node scripts/bump-version.js"
   },
   "dependencies": {
     "@tauri-apps/api": ">=2.0.0-rc.0",
@@ -15,7 +16,9 @@
     "@tauri-apps/plugin-fs": "^2.0.0",
     "@tauri-apps/plugin-http": "^2.0.0",
     "@tauri-apps/plugin-os": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-shell": ">=2.0.0-rc.0",
+    "@tauri-apps/plugin-updater": "^2.10.0",
     "@tauri-apps/plugin-window-state": "^2.0.0",
     "element-plus": "^2.8.4",
     "highlight.js": "^11.11.1",

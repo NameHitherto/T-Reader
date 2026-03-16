@@ -10,18 +10,13 @@
     "core:default",
     "core:window:allow-create",
     "core:window:allow-start-dragging",
-    "core:window:allow-is-maximized",
     "core:window:allow-toggle-maximize",
-    "core:window:allow-maximize",
-    "core:window:allow-unmaximize",
     "core:window:allow-minimize",
     "core:window:allow-show",
     "core:window:allow-close",
     "core:window:allow-hide",
     "core:window:allow-set-size",
     "core:window:allow-destroy",
-    "core:window:allow-is-fullscreen",
-    "core:window:allow-set-fullscreen",
     "core:webview:allow-create-webview",
     "core:webview:allow-create-webview-window",
     "core:webview:allow-webview-close",
@@ -62,6 +57,9 @@
       ]
     },
     "dialog:default",
-    "os:default"
+    "os:default",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install"
   ]
 }

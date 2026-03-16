@@ -15,11 +15,7 @@ export interface BookMark {
   // 笔记创建时间
   createTime: string,
   // 个人评价, 可以置空
-  comments?: string,
-  // 笔记高亮颜色
-  color?: string,
-  // 高亮边框
-  hasBorder?: boolean,
+  comments?: string
 }
 
 export const useBookMarkStore = defineStore('bookMark', () => {

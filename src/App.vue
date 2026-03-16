@@ -41,6 +41,20 @@
             </svg>
             <router-link @click="changeView('Bookmark')" to="/bookmark">笔记</router-link>
           </li>
+          <li :class="{active: currentView === 'About'}">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              :width="svgSize"
+              :height="svgSize"
+              viewBox="0 0 24 24"
+            >
+              <path
+                :fill="currentView === 'About' ? '#409eff' : '#000000'"
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+              />
+            </svg>
+            <router-link @click="changeView('About')" to="/about">关于</router-link>
+          </li>
           <li :class="{active: currentView === 'Experiment'}">
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -1,7 +1,10 @@
 import { createApp } from "vue";
 import App from "./App.vue";
+import AndroidApp from "./android/App.vue";
 import router from './router';
+import androidRouter from './router/android';
 import { platform } from '@tauri-apps/plugin-os';
+import { createPinia } from 'pinia';
 import './css/global.scss';
 
 // 根据当前平台创建不同实例
@@ -15,7 +18,16 @@ if(currentPlatform === 'windows') {
   document.addEventListener('contextmenu', (event) => {event.preventDefault();});
 }else if(currentPlatform === 'android'){
   // android平台
-  console.error('Android平台已不支持!');
+  const app = createApp(AndroidApp);
+  const pinia = createPinia();
+  app.use(pinia);
+  app.use(androidRouter);
+  app.mount("#app");
+  // 隐藏window的titlebar
+  const titlebarCustom = document.getElementById('titlebar-custom');
+  if (titlebarCustom) {
+    titlebarCustom.style.display = 'none';
+  }
 }else{
   console.error('意料之外的平台!');
 }
