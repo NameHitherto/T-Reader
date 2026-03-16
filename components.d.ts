@@ -7,12 +7,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AboutView: typeof import('./src/components/AboutView.vue')['default']
     AssistantDialog: typeof import('./src/components/AssistantDialog/index.vue')['default']
     BookInfoDialog: typeof import('./src/components/BookInfoDialog/index.vue')['default']
     BookMark: typeof import('./src/components/BookMark.vue')['default']
     BookMarkDialog: typeof import('./src/components/BookMark/bookMarkDialog.vue')['default']
     BookMarkTag: typeof import('./src/components/BookMark/bookMarkTag.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
+    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElDialog: typeof import('element-plus/es')['ElDialog']
@@ -24,6 +26,7 @@ declare module 'vue' {
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElOption: typeof import('element-plus/es')['ElOption']
+    ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
