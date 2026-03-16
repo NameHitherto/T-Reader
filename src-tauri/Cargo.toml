@@ -1,6 +1,6 @@
 [package]
 name = "T-Reader"
-version = "0.4.3"
+version = "0.4.0"
 description = "An ePub Reader based on Tauri"
 authors = ["you"]
 edition = "2021"
