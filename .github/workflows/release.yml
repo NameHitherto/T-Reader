@@ -39,7 +39,10 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          npm ci
+          cd libs/epub.js
+          npm ci
 
       - name: Read Release Notes
         id: read_release_notes
