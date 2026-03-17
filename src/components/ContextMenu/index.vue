@@ -14,7 +14,12 @@
             <div class="separator" v-if="item.type === 'delete'"></div>
             <div class="menu-item" @click="(event) => handleClick(item, event)">
               <span class="label">{{ item.label }}</span>
-              <img :src="svgIcons[item.type === undefined ? 'default' : item.type]" />
+              <AppIcon
+                class="menu-icon"
+                :name="resolveIconName(item.type)"
+                :size="22"
+                :color="menuData.theme === 'dark' ? '#e9e9e9' : '#333333'"
+              />
             </div>
           </div>
         </div>
@@ -25,16 +30,13 @@
 <script lang="ts">
 import { ContextMenuData, ContextMenuItem } from '../../js/map'
 import { PropType } from 'vue'
-import bookOpenIcon from './assets/book-open.svg'
-import deleteIcon from './assets/delete.svg'
-import goBackIcon from './assets/go-back.svg'
-import infoIcon from './assets/info.svg'
-import bookmarkIcon from './assets/bookmark.svg'
-import delBookMarkIcon from './assets/delBookMark.svg'
-import commentIcon from './assets/comment.svg'
-import defaultIcon from './assets/default.svg'
+import AppIcon from '@/components/common/AppIcon/index.vue'
+import { IconName } from '@/icons/registry'
 export default {
   name: 'ContextMenu',
+  components: {
+    AppIcon,
+  },
   props: {
     show: Boolean,
     menuData: {
@@ -44,16 +46,6 @@ export default {
   },
   data() {
     return {
-      svgIcons: {
-        bookOpen: bookOpenIcon,
-        delete: deleteIcon,
-        goBack: goBackIcon,
-        info: infoIcon,
-        bookmark: bookmarkIcon,
-        delBookMark: delBookMarkIcon,
-        comment: commentIcon,
-        default: defaultIcon
-      },
       menuActive: true
     }
   },
@@ -69,6 +61,9 @@ export default {
     }
   },
   methods: {
+    resolveIconName(type?: ContextMenuItem['type']): IconName {
+      return type ? type : 'default'
+    },
     handleBackDropClick(event: MouseEvent) {
       const target = event.target as Node
       const menu = this.$refs.menu as HTMLElement;
@@ -129,7 +124,7 @@ export default {
           transition: all 0.2s ease;
         }
 
-        img {
+        .menu-icon {
           width: 22px;
           height: 22px;
         }
@@ -153,10 +148,6 @@ export default {
       &:hover {
         background: #6a6c6d;
       }
-
-      img {
-        filter: invert(100%);
-      }
     }
   }
 }
@@ -175,10 +166,6 @@ export default {
     .menu-item {
       &:hover {
         background: #e9e9e9;
-      }
-
-      img {
-        filter: invert(0%);
       }
     }
   }

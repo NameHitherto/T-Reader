@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AboutView: typeof import('./src/components/AboutView.vue')['default']
+    AppIcon: typeof import('./src/components/common/AppIcon/index.vue')['default']
     AssistantDialog: typeof import('./src/components/AssistantDialog/index.vue')['default']
     BookInfoDialog: typeof import('./src/components/BookInfoDialog/index.vue')['default']
     BookMark: typeof import('./src/components/BookMark.vue')['default']
@@ -39,7 +40,7 @@ declare module 'vue' {
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Experiment: typeof import('./src/components/Experiment.vue')['default']
     HelpDialog: typeof import('./src/components/HelpDialog/index.vue')['default']
-    LoadingBlockade: typeof import('./src/components/loadingBlockade.vue')['default']
+    LoadingBlockade: typeof import('./src/components/common/LoadingBlockade/index.vue')['default']
     MainContent: typeof import('./src/components/MainContent.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

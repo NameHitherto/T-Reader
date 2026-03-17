@@ -16,42 +16,28 @@
       <div class="header-menu">
         <div class="header-menu-item" @click="addBook">
           <span class="header-menu-icon">
-            <img :src="addBookIcon" alt="添加书籍" />
+            <AppIcon name="addBook" aria-label="添加书籍" />
           </span>
           <span class="header-menu-label">导入书籍</span>
         </div>
         <div class="header-menu-item" @click="syncFiles">
           <span class="header-menu-icon">
-            <img :src="refreshIcon" alt="云同步" />
+            <AppIcon name="refresh" aria-label="云同步" />
           </span>
           <span class="header-menu-label">云同步</span>
         </div>
         <div class="header-menu-item" @click="openSetting">
           <span class="header-menu-icon">
-            <img :src="settingIcon" alt="设置" />
+            <AppIcon name="setting" aria-label="设置" />
           </span>
           <span class="header-menu-label">设置中心</span>
         </div>
         <div class="header-menu-item" @click="toggleShelfViewMode">
           <span class="header-menu-icon">
-            <svg
-              v-if="shelfViewMode === 'list'"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v3A1.5 1.5 0 0 1 18.5 11h-13A1.5 1.5 0 0 1 4 9.5zm0 8A1.5 1.5 0 0 1 5.5 13h13a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"
-              />
-            </svg>
-            <svg
-              v-else
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"
-              />
-            </svg>
+            <AppIcon
+              :name="shelfViewMode === 'list' ? 'listView' : 'gridView'"
+              :aria-label="shelfViewMode === 'list' ? '列表模式' : '网格模式'"
+            />
           </span>
           <span class="header-menu-label">
             {{ shelfViewMode === 'list' ? '切换网格' : '切换列表' }}
@@ -199,12 +185,10 @@ import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { open } from '@tauri-apps/plugin-dialog'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import loadingBlockade from './loadingBlockade.vue'
+import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from './ContextMenu/index.vue'
+import AppIcon from '@/components/common/AppIcon/index.vue'
 import { ContextMenuData, ContextMenuItem } from '../js/map'
-import addBookIcon from '../assets/addBook.svg'
-import refreshIcon from '../assets/refresh.svg'
-import settingIcon from '../assets/setting.svg'
 import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
@@ -224,6 +208,7 @@ export default {
   components: {
     loadingBlockade,
     ContextMenu,
+    AppIcon,
     SettingDialog,
     BookInfoDialog,
   },
@@ -548,9 +533,6 @@ export default {
       showMenu,
       menuOptions,
       booksLoading,
-      addBookIcon,
-      refreshIcon,
-      settingIcon,
       openSetting,
       settingVisible,
       bookInfoVisible,
@@ -642,9 +624,11 @@ export default {
         flex-shrink: 0;
         left: 17px;
         position: absolute;
-        img {
+
+        :deep(.app-icon) {
           width: 100%;
           height: 100%;
+          color: #3f3f46;
         }
       }
       &-label {
@@ -1243,13 +1227,6 @@ export default {
     }
   }
 
-  .header-menu-icon {
-    svg {
-      width: 24px;
-      height: 24px;
-      fill: #3f3f46;
-    }
-  }
 }
 
 .loading {
