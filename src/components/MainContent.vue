@@ -32,6 +32,31 @@
           </span>
           <span class="header-menu-label">设置中心</span>
         </div>
+        <div class="header-menu-item" @click="toggleShelfViewMode">
+          <span class="header-menu-icon">
+            <svg
+              v-if="shelfViewMode === 'list'"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v3A1.5 1.5 0 0 1 18.5 11h-13A1.5 1.5 0 0 1 4 9.5zm0 8A1.5 1.5 0 0 1 5.5 13h13a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"
+              />
+            </svg>
+            <svg
+              v-else
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"
+              />
+            </svg>
+          </span>
+          <span class="header-menu-label">
+            {{ shelfViewMode === 'list' ? '切换网格' : '切换列表' }}
+          </span>
+        </div>
       </div>
       <SettingDialog
         v-model="settingVisible"
@@ -51,76 +76,113 @@
       <div v-else class="bookcase">
         <el-skeleton :loading="booksLoading" animated :count="10">
           <template #template>
-            <div class="book-item" style="background-color: white">
-              <div class="book-cover">
-                <el-skeleton-item style="width: 80px; height: 100px" />
+            <div
+              v-if="shelfViewMode === 'list'"
+              class="shelf-list-card shelf-skeleton"
+            >
+              <div class="shelf-list-cover">
+                <el-skeleton-item style="width: 72px; height: 96px" />
               </div>
-              <div class="book-desc">
-                <div class="book-desc-header">
-                  <div class="book-title">
-                    <el-skeleton-item style="width: 200px; height: 30px" />
-                  </div>
-                  <div>
-                    <el-skeleton-item style="width: 100px; height: 30px" />
-                  </div>
+              <div class="shelf-list-content">
+                <div class="shelf-list-title">
+                  <el-skeleton-item style="width: 65%; height: 18px" />
                 </div>
-                <div class="book-desc-more">
-                  <div class="book-desc-more-item" style="border: none;">
-                    <el-skeleton-item style="width: 100px; height: 30px" />
-                  </div>
-                  <div class="book-desc-more-item" style="border: none;">
-                    <el-skeleton-item style="width: 100px; height: 30px" />
-                  </div>
-                  <div class="book-desc-more-item" style="border: none;">
-                    <el-skeleton-item style="width: 100px; height: 30px" />
-                  </div>
-                  <div class="book-desc-more-item" style="border: none;">
-                    <el-skeleton-item style="width: 100px; height: 30px" />
-                  </div>
+                <div class="shelf-list-subtitle">
+                  <el-skeleton-item style="width: 48%; height: 12px" />
                 </div>
+                <div class="shelf-list-meta">
+                  <el-skeleton-item style="width: 42%; height: 12px" />
+                </div>
+                <div class="shelf-list-progress">
+                  <el-skeleton-item style="width: 26%; height: 12px" />
+                  <el-skeleton-item style="width: 100%; height: 6px" />
+                </div>
+              </div>
+            </div>
+            <div v-else class="shelf-grid-card shelf-skeleton">
+              <div class="shelf-grid-cover">
+                <el-skeleton-item style="width: 100%; height: 180px" />
+              </div>
+              <div class="shelf-grid-title">
+                <el-skeleton-item style="width: 90%; height: 16px" />
               </div>
             </div>
           </template>
           <template #default>
             <div
-              class="book-item"
-              v-for="book in books"
-              :key="book.id"
-              @click="openBook(book.id)"
-              @contextmenu="onContextMenu($event, book.id)"
+              class="bookcase-body"
+              :class="
+                shelfViewMode === 'list'
+                  ? 'bookcase-body--list'
+                  : 'bookcase-body--grid'
+              "
             >
-              <div class="book-cover">
-                <span>
+              <div
+                v-for="book in books"
+                :key="book.id"
+                class="shelf-item"
+                :class="
+                  shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'
+                "
+                @click="openBook(book.id)"
+                @contextmenu="onContextMenu($event, book.id)"
+              >
+                <div
+                  v-if="shelfViewMode === 'list'"
+                  class="shelf-list-cover"
+                >
                   <img :src="getBookCover(book.cover)" alt="封面" />
-                </span>
-              </div>
-              <div class="book-desc">
-                <div class="book-desc-header">
-                  <div class="book-title">
+                  <span class="book-format-badge">
+                    {{ getBookFormatBadge(book) }}
+                  </span>
+                </div>
+                <div
+                  v-if="shelfViewMode === 'list'"
+                  class="shelf-list-content"
+                >
+                  <div
+                    v-if="book.author"
+                    class="shelf-list-author"
+                    :title="book.author"
+                  >
+                    {{ book.author }}
+                  </div>
+                  <div class="shelf-list-title" :title="book.title">
                     <span>{{ book.title }}</span>
                   </div>
-                  <div class="book-author">
-                    <span>{{ book.author }}</span>
+                  <div class="shelf-list-subtitle" :title="getListSubtitle(book)">
+                    {{ getListSubtitle(book) }}
+                  </div>
+                  <div class="shelf-list-meta" :title="getListMeta(book)">
+                    {{ getListMeta(book) }}
+                  </div>
+                  <div class="shelf-list-progress">
+                    <div class="shelf-progress-label">
+                      {{ getProgressPercent(book) }}
+                    </div>
+                    <div class="shelf-progress-track">
+                      <div
+                        class="shelf-progress-value"
+                        :style="{ width: `${getProgressValue(book)}%` }"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div class="book-desc-more">
-                  <div class="book-desc-more-item">
-                    <span>语言</span>
-                    <span>{{ book.language }}</span>
+
+                <template v-else>
+                  <div class="shelf-grid-cover">
+                    <img :src="getBookCover(book.cover)" alt="封面" />
+                    <span class="book-format-badge">
+                      {{ getBookFormatBadge(book) }}
+                    </span>
+                    <div class="shelf-grid-progress-overlay">
+                      {{ getGridProgressText(book) }}
+                    </div>
                   </div>
-                  <div class="book-desc-more-item">
-                    <span>书籍大小</span>
-                    <span>{{ book.size }}</span>
+                  <div class="shelf-grid-title" :title="book.title">
+                    {{ book.title }}
                   </div>
-                  <div class="book-desc-more-item">
-                    <span>上次阅读</span>
-                    <span>{{ book.lastRead }}</span>
-                  </div>
-                  <div class="book-desc-more-item">
-                    <span>添加时间</span>
-                    <span>{{ book.added }}</span>
-                  </div>
-                </div>
+                </template>
               </div>
             </div>
           </template>
@@ -166,6 +228,7 @@ export default {
     BookInfoDialog,
   },
   setup() {
+    type ShelfViewMode = 'list' | 'grid'
     const books = ref<BookConfig[]>([])
     const isLoading = ref(false) // 是否正在加载
     const booksLoading = ref(true) // 书籍是否加载完成
@@ -179,6 +242,14 @@ export default {
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
     const isBooksEmpty = computed(() => books.value.length === 0)
+    const shelfViewMode = ref<ShelfViewMode>(
+      localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list'
+    )
+
+    const toggleShelfViewMode = () => {
+      shelfViewMode.value = shelfViewMode.value === 'list' ? 'grid' : 'list'
+      localStorage.setItem('shelfViewMode', shelfViewMode.value)
+    }
 
     const loadBooks = async () => {
       try {
@@ -422,6 +493,45 @@ export default {
       return defaultCover
     }
 
+    const getBookFormatBadge = (book: BookConfig): string => {
+      if (book.format === 'txt') {
+        return 'TXT'
+      }
+      if (book.format === 'epub') {
+        return 'EPUB'
+      }
+
+      return detectBookFormatFromPath(book.path) === 'txt' ? 'TXT' : 'EPUB'
+    }
+
+    const getProgressValue = (book: BookConfig): number => {
+      const value = Number(book.progress ?? 0)
+      if (Number.isNaN(value)) {
+        return 0
+      }
+      return Math.min(100, Math.max(0, value))
+    }
+
+    const getProgressPercent = (book: BookConfig): string => {
+      return `${getProgressValue(book).toFixed(1)}%`
+    }
+
+    const getGridProgressText = (book: BookConfig): string => {
+      const progress = getProgressValue(book)
+      return progress > 0 ? `阅读进度：${progress.toFixed(1)}%` : '未读'
+    }
+
+    const getListSubtitle = (book: BookConfig): string => {
+      if (book.location) {
+        return `章节：${book.location}`
+      }
+      return book.author ? `作者：${book.author}` : '章节：暂无'
+    }
+
+    const getListMeta = (book: BookConfig): string => {
+      return book.lastRead ? `阅读时长：${book.lastRead}` : '阅读时长：暂无'
+    }
+
     onMounted(() => {
       loadBooks()
     })
@@ -448,6 +558,14 @@ export default {
       emptyStateImage,
       isBooksEmpty,
       getBookCover,
+      shelfViewMode,
+      toggleShelfViewMode,
+      getBookFormatBadge,
+      getProgressValue,
+      getProgressPercent,
+      getGridProgressText,
+      getListSubtitle,
+      getListMeta,
     }
   },
 }
@@ -544,7 +662,7 @@ export default {
   .book-list {
     display: flex;
     flex-direction: column;
-    overflow-y: scroll;
+    overflow-y: auto;
     height: calc(100vh - 110px);
 
     &::-webkit-scrollbar {
@@ -678,45 +796,458 @@ export default {
         background-color: transparent;
       }
 
-      .book-item {
-        border-bottom: 1px solid #eee;
-        padding: 8px;
-        margin: 6px 4px 10px 10px;
-        background: #ffffff;
-        border-radius: 10px;
+      .bookcase-body {
+        padding: 10px 12px 14px;
+      }
+
+      .bookcase-body--list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .bookcase-body--grid {
+        --shelf-grid-gap: 20px;
+        --shelf-grid-item-width: 148px;
+        display: grid;
+        gap: var(--shelf-grid-gap);
+        justify-content: start;
+        /* 固定列宽自动填充：书架变宽时优先加列，卡片宽度不会变小 */
+        grid-template-columns: repeat(
+          auto-fill,
+          minmax(var(--shelf-grid-item-width), var(--shelf-grid-item-width))
+        );
+        transition: gap 0.28s ease;
+      }
+
+      .shelf-item {
         cursor: var(--t-mouse-cursor-link), pointer;
-        border: 1.5px solid #f2f3f5;
-        transition: ease 0.2s;
-        box-shadow: var(--t-box-shadow-3d-inactive);
+      }
+
+      .shelf-skeleton {
+        pointer-events: none;
+      }
+
+      .shelf-list-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+        position: relative;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #edf0f4;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          padding 0.28s ease,
+          border-radius 0.28s ease;
 
         &:hover {
-          translate: 0 0.225em;
-          background: transparent;
-          border: var(--t-border-thin-yellow);
-          box-shadow: var(--t-box-shadow-3d-active);
+          transform: translateY(2px);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+      }
 
-          .book-title {
-            span::after {
-              width: 100%;
-            }
-          }
+      .shelf-list-cover {
+        position: relative;
+        flex: 0 0 auto;
+        width: 72px;
+        height: 96px;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: width 0.28s ease, height 0.28s ease, border-radius 0.28s ease;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+      }
+
+      .book-format-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        color: #fff;
+        background: rgba(17, 24, 39, 0.55);
+        font-size: 10px;
+        line-height: 1;
+        padding: 4px 6px;
+      }
+
+      .shelf-list-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding-right: 72px;
+        transition: padding-right 0.28s ease, gap 0.28s ease;
+      }
+
+      .shelf-list-author {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 64px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--t-color-light-blue);
+        color: #ffffff;
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition:
+          transform 0.2s ease,
+          background-color 0.2s ease,
+          top 0.28s ease,
+          right 0.28s ease,
+          max-width 0.28s ease,
+          padding 0.28s ease,
+          font-size 0.28s ease;
+      }
+
+      .shelf-list-author:hover {
+        transform: translateY(-1px);
+        background: #1668c5;
+      }
+
+      .shelf-list-title {
+        width: fit-content;
+        font-size: 16px;
+        line-height: 1.35;
+        font-weight: 700;
+        color: #1f2937;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: font-size 0.28s ease;
+
+        span {
+          position: relative;
+          padding: 0 4px;
+          border-radius: 6px;
+          transition: all 0.2s ease-in;
         }
 
-        .book-title:hover {
-          color: #ffffff;
+        span::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 0;
+          height: 2px;
           background: var(--t-color-light-yellow);
-
-          span::after {
-            opacity: 0;
-          }
+          transition: width 0.2s ease-in;
         }
+      }
 
-        .book-desc-more-item:hover {
-          span {
-            color: var(--t-color-light-yellow);
+      .shelf-list-card:hover {
+        .shelf-list-title {
+          span::after {
+            width: 100%;
           }
         }
       }
+
+      .shelf-list-title:hover {
+        span {
+          background: var(--t-color-light-yellow);
+          color: #ffffff;
+        }
+
+        span::after {
+          opacity: 0;
+        }
+      }
+
+      .shelf-list-subtitle,
+      .shelf-list-meta {
+        font-size: 12px;
+        color: #6b7280;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: font-size 0.28s ease;
+      }
+
+      .shelf-list-progress {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .shelf-progress-label {
+        font-size: 12px;
+        color: #2563eb;
+        transition: font-size 0.28s ease;
+      }
+
+      .shelf-progress-track {
+        width: 100%;
+        height: 4px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        overflow: hidden;
+        transition: height 0.28s ease;
+      }
+
+      .shelf-progress-value {
+        height: 4px;
+        border-radius: 999px;
+        background: #3b82f6;
+        transition: height 0.28s ease;
+      }
+
+      .shelf-grid-card {
+        display: flex;
+        flex-direction: column;
+        width: var(--shelf-grid-item-width);
+        transition: width 0.28s ease, transform 0.28s ease, filter 0.28s ease;
+        will-change: width, transform;
+        animation: shelf-grid-relayout-a 0.32s ease both;
+      }
+
+      .shelf-grid-cover {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        img {
+          width: 100%;
+          height: auto;
+          aspect-ratio: 3 / 4;
+          object-fit: cover;
+          display: block;
+        }
+      }
+
+      .shelf-grid-card:hover .shelf-grid-cover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+      }
+
+      @keyframes shelf-grid-relayout-a {
+        from {
+          opacity: 0.88;
+          transform: translateY(4px) scale(0.985);
+          filter: saturate(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: saturate(1);
+        }
+      }
+
+      @keyframes shelf-grid-relayout-b {
+        from {
+          opacity: 0.9;
+          transform: translateY(3px) scale(0.988);
+          filter: saturate(0.92);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: saturate(1);
+        }
+      }
+
+      @keyframes shelf-grid-relayout-c {
+        from {
+          opacity: 0.92;
+          transform: translateY(2px) scale(0.992);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .shelf-grid-progress-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.35));
+        backdrop-filter: blur(2px);
+        color: #fff;
+        font-size: 10px;
+        padding: 4px 6px;
+        box-sizing: border-box;
+      }
+
+      .shelf-grid-title {
+        margin-top: 8px;
+        font-size: 14px;
+        line-height: 1.4;
+        font-weight: 600;
+        color: #1f2937;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+
+      /* 断点分段：列宽只递增不递减，宽度增长时自动增加栏数 */
+      @media (min-width: 980px) {
+        .bookcase-body--grid {
+          --shelf-grid-item-width: 156px;
+        }
+
+        .bookcase-body--grid .shelf-grid-card {
+          animation-name: shelf-grid-relayout-b;
+        }
+      }
+
+      @media (min-width: 1180px) {
+        .bookcase-body--grid {
+          --shelf-grid-item-width: 166px;
+        }
+
+        .bookcase-body--grid .shelf-grid-card {
+          animation-name: shelf-grid-relayout-c;
+        }
+      }
+
+      @media (min-width: 1400px) {
+        .bookcase-body--grid {
+          --shelf-grid-item-width: 178px;
+        }
+
+        .bookcase-body--grid .shelf-grid-card {
+          animation-name: shelf-grid-relayout-a;
+        }
+      }
+
+      @media (min-width: 1660px) {
+        .bookcase-body--grid {
+          --shelf-grid-item-width: 192px;
+        }
+
+        .bookcase-body--grid .shelf-grid-card {
+          animation-name: shelf-grid-relayout-b;
+        }
+      }
+
+      /* 小宽度兜底：避免极窄窗口卡片溢出 */
+      @media (max-width: 520px) {
+        .bookcase-body--grid {
+          --shelf-grid-item-width: 132px;
+          --shelf-grid-gap: 14px;
+        }
+
+        .bookcase-body--grid .shelf-grid-card {
+          animation-name: shelf-grid-relayout-c;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .bookcase-body--grid,
+        .shelf-grid-card,
+        .shelf-grid-cover {
+          transition: none;
+          animation: none;
+        }
+      }
+
+      @media (min-width: 1260px) {
+        .bookcase-body--list {
+          gap: 18px;
+        }
+
+        .bookcase-body--list .shelf-list-card {
+          padding: 20px;
+          border-radius: 14px;
+        }
+
+        .bookcase-body--list .shelf-list-cover {
+          width: 84px;
+          height: 112px;
+          border-radius: 12px;
+        }
+
+        .bookcase-body--list .shelf-list-content {
+          padding-right: 88px;
+          gap: 6px;
+        }
+
+        .bookcase-body--list .shelf-list-title {
+          font-size: 18px;
+        }
+
+        .bookcase-body--list .shelf-list-author {
+          top: 16px;
+          right: 16px;
+          max-width: 72px;
+          padding: 2px 8px;
+          font-size: 12px;
+        }
+      }
+
+      @media (min-width: 1720px) {
+        .bookcase-body--list {
+          gap: 22px;
+        }
+
+        .bookcase-body--list .shelf-list-card {
+          padding: 24px;
+          border-radius: 16px;
+        }
+
+        .bookcase-body--list .shelf-list-cover {
+          width: 96px;
+          height: 128px;
+          border-radius: 14px;
+        }
+
+        .bookcase-body--list .shelf-list-content {
+          padding-right: 112px;
+          gap: 8px;
+        }
+
+        .bookcase-body--list .shelf-list-title {
+          font-size: 20px;
+        }
+
+        .bookcase-body--list .shelf-list-subtitle,
+        .bookcase-body--list .shelf-list-meta,
+        .bookcase-body--list .shelf-progress-label {
+          font-size: 13px;
+        }
+
+        .bookcase-body--list .shelf-list-author {
+          top: 18px;
+          right: 18px;
+          max-width: 92px;
+          padding: 4px 12px;
+          font-size: 14px;
+        }
+
+        .bookcase-body--list .shelf-progress-track,
+        .bookcase-body--list .shelf-progress-value {
+          height: 5px;
+        }
+      }
+    }
+  }
+
+  .header-menu-icon {
+    svg {
+      width: 24px;
+      height: 24px;
+      fill: #3f3f46;
     }
   }
 }

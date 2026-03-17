@@ -25,7 +25,7 @@
                 d="M5 6h34s4 2 4 7s-4 7-4 7H5s4-2 4-7s-4-7-4-7m38 22H9s-4 2-4 7s4 7 4 7h34s-4-2-4-7s4-7 4-7"
               />
             </svg>
-            <router-link @click="changeView('Home')" to="/">全部图书</router-link>
+            <router-link @click="changeView('Home')" to="/">书架</router-link>
           </li>
           <li :class="{active: currentView === 'Bookmark'}">
             <svg
@@ -114,7 +114,7 @@ export default {
   overflow: hidden; /* 隐藏全局滚动条 */
 
   .sidebar {
-    flex: 0 0 200px;
+    flex: 0 0 120px;
     user-select: none;
     background-color: #ffffff;
     overflow: hidden;
