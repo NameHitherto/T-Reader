@@ -587,7 +587,7 @@ export default {
         z-index: 1;
         overflow: hidden;
         transform-origin: center left;
-        transition: width 0.2s ease-in;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-decoration: none;
         cursor: var(--t-mouse-cursor-link), pointer;
 
@@ -601,7 +601,7 @@ export default {
           height: 100%;
           top: 0;
           transform: translateX(100%);
-          transition: transform 0.2s ease-in;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           transform-origin: center right;
           background-color: #eee;
         }
@@ -633,12 +633,13 @@ export default {
       }
       &-label {
         transform: translateX(100%);
-        transition: transform 0.2s ease-in;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         transform-origin: center right;
         display: block;
         text-align: center;
         text-indent: 28px;
         width: 100%;
+        opacity: 0;
       }
     }
   }
