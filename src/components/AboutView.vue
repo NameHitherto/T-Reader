@@ -14,6 +14,7 @@ const updater = ref<any>(null)
 const updateNotes = ref('')
 const newVersion = ref('')
 const statusType = ref<'success' | 'info' | 'warning' | 'error'>('info')
+const statusTitle = ref('状态')
 const statusMessage = ref('')
 
 type ProxyPrepareResult = {
@@ -24,13 +25,42 @@ type ProxyPrepareResult = {
 
 onMounted(async () => {
   version.value = await getVersion()
+  statusTitle.value = '更新检查'
   statusMessage.value = '可手动检查更新'
 })
+
+async function applyProxy() {
+  try {
+    const proxyResult = await invoke<ProxyPrepareResult>('prepare_updater_proxy')
+    if (proxyResult.enabled) {
+      statusType.value = 'info'
+      statusTitle.value = '代理提示'
+      statusMessage.value = `已检测到代理并应用（来源: ${proxyResult.source}）`
+    } else {
+      statusType.value = 'info'
+      statusTitle.value = '连接提示'
+      statusMessage.value = '未检测到系统代理，使用直连方式'
+    }
+    return proxyResult
+  } catch (proxyError) {
+    console.warn('代理检测失败:', proxyError)
+    statusType.value = 'warning'
+    statusTitle.value = '代理失败'
+    statusMessage.value = '代理检测失败，已切换为直连方式'
+    return { enabled: false, source: 'none', proxy_url: null }
+  }
+}
 
 async function checkForUpdates() {
   if (checking.value || downloading.value) return
   
   checking.value = true
+  statusTitle.value = '正在检查'
+  statusMessage.value = '正在准备网络环境...'
+  
+  // 检查更新前先尝试应用代理
+  await applyProxy()
+  
   try {
     const update = await check()
     
@@ -40,16 +70,19 @@ async function checkForUpdates() {
       newVersion.value = update.version
       updateNotes.value = update.body || '无更新说明'
       statusType.value = 'success'
+      statusTitle.value = '发现更新'
       statusMessage.value = `发现新版本 v${update.version}`
     } else {
       updateAvailable.value = false
       statusType.value = 'info'
+      statusTitle.value = '暂无更新'
       statusMessage.value = '当前已是最新版本'
     }
   } catch (error) {
     console.error('检查更新失败:', error)
     statusType.value = 'error'
-    statusMessage.value = '检查更新失败'
+    statusTitle.value = '检查失败'
+    statusMessage.value = error instanceof Error ? error.message : String(error)
   } finally {
     checking.value = false
   }
@@ -58,20 +91,8 @@ async function checkForUpdates() {
 async function startUpdate() {
   if (!updater.value || downloading.value) return
 
-  try {
-    const proxyResult = await invoke<ProxyPrepareResult>('prepare_updater_proxy')
-    if (proxyResult.enabled) {
-      statusType.value = 'info'
-      statusMessage.value = `已检测到代理并应用（来源: ${proxyResult.source}）`
-    } else {
-      statusType.value = 'info'
-      statusMessage.value = '未检测到系统代理，使用直连下载'
-    }
-  } catch (proxyError) {
-    console.warn('代理检测失败，继续直连下载:', proxyError)
-    statusType.value = 'warning'
-    statusMessage.value = '代理检测失败，已切换为直连下载'
-  }
+  // 下载前再次确保代理已应用（虽然检查更新时可能已经应用过）
+  await applyProxy()
   
   downloading.value = true
   downloadProgress.value = 0
@@ -84,6 +105,8 @@ async function startUpdate() {
         case 'Started':
           totalSize = event.data.contentLength || 0
           downloadedSize = 0
+          statusTitle.value = '正在下载'
+          statusMessage.value = '正在建立连接...'
           break
         case 'Progress':
           downloadedSize += event.data.chunkLength || 0
@@ -96,11 +119,14 @@ async function startUpdate() {
           break
         case 'Finished':
           downloadProgress.value = 100
+          statusTitle.value = '下载完成'
+          statusMessage.value = '正在安装更新...'
           break
       }
     })
 
     statusType.value = 'success'
+    statusTitle.value = '更新成功'
     statusMessage.value = '更新安装成功，即将重启...'
     setTimeout(async () => {
       await relaunch()
@@ -109,7 +135,8 @@ async function startUpdate() {
   } catch (error) {
     console.error('更新失败:', error)
     statusType.value = 'error'
-    statusMessage.value = '更新下载或安装失败'
+    statusTitle.value = '更新失败'
+    statusMessage.value = error instanceof Error ? error.message : String(error)
     downloading.value = false
   }
 }
@@ -125,7 +152,8 @@ async function startUpdate() {
         <el-alert
           class="status-alert"
           :type="statusType"
-          :title="statusMessage"
+          :title="statusTitle"
+          :description="statusMessage"
           :closable="false"
           show-icon
         />
@@ -213,6 +241,13 @@ async function startUpdate() {
     .status-alert {
       margin-top: 14px;
       text-align: left;
+      max-height: 200px;
+      overflow-y: auto;
+      
+      :deep(.el-alert__description) {
+        word-break: break-all;
+        white-space: pre-wrap;
+      }
     }
   }
 
