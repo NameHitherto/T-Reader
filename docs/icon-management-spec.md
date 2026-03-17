@@ -10,7 +10,7 @@
 - 统一维护图标名称、资源路径、渲染模式。
 - 所有业务代码只引用图标名，不直接引用 `.svg` 文件路径。
 
-2. 统一图标组件：`src/components/AppIcon.vue`
+2. 统一图标组件：`src/components/common/AppIcon/index.vue`
 - 通过 `name` 从注册表解析图标。
 - 支持响应式 props：
   - `name: IconName`

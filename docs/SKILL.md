@@ -1,5 +1,5 @@
 ---
-name: t-reader-architecture-dev
+name: docs
 description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或新增功能，并需要遵循项目解耦分层规范（components/composables/store/services/constants/tauri command）。关键词：模块规范、职责划分、避免耦合、按架构改造、格式扩展、事件常量化、生命周期清理。"
 ---
 
@@ -8,8 +8,10 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 ## 目标
 
 让模型在实现需求时默认遵循项目当前的解耦架构，避免把旧风格耦合逻辑重新引入。
+同时，涉及图标时默认遵循集中化图标管理方案，避免再次出现 SVG 调用方式分散。
 
 规范依据：docs/module-architecture-spec.md
+图标规范依据：docs/icon-management-spec.md
 
 ## 适用范围
 
@@ -17,12 +19,14 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 2. 重构旧代码时做职责下沉和边界收口。
 3. 扩展新书籍格式（例如 PDF/MOBI）。
 4. 修复事件监听、窗口通信、同步回读问题。
+5. SVG 图标治理与迁移（内联 svg、img svg、局部映射统一收敛到注册表）。
 
 ## 非适用范围
 
 1. 纯样式微调且不涉及结构变化。
 2. 文案改动与静态资源替换。
 3. 与当前架构无关的实验性脚本。
+4. 纯品牌位图资源替换（png/jpg）且不涉及图标调用链路。
 
 ## 执行流程
 
@@ -47,6 +51,8 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 2. 是否出现了窗口事件字符串散落。
 3. 是否存在 addEventListener 无清理。
 4. store action 是否使用 any/String 等弱类型。
+5. 是否直接在业务组件中 import .svg 并用 img 渲染操作图标。
+6. 是否新增内联 <svg> 且未说明必须内联的原因。
 
 如命中任一项，必须先整改再继续功能实现。
 
@@ -69,6 +75,12 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 - 在 store 中定义强类型接口
 - 只通过 typed action 改写
 
+5. 新增/迁移图标：
+- 在 src/icons/registry.ts 注册 IconName 与资源路径
+- 统一通过 src/components/common/AppIcon/index.vue 调用
+- 需要动态换色/尺寸时，使用响应式 :color/:size 绑定
+- 仅品牌 Logo 等多色资源允许走 image 模式
+
 ### Step 4: 生命周期闭环
 
 若涉及以下行为，必须给出释放路径：
@@ -83,6 +95,7 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 
 1. npm run build
 2. 涉及 tauri 或 rust 模型时执行 cargo check --manifest-path src-tauri/Cargo.toml
+3. 若涉及图标迁移，抽样验证暗色/亮色或激活/默认状态切换效果
 
 若失败，先修复本次改动引入的问题再输出结果。
 
@@ -92,6 +105,7 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 2. 列出关键文件与职责变化。
 3. 给出验证结果（build/check 是否通过）。
 4. 说明是否存在已知警告与风险。
+5. 若有图标改动，说明新增 IconName、迁移范围与遗留待迁移清单。
 
 ## 反模式清单（禁止）
 
@@ -100,6 +114,8 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 3. 在 utils 聚合业务领域逻辑（如 EPUB 解析、同步决策）。
 4. 新增监听不清理。
 5. 为了省事使用 any 覆盖类型问题。
+6. 在业务组件内直接维护 svgIcons 局部映射（应迁入 registry）。
+7. 新增操作图标时绕过 AppIcon 直接使用 <img src="*.svg">。
 
 ## 快速检查清单
 
@@ -110,3 +126,6 @@ description: "Use when: 在 T-Reader 中进行二次开发、重构、修复或�
 3. 是否没有新增弱类型入口。
 4. 是否完成生命周期清理。
 5. 是否通过构建验证。
+6. 是否遵守 docs/icon-management-spec.md。
+7. 是否通过 registry + AppIcon 完成图标调用。
+8. 是否没有新增内联 <svg> 与分散 svg import。
