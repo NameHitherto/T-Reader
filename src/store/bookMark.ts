@@ -22,6 +22,8 @@ export interface BookMark {
   hasBorder?: boolean,
 }
 
+type BookMarkPatch = Partial<BookMark> & Pick<BookMark, 'id'>
+
 export const useBookMarkStore = defineStore('bookMark', () => {
     const bookMarks = ref<BookMark[]>([]);
 
@@ -41,7 +43,7 @@ export const useBookMarkStore = defineStore('bookMark', () => {
     };
 
     // 删除笔记
-    const removeBookMark = (id: String) => {
+    const removeBookMark = (id: string) => {
       // 删除指定id的笔记
       bookMarks.value = bookMarks.value.filter((item) => item.id !== id);
     };
@@ -57,16 +59,18 @@ export const useBookMarkStore = defineStore('bookMark', () => {
     };
 
     // 通过JSON字符串更新笔记
-    const updateBookMark = (jsonStr: any) => {
-      if (jsonStr.id) {
-        // 更新指定id的笔记
-        bookMarks.value = bookMarks.value.map((item) => {
-          if (item.id === jsonStr.id) {
-            return jsonStr;
-          }
-          return item;
-        });
+    const updateBookMark = (patch: BookMarkPatch) => {
+      if (!patch.id) {
+        return
       }
+
+      // 更新指定id的笔记
+      bookMarks.value = bookMarks.value.map((item) => {
+        if (item.id === patch.id) {
+          return { ...item, ...patch }
+        }
+        return item
+      });
     }
 
     return {

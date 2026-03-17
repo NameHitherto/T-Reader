@@ -22,13 +22,14 @@
 </template>
 <script lang="ts">
 export default {
-  name: 'loadingBlockade',
+  name: 'LoadingBlockade',
   props: {
     warnText: {
       type: String,
-      default: 'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
-    }
-  }
+      default:
+        'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross',
+    },
+  },
 }
 </script>
 <style scoped>
@@ -76,7 +77,7 @@ export default {
       left: -150px;
       width: calc(100% + 650px);
 
-      span{
+      span {
         animation: HorseRacelamp_move_1 60s linear infinite;
         animation-delay: -60s;
         background-color: #e9c804;
@@ -84,12 +85,12 @@ export default {
         font-family: SourceHanSansCN-Bold !important;
         font-size: 26px;
         font-weight: 600;
-        letter-spacing: .2em;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
         white-space: nowrap;
       }
 
-      span:nth-child(2){
+      span:nth-child(2) {
         animation: HorseRacelamp_move_2 60s linear infinite;
         animation-delay: -30s;
       }

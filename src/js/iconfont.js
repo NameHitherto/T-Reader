@@ -1,4 +1,4 @@
-window._iconfont_svg_string_ = `
+const ICONFONT_SVG_SPRITE = `
 <svg>
   <symbol id="icon-ashbin" viewBox="0 0 1024 1024">
     <path d="M874.666667 241.066667h-202.666667V170.666667c0-40.533333-34.133333-74.666667-74.666667-74.666667h-170.666666c-40.533333 0-74.666667 34.133333-74.666667 74.666667v70.4H149.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h53.333334V853.333333c0 40.533333 34.133333 74.666667 74.666666 74.666667h469.333334c40.533333 0 74.666667-34.133333 74.666666-74.666667V305.066667H874.666667c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32zM416 170.666667c0-6.4 4.266667-10.666667 10.666667-10.666667h170.666666c6.4 0 10.666667 4.266667 10.666667 10.666667v70.4h-192V170.666667z m341.333333 682.666666c0 6.4-4.266667 10.666667-10.666666 10.666667H277.333333c-6.4 0-10.666667-4.266667-10.666666-10.666667V309.333333h490.666666V853.333333z" fill="#666666"></path>
@@ -14,69 +14,56 @@ window._iconfont_svg_string_ = `
 </svg>
 `;
 
-(function (window) {
-  var script = document.getElementsByTagName("script");
-  var lastScript = script[script.length - 1];
-  var injectCss = lastScript.getAttribute("data-injectcss");
-  var disableInjectSvg = lastScript.getAttribute("data-disable-injectsvg");
+const SPRITE_ID = 't-reader-iconfont-sprite';
+const STYLE_ID = 't-reader-iconfont-style';
 
-  if (!disableInjectSvg) {
-    var appendSvg = function () {
-      var div = document.createElement("div");
-      div.innerHTML = window._iconfont_svg_string_;
-      var svg = div.getElementsByTagName("svg")[0];
-      if (svg) {
-        svg.setAttribute("aria-hidden", "true");
-        svg.style.position = "absolute";
-        svg.style.width = 0;
-        svg.style.height = 0;
-        svg.style.overflow = "hidden";
-        var body = document.body;
-        if (body.firstChild) {
-          body.insertBefore(svg, body.firstChild);
-        } else {
-          body.appendChild(svg);
-        }
-      }
-    };
-
-    if (injectCss && !window.__iconfont__svg__cssinject__) {
-      window.__iconfont__svg__cssinject__ = true;
-      try {
-        document.write("<style>.svgfont {display: inline-block;width: 1em;height: 1em;fill: currentColor;vertical-align: -0.1em;font-size:16px;}</style>");
-      } catch (e) {
-        console && console.log(e);
-      }
-    }
-
-    if (document.addEventListener) {
-      if (~["complete", "loaded", "interactive"].indexOf(document.readyState)) {
-        setTimeout(appendSvg, 0);
-      } else {
-        var onDomContentLoaded = function () {
-          document.removeEventListener("DOMContentLoaded", onDomContentLoaded, false);
-          appendSvg();
-        };
-        document.addEventListener("DOMContentLoaded", onDomContentLoaded, false);
-      }
-    } else if (document.attachEvent) {
-      var onReadyStateChange = function () {
-        if (document.readyState === "complete") {
-          document.onreadystatechange = null;
-          appendSvg();
-        }
-      };
-      document.attachEvent("onreadystatechange", onReadyStateChange);
-
-      var doScrollCheck = function () {
-        try {
-          document.documentElement.doScroll("left");
-        } catch (e) {
-          return setTimeout(doScrollCheck, 50);
-        }
-        appendSvg();
-      };
-      doScrollCheck();
-    }
+const mountIconfontStyle = () => {
+  if (document.getElementById(STYLE_ID)) {
+    return;
   }
-})(window);
+
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent =
+    '.svgfont{display:inline-block;width:1em;height:1em;fill:currentColor;vertical-align:-0.1em;font-size:16px;}';
+  document.head.appendChild(style);
+};
+
+const mountIconfontSprite = () => {
+  if (document.getElementById(SPRITE_ID)) {
+    return;
+  }
+
+  const div = document.createElement('div');
+  div.innerHTML = ICONFONT_SVG_SPRITE;
+  const svg = div.getElementsByTagName('svg')[0];
+  if (!svg) {
+    return;
+  }
+
+  svg.id = SPRITE_ID;
+  svg.setAttribute('aria-hidden', 'true');
+  svg.style.position = 'absolute';
+  svg.style.width = '0';
+  svg.style.height = '0';
+  svg.style.overflow = 'hidden';
+
+  if (document.body.firstChild) {
+    document.body.insertBefore(svg, document.body.firstChild);
+  } else {
+    document.body.appendChild(svg);
+  }
+};
+
+export const initIconfont = () => {
+  mountIconfontStyle();
+  mountIconfontSprite();
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initIconfont, { once: true });
+} else {
+  initIconfont();
+}
+
+export default initIconfont;

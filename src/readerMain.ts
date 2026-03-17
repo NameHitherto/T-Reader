@@ -1,8 +1,10 @@
 import { createApp } from 'vue';
 import ReaderApp from './ReaderApp.vue';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import showStyleMenu from '../src/js/showStyleMenu.ts';
+import showStyleMenu, { disposeStyleMenu } from './js/showStyleMenu';
 import { createPinia } from 'pinia';
+import { WINDOW_EVENTS } from '@/constants/events';
+import { bindWindowTitlebarControls } from './js/init';
 import './css/global.scss';
 
 const app = createApp(ReaderApp);
@@ -13,20 +15,48 @@ const pinia = createPinia();
 app.use(pinia);
 app.mount('#reader-app');
 
+const disposeTitlebarControls = bindWindowTitlebarControls();
+
+const webviewWindow = getCurrentWebviewWindow();
+
+const onStyleMenuClick = () => showStyleMenu();
+const onShowBookInfoClick = () => {
+  webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_BOOK_INFO);
+};
+const onShowAssistantClick = () => {
+  webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_ASSISTANT);
+};
+const onShowHelpClick = () => {
+  webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_HELP);
+};
+const onContextMenu = (event: MouseEvent) => {
+  event.preventDefault();
+};
+
 // 样式调整菜单
 document
   .getElementById('titlebar-customer')
-  ?.addEventListener('click', () => showStyleMenu());
+  ?.addEventListener('click', onStyleMenuClick);
 // 关于本书信息
 document
   .getElementById('titlebar-about')
-  ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-book-info')});
+  ?.addEventListener('click', onShowBookInfoClick);
 // AI助手
 document
   .getElementById('titlebar-assistant')
-  ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-assistant')});
+  ?.addEventListener('click', onShowAssistantClick);
 // 帮助
 document
   .getElementById('titlebar-help')
-  ?.addEventListener('click', () => {getCurrentWebviewWindow().emitTo('reader', 'show-help')});
-document.addEventListener('contextmenu', (event) => {event.preventDefault();});
+  ?.addEventListener('click', onShowHelpClick);
+document.addEventListener('contextmenu', onContextMenu);
+
+window.addEventListener('beforeunload', () => {
+  document.getElementById('titlebar-customer')?.removeEventListener('click', onStyleMenuClick);
+  document.getElementById('titlebar-about')?.removeEventListener('click', onShowBookInfoClick);
+  document.getElementById('titlebar-assistant')?.removeEventListener('click', onShowAssistantClick);
+  document.getElementById('titlebar-help')?.removeEventListener('click', onShowHelpClick);
+  document.removeEventListener('contextmenu', onContextMenu);
+  disposeTitlebarControls();
+  disposeStyleMenu();
+});

@@ -84,7 +84,7 @@ import { listen } from '@tauri-apps/api/event';
 import MarkdownIt from 'markdown-it/index';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/vs.css';
-import { extractEpubContent } from '@/js/utils';
+import { extractEpubContent } from '@/services/book/epubContentService';
 
 interface StreamPayload {
   chunk: string

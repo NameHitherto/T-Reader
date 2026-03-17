@@ -49,7 +49,7 @@
 </template>
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { fontExclusion } from '@/constant/fontExclusion';
+import { fontExclusion } from '@/constants/fontExclusion';
 import styleDemoImg from '@/assets/images/style_demo.png';
 
 export default defineComponent({

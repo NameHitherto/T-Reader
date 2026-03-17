@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from './router';
 import { platform } from '@tauri-apps/plugin-os';
+import { bindWindowTitlebarControls } from './js/init';
 import './css/global.scss';
 
 // 根据当前平台创建不同实例
@@ -12,7 +13,16 @@ if(currentPlatform === 'windows') {
   app.use(router);
   app.mount("#app");
 
-  document.addEventListener('contextmenu', (event) => {event.preventDefault();});
+  const disposeTitlebarControls = bindWindowTitlebarControls();
+  const onContextMenu = (event: MouseEvent) => {
+    event.preventDefault();
+  };
+
+  document.addEventListener('contextmenu', onContextMenu);
+  window.addEventListener('beforeunload', () => {
+    disposeTitlebarControls();
+    document.removeEventListener('contextmenu', onContextMenu);
+  });
 }else if(currentPlatform === 'android'){
   // android平台
   console.error('Android平台已不支持!');
