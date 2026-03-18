@@ -47,6 +47,7 @@ export default defineConfig(async () => ({
     },
   },
   build:{
+    assetsInlineLimit: 0,
     // 4. 此处进行前端多页面模板的配置
     rollupOptions: {
       input:{
