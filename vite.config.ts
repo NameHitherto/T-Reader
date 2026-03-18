@@ -46,8 +46,8 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-  // 4. 此处进行前端多页面模板的配置
   build:{
+    // 4. 此处进行前端多页面模板的配置
     rollupOptions: {
       input:{
         main: 'index.html',
