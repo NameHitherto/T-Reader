@@ -90,39 +90,19 @@ function processRelease() {
   updateVersions(cleanVersion);
   syncLocks();
 
-  console.log('Calculating release notes diff...');
-  let lastTag = '';
-  try {
-    lastTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
-  } catch (e) {
-    console.warn('No previous tag found. Will use all DEVELOP_NOTES.md lines.');
-  }
-
-  const notesPath = path.join(__dirname, '../DEVELOP_NOTES.md');
-  const outPath = path.join(__dirname, '../RELEASE_NOTES.md');
+  const releaseNotesPath = path.join(__dirname, '../RELEASE_NOTES.md');
   let releaseBody = '';
-  
-  if (lastTag && fs.existsSync(notesPath)) {
-    try {
-      const diffCmd = `git diff ${lastTag} HEAD -- DEVELOP_NOTES.md`;
-      const diffOutput = execSync(diffCmd, { encoding: 'utf8' });
-      const lines = diffOutput.split('\n');
-      const addedLines = lines
-        .filter(line => line.startsWith('+') && !line.startsWith('+++'))
-        .map(line => line.substring(1).trim())
-        .filter(line => line.length > 0);
-      releaseBody = addedLines.join('\n');
-    } catch (e) {
-      console.error('Failed to calculate diff:', e.message);
-    }
+
+  // 直接从 RELEASE_NOTES.md 读取内容作为发布说明
+  if (fs.existsSync(releaseNotesPath)) {
+    releaseBody = fs.readFileSync(releaseNotesPath, 'utf8').trim();
   }
 
   if (!releaseBody) {
     releaseBody = `Update to v${cleanVersion}`;
   }
 
-  fs.writeFileSync(outPath, releaseBody);
-  console.log('Created RELEASE_NOTES.md for Github Actions.');
+  console.log('Release body loaded from RELEASE_NOTES.md for Github Actions.');
 
   console.log('Committing, tagging, and pushing release branch...');
   try {
