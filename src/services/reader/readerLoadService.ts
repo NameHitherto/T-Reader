@@ -13,11 +13,15 @@ export const loadReaderBookData = async (bookId: string): Promise<ReaderLoadResu
   const bookConfig = await loadBookConfig(bookId)
   const format = (bookConfig.format || 'epub') as BookFormat
   const bookData = await loadBookBinary(bookId, format)
+  const bookArrayBuffer = bookData.buffer.slice(
+    bookData.byteOffset,
+    bookData.byteOffset + bookData.byteLength
+  ) as ArrayBuffer
 
   return {
     bookConfig,
     format,
     bookData,
-    bookArrayBuffer: bookData.buffer as ArrayBuffer,
+    bookArrayBuffer,
   }
 }

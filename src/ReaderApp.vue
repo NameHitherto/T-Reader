@@ -462,7 +462,7 @@ export default {
               activeChapter.value = location.end.href
             }
             const percentage = location.start.percentage
-            if (percentage) {
+            if (percentage !== undefined && percentage !== null) {
               readingPercentage.value = (percentage * 100).toFixed(1)
             }
           },
@@ -525,6 +525,11 @@ export default {
 
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
+        readingPercentage.value =
+          typeof bookConfig.progress === 'number' ? bookConfig.progress.toFixed(1) : ''
+        bookMarkStore.clearBookMarks()
+        txtParagraphs.value = []
+        txtCurrentParagraph.value = 0
 
         if (rendition.value) {
           try {
@@ -561,7 +566,7 @@ export default {
 
         if (bookConfig.bookMarks !== undefined && bookConfig.bookMarks.length > 0) {
           bookMarkStore.importBookMark(bookConfig.bookMarks)
-          await initAllBookMarks()
+          void initAllBookMarks()
         }
 
         console.log('EPUB解析完成:', bookIsReading.value, bookConfig.title)

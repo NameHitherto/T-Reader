@@ -80,13 +80,13 @@ import { defineComponent, ref } from 'vue'
 import BookMarkTag from './BookMark/bookMarkTag.vue'
 import { BookMark } from '@/store/bookMark'
 import { invoke } from '@tauri-apps/api/core'
-import { readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { formatDateToNumber } from '@/js/utils'
 import { BookConfig } from '@/js/map'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { ElMessageBox } from 'element-plus';
 import 'element-plus/es/components/message-box/style/css'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
+import { getLocalDirNames } from '@/services/fileSystem/dirService'
 
 export default defineComponent({
   name: 'BookMark',
@@ -134,22 +134,25 @@ export default defineComponent({
   },
   methods: {
     async loadBookMarks() {
-      this.loadedBooks = await invoke('load_books')
+      const dirs = await getLocalDirNames()
+      this.loadedBooks = await invoke('load_books', { subdir: dirs.progress })
       this.booksMarks = []
       for(const book of this.loadedBooks) {
         let bookConfigData
         try {
           // 尝试获取云同步配置文件
-          const cloudConfigData = await invoke('webdav_get', {
+          const cloudConfigData = await invoke('webdav_get_progress', {
+            subdir: dirs.progress,
             filename: `${book.id}.json`,
           })
           bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
         } catch (e) {
           // 获取云同步配置文件失败，使用本地配置文件
-          bookConfigData = await readFile(
-            `T-Reader/${book.id}.json`,
-            { baseDir: BaseDirectory.Document }
-          )
+          const localData = await invoke('read_file', {
+            subdir: dirs.progress,
+            filename: `${book.id}.json`,
+          })
+          bookConfigData = new Uint8Array(localData as ArrayBufferLike)
         }
         const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
         if (bookConfig.bookMarks) {
@@ -159,20 +162,23 @@ export default defineComponent({
     },
     async saveBookMarks() {
       // 根据分组后的书签列表更新配置文件
-      this.loadedBooks.forEach(async(book) => {
+      const dirs = await getLocalDirNames()
+      for (const book of this.loadedBooks) {
         let bookConfigData
         try {
           // 尝试获取云同步配置文件
-          const cloudConfigData = await invoke('webdav_get', {
+          const cloudConfigData = await invoke('webdav_get_progress', {
+            subdir: dirs.progress,
             filename: `${book.id}.json`,
           })
           bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
         } catch (e) {
           // 获取云同步配置文件失败，使用本地配置文件
-          bookConfigData = await readFile(
-            `T-Reader/${book.id}.json`,
-            { baseDir: BaseDirectory.Document }
-          )
+          const localData = await invoke('read_file', {
+            subdir: dirs.progress,
+            filename: `${book.id}.json`,
+          })
+          bookConfigData = new Uint8Array(localData as ArrayBufferLike)
         }
         const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
         if (!this.groupedBooksMarks[book.id]) {
@@ -183,14 +189,16 @@ export default defineComponent({
         const jsonString = JSON.stringify(bookConfig)
         const jsonUint8Array = new TextEncoder().encode(jsonString)
         await invoke('save_file', {
+          subdir: dirs.progress,
           filename: `${book.id}.json`,
           contents: jsonString,
         })
-        await invoke('webdav_upload', {
+        await invoke('webdav_upload_progress', {
+          subdir: dirs.progress,
           filename: `${book.id}.json`,
           contents: Array.from(jsonUint8Array),
         })
-      })
+      }
     },
     async deleteBookMark(bookMark: BookMark) {
       ElMessageBox.confirm(

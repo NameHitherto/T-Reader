@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core'
-import { BaseDirectory, readFile, writeFile} from '@tauri-apps/plugin-fs'
 import { BookConfig } from '@/js/map'
 import { BookFormat, getBookFilename } from '@/js/bookFormat'
 import { attachSyncMeta } from '@/services/sync/syncMetaService'
@@ -9,22 +8,37 @@ import {
 } from '@/services/sync/legadoMapper'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 
+const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
+  if (data instanceof Uint8Array) {
+    return data
+  }
+
+  if (Array.isArray(data)) {
+    return Uint8Array.from(data)
+  }
+
+  return new Uint8Array(data)
+}
+
 /**
- * 从云端 bookProgress 目录加载书籍配置
+ * 加载书籍配置，默认优先读取本地文件，只有本地不存在时才回退到云端。
  */
 export const loadBookConfig = async (bookId: string): Promise<BookConfig> => {
+  const dirs = await getLocalDirNames()
   let bookConfigData: Uint8Array
 
   try {
-    const cloudConfigData = await invoke('webdav_get_progress', {
+    const localData = await invoke('read_file', {
+      subdir: dirs.progress,
       filename: `${bookId}.json`,
     })
-    bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
-  } catch (error) {
-    const dirs = await getLocalDirNames()
-    bookConfigData = await readFile(`${dirs.progress}/${bookId}.json`, {
-      baseDir: BaseDirectory.Document,
+    bookConfigData = toUint8Array(localData as ArrayBufferLike | Uint8Array | number[])
+  } catch (localError) {
+    const cloudConfigData = await invoke('webdav_get_progress', {
+      subdir: dirs.progress,
+      filename: `${bookId}.json`,
     })
+    bookConfigData = toUint8Array(cloudConfigData as ArrayBufferLike | Uint8Array | number[])
   }
 
   const parsedConfig: BookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
@@ -32,7 +46,7 @@ export const loadBookConfig = async (bookId: string): Promise<BookConfig> => {
 }
 
 /**
- * 保存书籍配置到本地 bookProgress 和云端 bookProgress
+ * 保存书籍配置到本地，并异步同步到云端。
  */
 export const saveBookConfig = async (bookId: string, config: BookConfig): Promise<void> => {
   const nextConfig = attachSyncMeta(config)
@@ -43,21 +57,21 @@ export const saveBookConfig = async (bookId: string, config: BookConfig): Promis
 
   const dirs = await getLocalDirNames()
 
-  // 保存到本地 bookProgress 目录
   await invoke('save_file', {
-    filename: `${dirs.progress}/${bookId}.json`,
+    subdir: dirs.progress,
+    filename: `${bookId}.json`,
     contents: jsonString,
   })
 
-  // 上传到云端 bookProgress 目录
   await invoke('webdav_upload_progress', {
+    subdir: dirs.progress,
     filename: `${bookId}.json`,
     contents: Array.from(jsonUint8Array),
   })
 }
 
 /**
- * 从本地 books 目录或云端加载书籍二进制文件
+ * 加载书籍二进制内容，优先读取本地文件，失败后再从云端回退。
  */
 export const loadBookBinary = async (
   bookId: string,
@@ -67,17 +81,22 @@ export const loadBookBinary = async (
   const dirs = await getLocalDirNames()
 
   try {
-    return await readFile(`${dirs.books}/${filename}`, {
-      baseDir: BaseDirectory.Document,
-    })
-  } catch (error) {
-    const cloudBookData = await invoke('webdav_get', {
+    const localData = await invoke('read_file', {
+      subdir: dirs.books,
       filename,
     })
-    const localBookData = new Uint8Array(cloudBookData as ArrayBufferLike)
+    return toUint8Array(localData as ArrayBufferLike | Uint8Array | number[])
+  } catch (localError) {
+    const cloudBookData = await invoke('webdav_get', {
+      subdir: dirs.books,
+      filename,
+    })
+    const localBookData = toUint8Array(cloudBookData as ArrayBufferLike | Uint8Array | number[])
 
-    await writeFile(`${dirs.books}/${filename}`, localBookData, {
-      baseDir: BaseDirectory.Document,
+    await invoke('write_file', {
+      subdir: dirs.books,
+      filename,
+      contents: Array.from(localBookData),
     })
 
     return localBookData

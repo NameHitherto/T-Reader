@@ -181,7 +181,6 @@
 <script lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { open } from '@tauri-apps/plugin-dialog'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
@@ -240,11 +239,13 @@ export default {
     const loadBooks = async () => {
       try {
         booksLoading.value = true
-        const loadedBooks: BookConfig[] = await invoke('load_books')
+        const dirs = await getLocalDirNames()
+        const loadedBooks: BookConfig[] = await invoke('load_books', { subdir: dirs.progress })
         books.value = loadedBooks
-        booksLoading.value = false
       } catch (error) {
         console.error('Error loading books:', error)
+      } finally {
+        booksLoading.value = false
       }
     }
 
@@ -297,72 +298,79 @@ export default {
       loadingText.value =
         `Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file`
       isLoading.value = true
+      try {
       const u8File: Uint8Array = await invoke('read_file_by_path', {
         filepath: path,
       })
-      const bufferFile = new Uint8Array(u8File).buffer
-      const file = new Blob([bufferFile], {
-        type: format === 'epub' ? 'application/epub+zip' : 'text/plain',
-      })
-
+      const fileBytes = u8File instanceof Uint8Array ? u8File : new Uint8Array(u8File)
+      const bufferFile = fileBytes.buffer.slice(
+        fileBytes.byteOffset,
+        fileBytes.byteOffset + fileBytes.byteLength
+      ) as ArrayBuffer
       const newBookId = Date.now().toString()
       const dirs = await getLocalDirNames()
-      const newBookPath = `${dirs.books}/${getBookFilename(newBookId, format)}`
-      const contents = new Uint8Array(bufferFile)
 
       loadingText.value =
-        'Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server - Uploading book to server'
+        'Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - '
 
-      // 上传到云服务器
-      invoke('webdav_upload', {
+      // 保存到本地 books 目录
+      await invoke('write_file', {
+        subdir: dirs.books,
         filename: getBookFilename(newBookId, format),
-        contents: contents,
+        contents: Array.from(fileBytes),
       })
 
-      await writeFile(newBookPath, contents, {
-        baseDir: BaseDirectory.Document,
-      })
+        const newBook = await buildBookConfigFromImport({
+          id: newBookId,
+          sourcePath: path,
+          format,
+          fileSizeMB: (fileBytes.byteLength / 1024 / 1024).toFixed(2),
+          fileBuffer: bufferFile,
+        })
+        const bookConfigJson = JSON.stringify(newBook)
 
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        try {
-          const newBook = await buildBookConfigFromImport({
-            id: newBookId,
-            sourcePath: path,
-            format,
-            fileSizeMB: (file.size / 1024 / 1024).toFixed(2),
-            fileBuffer: e.target?.result as ArrayBuffer,
-          })
+        await invoke('save_file', {
+          subdir: dirs.progress,
+          filename: `${newBook.id}.json`,
+          contents: bookConfigJson,
+        })
 
-          await invoke('save_file', {
-            filename: `${dirs.progress}/${newBook.id}.json`,
-            contents: JSON.stringify(newBook),
-          })
+        books.value.push(newBook)
 
-          books.value.push(newBook)
+        loadingText.value =
+          'Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - '
 
           // 上传到webDAV服务器中
-          invoke('webdav_upload_progress', {
-            filename: `${newBook.id}.json`,
-            contents: new TextEncoder().encode(JSON.stringify(newBook)),
-          })
-        } catch (error) {
-          isLoading.value = false
-          console.error('Error reading or saving the file:', error)
-        }
+        queueMicrotask(() => {
+          void Promise.allSettled([
+            invoke('webdav_upload', {
+              subdir: dirs.books,
+              filename: getBookFilename(newBook.id, format),
+              contents: Array.from(fileBytes),
+            }),
+            invoke('webdav_upload_progress', {
+              subdir: dirs.progress,
+              filename: `${newBook.id}.json`,
+              contents: Array.from(new TextEncoder().encode(bookConfigJson)),
+            }),
+          ])
+        })
+      } catch (error) {
+        console.error('Error reading or saving the file:', error)
+      } finally {
+        isLoading.value = false
       }
-      reader.readAsArrayBuffer(file)
-      isLoading.value = false
     }
 
     const deleteBook = async (id: string) => {
       try {
-        await invoke('delete_book', { filename: `${id}.json` })
-        await invoke('delete_book', { filename: `${id}.epub` })
-        await invoke('delete_book', { filename: `${id}.txt` })
-        await invoke('webdav_delete', { filename: `${id}.json` })
-        await invoke('webdav_delete', { filename: `${id}.epub` })
-        await invoke('webdav_delete', { filename: `${id}.txt` })
+        const dirs = await getLocalDirNames()
+        await invoke('delete_book', { subdir: dirs.progress, filename: `${id}.json` })
+        await invoke('delete_book', { subdir: dirs.books, filename: `${id}.epub` })
+        await invoke('delete_book', { subdir: dirs.books, filename: `${id}.txt` })
+        await invoke('webdav_delete', { subdir: dirs.progress, filename: `${id}.json` })
+        await invoke('webdav_delete', { subdir: dirs.books, filename: `${id}.epub` })
+        await invoke('webdav_delete', { subdir: dirs.books, filename: `${id}.txt` })
         books.value = books.value.filter((book) => book.id !== id)
       } catch (error) {
         console.error('Error deleting the book:', error)

@@ -9,6 +9,8 @@ pub use file::{
     load_books,
     delete_book,
     read_file_by_path,
+    read_file,
+    write_file,
     save_settings,
     load_settings
 };

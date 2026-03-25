@@ -19,16 +19,21 @@ fn to_json_name(book_filename: &str) -> Option<String> {
     Some(format!("{}.json", stem))
 }
 
+/// 上传文件到云端指定子目录
+///
+/// # 参数
+/// - `subdir`: 云端子目录名称（如 "books", "bookProgress"）
+/// - `filename`: 文件名
+/// - `contents`: 文件二进制内容
 #[tauri::command]
-pub async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
+pub async fn webdav_upload(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(), String> {
     let settings = load_settings()?;
 
     // 确保云端目录结构完整
     check_cloud_dirs(&settings).await?;
 
     let client = Client::new();
-    // 上传到 books 子目录
-    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_BOOKS_DIR, filename);
+    let url = format!("{}{}/{}", settings.webdav_url, subdir, filename);
 
     // 上传文件
     let response = client
@@ -48,12 +53,16 @@ pub async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), Stri
     Ok(())
 }
 
+/// 从云端指定子目录获取文件
+///
+/// # 参数
+/// - `subdir`: 云端子目录名称（如 "books", "bookProgress"）
+/// - `filename`: 文件名
 #[tauri::command]
-pub async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
+pub async fn webdav_get(subdir: &str, filename: &str) -> Result<Vec<u8>, String> {
     let settings = load_settings()?;
     let client = Client::new();
-    // 从 books 子目录获取
-    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_BOOKS_DIR, filename);
+    let url = format!("{}{}/{}", settings.webdav_url, subdir, filename);
 
     let response = client
         .get(&url)
@@ -71,12 +80,16 @@ pub async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
     }
 }
 
+/// 从云端指定子目录删除文件
+///
+/// # 参数
+/// - `subdir`: 云端子目录名称（如 "books", "bookProgress"）
+/// - `filename`: 文件名
 #[tauri::command]
-pub async fn webdav_delete(filename: &str) -> Result<(), String> {
+pub async fn webdav_delete(subdir: &str, filename: &str) -> Result<(), String> {
     let settings = load_settings()?;
     let client = Client::new();
-    // 从 books 子目录删除
-    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_BOOKS_DIR, filename);
+    let url = format!("{}{}/{}", settings.webdav_url, subdir, filename);
 
     let response = client
         .delete(&url)
@@ -94,12 +107,16 @@ pub async fn webdav_delete(filename: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// 从云端 bookProgress 目录获取文件
+/// 从云端指定子目录获取文件（原 bookProgress 目录专用）
+///
+/// # 参数
+/// - `subdir`: 云端子目录名称（如 "bookProgress"）
+/// - `filename`: 文件名
 #[tauri::command]
-pub async fn webdav_get_progress(filename: &str) -> Result<Vec<u8>, String> {
+pub async fn webdav_get_progress(subdir: &str, filename: &str) -> Result<Vec<u8>, String> {
     let settings = load_settings()?;
     let client = Client::new();
-    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_PROGRESS_DIR, filename);
+    let url = format!("{}{}/{}", settings.webdav_url, subdir, filename);
 
     let response = client
         .get(&url)
@@ -116,16 +133,21 @@ pub async fn webdav_get_progress(filename: &str) -> Result<Vec<u8>, String> {
     }
 }
 
-/// 上传文件到云端 bookProgress 目录
+/// 上传文件到云端指定子目录（原 bookProgress 目录专用）
+///
+/// # 参数
+/// - `subdir`: 云端子目录名称（如 "bookProgress"）
+/// - `filename`: 文件名
+/// - `contents`: 文件二进制内容
 #[tauri::command]
-pub async fn webdav_upload_progress(filename: &str, contents: Vec<u8>) -> Result<(), String> {
+pub async fn webdav_upload_progress(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(), String> {
     let settings = load_settings()?;
 
     // 确保云端目录结构完整
     check_cloud_dirs(&settings).await?;
 
     let client = Client::new();
-    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_PROGRESS_DIR, filename);
+    let url = format!("{}{}/{}", settings.webdav_url, subdir, filename);
 
     let response = client
         .put(&url)
@@ -145,7 +167,7 @@ pub async fn webdav_upload_progress(filename: &str, contents: Vec<u8>) -> Result
 }
 
 #[tauri::command]
-pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
+pub async fn webdav_sync_files() -> Result<(), String> {
     let settings = load_settings()?;
     let client = Client::new();
 
@@ -173,20 +195,7 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     let cloud_files: Vec<String> = parse_webdav_response(&body)?;
 
     // 获取本地根目录
-    let root_path;
-    #[cfg(target_os = "android")]
-    {
-        root_path = directory
-            .map(|s| std::path::PathBuf::from(s))
-            .unwrap_or_else(|| {
-                std::path::PathBuf::from("T-Reader")
-            });
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        root_path = check_local_dirs()?;
-        let _ = directory; // 显式忽略
-    }
+    let root_path = check_local_dirs()?;
 
     // 获取本地 books 目录文件列表
     let books_path = root_path.join(CLOUD_BOOKS_DIR);
@@ -263,7 +272,7 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
             };
             if cloud_progress_files.contains(&json_name) {
                 // 下载云端 json 文件覆盖本地
-                let json_content = webdav_get_progress(&json_name).await?;
+                let json_content = webdav_get_progress(CLOUD_PROGRESS_DIR, &json_name).await?;
                 let json_path = progress_path.join(&json_name);
                 let mut file = File::create(json_path).map_err(|e| e.to_string())?;
                 file.write_all(&json_content).map_err(|e| e.to_string())?;
@@ -295,7 +304,7 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     for book in &cloud_books {
         if !local_books.contains(book) {
             // 下载书籍文件
-            let book_content = webdav_get(book).await?;
+            let book_content = webdav_get(CLOUD_BOOKS_DIR, book).await?;
             let book_path = books_path.join(book);
             let mut file = File::create(book_path).map_err(|e| e.to_string())?;
             file.write_all(&book_content).map_err(|e| e.to_string())?;
@@ -306,7 +315,7 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
                 continue;
             };
             if cloud_progress_files.contains(&json_name) {
-                let json_content = webdav_get_progress(&json_name).await?;
+                let json_content = webdav_get_progress(CLOUD_PROGRESS_DIR, &json_name).await?;
                 let json_path = progress_path.join(&json_name);
                 let mut file = File::create(json_path).map_err(|e| e.to_string())?;
                 file.write_all(&json_content).map_err(|e| e.to_string())?;

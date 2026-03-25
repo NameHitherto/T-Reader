@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::collections::HashMap;
 
-use crate::command::dir::{check_local_dirs, get_local_system_dir, get_local_progress_dir, get_local_books_dir};
+use crate::command::dir::{check_local_dirs, get_local_system_dir, get_local_root_dir};
 use crate::model::{Book, Settings};
 
 #[tauri::command]
@@ -62,27 +62,26 @@ pub fn load_settings() -> Result<Settings, String> {
     Ok(settings)
 }
 
+/// 保存文件到本地子目录
+///
+/// # 参数
+/// - `subdir`: 子目录名称（如 "books", "bookProgress", "system" 等）
+/// - `filename`: 文件名
+/// - `contents`: 文件内容（文本格式）
 #[tauri::command]
-pub fn save_file(filename: &str, contents: &str, directory: Option<&str>) -> Result<(), String> {
-    let path;
-    #[cfg(target_os = "android")]
-    {
-        // 此时文档目录需要前端提供
-        path = directory
-            .map(|s| std::path::PathBuf::from(s))
-            .unwrap_or_else(|| {
-                std::path::PathBuf::from("T-Reader")
-            });
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        // 在非安卓平台上显式忽略 directory 变量
-        let _ = directory;
-        // 检查并确保本地目录结构完整，文件保存到根目录
-        path = check_local_dirs()?;
+pub fn save_file(subdir: &str, filename: &str, contents: &str) -> Result<(), String> {
+    // 检查并确保本地目录结构完整
+    let root_path = check_local_dirs()?;
+
+    // 构建子目录路径
+    let dir_path = root_path.join(subdir);
+
+    // 确保子目录存在
+    if !dir_path.exists() {
+        fs::create_dir_all(&dir_path).map_err(|e| e.to_string())?;
     }
 
-    let file_path = path.join(filename);
+    let file_path = dir_path.join(filename);
     println!("文件保存路径：{:?}", file_path);
 
     // 创建文件并写入内容
@@ -101,34 +100,26 @@ pub fn save_file(filename: &str, contents: &str, directory: Option<&str>) -> Res
     Ok(())
 }
 
+/// 从本地子目录加载书籍配置列表
+///
+/// # 参数
+/// - `subdir`: 子目录名称（如 "bookProgress"）
 #[tauri::command]
-pub fn load_books(directory: Option<&str>) -> Result<Vec<Book>, String> {
-    let path;
-    #[cfg(target_os = "android")]
-    {
-        // 此时文档目录需要前端提供
-        path = directory
-            .map(|s| std::path::PathBuf::from(s))
-            .unwrap_or_else(|| {
-                std::path::PathBuf::from("T-Reader")
-            });
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        // 在非安卓平台上显式忽略 directory 变量
-        let _ = directory;
-        // 检查并确保本地目录结构完整，书籍配置在 bookProgress 目录下
-        path = get_local_progress_dir()?;
-    }
+pub fn load_books(subdir: &str) -> Result<Vec<Book>, String> {
+    // 检查并确保本地目录结构完整
+    let root_path = check_local_dirs()?;
 
-    if !path.exists() {
-        println!("目录 'bookProgress' 不存在，正在创建...");
-        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-        println!("目录 'bookProgress' 创建成功。");
+    // 构建子目录路径
+    let dir_path = root_path.join(subdir);
+
+    if !dir_path.exists() {
+        println!("目录 '{}' 不存在，正在创建...", subdir);
+        fs::create_dir_all(&dir_path).map_err(|e| e.to_string())?;
+        println!("目录 '{}' 创建成功。", subdir);
     }
 
     let mut books = Vec::new();
-    for entry in fs::read_dir(&path).map_err(|e| e.to_string())? {
+    for entry in fs::read_dir(&dir_path).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let entry_path = entry.path();
         if entry_path.extension().and_then(|s| s.to_str()) == Some("json") {
@@ -149,34 +140,21 @@ pub fn load_books(directory: Option<&str>) -> Result<Vec<Book>, String> {
     Ok(books)
 }
 
+/// 从本地子目录删除文件
+///
+/// # 参数
+/// - `subdir`: 子目录名称（如 "books", "bookProgress"）
+/// - `filename`: 文件名
 #[tauri::command]
-pub fn delete_book(filename: &str, directory: Option<&str>) -> Result<(), String> {
+pub fn delete_book(subdir: &str, filename: &str) -> Result<(), String> {
     // 检查并确保本地目录结构完整
     check_local_dirs()?;
 
-    // 根据文件名判断删除哪个目录的文件
-    let path;
-    #[cfg(target_os = "android")]
-    {
-        // 此时文档目录需要前端提供
-        path = directory
-            .map(|s| std::path::PathBuf::from(s))
-            .unwrap_or_else(|| {
-                std::path::PathBuf::from("T-Reader")
-            });
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        // 在非安卓平台上显式忽略 directory 变量
-        let _ = directory;
-        // JSON 文件在 bookProgress 目录，书籍文件在 books 目录
-        if filename.ends_with(".json") {
-            path = get_local_progress_dir()?;
-        } else {
-            path = get_local_books_dir()?;
-        }
-    }
-    let file_path = path.join(filename);
+    // 构建子目录路径
+    let root_path = get_local_root_dir()?;
+    let dir_path = root_path.join(subdir);
+
+    let file_path = dir_path.join(filename);
 
     if file_path.exists() {
         fs::remove_file(&file_path).map_err(|e| e.to_string())?;
@@ -185,6 +163,66 @@ pub fn delete_book(filename: &str, directory: Option<&str>) -> Result<(), String
         println!("文件 '{}' 不存在。", filename);
     }
 
+    Ok(())
+}
+
+/// 从本地子目录读取文件二进制内容
+///
+/// # 参数
+/// - `subdir`: 子目录名称（如 "books", "bookProgress", "system" 等）
+/// - `filename`: 文件名
+#[tauri::command]
+pub fn read_file(subdir: &str, filename: &str) -> Result<Vec<u8>, String> {
+    // 检查并确保本地目录结构完整
+    let root_path = check_local_dirs()?;
+
+    // 构建子目录路径
+    let dir_path = root_path.join(subdir);
+
+    let file_path = dir_path.join(filename);
+    println!("正在从 {} 读取文件：{}", subdir, filename);
+    let mut file = File::open(&file_path).map_err(|e| {
+        println!("打开文件失败：{}", e);
+        e.to_string()
+    })?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).map_err(|e| e.to_string())?;
+    Ok(contents)
+}
+
+/// 写入文件到本地子目录（二进制）
+///
+/// # 参数
+/// - `subdir`: 子目录名称（如 "books", "bookProgress", "system" 等）
+/// - `filename`: 文件名
+/// - `contents`: 文件二进制内容
+#[tauri::command]
+pub fn write_file(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(), String> {
+    // 检查并确保本地目录结构完整
+    let root_path = check_local_dirs()?;
+
+    // 构建子目录路径
+    let dir_path = root_path.join(subdir);
+
+    // 确保子目录存在
+    if !dir_path.exists() {
+        fs::create_dir_all(&dir_path).map_err(|e| e.to_string())?;
+    }
+
+    let file_path = dir_path.join(filename);
+    println!("正在写入文件到 {}: {}", subdir, filename);
+
+    let mut file = File::create(&file_path).map_err(|e| {
+        println!("创建文件失败：{}", e);
+        e.to_string()
+    })?;
+
+    file.write_all(&contents).map_err(|e| {
+        println!("写入文件失败：{}", e);
+        e.to_string()
+    })?;
+
+    println!("文件写入成功");
     Ok(())
 }
 

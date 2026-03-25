@@ -67,9 +67,9 @@
 </template>
 
 <script>
-import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
+import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
 export default {
   name: 'BookInfoDialog',
   props: {
@@ -102,23 +102,47 @@ export default {
     };
   },
   methods: {
+    resetFields() {
+      this.bookCover = this.defaultCover
+      this.creator = ''
+      this.description = ''
+      this.identifier = ''
+      this.language = ''
+      this.pubdate = ''
+      this.publisher = ''
+      this.rights = ''
+      this.title = ''
+    },
     async onOpen() {
-      const solidBook = await readFile(`T-Reader/${this.bookId}.epub`, {
-        baseDir: BaseDirectory.Document,
-      })
-      const arrayBuffer = solidBook.buffer
+      this.resetFields()
+
+      const bookConfig = await loadBookConfig(this.bookId)
+      this.bookCover = bookConfig.cover || this.defaultCover
+      this.creator = bookConfig.author || ''
+      this.language = this.languageType[bookConfig.language] ?? bookConfig.language ?? ''
+      this.title = bookConfig.title || ''
+
+      if (bookConfig.format !== 'epub') {
+        return
+      }
+
+      const bookData = await loadBookBinary(this.bookId, 'epub')
+      const arrayBuffer = bookData.buffer.slice(
+        bookData.byteOffset,
+        bookData.byteOffset + bookData.byteLength
+      )
       const epub = ePub(arrayBuffer)
       const cover = await epub.coverUrl()
-      this.bookCover = cover ?? this.defaultCover
+      this.bookCover = cover ?? this.bookCover
       const metadata = await epub.loaded.metadata
-      this.creator = metadata.creator
-      this.description = metadata.description
-      this.identifier = metadata.identifier
-      this.language = this.languageType[metadata.language] ?? metadata.language
-      this.pubdate = metadata.pubdate
-      this.publisher = metadata.publisher
-      this.rights = metadata.rights
-      this.title = metadata.title
+      this.creator = metadata.creator || this.creator
+      this.description = metadata.description || ''
+      this.identifier = metadata.identifier || ''
+      this.language = this.languageType[metadata.language] ?? metadata.language ?? this.language
+      this.pubdate = metadata.pubdate || ''
+      this.publisher = metadata.publisher || ''
+      this.rights = metadata.rights || ''
+      this.title = metadata.title || this.title
     }
   },
 };

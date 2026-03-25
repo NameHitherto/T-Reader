@@ -3,7 +3,7 @@ mod command;
 mod model;
 
 use command::{
-    save_file, load_books, delete_book, read_file_by_path,
+    save_file, load_books, delete_book, read_file_by_path, read_file, write_file,
     webdav_upload, webdav_get, webdav_delete, webdav_sync_files,
     save_settings, load_settings, start_stream,
     get_system_fonts,
@@ -29,6 +29,8 @@ pub fn run() {
             load_books,
             delete_book,
             read_file_by_path,
+            read_file,
+            write_file,
             webdav_upload,
             webdav_get,
             webdav_delete,
