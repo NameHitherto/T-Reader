@@ -17,14 +17,11 @@ export const destroyEpubRendition = (rendition: any) => {
   rendition.destroy()
 }
 
-/**
- * 渲染 EPUB。
- * 首屏显示完成后立即返回，章节定位和目录可后台继续准备，避免加载弹层长时间不关闭。
- */
 export const renderEpubBook = async (
   bookArrayBuffer: ArrayBuffer,
   flow: string,
-  location?: string
+  location?: string,
+  cachedLocations?: string
 ): Promise<EpubRenderResult> => {
   const ePubBook = ePub(bookArrayBuffer)
   await ePubBook.ready
@@ -43,6 +40,18 @@ export const renderEpubBook = async (
     allowScriptedContent: true,
   })
 
+  if (cachedLocations) {
+    try {
+      ePubBook.locations.load(cachedLocations)
+    } catch (error) {
+      console.warn('加载 EPUB locations 缓存失败:', error)
+    }
+  } else {
+    void ePubBook.locations.generate(1000).catch((error: unknown) => {
+      console.warn('生成 EPUB locations 失败:', error)
+    })
+  }
+
   if (location) {
     await rendition.display(location)
   } else {
@@ -50,11 +59,6 @@ export const renderEpubBook = async (
   }
 
   const tocData = await ePubBook.loaded.navigation
-
-  // 位置索引生成比较耗时，改为后台执行，不阻塞首屏渲染。
-  void ePubBook.locations.generate(1000).catch((error: unknown) => {
-    console.warn('生成 EPUB 位置索引失败:', error)
-  })
 
   return {
     rendition,

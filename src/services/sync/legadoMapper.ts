@@ -11,6 +11,13 @@ export interface LegadoProgressPayload {
 
 const DEFAULT_SOURCE = 'treader-webdav'
 const DEFAULT_DEVICE_ID = 'tauri-desktop'
+const getDefaultLocation = (bookConfig: Partial<BookConfig>) => {
+  if (bookConfig.locationFormat === 'paragraph' || bookConfig.format === 'txt') {
+    return '0'
+  }
+
+  return ''
+}
 
 const toTime = (value?: string) => {
   if (!value) {
@@ -24,7 +31,7 @@ export const toLegadoProgressPayload = (bookConfig: BookConfig): LegadoProgressP
   return {
     bookId: bookConfig.id,
     progress: bookConfig.progress || 0,
-    location: bookConfig.location,
+    location: bookConfig.location ?? getDefaultLocation(bookConfig),
     updatedAt: bookConfig.updatedAt || new Date().toISOString(),
     source: bookConfig.source || DEFAULT_SOURCE,
     deviceId: bookConfig.deviceId || DEFAULT_DEVICE_ID,
@@ -63,7 +70,7 @@ export const normalizeBookConfigFromLegado = (bookConfig: BookConfig): BookConfi
   const mergedPayload: LegadoProgressPayload = {
     bookId: legacySync.bookId || bookConfig.id,
     progress: legacySync.progress ?? bookConfig.progress ?? 0,
-    location: legacySync.location || bookConfig.location,
+    location: legacySync.location || bookConfig.location || getDefaultLocation(bookConfig),
     updatedAt: legacySync.updatedAt || bookConfig.updatedAt || new Date().toISOString(),
     source: legacySync.source || bookConfig.source || DEFAULT_SOURCE,
     deviceId: legacySync.deviceId || bookConfig.deviceId || DEFAULT_DEVICE_ID,

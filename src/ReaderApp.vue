@@ -132,6 +132,7 @@ import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
+import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 
 export default {
   name: 'ReaderApp',
@@ -521,7 +522,7 @@ export default {
 
       await withReaderLoading(async () => {
         const loadedBook = await loadReaderBookData(bookIsReading.value as string)
-        const { bookConfig, format, bookData, bookArrayBuffer } = loadedBook
+        const { bookConfig, bookCache, format, bookData, bookArrayBuffer } = loadedBook
 
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
@@ -556,13 +557,24 @@ export default {
         const epubBook = await renderEpubBook(
           bookArrayBuffer as ArrayBuffer,
           readerConfig.value.flow,
-          cfi || bookConfig.location
+          cfi || bookConfig.location,
+          bookCache?.locations
         )
         rendition.value = epubBook.rendition
         handleRenditionEvents()
         toc.value = epubBook.toc
         await applyReaderStyle()
         bindTocButtonClick()
+
+        if (!bookCache?.locations) {
+          queueMicrotask(() => {
+            void primeBookCacheAfterImport(bookConfig, bookArrayBuffer as ArrayBuffer).catch(
+              (error) => {
+                console.warn('补全 EPUB locations 缓存失败:', error)
+              }
+            )
+          })
+        }
 
         if (bookConfig.bookMarks !== undefined && bookConfig.bookMarks.length > 0) {
           bookMarkStore.importBookMark(bookConfig.bookMarks)

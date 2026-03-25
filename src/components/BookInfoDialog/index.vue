@@ -69,7 +69,7 @@
 <script>
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
-import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
+import { loadBookBinary, loadBookCacheByConfig, loadBookConfig } from '@/services/book/bookRepository'
 export default {
   name: 'BookInfoDialog',
   props: {
@@ -117,7 +117,8 @@ export default {
       this.resetFields()
 
       const bookConfig = await loadBookConfig(this.bookId)
-      this.bookCover = bookConfig.cover || this.defaultCover
+      const bookCache = await loadBookCacheByConfig(bookConfig)
+      this.bookCover = bookCache?.cover || this.defaultCover
       this.creator = bookConfig.author || ''
       this.language = this.languageType[bookConfig.language] ?? bookConfig.language ?? ''
       this.title = bookConfig.title || ''

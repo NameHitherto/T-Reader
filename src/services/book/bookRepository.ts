@@ -7,6 +7,9 @@ import {
   toLegadoProgressPayload,
 } from '@/services/sync/legadoMapper'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import {
+  loadBookCache,
+} from '@/services/book/bookCacheService'
 
 const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
   if (data instanceof Uint8Array) {
@@ -43,6 +46,12 @@ export const loadBookConfig = async (bookId: string): Promise<BookConfig> => {
 
   const parsedConfig: BookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
   return normalizeBookConfigFromLegado(parsedConfig)
+}
+
+export const loadBookCacheByConfig = async (
+  bookConfig: Pick<BookConfig, 'title' | 'author'>
+) => {
+  return loadBookCache(bookConfig)
 }
 
 /**

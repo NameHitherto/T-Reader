@@ -202,6 +202,11 @@ import {
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import {
+  getBookCacheFilename,
+  loadBookCache,
+  primeBookCacheAfterImport,
+} from '@/services/book/bookCacheService'
 
 export default {
   name: 'MainContent',
@@ -214,7 +219,8 @@ export default {
   },
   setup() {
     type ShelfViewMode = 'list' | 'grid'
-    const books = ref<BookConfig[]>([])
+    type ShelfBook = BookConfig & { cover?: string }
+    const books = ref<ShelfBook[]>([])
     const isLoading = ref(false) // 是否正在加载
     const booksLoading = ref(true) // 书籍是否加载完成
     const loadingText = ref(
@@ -241,7 +247,15 @@ export default {
         booksLoading.value = true
         const dirs = await getLocalDirNames()
         const loadedBooks: BookConfig[] = await invoke('load_books', { subdir: dirs.progress })
-        books.value = loadedBooks
+        books.value = await Promise.all(
+          loadedBooks.map(async (book) => {
+            const cache = await loadBookCache(book)
+            return {
+              ...book,
+              cover: cache?.cover,
+            }
+          })
+        )
       } catch (error) {
         console.error('Error loading books:', error)
       } finally {
@@ -335,7 +349,7 @@ export default {
           contents: bookConfigJson,
         })
 
-        books.value.push(newBook)
+        books.value.push({ ...newBook })
 
         loadingText.value =
           'Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - '
@@ -343,6 +357,12 @@ export default {
           // 上传到webDAV服务器中
         queueMicrotask(() => {
           void Promise.allSettled([
+            primeBookCacheAfterImport(newBook, bufferFile).then((cachedPayload) => {
+              const targetBook = books.value.find((book) => book.id === newBook.id)
+              if (targetBook && cachedPayload.cover !== undefined) {
+                targetBook.cover = cachedPayload.cover
+              }
+            }),
             invoke('webdav_upload', {
               subdir: dirs.books,
               filename: getBookFilename(newBook.id, format),
@@ -365,9 +385,16 @@ export default {
     const deleteBook = async (id: string) => {
       try {
         const dirs = await getLocalDirNames()
+        const targetBook = books.value.find((book) => book.id === id)
         await invoke('delete_book', { subdir: dirs.progress, filename: `${id}.json` })
         await invoke('delete_book', { subdir: dirs.books, filename: `${id}.epub` })
         await invoke('delete_book', { subdir: dirs.books, filename: `${id}.txt` })
+        if (targetBook) {
+          await invoke('delete_book', {
+            subdir: dirs.cached,
+            filename: getBookCacheFilename(targetBook.title, targetBook.author),
+          })
+        }
         await invoke('webdav_delete', { subdir: dirs.progress, filename: `${id}.json` })
         await invoke('webdav_delete', { subdir: dirs.books, filename: `${id}.epub` })
         await invoke('webdav_delete', { subdir: dirs.books, filename: `${id}.txt` })

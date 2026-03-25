@@ -12,6 +12,10 @@ fn default_schema_version() -> u32 {
     1
 }
 
+fn default_empty_string() -> String {
+    String::new()
+}
+
 // 书籍信息
 #[derive(Serialize, Deserialize)]
 pub struct Book {
@@ -22,7 +26,6 @@ pub struct Book {
     pub format: String,
     #[serde(default = "default_location_format", rename = "locationFormat")]
     pub location_format: String,
-    pub cover: String,
     pub title: String,
     pub author: String,
     pub language: String,
@@ -39,6 +42,7 @@ pub struct Book {
     pub last_read: String,
     pub added: String,
     pub path: String,
+    #[serde(default = "default_empty_string")]
     pub location: String,
 }
 

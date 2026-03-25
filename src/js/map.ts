@@ -37,7 +37,6 @@ export interface BookConfig {
     source: string;
     deviceId: string;
   };
-  cover: string;
   title: string;
   author: string;
   language: string;
@@ -46,6 +45,6 @@ export interface BookConfig {
   lastRead: string;
   added: string;
   path: string;
-  location: string;
+  location?: string;
   bookMarks?: BookMark[];
 }

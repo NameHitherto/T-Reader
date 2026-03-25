@@ -19,7 +19,6 @@ export const buildBookConfigFromImport = async (
     format,
     locationFormat: format === 'epub' ? 'cfi' : 'paragraph',
     progress: 0,
-    cover: meta.cover,
     title: meta.title,
     author: meta.author,
     language: meta.language,
