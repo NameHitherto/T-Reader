@@ -202,6 +202,7 @@ import {
 } from '@/js/bookFormat'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
+import { getLocalDirNames } from '@/services/fileSystem/dirService'
 
 export default {
   name: 'MainContent',
@@ -305,7 +306,8 @@ export default {
       })
 
       const newBookId = Date.now().toString()
-      const newBookPath = `T-Reader/${getBookFilename(newBookId, format)}`
+      const dirs = await getLocalDirNames()
+      const newBookPath = `${dirs.books}/${getBookFilename(newBookId, format)}`
       const contents = new Uint8Array(bufferFile)
 
       loadingText.value =
@@ -333,14 +335,14 @@ export default {
           })
 
           await invoke('save_file', {
-            filename: `${newBook.id}.json`,
+            filename: `${dirs.progress}/${newBook.id}.json`,
             contents: JSON.stringify(newBook),
           })
 
           books.value.push(newBook)
 
           // 上传到webDAV服务器中
-          invoke('webdav_upload', {
+          invoke('webdav_upload_progress', {
             filename: `${newBook.id}.json`,
             contents: new TextEncoder().encode(JSON.stringify(newBook)),
           })

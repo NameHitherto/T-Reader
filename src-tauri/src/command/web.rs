@@ -5,9 +5,9 @@ use serde_json::json;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
-use dirs::document_dir;
 use tauri::{AppHandle, Emitter};
 
+use crate::command::dir::{check_cloud_dirs, check_local_dirs, CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR};
 use crate::command::load_settings;
 
 fn is_supported_book_file(filename: &str) -> bool {
@@ -22,17 +22,13 @@ fn to_json_name(book_filename: &str) -> Option<String> {
 #[tauri::command]
 pub async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), String> {
     let settings = load_settings()?;
-    let client = Client::new();
-    let url = format!("{}{}", settings.webdav_url, filename);
 
-    // 确保目标目录存在
-    let mkcol_url = settings.webdav_url.to_string();
-    let _ = client
-        .request(http::Method::from_bytes(b"MKCOL").unwrap(), &mkcol_url)
-        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
-        .send()
-        .await
-        .map_err(|e| format!("创建目录失败: {:?}", e))?;
+    // 确保云端目录结构完整
+    check_cloud_dirs(&settings).await?;
+
+    let client = Client::new();
+    // 上传到 books 子目录
+    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_BOOKS_DIR, filename);
 
     // 上传文件
     let response = client
@@ -41,12 +37,12 @@ pub async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), Stri
         .body(contents)
         .send()
         .await
-        .map_err(|e| format!("云同步文件上传失败: {:?}", e))?;
+        .map_err(|e| format!("云同步文件上传失败：{:?}", e))?;
 
     if response.status().is_success() {
         println!("云同步文件上传成功");
     } else {
-        println!("云同步文件上传失败: {:?}", response.status());
+        println!("云同步文件上传失败：{:?}", response.status());
     }
 
     Ok(())
@@ -56,21 +52,22 @@ pub async fn webdav_upload(filename: &str, contents: Vec<u8>) -> Result<(), Stri
 pub async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
     let settings = load_settings()?;
     let client = Client::new();
-    let url = format!("{}{}", settings.webdav_url, filename);
+    // 从 books 子目录获取
+    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_BOOKS_DIR, filename);
 
     let response = client
         .get(&url)
         .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
-        .map_err(|e| format!("云同步文件获取失败: {:?}", e))?;
+        .map_err(|e| format!("云同步文件获取失败：{:?}", e))?;
 
     if response.status().is_success() {
         let body = response.bytes().await.map_err(|e| e.to_string())?;
         Ok(body.to_vec())
     } else {
-        println!("云同步文件获取失败: {:?}", response.status());
-        Err(format!("云同步文件获取失败: {:?}", response.status()))
+        println!("云同步文件获取失败：{:?}", response.status());
+        Err(format!("云同步文件获取失败：{:?}", response.status()))
     }
 }
 
@@ -78,19 +75,70 @@ pub async fn webdav_get(filename: &str) -> Result<Vec<u8>, String> {
 pub async fn webdav_delete(filename: &str) -> Result<(), String> {
     let settings = load_settings()?;
     let client = Client::new();
-    let url = format!("{}{}", settings.webdav_url, filename);
+    // 从 books 子目录删除
+    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_BOOKS_DIR, filename);
 
     let response = client
         .delete(&url)
         .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
-        .map_err(|e| format!("云同步文件删除失败: {:?}", e))?;
+        .map_err(|e| format!("云同步文件删除失败：{:?}", e))?;
 
     if response.status().is_success() {
         println!("云同步文件删除成功");
     } else {
-        println!("云同步文件删除失败: {:?}", response.status());
+        println!("云同步文件删除失败：{:?}", response.status());
+    }
+
+    Ok(())
+}
+
+/// 从云端 bookProgress 目录获取文件
+#[tauri::command]
+pub async fn webdav_get_progress(filename: &str) -> Result<Vec<u8>, String> {
+    let settings = load_settings()?;
+    let client = Client::new();
+    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_PROGRESS_DIR, filename);
+
+    let response = client
+        .get(&url)
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+        .send()
+        .await
+        .map_err(|e| format!("云同步文件获取失败：{:?}", e))?;
+
+    if response.status().is_success() {
+        let body = response.bytes().await.map_err(|e| e.to_string())?;
+        Ok(body.to_vec())
+    } else {
+        Err(format!("云同步文件获取失败：{:?}", response.status()))
+    }
+}
+
+/// 上传文件到云端 bookProgress 目录
+#[tauri::command]
+pub async fn webdav_upload_progress(filename: &str, contents: Vec<u8>) -> Result<(), String> {
+    let settings = load_settings()?;
+
+    // 确保云端目录结构完整
+    check_cloud_dirs(&settings).await?;
+
+    let client = Client::new();
+    let url = format!("{}{}/{}", settings.webdav_url, CLOUD_PROGRESS_DIR, filename);
+
+    let response = client
+        .put(&url)
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+        .body(contents)
+        .send()
+        .await
+        .map_err(|e| format!("云同步文件上传失败：{:?}", e))?;
+
+    if response.status().is_success() {
+        println!("云同步进度文件上传成功");
+    } else {
+        println!("云同步进度文件上传失败：{:?}", response.status());
     }
 
     Ok(())
@@ -100,58 +148,96 @@ pub async fn webdav_delete(filename: &str) -> Result<(), String> {
 pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     let settings = load_settings()?;
     let client = Client::new();
-    let url = settings.webdav_url.to_string();
 
-    // 获取云端文件列表
+    // 确保云端目录结构完整
+    check_cloud_dirs(&settings).await?;
+
+    // 获取云端根目录 URL（去掉末尾的 /）
+    let base_url = settings.webdav_url.trim_end_matches('/').to_string();
+
+    // 获取云端 books 目录文件列表
+    let books_url = format!("{}/{}/", base_url, CLOUD_BOOKS_DIR);
     let response = client
-        .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
+        .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &books_url)
         .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .header("Depth", "1")
         .send()
         .await
-        .map_err(|e| format!("获取云端文件列表失败: {:?}", e))?;
+        .map_err(|e| format!("获取云端文件列表失败：{:?}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("获取云端文件列表失败: {:?}", response.status()));
+        return Err(format!("获取云端文件列表失败：{:?}", response.status()));
     }
 
     let body = response.text().await.map_err(|e| e.to_string())?;
     let cloud_files: Vec<String> = parse_webdav_response(&body)?;
 
-    let mut path;
+    // 获取本地根目录
+    let root_path;
     #[cfg(target_os = "android")]
     {
-        // 此时文档目录需要前端提供
-        path = directory
+        root_path = directory
             .map(|s| std::path::PathBuf::from(s))
             .unwrap_or_else(|| {
-                document_dir()
-                    .expect("err finding document_dir")
-                    .join("T-Reader")
+                std::path::PathBuf::from("T-Reader")
             });
     }
     #[cfg(not(target_os = "android"))]
     {
-        path = document_dir().ok_or("err finding document_dir")?;
-        path.push("T-Reader");
-        // 在非安卓平台上显式忽略directory变量
-        let _ = directory;
+        root_path = check_local_dirs()?;
+        let _ = directory; // 显式忽略
     }
 
-    // 检查目录是否存在，如果不存在则创建
-    if !path.exists() {
-        println!("目录 'T-Reader' 不存在，正在创建...");
-        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    // 获取本地 books 目录文件列表
+    let books_path = root_path.join(CLOUD_BOOKS_DIR);
+    if !books_path.exists() {
+        fs::create_dir_all(&books_path).map_err(|e| e.to_string())?;
     }
 
-    // 获取本地文件列表
     let mut local_files = Vec::new();
-    for entry in fs::read_dir(&path).map_err(|e| e.to_string())? {
+    for entry in fs::read_dir(&books_path).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let file_path = entry.path();
         if let Some(file_name) = file_path.file_name() {
             if let Some(file_name_str) = file_name.to_str() {
                 local_files.push(file_name_str.to_string());
+            }
+        }
+    }
+
+    // 获取云端 bookProgress 目录文件列表
+    let progress_url = format!("{}/{}/", base_url, CLOUD_PROGRESS_DIR);
+    let response = client
+        .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &progress_url)
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+        .header("Depth", "1")
+        .send()
+        .await;
+
+    let cloud_progress_files: Vec<String> = if let Ok(resp) = response {
+        if resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            parse_webdav_response(&body).unwrap_or_default()
+        } else {
+            Vec::new()
+        }
+    } else {
+        Vec::new()
+    };
+
+    // 获取本地 bookProgress 目录文件列表
+    let progress_path = root_path.join(CLOUD_PROGRESS_DIR);
+    if !progress_path.exists() {
+        fs::create_dir_all(&progress_path).map_err(|e| e.to_string())?;
+    }
+
+    let mut local_progress_files = Vec::new();
+    for entry in fs::read_dir(&progress_path).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let file_path = entry.path();
+        if let Some(file_name) = file_path.file_name() {
+            if let Some(file_name_str) = file_name.to_str() {
+                local_progress_files.push(file_name_str.to_string());
             }
         }
     }
@@ -162,26 +248,26 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
         .filter(|f| is_supported_book_file(f.as_str()))
         .cloned()
         .collect();
-    
+
     let cloud_books: Vec<String> = cloud_files
         .iter()
         .filter(|f| is_supported_book_file(f.as_str()))
         .cloned()
         .collect();
 
-    // 1. 处理本地和云端都存在的文件 - 保留书籍文件，但下载json覆盖本地
+    // 1. 处理本地和云端都存在的文件 - 保留书籍文件，但下载 json 覆盖本地
     for book in &local_books {
         if cloud_books.contains(book) {
             let Some(json_name) = to_json_name(book) else {
                 continue;
             };
-            if cloud_files.contains(&json_name) {
-                // 下载云端json文件覆盖本地
-                let json_content = webdav_get(&json_name).await?;
-                let json_path = path.join(&json_name);
+            if cloud_progress_files.contains(&json_name) {
+                // 下载云端 json 文件覆盖本地
+                let json_content = webdav_get_progress(&json_name).await?;
+                let json_path = progress_path.join(&json_name);
                 let mut file = File::create(json_path).map_err(|e| e.to_string())?;
                 file.write_all(&json_content).map_err(|e| e.to_string())?;
-                println!("同步: 下载云端 {} 覆盖本地配置", json_name);
+                println!("同步：下载云端 {} 覆盖本地配置", json_name);
             }
         }
     }
@@ -190,17 +276,17 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
     for book in &local_books {
         if !cloud_books.contains(book) {
             // 删除本地书籍文件
-            let book_path = path.join(book);
-            fs::remove_file(&book_path).map_err(|e| format!("删除文件失败: {}", e))?;
-            println!("同步: 删除本地 {}", book);
-            // 检查并删除对应的json文件
+            let book_path = books_path.join(book);
+            fs::remove_file(&book_path).map_err(|e| format!("删除文件失败：{}", e))?;
+            println!("同步：删除本地 {}", book);
+            // 检查并删除对应的 json 文件
             let Some(json_name) = to_json_name(book) else {
                 continue;
             };
-            let json_path = path.join(&json_name);
+            let json_path = progress_path.join(&json_name);
             if json_path.exists() {
-                fs::remove_file(&json_path).map_err(|e| format!("删除文件失败: {}", e))?;
-                println!("同步: 删除本地 {}", json_name);
+                fs::remove_file(&json_path).map_err(|e| format!("删除文件失败：{}", e))?;
+                println!("同步：删除本地 {}", json_name);
             }
         }
     }
@@ -210,21 +296,21 @@ pub async fn webdav_sync_files(directory: Option<&str>) -> Result<(), String> {
         if !local_books.contains(book) {
             // 下载书籍文件
             let book_content = webdav_get(book).await?;
-            let book_path = path.join(book);
+            let book_path = books_path.join(book);
             let mut file = File::create(book_path).map_err(|e| e.to_string())?;
             file.write_all(&book_content).map_err(|e| e.to_string())?;
-            println!("同步: 下载云端 {} 到本地", book);
+            println!("同步：下载云端 {} 到本地", book);
 
-            // 检查并下载对应的json文件
+            // 检查并下载对应的 json 文件
             let Some(json_name) = to_json_name(book) else {
                 continue;
             };
-            if cloud_files.contains(&json_name) {
-                let json_content = webdav_get(&json_name).await?;
-                let json_path = path.join(&json_name);
+            if cloud_progress_files.contains(&json_name) {
+                let json_content = webdav_get_progress(&json_name).await?;
+                let json_path = progress_path.join(&json_name);
                 let mut file = File::create(json_path).map_err(|e| e.to_string())?;
                 file.write_all(&json_content).map_err(|e| e.to_string())?;
-                println!("同步: 下载云端 {} 到本地", json_name);
+                println!("同步：下载云端 {} 到本地", json_name);
             }
         }
     }
@@ -254,7 +340,7 @@ pub fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
                 }
             }
             Ok(Event::Eof) => break,
-            Err(e) => return Err(format!("解析 WebDAV 响应失败: {:?}", e)),
+            Err(e) => return Err(format!("解析 WebDAV 响应失败：{:?}", e)),
             _ => (),
         }
         buf.clear();
@@ -279,11 +365,11 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
     let request_body = json!({
         "model": model_name,
         "messages": serde_json::from_str::<serde_json::Value>(&messages)
-            .map_err(|e| format!("解析messages失败: {:?}", e))?,
+            .map_err(|e| format!("解析 messages 失败：{:?}", e))?,
         "stream": true
     }).to_string();
 
-    // 发起SSE请求
+    // 发起 SSE 请求
     let response = client
         .post(api_url)
         .header("Content-Type", "application/json")
@@ -292,7 +378,7 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
         .body(request_body)
         .send()
         .await
-        .map_err(|e| format!("发起SSE请求失败: {:?}", e))?;
+        .map_err(|e| format!("发起 SSE 请求失败：{:?}", e))?;
 
     let mut stream = response.bytes_stream();
 
@@ -312,11 +398,11 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
                     let json_str = data.trim_end_matches('\n');
 
                     app.emit_to("reader", EVENT_NAME, json!({"chunk": json_str}))
-                        .map_err(|e| format!("发送流数据失败: {:?}", e))?;
+                        .map_err(|e| format!("发送流数据失败：{:?}", e))?;
                 }
             }
             Err(e) => {
-                return Err(format!("接收流数据失败: {:?}", e));
+                return Err(format!("接收流数据失败：{:?}", e));
             }
         }
     }

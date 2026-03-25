@@ -97,7 +97,8 @@ d:/T-Reader/T-Reader/
 │   │   ├── book/                 # 书籍服务
 │   │   │   ├── parsers/          # 元数据解析器
 │   │   │   └── ...
-│   │   └── sync/                 # 同步服务
+│   │   ├── sync/                 # 同步服务
+|   |   └── fileSystem            # 文件系统
 │   ├── constants/                # 常量定义
 │   ├── icons/                    # 图标注册
 │   │   └── registry.ts           # 图标注册表
@@ -212,18 +213,63 @@ d:/T-Reader/T-Reader/
 
 | 命令 | 参数 | 返回值 | 描述 |
 |------|------|--------|------|
-| `save_file` | filename, contents | () | 保存文件到本地 |
-| `load_books` | directory | Vec\<Book\> | 加载书架列表 |
-| `delete_book` | filename | () | 删除书籍 |
+| `save_file` | filename, contents | () | 保存文件到本地 (books 或 bookProgress 目录) |
+| `load_books` | directory | Vec\<Book\> | 加载书架列表 (从 bookProgress 目录) |
+| `delete_book` | filename | () | 删除书籍配置 (从 bookProgress 目录) |
 | `read_file_by_path` | filepath | Vec\<u8\> | 读取文件二进制 |
-| `save_settings` | json_str | () | 保存设置 |
-| `load_settings` | () | Settings | 加载设置 |
-| `webdav_upload` | filename, contents | () | 上传到 WebDAV |
-| `webdav_get` | filename | Vec\<u8\> | 从 WebDAV 下载 |
-| `webdav_delete` | filename | () | 删除 WebDAV 文件 |
+| `save_settings` | json_str | () | 保存设置到 system 目录 |
+| `load_settings` | () | Settings | 从 system 目录加载设置 |
+| `webdav_upload` | filename, contents | () | 上传文件到云端 books 目录 |
+| `webdav_get` | filename | Vec\<u8\> | 从云端 books 目录下载 |
+| `webdav_delete` | filename | () | 删除云端 books 目录文件 |
+| `webdav_upload_progress` | filename, contents | () | 上传文件到云端 bookProgress 目录 |
+| `webdav_get_progress` | filename | Vec\<u8\> | 从云端 bookProgress 目录下载 |
 | `webdav_sync_files` | directory | () | 执行全量同步 |
 | `get_system_fonts` | () | Vec\<FontNameEntry\> | 获取系统字体列表 |
 | `start_stream` | messages | () | AI 流式响应 (SSE) |
+| `check_local_dirs_command` | () | String | 检查并确保本地目录结构完整，返回根目录路径 |
+| `check_cloud_dirs_command` | () | () | 检查并确保云端目录结构完整 |
+| `get_local_dir_names_command` | () | LocalDirNames | 获取本地目录名称配置 |
+| `get_cloud_dir_names_command` | () | CloudDirNames | 获取云端目录名称配置 |
+
+### 3.5 目录结构规范
+
+**目录名称集中管理**:
+- 所有目录名称统一在 `src-tauri/src/command/dir.rs` 中定义
+- 前端通过 `get_local_dir_names_command` 和 `get_cloud_dir_names_command` 获取目录名称
+- 后端文件操作使用统一的常量（`CLOUD_BOOKS_DIR`, `CLOUD_PROGRESS_DIR` 等）
+
+**本地目录结构** (`document_dir/T-Reader/`):
+```
+T-Reader/
+├── books/         # 书籍文件 (epub/txt)
+├── bookProgress/  # 阅读进度配置 (json)
+├── cached/        # 缓存文件
+└── system/        # 系统文件 (设置等，如 setting.json、ReaderConfig.json)
+```
+
+**云端目录结构** (`WebDAV URL/T-Reader/`):
+```
+T-Reader/
+├── books/         # 书籍文件 (epub/txt)
+└── bookProgress/  # 阅读进度配置 (json)
+```
+
+**文件存储位置**:
+| 文件 | 本地路径 | 云端路径 |
+|------|----------|----------|
+| 书籍文件 | `books/*.epub` 或 `books/*.txt` | `books/*.epub` 或 `books/*.txt` |
+| 书籍配置 | `bookProgress/[id].json` | `bookProgress/[id].json` |
+| 应用设置 | `system/setting.json` | 无（本地文件） |
+| 阅读器配置 | `system/ReaderConfig.json` | 无（本地文件） |
+
+**目录检查机制:**
+- `check_local_dirs()`: 在每次本地文件操作前自动调用，确保目录结构完整
+- `check_cloud_dirs()`: 在每次云端文件操作前自动调用，使用 MKCOL 方法创建缺失目录
+
+**目录名称变更**:
+- 修改 `src-tauri/src/command/dir.rs` 中的常量即可
+- 无需修改前端代码
 
 ---
 

@@ -7,7 +7,10 @@ use command::{
     webdav_upload, webdav_get, webdav_delete, webdav_sync_files,
     save_settings, load_settings, start_stream,
     get_system_fonts,
-    prepare_updater_proxy
+    prepare_updater_proxy,
+    check_local_dirs_command, check_cloud_dirs_command,
+    webdav_upload_progress, webdav_get_progress,
+    get_local_dir_names_command, get_cloud_dir_names_command
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -34,7 +37,13 @@ pub fn run() {
             load_settings,
             start_stream,
             get_system_fonts,
-            prepare_updater_proxy
+            prepare_updater_proxy,
+            check_local_dirs_command,
+            check_cloud_dirs_command,
+            webdav_upload_progress,
+            webdav_get_progress,
+            get_local_dir_names_command,
+            get_cloud_dir_names_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
