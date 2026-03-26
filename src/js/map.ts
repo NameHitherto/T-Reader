@@ -1,5 +1,3 @@
-import { BookMark } from '../store/bookMark'
-
 type iconType =
   | 'bookOpen'
   | 'delete'
@@ -30,5 +28,4 @@ export interface BookConfig {
   author: string
   location?: string
   updatedAt?: string
-  bookMarks?: BookMark[]
 }

@@ -170,6 +170,7 @@ src-tauri/
 | `bookIdentity.ts` | 生成书籍唯一标识 `name`、配置文件名、缓存文件名 |
 | `bookImportService.ts` | 从导入文件生成 `BookConfig` |
 | `bookRepository.ts` | 书籍配置、书籍文件、缓存、索引的统一仓储入口 |
+| `bookMarksRepository.ts` | 从 `system/BookMarks.json` 统一读写所有书籍笔记 |
 | `bookCacheService.ts` | 缓存封面、EPUB locations、TXT paragraphCount |
 | `bookPresentationService.ts` | 计算书架阅读进度、最近阅读标签 |
 | `epubContentService.ts` | 提取 EPUB 文本内容供 AI 使用 |
@@ -184,6 +185,7 @@ src-tauri/
   -> buildBookName(title, author)
   -> buildBookConfigFromImport()
   -> 保存 books/*.epub|txt + bookProgress/*.json
+  -> 笔记独立保存到 system/BookMarks.json
   -> primeBookCacheAfterImport()
   -> 书架侧通过 bookRepository/loadBookConfigs + cache 展示
 ```
@@ -222,7 +224,7 @@ src-tauri/
   -> resolve format + config + cache + binary
   -> format adapter 渲染
   -> applyReaderStyles()
-  -> 恢复 location / bookmarks
+  -> 从 BookMarks.json 恢复当前书 location / bookmarks
   -> 用户交互
   -> saveReaderProgress(bookName, format, location, bookMarks)
 ```
@@ -311,7 +313,7 @@ src-tauri/
 | `webdav_upload` | 上传文件到云端 |
 | `webdav_get` | 从云端下载文件 |
 | `webdav_delete` | 删除云端文件 |
-| `webdav_sync_files` | 同步 books 与 bookProgress |
+| `webdav_sync_files` | 同步 books 与 bookProgress（不包含 system） |
 | `start_stream` | 向 AI 服务发起流式请求并转发到阅读器窗口 |
 
 #### 其他命令
@@ -330,7 +332,7 @@ Document/T-Reader/
 ├── books/         # 原始书籍文件（epub/txt）
 ├── bookProgress/  # 书籍配置 JSON
 ├── cached/        # 书籍缓存 JSON
-└── system/        # setting.json / ReaderConfig.json
+└── system/        # setting.json / ReaderConfig.json / BookMarks.json
 ```
 
 云端目录结构：
@@ -354,7 +356,6 @@ interface BookConfig {
   author: string
   location?: string
   updatedAt?: string
-  bookMarks?: BookMark[]
 }
 ```
 
@@ -363,6 +364,7 @@ interface BookConfig {
 - 当前书籍唯一标识字段已经统一为 `name`
 - 旧的 `id` 已经在当前主流程中移除
 - 书籍格式、封面、进度等派生信息由仓储/缓存/展示服务动态补足，不再全部固化在 `BookConfig`
+- 笔记数据已从 `BookConfig` 拆出，统一保存在 `system/BookMarks.json`
 
 #### `BookMark`
 
@@ -379,6 +381,15 @@ interface BookMark {
   comments?: string
   color?: string
   hasBorder?: boolean
+}
+```
+
+全局笔记文件结构：
+
+```ts
+interface BookMarksFile {
+  updatedAt: string
+  bookMarks: BookMark[]
 }
 ```
 
@@ -408,7 +419,6 @@ pub struct Book {
     pub author: String,
     pub location: String,
     pub updated_at: Option<String>,
-    pub book_marks: Option<Vec<serde_json::Value>>,
 }
 ```
 
@@ -472,6 +482,7 @@ export const WINDOW_EVENTS = {
 - `BookConfig` 当前保持轻量
 - 封面、EPUB locations、TXT 段落数、最近阅读标签、进度百分比等由服务层动态计算
 - 当前缓存文件放在 `cached/` 中，由 `bookCacheService.ts` 维护
+- 所有书籍笔记统一放在 `system/BookMarks.json`，不再写入 `bookProgress/*.json`
 
 ### 6.3 同步职责主要下沉到 Rust 后端
 

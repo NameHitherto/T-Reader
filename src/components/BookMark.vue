@@ -80,16 +80,11 @@ import { defineComponent } from 'vue'
 import BookMarkTag from './BookMark/bookMarkTag.vue'
 import { BookMark } from '@/store/bookMark'
 import { formatDateToNumber } from '@/js/utils'
-import { BookConfig } from '@/js/map'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { ElMessageBox } from 'element-plus'
 import 'element-plus/es/components/message-box/style/css'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import {
-  loadBookConfig,
-  loadBookConfigs,
-  saveBookConfig,
-} from '@/services/book/bookRepository'
+import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookMarksRepository'
 import { WINDOW_EVENTS } from '@/constants/events'
 
 export default defineComponent({
@@ -100,7 +95,6 @@ export default defineComponent({
   data() {
     return {
       booksMarks: [] as BookMark[],
-      loadedBooks: [] as BookConfig[],
       scrollLeft: 0,
       viewType: '' as 'tag' | 'table',
       tableMaxHeight: 0,
@@ -134,25 +128,10 @@ export default defineComponent({
   },
   methods: {
     async loadBookMarks() {
-      this.loadedBooks = await loadBookConfigs()
-      this.booksMarks = []
-      for (const book of this.loadedBooks) {
-        const bookConfig = await loadBookConfig(book.name)
-        if (bookConfig.bookMarks) {
-          this.booksMarks = [...this.booksMarks, ...bookConfig.bookMarks]
-        }
-      }
+      this.booksMarks = await loadAllBookMarks()
     },
     async saveBookMarks() {
-      for (const book of this.loadedBooks) {
-        const bookConfig = await loadBookConfig(book.name)
-        if (!this.groupedBooksMarks[book.name]) {
-          delete bookConfig.bookMarks
-        } else {
-          bookConfig.bookMarks = this.groupedBooksMarks[book.name]
-        }
-        await saveBookConfig(book.name, bookConfig)
-      }
+      await saveAllBookMarks(this.booksMarks)
     },
     async deleteBookMark(bookMark: BookMark) {
       ElMessageBox.confirm('是否删除此笔记？', '提示', {

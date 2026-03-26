@@ -137,6 +137,7 @@ import {
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
+import { loadBookMarksByBookName } from '@/services/book/bookMarksRepository'
 
 export default {
   name: 'ReaderApp',
@@ -588,8 +589,9 @@ export default {
           })
         }
 
-        if (bookConfig.bookMarks !== undefined && bookConfig.bookMarks.length > 0) {
-          bookMarkStore.importBookMark(bookConfig.bookMarks)
+        const currentBookMarks = await loadBookMarksByBookName(bookConfig.name)
+        if (currentBookMarks.length > 0) {
+          bookMarkStore.importBookMark(currentBookMarks)
           void initAllBookMarks()
         }
 

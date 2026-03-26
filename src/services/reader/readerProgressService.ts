@@ -2,6 +2,7 @@ import { BookFormat } from '@/js/bookFormat'
 import { BookMark } from '@/store/bookMark'
 import { BookConfig } from '@/js/map'
 import { loadBookConfig, saveBookConfig } from '@/services/book/bookRepository'
+import { replaceBookMarksForBook } from '@/services/book/bookMarksRepository'
 
 interface SaveReaderProgressArgs {
   bookName: string
@@ -43,11 +44,7 @@ export const saveReaderProgress = async (
 
   if (format === 'epub') {
     const nextBookMarks = bookMarks.filter((mark) => mark.bookName === bookName)
-    if (nextBookMarks.length > 0) {
-      bookConfig.bookMarks = nextBookMarks
-    } else {
-      delete bookConfig.bookMarks
-    }
+    await replaceBookMarksForBook(bookName, nextBookMarks)
   }
 
   await saveBookConfig(bookName, bookConfig)

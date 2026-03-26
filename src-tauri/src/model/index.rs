@@ -13,8 +13,6 @@ pub struct Book {
     pub location: String,
     #[serde(default, rename = "updatedAt")]
     pub updated_at: Option<String>,
-    #[serde(default, rename = "bookMarks")]
-    pub book_marks: Option<Vec<serde_json::Value>>,
 }
 
 #[derive(Serialize, Deserialize)]

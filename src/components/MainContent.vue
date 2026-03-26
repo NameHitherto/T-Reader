@@ -187,6 +187,7 @@ import {
   resolveBookFile,
   resolveBookFormat,
 } from '@/services/book/bookRepository'
+import { removeBookMarksByBookName } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
 import {
   createDurationLogger,
@@ -462,6 +463,8 @@ export default {
             filename: getBookCacheFilename(targetBook.title, targetBook.author),
           })
         }
+
+        await removeBookMarksByBookName(bookName)
 
         await invoke('webdav_delete', {
           subdir: dirs.progress,
