@@ -44,7 +44,6 @@ pub fn save_settings(json_str: &str) -> Result<(), String> {
 
 #[tauri::command]
 pub fn load_settings() -> Result<Settings, String> {
-    let started_at = start_timer("file", "load-settings");
     let system_path = get_local_system_dir()?;
 
     if !system_path.exists() {
@@ -64,7 +63,6 @@ pub fn load_settings() -> Result<Settings, String> {
         .map_err(|e| e.to_string())?;
     let settings: Settings = serde_json::from_str(&contents).map_err(|e| e.to_string())?;
 
-    finish_timer("file", "load-settings", started_at);
     Ok(settings)
 }
 
@@ -131,7 +129,6 @@ pub fn load_books(subdir: &str) -> Result<Vec<Book>, String> {
 
 #[tauri::command]
 pub fn delete_book(subdir: &str, filename: &str) -> Result<(), String> {
-    let started_at = start_timer("file", "delete-book");
     check_local_dirs()?;
 
     let root_path = get_local_root_dir()?;
@@ -143,7 +140,6 @@ pub fn delete_book(subdir: &str, filename: &str) -> Result<(), String> {
         log_info("file", &format!("delete-book path={}", file_path.display()));
     }
 
-    finish_timer("file", "delete-book", started_at);
     Ok(())
 }
 
@@ -217,7 +213,6 @@ pub fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
 
 #[tauri::command]
 pub fn list_files(subdir: &str) -> Result<Vec<String>, String> {
-    let started_at = start_timer("file", "list-files");
     let root_path = check_local_dirs()?;
     let dir_path = root_path.join(subdir);
 
@@ -238,6 +233,5 @@ pub fn list_files(subdir: &str) -> Result<Vec<String>, String> {
         "file",
         &format!("list-files subdir={} total={}", subdir, filenames.len()),
     );
-    finish_timer("file", "list-files", started_at);
     Ok(filenames)
 }

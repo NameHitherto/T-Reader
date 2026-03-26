@@ -216,7 +216,6 @@ pub async fn webdav_get(subdir: &str, filename: &str) -> Result<Vec<u8>, String>
 
 #[tauri::command]
 pub async fn webdav_delete(subdir: &str, filename: &str) -> Result<(), String> {
-    let started_at = start_timer("webdav", "webdav-delete");
     let settings = load_settings()?;
     let client = Client::new();
     let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
@@ -239,7 +238,6 @@ pub async fn webdav_delete(subdir: &str, filename: &str) -> Result<(), String> {
         "webdav",
         &format!("webdav-delete subdir={} filename={}", subdir, filename),
     );
-    finish_timer("webdav", "webdav-delete", started_at);
     Ok(())
 }
 
