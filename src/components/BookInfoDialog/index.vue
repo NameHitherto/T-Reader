@@ -78,7 +78,7 @@ import {
 export default {
   name: 'BookInfoDialog',
   props: {
-    bookId: {
+    bookName: {
       type: String,
       required: true,
     },
@@ -121,7 +121,7 @@ export default {
     async onOpen() {
       this.resetFields()
 
-      const bookConfig = await loadBookConfig(this.bookId)
+      const bookConfig = await loadBookConfig(this.bookName)
       const bookCache = await ensureBookCache(bookConfig)
       this.bookCover = bookCache?.cover || this.defaultCover
       this.creator = bookConfig.author || ''

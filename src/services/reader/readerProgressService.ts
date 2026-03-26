@@ -4,7 +4,7 @@ import { BookConfig } from '@/js/map'
 import { loadBookConfig, saveBookConfig } from '@/services/book/bookRepository'
 
 interface SaveReaderProgressArgs {
-  bookId: string
+  bookName: string
   format: BookFormat
   rendition: any
   txtCurrentParagraph: number
@@ -31,18 +31,18 @@ const buildLocationSnapshot = (
 export const saveReaderProgress = async (
   args: SaveReaderProgressArgs
 ): Promise<BookConfig | null> => {
-  const { bookId, format, rendition, txtCurrentParagraph, bookMarks } = args
+  const { bookName, format, rendition, txtCurrentParagraph, bookMarks } = args
   const location = buildLocationSnapshot(format, rendition, txtCurrentParagraph)
 
   if (!location) {
     return null
   }
 
-  const bookConfig = await loadBookConfig(bookId)
+  const bookConfig = await loadBookConfig(bookName)
   bookConfig.location = location
 
   if (format === 'epub') {
-    const nextBookMarks = bookMarks.filter((mark) => mark.bookId === bookId)
+    const nextBookMarks = bookMarks.filter((mark) => mark.bookName === bookName)
     if (nextBookMarks.length > 0) {
       bookConfig.bookMarks = nextBookMarks
     } else {
@@ -50,7 +50,7 @@ export const saveReaderProgress = async (
     }
   }
 
-  await saveBookConfig(bookId, bookConfig)
+  await saveBookConfig(bookName, bookConfig)
   return {
     ...bookConfig,
     updatedAt: new Date().toISOString(),

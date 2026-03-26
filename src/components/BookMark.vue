@@ -1,20 +1,20 @@
-﻿<template>
+<template>
   <div class="bookmark">
     <div class="bookmark-header">
-      <span class="prefix">笔记</span>
+      <span class="prefix">书签</span>
       <div class="bubble">
         <div class="suffix" :class="viewType" @click="toggleViewType">
-          <span class="option-tag">书签</span>
+          <span class="option-tag">标签</span>
           <span class="option-table">表格</span>
         </div>
       </div>
     </div>
     <div class="bookmark-body">
-      <el-scrollbar 
-        v-if="viewType === 'tag'" 
-        ref="scrollbar" 
-        class="tag-scrollbar" 
-        @wheel.native="handleWheel" 
+      <el-scrollbar
+        v-if="viewType === 'tag'"
+        ref="scrollbar"
+        class="tag-scrollbar"
+        @wheel.native="handleWheel"
         @scroll="handleScroll"
       >
         <div class="tag-wrapper">
@@ -37,28 +37,28 @@
         :default-sort="{ prop: 'createTime', order: 'descending' }"
         style="width: 100%;"
       >
-        <el-table-column prop="bookId" label="ID" width="140"/>
+        <el-table-column prop="bookName" label="NAME" width="180" />
         <el-table-column label="详情">
-          <el-table-column 
-            prop="bookTitle" 
-            label="书名" 
+          <el-table-column
+            prop="bookTitle"
+            label="书名"
             show-overflow-tooltip
             min-width="90"
             sortable
           />
-          <el-table-column 
-            prop="content" 
+          <el-table-column
+            prop="content"
             label="内容"
             show-overflow-tooltip
             min-width="120"
           />
-          <el-table-column 
-            prop="comments" 
+          <el-table-column
+            prop="comments"
             label="笔记内容"
             show-overflow-tooltip
             min-width="120"
           />
-          <el-table-column prop="createTime" label="创建时间" width="160"/>
+          <el-table-column prop="createTime" label="创建时间" width="160" />
         </el-table-column>
         <el-table-column fixed="right" label="操作" width="160">
           <template #default="item">
@@ -90,11 +90,12 @@ import {
   loadBookConfigs,
   saveBookConfig,
 } from '@/services/book/bookRepository'
+import { WINDOW_EVENTS } from '@/constants/events'
 
 export default defineComponent({
   name: 'BookMark',
   components: {
-    BookMarkTag
+    BookMarkTag,
   },
   data() {
     return {
@@ -110,15 +111,17 @@ export default defineComponent({
     groupedBooksMarks() {
       const temp = [...this.booksMarks]
       return temp.reduce((acc, bookMark) => {
-        if (!acc[bookMark.bookId]) {
-          acc[bookMark.bookId] = []
+        if (!acc[bookMark.bookName]) {
+          acc[bookMark.bookName] = []
         }
-        acc[bookMark.bookId].push(bookMark)
+        acc[bookMark.bookName].push(bookMark)
         return acc
       }, {} as Record<string, BookMark[]>)
     },
     rankedBooksMarks() {
-      return this.booksMarks.sort((a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime))
+      return this.booksMarks.sort(
+        (a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime)
+      )
     },
     scrollLeftMax() {
       const wrapperWidth = document.querySelector('.el-scrollbar__view')?.clientWidth
@@ -134,7 +137,7 @@ export default defineComponent({
       this.loadedBooks = await loadBookConfigs()
       this.booksMarks = []
       for (const book of this.loadedBooks) {
-        const bookConfig = await loadBookConfig(book.id)
+        const bookConfig = await loadBookConfig(book.name)
         if (bookConfig.bookMarks) {
           this.booksMarks = [...this.booksMarks, ...bookConfig.bookMarks]
         }
@@ -142,32 +145,30 @@ export default defineComponent({
     },
     async saveBookMarks() {
       for (const book of this.loadedBooks) {
-        const bookConfig = await loadBookConfig(book.id)
-        if (!this.groupedBooksMarks[book.id]) {
+        const bookConfig = await loadBookConfig(book.name)
+        if (!this.groupedBooksMarks[book.name]) {
           delete bookConfig.bookMarks
         } else {
-          bookConfig.bookMarks = this.groupedBooksMarks[book.id]
+          bookConfig.bookMarks = this.groupedBooksMarks[book.name]
         }
-        await saveBookConfig(book.id, bookConfig)
+        await saveBookConfig(book.name, bookConfig)
       }
     },
     async deleteBookMark(bookMark: BookMark) {
-      ElMessageBox.confirm(
-        '是否删除此笔记？',
-        '提示',
-        {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning',
-            center: true,
-            showClose: false
-        }
-      ).then(async () => {
-        this.booksMarks = this.booksMarks.filter((item) => item.id !== bookMark.id)
-        await this.saveBookMarks()
-      }).catch(() => {
-        return
+      ElMessageBox.confirm('是否删除此笔记？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        center: true,
+        showClose: false,
       })
+        .then(async () => {
+          this.booksMarks = this.booksMarks.filter((item) => item.id !== bookMark.id)
+          await this.saveBookMarks()
+        })
+        .catch(() => {
+          return
+        })
     },
     handleWheel(e: WheelEvent) {
       e.preventDefault()
@@ -187,23 +188,21 @@ export default defineComponent({
       this.tableMaxHeight = window.innerHeight * 0.85 - 32
     },
     jumpToRead(bookMark: BookMark) {
-        ElMessageBox.confirm(
-            '是否前往阅读？',
-            '提示',
-            {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'info',
-                center: true,
-                showClose: false
-            }
-        ).then(() => {
-            this.openBook(bookMark.bookId, bookMark.bookCfi)
-        }).catch(() => {
-            return
+      ElMessageBox.confirm('是否前往阅读？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+        center: true,
+        showClose: false,
+      })
+        .then(() => {
+          this.openBook(bookMark.bookName, bookMark.bookCfi)
+        })
+        .catch(() => {
+          return
         })
     },
-    openBook(id: string, cfi: string) {
+    openBook(bookName: string, cfi: string) {
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
         title: 'T-Reader',
@@ -216,29 +215,21 @@ export default defineComponent({
       webview.once('tauri://created', async () => {
         vm.unlistenReady?.()
         vm.unlistenReady = await listen<string>(
-          'ready-to-receive-book-id',
+          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_NAME,
           async () => {
-            WebviewWindow.getCurrent().emitTo(
-              'reader',
-              'load-book-id',
-              {
-                id: id,
-                cfi: cfi,
-              }
-            )
+            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
+              name: bookName,
+              cfi: cfi,
+            })
           }
         )
       })
 
       webview.once('tauri://error', function () {
-        WebviewWindow.getCurrent().emitTo(
-          'reader',
-          'load-book-id',
-          {
-            id: id,
-            cfi: cfi,
-          }
-        )
+        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
+          name: bookName,
+          cfi: cfi,
+        })
       })
     },
   },
@@ -255,7 +246,7 @@ export default defineComponent({
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.updateTableMaxHeight)
-  }
+  },
 })
 </script>
 
@@ -309,7 +300,7 @@ export default defineComponent({
           grid-column-end: 1;
           grid-row-start: 1;
           grid-row-end: 1;
-          transition: all .5s;
+          transition: all 0.5s;
           color: var(--t-color-brown);
         }
 
@@ -354,4 +345,3 @@ export default defineComponent({
   }
 }
 </style>
-

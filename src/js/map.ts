@@ -25,7 +25,7 @@ export interface ContextMenuItem {
 }
 
 export interface BookConfig {
-  id: string
+  name: string
   title: string
   author: string
   location?: string

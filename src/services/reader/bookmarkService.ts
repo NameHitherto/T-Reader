@@ -56,7 +56,7 @@ export const removeBookmarkHighlight = (rendition: any, cfiRange: string) => {
 export const initBookMarksForBook = (
   rendition: any,
   bookMarks: BookMark[],
-  bookId: string,
+  bookName: string,
   defaultHighlightColor: string
 ) => {
   if (!rendition) {
@@ -64,7 +64,7 @@ export const initBookMarksForBook = (
   }
 
   bookMarks.forEach((bookMark) => {
-    if (bookMark.bookId === bookId) {
+    if (bookMark.bookName === bookName) {
       applyBookmarkHighlight(rendition, bookMark, defaultHighlightColor)
     }
   })

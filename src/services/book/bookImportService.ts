@@ -2,7 +2,7 @@ import { BookConfig } from '@/js/map'
 import { ImportBookParams } from '@/services/book/types'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
 import { parseTxtMeta } from '@/services/book/parsers/txtParser'
-import { buildBookIdentity } from '@/services/book/bookIdentity'
+import { buildBookName } from '@/services/book/bookIdentity'
 import { createDurationLogger } from '@/utils/logger'
 
 export const buildBookConfigFromImport = async (
@@ -18,7 +18,7 @@ export const buildBookConfigFromImport = async (
     format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(originalFileName)
 
   const nextConfig = {
-    id: buildBookIdentity(meta.title, meta.author),
+    name: buildBookName(meta.title, meta.author),
     title: meta.title,
     author: meta.author,
     location: format === 'epub' ? '' : '0',
@@ -26,7 +26,7 @@ export const buildBookConfigFromImport = async (
   }
 
   finishLog({
-    bookId: nextConfig.id,
+    bookName: nextConfig.name,
     title: nextConfig.title,
   })
   return nextConfig

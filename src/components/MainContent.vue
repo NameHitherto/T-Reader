@@ -11,7 +11,7 @@
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息弹窗 -->
-    <BookInfoDialog v-model="bookInfoVisible" :bookId="bookInfoId" />
+    <BookInfoDialog v-model="bookInfoVisible" :bookName="bookInfoName" />
     <header class="header">
       <div class="header-menu">
         <div class="header-menu-item" @click="addBook">
@@ -74,13 +74,13 @@
         >
           <div
             v-for="book in books"
-            :key="book.id"
+            :key="book.name"
             class="shelf-item"
             :class="
               shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'
             "
-            @click="openBook(book.id)"
-            @contextmenu="onContextMenu($event, book.id)"
+            @click="openBook(book.name)"
+            @contextmenu="onContextMenu($event, book.name)"
           >
             <div
               v-if="shelfViewMode === 'list'"
@@ -179,7 +179,7 @@ import {
 } from '@/services/book/bookPresentationService'
 import {
   ensureBookCache,
-  getImportedBookIdentity,
+  getImportedBookName,
   hasOriginalFilenameConflict,
   invalidateBookFileIndex,
   loadBookBinary,
@@ -221,7 +221,7 @@ export default {
     )
     const settingVisible = ref(false)
     const bookInfoVisible = ref(false)
-    const bookInfoId = ref<String>('')
+    const bookInfoName = ref<String>('')
     const unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
@@ -237,7 +237,7 @@ export default {
 
     const buildShelfBook = async (book: BookConfig): Promise<ShelfBook> => {
       const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
-        bookId: book.id,
+        bookName: book.name,
       })
       const format = await resolveBookFormat(book)
       const cache = await ensureBookCache(book)
@@ -254,7 +254,7 @@ export default {
       }
 
       finishLog({
-        bookId: book.id,
+        bookName: book.name,
         format,
         progressValue,
       })
@@ -348,11 +348,11 @@ export default {
           fileBytes.byteOffset,
           fileBytes.byteOffset + fileBytes.byteLength
         ) as ArrayBuffer
-        const importedIdentity = await getImportedBookIdentity(originalFileName, bufferFile)
+        const importedBook = await getImportedBookName(originalFileName, bufferFile)
 
-        if (books.value.find((book) => book.id === importedIdentity.id)) {
+        if (books.value.find((book) => book.name === importedBook.name)) {
           logWarn('bookshelf', 'duplicate-book-detected', {
-            bookId: importedIdentity.id,
+            bookName: importedBook.name,
             fileName: originalFileName,
           })
           return
@@ -385,7 +385,7 @@ export default {
 
         await invoke('save_file', {
           subdir: dirs.progress,
-          filename: toBookConfigFilename(newBook.id),
+          filename: toBookConfigFilename(newBook.name),
           contents: bookConfigJson,
         })
 
@@ -417,13 +417,13 @@ export default {
             }),
             invoke('webdav_upload', {
               subdir: dirs.progress,
-              filename: toBookConfigFilename(newBook.id),
+              filename: toBookConfigFilename(newBook.name),
               contents: Array.from(new TextEncoder().encode(bookConfigJson)),
             }),
           ])
         })
         finishLog({
-          bookId: newBook.id,
+          bookName: newBook.name,
           total: books.value.length,
         })
       } catch (error) {
@@ -435,18 +435,18 @@ export default {
       }
     }
 
-    const deleteBook = async (id: string) => {
+    const deleteBook = async (bookName: string) => {
       const finishLog = createDurationLogger('bookshelf', 'delete-book', {
-        bookId: id,
+        bookName,
       })
       try {
         const dirs = await getLocalDirNames()
-        const targetBook = books.value.find((book) => book.id === id)
+        const targetBook = books.value.find((book) => book.name === bookName)
         const resolvedBookFile = targetBook ? await resolveBookFile(targetBook) : null
 
         await invoke('delete_book', {
           subdir: dirs.progress,
-          filename: toBookConfigFilename(id),
+          filename: toBookConfigFilename(bookName),
         })
 
         if (resolvedBookFile) {
@@ -465,7 +465,7 @@ export default {
 
         await invoke('webdav_delete', {
           subdir: dirs.progress,
-          filename: toBookConfigFilename(id),
+          filename: toBookConfigFilename(bookName),
         })
 
         if (resolvedBookFile) {
@@ -476,18 +476,18 @@ export default {
         }
 
         invalidateBookFileIndex()
-        books.value = books.value.filter((book) => book.id !== id)
+        books.value = books.value.filter((book) => book.name !== bookName)
         finishLog({
           total: books.value.length,
         })
       } catch (error) {
         logError('bookshelf', 'delete-book failed', error, {
-          bookId: id,
+          bookName,
         })
       }
     }
 
-    const openBook = (id: string) => {
+    const openBook = (bookName: string) => {
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
         title: '阅读',
@@ -499,10 +499,10 @@ export default {
       webview.once('tauri://created', async function () {
         unlistenReady.value?.()
         unlistenReady.value = await listen<string>(
-          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_ID,
+          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_NAME,
           async () => {
-            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_ID, {
-              id: id.toString(),
+            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
+              name: bookName.toString(),
               cfi: '',
             })
           }
@@ -510,36 +510,36 @@ export default {
       })
 
       webview.once('tauri://error', function () {
-        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_ID, {
-          id: id.toString(),
+        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
+          name: bookName.toString(),
           cfi: '',
         })
       })
     }
 
-    const showBookInfo = (id: string) => {
-      bookInfoId.value = id.toString()
+    const showBookInfo = (bookName: string) => {
+      bookInfoName.value = bookName.toString()
       bookInfoVisible.value = true
     }
 
-    const onContextMenu = (e: MouseEvent, bookId: string) => {
+    const onContextMenu = (e: MouseEvent, bookName: string) => {
       let menuX = e.x
       let menuY = e.y
       const menuItems: ContextMenuItem[] = [
         {
           label: '打开 | 开始阅读',
           type: 'bookOpen',
-          onClick: () => openBook(bookId),
+          onClick: () => openBook(bookName),
         },
         {
           label: '信息 | 详细信息',
           type: 'info',
-          onClick: () => showBookInfo(bookId),
+          onClick: () => showBookInfo(bookName),
         },
         {
           label: '删除 | 更新云同步',
           type: 'delete',
-          onClick: () => deleteBook(bookId),
+          onClick: () => deleteBook(bookName),
         },
       ]
       const menuWidth = 200
@@ -627,7 +627,7 @@ export default {
       openSetting,
       settingVisible,
       bookInfoVisible,
-      bookInfoId,
+      bookInfoName,
       emptyStateImage,
       isBooksEmpty,
       getBookCover,
@@ -888,7 +888,7 @@ export default {
         display: grid;
         gap: var(--shelf-grid-gap);
         justify-content: start;
-        /* 鍥哄畾鍒楀鑷姩濉厖锛氫功鏋跺彉瀹芥椂浼樺厛鍔犲垪锛屽崱鐗囧搴︿笉浼氬彉灏?*/
+        /* 固定列宽自动填充：书架变宽时优先加列，卡片宽度保持稳定 */
         grid-template-columns: repeat(
           auto-fill,
           minmax(var(--shelf-grid-item-width), var(--shelf-grid-item-width))
@@ -1181,7 +1181,7 @@ export default {
         overflow: hidden;
       }
 
-      /* 鏂偣鍒嗘锛氬垪瀹藉彧閫掑涓嶉€掑噺锛屽搴﹀闀挎椂鑷姩澧炲姞鏍忔暟 */
+      /* 断点分段：列宽只增不减，宽度增加时自动增加列数 */
       @media (min-width: 980px) {
         .bookcase-body--grid {
           --shelf-grid-item-width: 156px;
@@ -1222,7 +1222,7 @@ export default {
         }
       }
 
-      /* 灏忓搴﹀厹搴曪細閬垮厤鏋佺獎绐楀彛鍗＄墖婧㈠嚭 */
+      /* 小宽度兜底：避免极窄窗口导致卡片溢出 */
       @media (max-width: 520px) {
         .bookcase-body--grid {
           --shelf-grid-item-width: 132px;

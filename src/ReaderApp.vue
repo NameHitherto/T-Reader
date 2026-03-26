@@ -42,9 +42,9 @@
     <template #header>
       <span style="font-size: large; text-align: center">目录</span>
     </template>
-    <el-menu 
+    <el-menu
       ref="tocMenuRef"
-      :default-active="activeChapter" 
+      :default-active="activeChapter"
       @select="goToChapter"
     >
       <template v-for="item in toc">
@@ -58,16 +58,20 @@
       </template>
     </el-menu>
   </el-drawer>
-  <!-- 书籍详细信息展示 -->
-  <book-info-dialog v-model="bookInfoVisible" :bookId="bookIsReading" />
+  <!-- 书籍详情信息 -->
+  <book-info-dialog v-model="bookInfoVisible" :bookName="bookIsReading" />
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
-  <BookMarkDialog v-model="bookMarkEditionVisible" v-model:book-mark-list="bookMarkEditionContent" @delete="(markId: string) => delBookMark(markId)"/>
-  <!-- AI助手 -->
-  <AssistantDialog v-model="assistantVisible" :bookId="bookIsReading"/>
+  <BookMarkDialog
+    v-model="bookMarkEditionVisible"
+    v-model:book-mark-list="bookMarkEditionContent"
+    @delete="(markId: string) => delBookMark(markId)"
+  />
+  <!-- AI 助手 -->
+  <AssistantDialog v-model="assistantVisible" :bookName="bookIsReading" />
   <!-- 功能帮助 -->
-  <HelpDialog v-model="helpVisible"/>
+  <HelpDialog v-model="helpVisible" />
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%
@@ -145,59 +149,57 @@ export default {
     HelpDialog,
   },
   setup() {
-    // 阅读时书籍ID
+    // 当前正在阅读的书籍 name
     const bookIsReading = ref<string | null>(null)
-    // 加载时书籍ID
-    const bookId = ref<string | null>(null)
-    // 书籍信息
+    // 待加载书籍的 name
+    const pendingBookName = ref<string | null>(null)
+    // 书籍信息弹窗
     const bookInfoVisible = ref(false)
-    // 用于存储EPUB渲染对象
+    // EPUB 渲染对象
     const rendition = ref<Rendition | null>(null)
     // 当前书籍格式
     const currentBookFormat = ref<BookFormat>('epub')
     // 当前书籍配置
     const currentBookConfig = ref<BookConfig | null>(null)
-    // TXT 章节段落
+    // TXT 段落内容
     const txtParagraphs = ref<string[]>([])
     // TXT 阅读位置（段落索引）
     const txtCurrentParagraph = ref(0)
-    // 用于存储解除监听函数
-    let unlistenBook = ref<UnlistenFn | null>(null)
-    // 用于存储解除监听函数
-    let unlistenClosed = ref<UnlistenFn | null>(null)
-    // 用于存储解除监听函数
-    let unlistenStyle = ref<UnlistenFn | null>(null)
-    // 其他事件监听
-    let unlistenShowBookInfo = ref<UnlistenFn | null>(null)
-    let unlistenShowAssistant = ref<UnlistenFn | null>(null)
-    let unlistenShowHelp = ref<UnlistenFn | null>(null)
+    // 事件解绑函数
+    const unlistenBook = ref<UnlistenFn | null>(null)
+    const unlistenClosed = ref<UnlistenFn | null>(null)
+    const unlistenStyle = ref<UnlistenFn | null>(null)
+    // 其他窗口事件监听
+    const unlistenShowBookInfo = ref<UnlistenFn | null>(null)
+    const unlistenShowAssistant = ref<UnlistenFn | null>(null)
+    const unlistenShowHelp = ref<UnlistenFn | null>(null)
     // 目录按钮解绑函数，避免重复绑定
     let detachTocButtonListener: (() => void) | null = null
-    // 正式全局变量
+    // 阅读配置 store
     const readerConfigStore = useReaderConfigStore()
-    // 全局状态变量，但只能访问不能修改
+    // 响应式配置引用
     const { readerConfig } = storeToRefs(readerConfigStore)
     // 目录抽屉是否显示
     const tocDrawer = ref(false)
     // 目录菜单引用
     const tocMenuRef = ref<any>(null)
-    // 目录信息
+    // 目录数据
     const toc = ref<any[]>([])
     // 当前章节
     const activeChapter = ref<string>('')
-    // 右键笔记菜单
+    // 右键菜单显示状态
     const showContextMenu = ref(false)
-    // 右键菜单选项
+    // 右键菜单配置
     const contextMenuOptions = ref({} as ContextMenuData)
-    // 当前选中的文本
+    // 当前选中文本
     const selectedText = ref<string>('')
-    // 选中文本的Range对象
+    // 当前选中范围
     const selectedRange = ref<string | null>(null)
     // 阅读进度百分比
     const readingPercentage = ref('')
-    // 阅读注释笔记
+    // 当前书籍书签 store
     const bookMarkStore = useBookMarkStore()
-    // 全局状态变量，但只能访问不能修改
+    // 响应式书签引用
     const { bookMarks } = storeToRefs(bookMarkStore)
     // 默认高亮颜色
     const defaultHighlightColor = '#6b7280'
@@ -211,9 +213,9 @@ export default {
       rendition,
       defaultHighlightColor,
     })
-    // AI助手是否显示
+    // AI 助手弹窗状态
     const assistantVisible = ref(false)
-    // 功能帮助是否显示
+    // 帮助弹窗状态
     const helpVisible = ref(false)
 
     // 阅读器动态样式
@@ -227,7 +229,7 @@ export default {
         })
       }
       const themeReturned = {
-        'body': {
+        body: {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
@@ -237,49 +239,49 @@ export default {
           'padding-right': `${readerConfig.value.boxPaddingHorizontal}px !important`,
           ...columnStyle,
         },
-        'h1': {
+        h1: {
           'font-family': `${readerConfig.value.font}`,
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
         },
-        'h2': {
+        h2: {
           'font-family': `${readerConfig.value.font}`,
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
         },
-        'h3': {
+        h3: {
           'font-family': `${readerConfig.value.font}`,
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
         },
-        'p': {
+        p: {
           'font-family': `${readerConfig.value.font}`,
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
           'letter-spacing': `${readerConfig.value.letterSpacing}px`,
         },
-        'font': {
+        font: {
           'font-family': `${readerConfig.value.font}`,
-          'color': `${readerConfig.value.fontColor}`,
+          color: `${readerConfig.value.fontColor}`,
         },
         '::selection': {
-          'background': 'rgb(0 0 0 / 25%)',
-          'color': 'rgb(0 0 0 / 75%)',
+          background: 'rgb(0 0 0 / 25%)',
+          color: 'rgb(0 0 0 / 75%)',
         },
-        'html': {
-          'cursor': `url('/src/assets/cursor/pointer.cur'), default`,
+        html: {
+          cursor: `url('/src/assets/cursor/pointer.cur'), default`,
         },
-        'img': {
-          'width': '100%',
+        img: {
+          width: '100%',
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
-          'src': `local("${readerConfig.value.font}")`,
+          src: `local("${readerConfig.value.font}")`,
         },
       }
       return themeReturned
     })
 
-    // 加载或更新阅读器样式
+    // 应用阅读器样式
     const applyReaderStyle = async () => {
       applyReaderStyles(
         readerConfig.value as ReaderStyleConfig,
@@ -310,19 +312,19 @@ export default {
       ).toFixed(1)
     }
 
-    // 读取配置文件
+    // 读取阅读配置
     const loadReaderConfig = async () => {
       try {
         const configTemp = await loadReaderConfigFromDisk()
         readerConfigStore.setReaderConfig(configTemp)
       } catch (e) {
-        // 用户首次打开阅读界面或配置文件不存在
+        // 首次打开阅读器或配置文件不存在时回退默认配置
         readerConfigStore.setDefaultConfig()
         console.log('ReaderConfig.json文件不存在，已加载默认配置')
       }
     }
 
-    // 保存配置文件
+    // 保存阅读配置
     const saveReaderConfig = async () => {
       await saveReaderConfigToDisk(readerConfig.value)
     }
@@ -335,7 +337,9 @@ export default {
       }
       const paragraphIndex = parseTxtLocation(location)
       txtCurrentParagraph.value = paragraphIndex
-      const paragraphElement = txtReader.querySelector(`[data-idx="${paragraphIndex}"]`) as HTMLElement | null
+      const paragraphElement = txtReader.querySelector(
+        `[data-idx="${paragraphIndex}"]`
+      ) as HTMLElement | null
       if (paragraphElement) {
         txtReader.scrollTop = paragraphElement.offsetTop
       } else {
@@ -350,7 +354,7 @@ export default {
       }
 
       const savedConfig = await saveReaderProgress({
-        bookId: bookIsReading.value,
+        bookName: bookIsReading.value,
         format: currentBookFormat.value,
         rendition: rendition.value,
         txtCurrentParagraph: txtCurrentParagraph.value,
@@ -362,7 +366,7 @@ export default {
       }
     }
 
-    // 初始化所有笔记
+    // 初始化当前书籍书签
     const initAllBookMarks = async () => {
       if (!bookIsReading.value) {
         return
@@ -376,12 +380,12 @@ export default {
       )
     }
 
-    // 添加笔记
+    // 添加书签
     const addBookMark = async () => {
       const tempId = generateID(3)
       const bookMark: BookMark = {
         id: tempId,
-        bookId: bookIsReading.value ? bookIsReading.value : '',
+        bookName: bookIsReading.value ? bookIsReading.value : '',
         bookCfi: selectedRange.value ? selectedRange.value : '',
         bookTitle: (await rendition.value?.book?.loaded?.metadata)?.title || '未知书籍',
         content: selectedText.value,
@@ -397,13 +401,13 @@ export default {
       return tempId
     }
 
-    // 添加笔记并评论
+    // 添加书签并打开笔记编辑
     const addBookMarkComment = async () => {
       const bookMarkId = await addBookMark()
       openEditorByMarkId(bookMarkId)
     }
 
-    // 删除笔记
+    // 删除书签
     const delBookMark = async (markId: string) => {
       const bookMark = bookMarkStore.getBookMark(markId)[0]
       removeBookmarkHighlight(rendition.value, bookMark.bookCfi)
@@ -412,9 +416,9 @@ export default {
     }
 
     registerReaderWindowEvents({
-      onLoadBookId: async (event) => {
+      onLoadBookName: async (event) => {
         await saveReaderRendition()
-        bookId.value = event.payload.id
+        pendingBookName.value = event.payload.name
         if (event.payload.cfi !== '') {
           await loadBook(event.payload.cfi)
         } else {
@@ -450,10 +454,10 @@ export default {
       unlistenShowHelp.value = unlisteners.unlistenShowHelp
     })
 
-    // 告知主程序已准备好接受书籍ID
-    getCurrentWebviewWindow().emitTo('main', WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_ID)
+    // 通知主窗口阅读器已准备好接收书籍 name
+    getCurrentWebviewWindow().emitTo('main', WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_NAME)
 
-    // 处理Rendition事件
+    // 绑定 Rendition 事件
     const handleRenditionEvents = () => {
       if (rendition.value) {
         bindRenditionEvents(rendition.value, {
@@ -509,15 +513,15 @@ export default {
     }
 
     // 加载书籍
-    const loadBook = async (cfi? : string) => {
-      if (!bookId.value) {
-        setTimeout(loadBook, 500) // 500ms 后再次尝试加载书籍
+    const loadBook = async (cfi?: string) => {
+      if (!pendingBookName.value) {
+        setTimeout(loadBook, 500) // 500ms 后重试加载书籍
         return
       }
-      // 自用书籍ID备份
-      bookIsReading.value = bookId.value
-      // 书籍加载完毕书籍ID置空，防止浏览器缓存
-      bookId.value = null
+      // 将待加载 name 设为当前阅读书籍
+      bookIsReading.value = pendingBookName.value
+      // 书籍开始加载后清空待处理 name，避免重复触发
+      pendingBookName.value = null
 
       await withReaderLoading(async () => {
         const loadedBook = await loadReaderBookData(bookIsReading.value as string)
@@ -577,12 +581,10 @@ export default {
               bookConfig,
               bookArrayBuffer as ArrayBuffer,
               format,
-              bookCache.bookFileName || `${bookConfig.id}.${format}`
-            ).catch(
-              (error) => {
-                console.warn('补全 EPUB locations 缓存失败:', error)
-              }
-            )
+              bookCache.bookFileName || `${bookConfig.name}.${format}`
+            ).catch((error) => {
+              console.warn('补全 EPUB locations 缓存失败:', error)
+            })
           })
         }
 
@@ -597,12 +599,12 @@ export default {
       })
     }
 
-    // 目录打开的回调
+    // 目录抽屉打开回调
     const handleTocOpen = () => {
       const book = rendition.value?.book
       const indexGroup = collectParentChapterIndexes(book, activeChapter.value)
 
-      // 打开当前章节的所有上级菜单
+      // 打开当前章节的所有上级目录
       if (tocMenuRef.value && typeof tocMenuRef.value.open === 'function') {
         for (const index of indexGroup) {
           tocMenuRef.value.open(index)
@@ -612,8 +614,8 @@ export default {
       scrollDrawerToActiveChapter(500)
     }
 
-    // 切换全屏(隐藏任务栏)
-    const switchFullscreen = async() => {
+    // 切换全屏（隐藏任务栏）
+    const switchFullscreen = async () => {
       const win = getCurrentWindow()
       const isFullscreen = await win.isFullscreen()
       const isMaximized = await win.isMaximized()
@@ -638,6 +640,7 @@ export default {
         scrollTxtByPage(document.getElementById('txt-reader'), 'prev', 0.85)
       }
     }
+
     // 下一页
     const nextPage = () => {
       if (rendition.value && readerConfig.value.flow === 'paginated') {
@@ -649,6 +652,7 @@ export default {
         scrollTxtByPage(document.getElementById('txt-reader'), 'next', 0.85)
       }
     }
+
     // 跳转到指定章节
     const goToChapter = (href: string) => {
       if (rendition.value) {
@@ -658,10 +662,11 @@ export default {
         return
       }
 
-      // TXT 当前不支持目录跳转
+      // TXT 当前暂不支持目录跳转
       tocDrawer.value = false
     }
-    // 监听键盘事件
+
+    // 键盘事件处理
     const keydownHandler = (e: KeyboardEvent) => {
       dispatchReaderKeydown(e, {
         onPrevPage: () => prevPage(),
@@ -671,8 +676,8 @@ export default {
     }
 
     // 打开自定义右键菜单
-    const openContextMenu = (mode: string, x: number, y:number, options: ContextMenuItem[]) => {
-      let menuX = 0 
+    const openContextMenu = (mode: string, x: number, y: number, options: ContextMenuItem[]) => {
+      let menuX = 0
       let menuY = 0
       if (mode === 'root') {
         menuX = x
@@ -732,7 +737,7 @@ export default {
     })
 
     return {
-      bookId,
+      pendingBookName,
       nextPage,
       prevPage,
       currentBookFormat,
@@ -775,7 +780,7 @@ export default {
   background: transparent;
 }
 :global(.el-drawer__body::-webkit-scrollbar-thumb) {
-  background-color: var(--t-color-grey); /* 浅色背景 */
+  background-color: var(--t-color-grey); /* 滚动条颜色 */
   border-radius: 6px;
   background-clip: content-box;
 }
@@ -822,7 +827,7 @@ export default {
     }
   }
 
-  /* 滚动条样式 */
+  /* 阅读容器滚动条样式 */
   #epub-reader :deep(.epub-container) {
     overflow-x: hidden !important;
   }
@@ -833,7 +838,7 @@ export default {
     background: transparent;
   }
   #epub-reader :deep(.epub-container)::-webkit-scrollbar-thumb {
-    background-color: var(--t-color-grey); /* 浅色背景 */
+    background-color: var(--t-color-grey); /* 滚动条颜色 */
     border-radius: 6px;
     background-clip: content-box;
   }
@@ -851,7 +856,7 @@ export default {
 
     .button {
       height: 100px;
-      background-color: rgba(0, 0, 0, 0.1); /* 浅色背景 */
+      background-color: rgba(0, 0, 0, 0.1); /* 按钮背景色 */
       color: #585858;
       border: none;
       border-radius: 6px;

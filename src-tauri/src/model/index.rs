@@ -6,7 +6,7 @@ fn default_empty_string() -> String {
 
 #[derive(Serialize, Deserialize)]
 pub struct Book {
-    pub id: String,
+    pub name: String,
     pub title: String,
     pub author: String,
     #[serde(default = "default_empty_string")]
