@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 
 use crate::command::dir::{check_local_dirs, get_local_root_dir, get_local_system_dir};
 use crate::logging::{finish_timer, log_error, log_info, start_timer};
-use crate::model::{Book, Settings};
+use crate::model::{Book, Settings, StoredBook};
 
 #[tauri::command]
 pub fn save_settings(json_str: &str) -> Result<(), String> {
@@ -33,7 +33,7 @@ pub fn save_settings(json_str: &str) -> Result<(), String> {
         settings.insert(key, value);
     }
 
-    let settings_json = serde_json::to_string(&settings).map_err(|e| e.to_string())?;
+    let settings_json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     let mut file = File::create(&settings_path).map_err(|e| e.to_string())?;
     file.write_all(settings_json.as_bytes())
         .map_err(|e| e.to_string())?;
@@ -94,7 +94,7 @@ pub fn save_file(subdir: &str, filename: &str, contents: &str) -> Result<(), Str
 }
 
 #[tauri::command]
-pub fn load_books(subdir: &str) -> Result<Vec<Book>, String> {
+pub fn load_books(subdir: &str) -> Result<Vec<StoredBook>, String> {
     let started_at = start_timer("file", "load-books");
     let root_path = check_local_dirs()?;
     let dir_path = root_path.join(subdir);
@@ -113,7 +113,14 @@ pub fn load_books(subdir: &str) -> Result<Vec<Book>, String> {
             file.read_to_string(&mut contents)
                 .map_err(|e| e.to_string())?;
             match serde_json::from_str::<Book>(&contents) {
-                Ok(book) => books.push(book),
+                Ok(book) => {
+                    if let Some(filename) = entry_path.file_name().and_then(|value| value.to_str()) {
+                        books.push(StoredBook {
+                            filename: filename.to_string(),
+                            book,
+                        });
+                    }
+                }
                 Err(_) => continue,
             }
         }

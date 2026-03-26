@@ -37,15 +37,8 @@
         :default-sort="{ prop: 'createTime', order: 'descending' }"
         style="width: 100%;"
       >
-        <el-table-column prop="bookName" label="NAME" width="180" />
+        <el-table-column prop="bookTitle" label="书名" width="180" show-overflow-tooltip />
         <el-table-column label="详情">
-          <el-table-column
-            prop="bookTitle"
-            label="书名"
-            show-overflow-tooltip
-            min-width="90"
-            sortable
-          />
           <el-table-column
             prop="content"
             label="内容"
@@ -181,7 +174,7 @@ export default defineComponent({
           return
         })
     },
-    openBook(bookName: string, cfi: string) {
+    openBook(bookKey: string, cfi: string) {
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
         title: 'T-Reader',
@@ -194,10 +187,10 @@ export default defineComponent({
       webview.once('tauri://created', async () => {
         vm.unlistenReady?.()
         vm.unlistenReady = await listen<string>(
-          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_NAME,
+          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY,
           async () => {
-            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
-              name: bookName,
+            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
+              bookKey,
               cfi: cfi,
             })
           }
@@ -205,8 +198,8 @@ export default defineComponent({
       })
 
       webview.once('tauri://error', function () {
-        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
-          name: bookName,
+        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
+          bookKey,
           cfi: cfi,
         })
       })

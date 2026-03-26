@@ -2,9 +2,9 @@ import ePub from 'libs/epub.js'
 import JSZip from 'jszip'
 import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
 
-export const extractEpubContent = async (bookName: string): Promise<string> => {
-  const bookConfig = await loadBookConfig(bookName)
-  const loadedBook = await loadBookBinary(bookConfig)
+export const extractEpubContent = async (bookKey: string): Promise<string> => {
+  await loadBookConfig(bookKey)
+  const loadedBook = await loadBookBinary(bookKey)
 
   if (loadedBook.format !== 'epub') {
     return new TextDecoder().decode(loadedBook.bookData).slice(0, 10000)

@@ -11,7 +11,7 @@
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息弹窗 -->
-    <BookInfoDialog v-model="bookInfoVisible" :bookName="bookInfoName" />
+    <BookInfoDialog v-model="bookInfoVisible" :bookKey="bookInfoKey" />
     <header class="header">
       <div class="header-menu">
         <div class="header-menu-item" @click="addBook">
@@ -74,13 +74,13 @@
         >
           <div
             v-for="book in books"
-            :key="book.name"
+            :key="book.bookKey"
             class="shelf-item"
             :class="
               shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'
             "
-            @click="openBook(book.name)"
-            @contextmenu="onContextMenu($event, book.name)"
+            @click="openBook(book.bookKey)"
+            @contextmenu="onContextMenu($event, book.bookKey)"
           >
             <div
               v-if="shelfViewMode === 'list'"
@@ -102,8 +102,8 @@
               >
                 {{ book.author }}
               </div>
-              <div class="shelf-list-title" :title="book.title">
-                <span>{{ book.title }}</span>
+              <div class="shelf-list-title" :title="book.displayTitle">
+                <span>{{ book.displayTitle }}</span>
               </div>
               <div class="shelf-list-subtitle" :title="getListSubtitle(book)">
                 {{ getListSubtitle(book) }}
@@ -134,8 +134,8 @@
                   {{ getGridProgressText(book) }}
                 </div>
               </div>
-              <div class="shelf-grid-title" :title="book.title">
-                {{ book.title }}
+              <div class="shelf-grid-title" :title="book.displayTitle">
+                {{ book.displayTitle }}
               </div>
             </template>
           </div>
@@ -186,8 +186,9 @@ import {
   loadBookConfigs,
   resolveBookFile,
   resolveBookFormat,
+  StoredBookConfig,
 } from '@/services/book/bookRepository'
-import { removeBookMarksByBookName } from '@/services/book/bookMarksRepository'
+import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
 import {
   createDurationLogger,
@@ -195,6 +196,7 @@ import {
   logInfo,
   logWarn,
 } from '@/utils/logger'
+import { stringifyJson } from '@/utils/json'
 
 export default {
   name: 'MainContent',
@@ -208,6 +210,8 @@ export default {
   setup() {
     type ShelfViewMode = 'list' | 'grid'
     type ShelfBook = BookConfig & {
+      bookKey: string
+      displayTitle: string
       cover?: string
       format: BookFormat
       progressValue: number
@@ -222,7 +226,7 @@ export default {
     )
     const settingVisible = ref(false)
     const bookInfoVisible = ref(false)
-    const bookInfoName = ref<String>('')
+    const bookInfoKey = ref<String>('')
     const unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
@@ -236,18 +240,28 @@ export default {
       localStorage.setItem('shelfViewMode', shelfViewMode.value)
     }
 
-    const buildShelfBook = async (book: BookConfig): Promise<ShelfBook> => {
+    const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
+      const { bookKey, config: book } = storedBook
       const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
-        bookName: book.name,
+        bookKey,
       })
-      const format = await resolveBookFormat(book)
-      const cache = await ensureBookCache(book)
+      const format = await resolveBookFormat(bookKey)
+      const cache = await ensureBookCache(bookKey)
+      const hasEpubProgress =
+        typeof book.durChapterIndex === 'number' &&
+        (book.durChapterIndex !== 0 ||
+          (book.durChapterPos || 0) > 0 ||
+          Boolean(book.durChapterTitle))
       const bookData =
-        format === 'epub' && book.location ? (await loadBookBinary(book)).bookData : undefined
+        format === 'epub' && hasEpubProgress
+          ? (await loadBookBinary(bookKey)).bookData
+          : undefined
       const progressValue = await deriveShelfProgress(book, format, cache, bookData)
 
       const shelfBook = {
         ...book,
+        bookKey,
+        displayTitle: cache.title || book.name,
         cover: cache.cover,
         format,
         progressValue,
@@ -255,7 +269,7 @@ export default {
       }
 
       finishLog({
-        bookName: book.name,
+        bookKey,
         format,
         progressValue,
       })
@@ -351,9 +365,9 @@ export default {
         ) as ArrayBuffer
         const importedBook = await getImportedBookName(originalFileName, bufferFile)
 
-        if (books.value.find((book) => book.name === importedBook.name)) {
+        if (books.value.find((book) => book.bookKey === importedBook.bookKey)) {
           logWarn('bookshelf', 'duplicate-book-detected', {
-            bookName: importedBook.name,
+            bookKey: importedBook.bookKey,
             fileName: originalFileName,
           })
           return
@@ -373,7 +387,7 @@ export default {
           format,
           fileBuffer: bufferFile,
         })
-        const bookConfigJson = JSON.stringify(newBook)
+        const bookConfigJson = stringifyJson(newBook)
 
         loadingText.value =
           'Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - '
@@ -386,13 +400,13 @@ export default {
 
         await invoke('save_file', {
           subdir: dirs.progress,
-          filename: toBookConfigFilename(newBook.name),
+          filename: toBookConfigFilename(importedBook.bookKey),
           contents: bookConfigJson,
         })
 
         invalidateBookFileIndex()
         const cachedPayload = await primeBookCacheAfterImport(
-          newBook,
+          importedBook.bookKey,
           bufferFile,
           format,
           originalFileName
@@ -400,6 +414,8 @@ export default {
 
         books.value.push({
           ...newBook,
+          bookKey: importedBook.bookKey,
+          displayTitle: cachedPayload.title || newBook.name,
           cover: cachedPayload.cover,
           format,
           progressValue: 0,
@@ -418,13 +434,13 @@ export default {
             }),
             invoke('webdav_upload', {
               subdir: dirs.progress,
-              filename: toBookConfigFilename(newBook.name),
+              filename: toBookConfigFilename(importedBook.bookKey),
               contents: Array.from(new TextEncoder().encode(bookConfigJson)),
             }),
           ])
         })
         finishLog({
-          bookName: newBook.name,
+          bookKey: importedBook.bookKey,
           total: books.value.length,
         })
       } catch (error) {
@@ -436,18 +452,18 @@ export default {
       }
     }
 
-    const deleteBook = async (bookName: string) => {
+    const deleteBook = async (bookKey: string) => {
       const finishLog = createDurationLogger('bookshelf', 'delete-book', {
-        bookName,
+        bookKey,
       })
       try {
         const dirs = await getLocalDirNames()
-        const targetBook = books.value.find((book) => book.name === bookName)
-        const resolvedBookFile = targetBook ? await resolveBookFile(targetBook) : null
+        const targetBook = books.value.find((book) => book.bookKey === bookKey)
+        const resolvedBookFile = targetBook ? await resolveBookFile(bookKey) : null
 
         await invoke('delete_book', {
           subdir: dirs.progress,
-          filename: toBookConfigFilename(bookName),
+          filename: toBookConfigFilename(bookKey),
         })
 
         if (resolvedBookFile) {
@@ -460,21 +476,21 @@ export default {
         if (targetBook) {
           await invoke('delete_book', {
             subdir: dirs.cached,
-            filename: getBookCacheFilename(targetBook.title, targetBook.author),
+            filename: getBookCacheFilename(targetBook.bookKey),
           })
         }
 
-        await removeBookMarksByBookName(bookName)
+        await removeBookMarksByBookKey(bookKey)
 
         invalidateBookFileIndex()
-        books.value = books.value.filter((book) => book.name !== bookName)
+        books.value = books.value.filter((book) => book.bookKey !== bookKey)
         showMenu.value = false
 
         queueMicrotask(() => {
           void Promise.allSettled([
             invoke('webdav_delete', {
               subdir: dirs.progress,
-              filename: toBookConfigFilename(bookName),
+              filename: toBookConfigFilename(bookKey),
             }),
             ...(resolvedBookFile
               ? [
@@ -488,7 +504,7 @@ export default {
             const rejected = results.find((result) => result.status === 'rejected')
             if (rejected) {
               logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
-                bookName,
+                bookKey,
               })
             }
           })
@@ -499,12 +515,12 @@ export default {
         })
       } catch (error) {
         logError('bookshelf', 'delete-book failed', error, {
-          bookName,
+          bookKey,
         })
       }
     }
 
-    const openBook = (bookName: string) => {
+    const openBook = (bookKey: string) => {
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
         title: '阅读',
@@ -516,10 +532,10 @@ export default {
       webview.once('tauri://created', async function () {
         unlistenReady.value?.()
         unlistenReady.value = await listen<string>(
-          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_NAME,
+          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY,
           async () => {
-            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
-              name: bookName.toString(),
+            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
+              bookKey: bookKey.toString(),
               cfi: '',
             })
           }
@@ -527,36 +543,36 @@ export default {
       })
 
       webview.once('tauri://error', function () {
-        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_NAME, {
-          name: bookName.toString(),
+        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
+          bookKey: bookKey.toString(),
           cfi: '',
         })
       })
     }
 
-    const showBookInfo = (bookName: string) => {
-      bookInfoName.value = bookName.toString()
+    const showBookInfo = (bookKey: string) => {
+      bookInfoKey.value = bookKey.toString()
       bookInfoVisible.value = true
     }
 
-    const onContextMenu = (e: MouseEvent, bookName: string) => {
+    const onContextMenu = (e: MouseEvent, bookKey: string) => {
       let menuX = e.x
       let menuY = e.y
       const menuItems: ContextMenuItem[] = [
         {
           label: '打开 | 开始阅读',
           type: 'bookOpen',
-          onClick: () => openBook(bookName),
+          onClick: () => openBook(bookKey),
         },
         {
           label: '信息 | 详细信息',
           type: 'info',
-          onClick: () => showBookInfo(bookName),
+          onClick: () => showBookInfo(bookKey),
         },
         {
           label: '删除 | 更新云同步',
           type: 'delete',
-          onClick: () => deleteBook(bookName),
+          onClick: () => deleteBook(bookKey),
         },
       ]
       const menuWidth = 200
@@ -648,7 +664,7 @@ export default {
       openSetting,
       settingVisible,
       bookInfoVisible,
-      bookInfoName,
+      bookInfoKey,
       emptyStateImage,
       isBooksEmpty,
       getBookCover,

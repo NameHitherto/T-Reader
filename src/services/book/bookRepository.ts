@@ -14,13 +14,20 @@ import {
 } from '@/services/book/bookCacheService'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
 import { parseTxtMeta } from '@/services/book/parsers/txtParser'
-import { buildBookName, toBookConfigFilename } from '@/services/book/bookIdentity'
+import {
+  buildBookName,
+  buildBookTitle,
+  getBookKeyFromConfigFilename,
+  toBookConfigFilename,
+} from '@/services/book/bookIdentity'
+import { normalizeBookConfig } from '@/services/reader/progressSnapshotService'
 import {
   createDurationLogger,
   logError,
   logInfo,
   logWarn,
 } from '@/utils/logger'
+import { encodeJson, stringifyJson } from '@/utils/json'
 
 export interface ResolvedBookFile {
   fileName: string
@@ -31,7 +38,25 @@ export interface LoadedBookBinary extends ResolvedBookFile {
   bookData: Uint8Array
 }
 
+export interface StoredBookConfig {
+  bookKey: string
+  config: BookConfig
+}
+
+interface StoredBookPayload {
+  filename: string
+  book: BookConfig
+}
+
 let cachedBookFileIndex: Map<string, ResolvedBookFile> | null = null
+
+const toPersistedBookConfig = (config: BookConfig): BookConfig => {
+  return normalizeBookConfig({
+    ...config,
+    durChapterTime:
+      typeof config.durChapterTime === 'number' ? config.durChapterTime : Date.now(),
+  })
+}
 
 const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
   if (data instanceof Uint8Array) {
@@ -47,6 +72,38 @@ const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array
 
 const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
   return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer
+}
+
+const parseBookConfigData = (data: Uint8Array): BookConfig => {
+  const decoded = new TextDecoder().decode(data)
+  const parsed = JSON.parse(decoded) as Partial<BookConfig> & Record<string, unknown>
+  return normalizeBookConfig(parsed)
+}
+
+const getDurChapterTime = (config: Partial<BookConfig> | null | undefined): number => {
+  if (!config || typeof config.durChapterTime !== 'number' || Number.isNaN(config.durChapterTime)) {
+    return 0
+  }
+
+  return config.durChapterTime
+}
+
+const persistBookConfigToLocal = async (filename: string, config: BookConfig): Promise<void> => {
+  const dirs = await getLocalDirNames()
+  await invoke('save_file', {
+    subdir: dirs.progress,
+    filename,
+    contents: stringifyJson(toPersistedBookConfig(config)),
+  })
+}
+
+const persistBookConfigToCloud = async (filename: string, config: BookConfig): Promise<void> => {
+  const dirs = await getLocalDirNames()
+  await invoke('webdav_upload', {
+    subdir: dirs.progress,
+    filename,
+    contents: Array.from(encodeJson(toPersistedBookConfig(config))),
+  })
 }
 
 const readLocalBookFile = async (filename: string): Promise<Uint8Array> => {
@@ -133,9 +190,9 @@ const rebuildBookFileIndex = async (): Promise<Map<string, ResolvedBookFile>> =>
 }
 
 const getBookFileFromCache = async (
-  bookConfig: Pick<BookConfig, 'name' | 'title' | 'author'>
+  bookKey: string
 ): Promise<ResolvedBookFile | null> => {
-  const cache = await loadBookCache(bookConfig)
+  const cache = await loadBookCache(bookKey)
   const fileName = cache?.bookFileName
   const format = fileName ? detectBookFormatFromFilename(fileName) : null
 
@@ -150,10 +207,10 @@ const getBookFileFromCache = async (
 }
 
 const persistResolvedBookFile = async (
-  bookConfig: Pick<BookConfig, 'title' | 'author'>,
+  bookKey: string,
   resolved: ResolvedBookFile
 ) => {
-  await saveBookCache(bookConfig, {
+  await saveBookCache(bookKey, {
     bookFileName: resolved.fileName,
   })
 }
@@ -163,106 +220,115 @@ export const invalidateBookFileIndex = () => {
   logInfo('book-repository', 'invalidate-book-file-index')
 }
 
-export const loadBookConfigs = async (): Promise<BookConfig[]> => {
+export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {
   const finishLog = createDurationLogger('book-repository', 'load-book-configs')
   const dirs = await getLocalDirNames()
-  const configs = await invoke<BookConfig[]>('load_books', { subdir: dirs.progress })
+  const storedBooks = await invoke<StoredBookPayload[]>('load_books', { subdir: dirs.progress })
+  const normalizedConfigs = storedBooks.map((entry) => ({
+    bookKey: getBookKeyFromConfigFilename(entry.filename),
+    config: normalizeBookConfig(entry.book),
+  }))
   finishLog({
-    total: configs.length,
+    total: normalizedConfigs.length,
   })
-  return configs
+  return normalizedConfigs
 }
 
-export const loadBookConfig = async (bookName: string): Promise<BookConfig> => {
+export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   const finishLog = createDurationLogger('book-repository', 'load-book-config', {
-    bookName,
+    bookKey,
   })
   const dirs = await getLocalDirNames()
-  const filename = toBookConfigFilename(bookName)
-  let bookConfigData: Uint8Array
+  const filename = toBookConfigFilename(bookKey)
+  const [localResult, cloudResult] = await Promise.allSettled([
+    invoke('read_file', {
+      subdir: dirs.progress,
+      filename,
+    }).then((data) => parseBookConfigData(toUint8Array(data as ArrayBufferLike | Uint8Array | number[]))),
+    invoke('webdav_get', {
+      subdir: dirs.progress,
+      filename,
+    }).then((data) => parseBookConfigData(toUint8Array(data as ArrayBufferLike | Uint8Array | number[]))),
+  ])
 
-  try {
-    const localData = await invoke('read_file', {
-      subdir: dirs.progress,
-      filename,
-    })
-    bookConfigData = toUint8Array(localData as ArrayBufferLike | Uint8Array | number[])
-  } catch (localError) {
-    const cloudConfigData = await invoke('webdav_get', {
-      subdir: dirs.progress,
-      filename,
-    })
-    bookConfigData = toUint8Array(cloudConfigData as ArrayBufferLike | Uint8Array | number[])
+  const localConfig = localResult.status === 'fulfilled' ? localResult.value : null
+  const cloudConfig = cloudResult.status === 'fulfilled' ? cloudResult.value : null
 
-    await invoke('write_file', {
-      subdir: dirs.progress,
-      filename,
-      contents: Array.from(bookConfigData),
-    })
-    logWarn('book-repository', 'load-book-config fallback-to-cloud', {
-      bookName,
-      fileName: filename,
-    })
+  if (!localConfig && !cloudConfig) {
+    throw new Error(`Book config not found for ${bookKey}`)
   }
 
-  const config = JSON.parse(new TextDecoder().decode(bookConfigData)) as BookConfig
+  const localTime = getDurChapterTime(localConfig)
+  const cloudTime = getDurChapterTime(cloudConfig)
+  const shouldUseCloud = Boolean(cloudConfig) && (!localConfig || cloudTime > localTime)
+  const config = shouldUseCloud ? (cloudConfig as BookConfig) : (localConfig as BookConfig)
+
+  if (shouldUseCloud) {
+    await persistBookConfigToLocal(filename, config)
+    logWarn('book-repository', 'load-book-config select-cloud', {
+      bookKey,
+      fileName: filename,
+      localTime,
+      cloudTime,
+    })
+  } else if (localConfig && (!cloudConfig || localTime > cloudTime)) {
+    try {
+      await persistBookConfigToCloud(filename, config)
+    } catch (error) {
+      logWarn('book-repository', 'load-book-config sync-local-to-cloud failed', {
+        bookKey,
+        fileName: filename,
+        error,
+      })
+    }
+  } else if (!localConfig) {
+    await persistBookConfigToLocal(filename, config)
+  }
+
   finishLog({
-    bookName,
-    title: config.title,
+    bookKey,
+    source: shouldUseCloud ? 'cloud' : 'local',
+    durChapterTime: getDurChapterTime(config),
   })
   return config
 }
 
-export const loadBookCacheByConfig = async (
-  bookConfig: Pick<BookConfig, 'title' | 'author'>
+export const loadBookCacheByKey = async (
+  bookKey: string
 ) => {
-  return loadBookCache(bookConfig)
+  return loadBookCache(bookKey)
 }
 
 export const saveBookConfig = async (
-  bookName: string,
+  bookKey: string,
   config: BookConfig
 ): Promise<void> => {
   const finishLog = createDurationLogger('book-repository', 'save-book-config', {
-    bookName,
+    bookKey,
   })
-  const nextConfig: BookConfig = {
-    ...config,
-    updatedAt: new Date().toISOString(),
-  }
-  const jsonString = JSON.stringify(nextConfig)
-  const jsonUint8Array = new TextEncoder().encode(jsonString)
-  const dirs = await getLocalDirNames()
-  const filename = toBookConfigFilename(bookName)
+  const filename = toBookConfigFilename(bookKey)
+  const persisted = toPersistedBookConfig(config)
+  const jsonBytes = encodeJson(persisted)
 
-  await invoke('save_file', {
-    subdir: dirs.progress,
-    filename,
-    contents: jsonString,
-  })
-
-  await invoke('webdav_upload', {
-    subdir: dirs.progress,
-    filename,
-    contents: Array.from(jsonUint8Array),
-  })
+  await persistBookConfigToLocal(filename, persisted)
+  await persistBookConfigToCloud(filename, persisted)
 
   finishLog({
-    bookName,
-    bytes: jsonUint8Array.byteLength,
+    bookKey,
+    bytes: jsonBytes.byteLength,
   })
 }
 
 export const resolveBookFile = async (
-  bookConfig: Pick<BookConfig, 'name' | 'title' | 'author'>
+  bookKey: string
 ): Promise<ResolvedBookFile> => {
   const finishLog = createDurationLogger('book-repository', 'resolve-book-file', {
-    bookName: bookConfig.name,
+    bookKey,
   })
-  const cachedResolved = await getBookFileFromCache(bookConfig)
+  const cachedResolved = await getBookFileFromCache(bookKey)
   if (cachedResolved) {
     finishLog({
-      bookName: bookConfig.name,
+      bookKey,
       source: 'cache',
       fileName: cachedResolved.fileName,
       format: cachedResolved.format,
@@ -274,11 +340,11 @@ export const resolveBookFile = async (
     await rebuildBookFileIndex()
   }
 
-  const indexed = cachedBookFileIndex?.get(bookConfig.name)
+  const indexed = cachedBookFileIndex?.get(bookKey)
   if (indexed) {
-    await persistResolvedBookFile(bookConfig, indexed)
+    await persistResolvedBookFile(bookKey, indexed)
     finishLog({
-      bookName: bookConfig.name,
+      bookKey,
       source: 'memory-index',
       fileName: indexed.fileName,
       format: indexed.format,
@@ -287,17 +353,17 @@ export const resolveBookFile = async (
   }
 
   const rebuiltIndex = await rebuildBookFileIndex()
-  const rebuilt = rebuiltIndex.get(bookConfig.name)
+  const rebuilt = rebuiltIndex.get(bookKey)
   if (!rebuilt) {
     logError('book-repository', 'resolve-book-file missing', undefined, {
-      bookName: bookConfig.name,
+      bookKey,
     })
-    throw new Error(`Book file not found for ${bookConfig.name}`)
+    throw new Error(`Book file not found for ${bookKey}`)
   }
 
-  await persistResolvedBookFile(bookConfig, rebuilt)
+  await persistResolvedBookFile(bookKey, rebuilt)
   finishLog({
-    bookName: bookConfig.name,
+    bookKey,
     source: 'rebuilt-index',
     fileName: rebuilt.fileName,
     format: rebuilt.format,
@@ -306,43 +372,43 @@ export const resolveBookFile = async (
 }
 
 export const resolveBookFormat = async (
-  bookConfig: Pick<BookConfig, 'name' | 'title' | 'author'>
+  bookKey: string
 ): Promise<BookFormat> => {
-  const resolved = await resolveBookFile(bookConfig)
+  const resolved = await resolveBookFile(bookKey)
   return resolved.format
 }
 
 export const ensureBookCache = async (
-  bookConfig: Pick<BookConfig, 'name' | 'title' | 'author'>
+  bookKey: string
 ): Promise<BookCachePayload> => {
   const finishLog = createDurationLogger('book-repository', 'ensure-book-cache', {
-    bookName: bookConfig.name,
+    bookKey,
   })
-  const currentCache = (await loadBookCache(bookConfig)) || {}
-  const resolved = await resolveBookFile(bookConfig)
+  const currentCache = (await loadBookCache(bookKey)) || {}
+  const resolved = await resolveBookFile(bookKey)
   const hasRequiredCache =
     resolved.format === 'epub'
-      ? Boolean(currentCache.bookFileName && currentCache.locations)
-      : Boolean(currentCache.bookFileName && currentCache.paragraphCount)
+      ? Boolean(currentCache.bookFileName && currentCache.locations && currentCache.title)
+      : Boolean(currentCache.bookFileName && currentCache.paragraphCount && currentCache.title)
 
   if (hasRequiredCache && (resolved.format !== 'epub' || currentCache.cover !== undefined)) {
     finishLog({
-      bookName: bookConfig.name,
+      bookKey,
       source: 'existing-cache',
       format: resolved.format,
     })
     return currentCache
   }
 
-  const bookData = await loadBookBinary(bookConfig)
+  const bookData = await loadBookBinary(bookKey)
   const payload = await primeBookCacheAfterImport(
-    bookConfig,
+    bookKey,
     toArrayBuffer(bookData.bookData),
     bookData.format,
     bookData.fileName
   )
   finishLog({
-    bookName: bookConfig.name,
+    bookKey,
     source: 'rebuilt-cache',
     format: bookData.format,
   })
@@ -350,12 +416,12 @@ export const ensureBookCache = async (
 }
 
 export const loadBookBinary = async (
-  bookConfig: Pick<BookConfig, 'name' | 'title' | 'author'>
+  bookKey: string
 ): Promise<LoadedBookBinary> => {
   const finishLog = createDurationLogger('book-repository', 'load-book-binary', {
-    bookName: bookConfig.name,
+    bookKey,
   })
-  const resolved = await resolveBookFile(bookConfig)
+  const resolved = await resolveBookFile(bookKey)
 
   try {
     const localBookData = await readLocalBookFile(resolved.fileName)
@@ -364,7 +430,7 @@ export const loadBookBinary = async (
       bookData: localBookData,
     }
     finishLog({
-      bookName: bookConfig.name,
+      bookKey,
       source: 'local',
       bytes: localBookData.byteLength,
       fileName: resolved.fileName,
@@ -372,7 +438,7 @@ export const loadBookBinary = async (
     return payload
   } catch (localError) {
     logWarn('book-repository', 'load-book-binary fallback-to-cloud', {
-      bookName: bookConfig.name,
+      bookKey,
       fileName: resolved.fileName,
     })
     const cloudBookData = await readCloudBookFile(resolved.fileName)
@@ -381,7 +447,7 @@ export const loadBookBinary = async (
       bookData: cloudBookData,
     }
     finishLog({
-      bookName: bookConfig.name,
+      bookKey,
       source: 'cloud',
       bytes: cloudBookData.byteLength,
       fileName: resolved.fileName,
@@ -393,7 +459,7 @@ export const loadBookBinary = async (
 export const getImportedBookName = async (
   fileName: string,
   fileBuffer: ArrayBuffer
-): Promise<{ name: string; format: BookFormat }> => {
+): Promise<{ bookKey: string; name: string; format: BookFormat }> => {
   const finishLog = createDurationLogger('book-repository', 'get-imported-book-name', {
     fileName,
   })
@@ -405,12 +471,14 @@ export const getImportedBookName = async (
   const meta = format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(fileName)
 
   const payload = {
-    name: buildBookName(meta.title, meta.author),
+    bookKey: buildBookName(meta.title, meta.author),
+    name: buildBookTitle(meta.title),
     format,
   }
   finishLog({
     fileName,
-    bookName: payload.name,
+    bookKey: payload.bookKey,
+    bookTitle: payload.name,
     format,
   })
   return payload

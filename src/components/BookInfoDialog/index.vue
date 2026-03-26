@@ -78,7 +78,7 @@ import {
 export default {
   name: 'BookInfoDialog',
   props: {
-    bookName: {
+    bookKey: {
       type: String,
       required: true,
     },
@@ -121,13 +121,13 @@ export default {
     async onOpen() {
       this.resetFields()
 
-      const bookConfig = await loadBookConfig(this.bookName)
-      const bookCache = await ensureBookCache(bookConfig)
+      const bookConfig = await loadBookConfig(this.bookKey)
+      const bookCache = await ensureBookCache(this.bookKey)
       this.bookCover = bookCache?.cover || this.defaultCover
       this.creator = bookConfig.author || ''
-      this.title = bookConfig.title || ''
+      this.title = bookCache?.title || ''
 
-      const loadedBook = await loadBookBinary(bookConfig)
+      const loadedBook = await loadBookBinary(this.bookKey)
       if (loadedBook.format !== 'epub') {
         return
       }

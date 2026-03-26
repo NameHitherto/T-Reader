@@ -1,4 +1,6 @@
 import ePub, { Rendition } from 'libs/epub.js'
+import { BookConfig } from '@/js/map'
+import { resolveEpubDisplayTarget } from '@/services/reader/epubProgressService'
 
 export interface EpubRenderResult {
   rendition: Rendition
@@ -20,7 +22,8 @@ export const destroyEpubRendition = (rendition: any) => {
 export const renderEpubBook = async (
   bookArrayBuffer: ArrayBuffer,
   flow: string,
-  location?: string,
+  explicitCfi?: string,
+  progressSnapshot?: Partial<BookConfig>,
   cachedLocations?: string
 ): Promise<EpubRenderResult> => {
   const ePubBook = ePub(bookArrayBuffer)
@@ -52,8 +55,9 @@ export const renderEpubBook = async (
     })
   }
 
-  if (location) {
-    await rendition.display(location)
+  const displayTarget = explicitCfi || (await resolveEpubDisplayTarget(ePubBook, progressSnapshot || {}))
+  if (displayTarget) {
+    await rendition.display(displayTarget)
   } else {
     await rendition.display()
   }

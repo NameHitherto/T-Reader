@@ -13,13 +13,21 @@ export const normalizeBookIdentityPart = (
   return sanitized || fallback
 }
 
+export const buildBookTitle = (title?: string): string => {
+  return normalizeBookIdentityPart(title, 'untitled')
+}
+
 export const buildBookName = (title?: string, author?: string): string => {
   const safeTitle = normalizeBookIdentityPart(title, 'untitled')
   const safeAuthor = normalizeBookIdentityPart(author, 'unknown')
   return `${safeTitle}_${safeAuthor}`
 }
 
-export const toBookConfigFilename = (bookName: string): string => `${bookName}.json`
+export const toBookConfigFilename = (bookKey: string): string => `${bookKey}.json`
 
-export const toBookCacheFilename = (title?: string, author?: string): string =>
-  `${buildBookName(title, author)}.json`
+export const getBookKeyFromConfigFilename = (filename: string): string => {
+  return filename.replace(/\.json$/i, '')
+}
+
+export const toBookCacheFilename = (bookKey: string): string =>
+  `${normalizeBookIdentityPart(bookKey, 'unknown_book')}.json`

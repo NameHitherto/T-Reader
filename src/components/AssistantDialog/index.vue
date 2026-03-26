@@ -99,7 +99,7 @@ interface StreamPayload {
 export default defineComponent({
   name: 'AssistantDialog',
   props: {
-    bookName: {
+    bookKey: {
       type: [String, null],
       required: true,
     },
@@ -125,11 +125,11 @@ export default defineComponent({
   },
   methods: {
     async onOpen() {
-      if (this.bookName === null) {
-        console.error('bookName is required')
+      if (this.bookKey === null) {
+        console.error('bookKey is required')
         return
       }
-      this.referedBookInfo = await extractEpubContent(this.bookName)
+      this.referedBookInfo = await extractEpubContent(this.bookKey)
     },
     async sendMessage() {
       if (!this.inputMessage) return

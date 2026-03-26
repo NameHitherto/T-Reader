@@ -1,8 +1,11 @@
-import ePub from 'libs/epub.js'
 import { BookConfig } from '@/js/map'
 import { BookFormat } from '@/js/bookFormat'
 import { BookCachePayload } from '@/services/book/bookCacheService'
-import { parseTxtLocation } from '@/services/reader/txtReaderService'
+import {
+  calculateShelfProgress,
+  isUnreadProgressSnapshot,
+  normalizeBookConfig,
+} from '@/services/reader/progressSnapshotService'
 
 const clampProgress = (value: number): number => {
   if (Number.isNaN(value)) {
@@ -12,27 +15,27 @@ const clampProgress = (value: number): number => {
   return Math.min(100, Math.max(0, value))
 }
 
-const isUnreadByFormat = (location: string | undefined, format: BookFormat): boolean => {
-  if (format === 'txt') {
-    return !location || location === '0'
-  }
-
-  return !location
-}
-
 export const buildLastReadLabel = (
-  bookConfig: Pick<BookConfig, 'updatedAt' | 'location'>,
+  bookConfig: Pick<BookConfig, 'durChapterIndex' | 'durChapterPos' | 'durChapterTitle' | 'durChapterTime'>,
   progressValue: number
 ): string => {
-  if (progressValue <= 0 || !bookConfig.updatedAt) {
+  const snapshot = normalizeBookConfig({
+    name: '',
+    author: '',
+    ...bookConfig,
+  })
+  const rawTimestamp = snapshot.durChapterTime
+
+  if (
+    progressValue <= 0 ||
+    typeof rawTimestamp !== 'number' ||
+    Number.isNaN(rawTimestamp) ||
+    isUnreadProgressSnapshot(snapshot)
+  ) {
     return '未读'
   }
 
-  const target = new Date(bookConfig.updatedAt)
-  if (Number.isNaN(target.getTime())) {
-    return '未读'
-  }
-
+  const target = new Date(rawTimestamp)
   const now = new Date()
   const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const startOfTarget = new Date(
@@ -59,66 +62,11 @@ export const buildLastReadLabel = (
   ).padStart(2, '0')}`
 }
 
-export const calculateTxtProgress = (
-  location: string | undefined,
-  paragraphCount?: number
-): number => {
-  if (!paragraphCount || paragraphCount <= 1) {
-    return 0
-  }
-
-  const paragraphIndex = parseTxtLocation(location)
-  return clampProgress((paragraphIndex / Math.max(1, paragraphCount - 1)) * 100)
-}
-
-export const calculateEpubProgress = async (
-  bookData: Uint8Array,
-  location: string | undefined,
-  cachedLocations?: string
-): Promise<number> => {
-  if (!location || !cachedLocations) {
-    return 0
-  }
-
-  const arrayBuffer = bookData.buffer.slice(
-    bookData.byteOffset,
-    bookData.byteOffset + bookData.byteLength
-  ) as ArrayBuffer
-  const book = ePub(arrayBuffer)
-
-  try {
-    await book.ready
-    book.locations.load(cachedLocations)
-    return clampProgress(book.locations.percentageFromCfi(location) * 100)
-  } catch (error) {
-    console.warn('计算 EPUB 阅读进度失败:', error)
-    return 0
-  } finally {
-    try {
-      book.destroy?.()
-    } catch (error) {
-      console.warn('销毁 EPUB 进度实例失败:', error)
-    }
-  }
-}
-
 export const deriveShelfProgress = async (
-  bookConfig: Pick<BookConfig, 'location'>,
+  bookConfig: BookConfig,
   format: BookFormat,
   cache: BookCachePayload,
   bookData?: Uint8Array
 ): Promise<number> => {
-  if (isUnreadByFormat(bookConfig.location, format)) {
-    return 0
-  }
-
-  if (format === 'txt') {
-    return calculateTxtProgress(bookConfig.location, cache.paragraphCount)
-  }
-
-  if (!bookData) {
-    return 0
-  }
-
-  return calculateEpubProgress(bookData, bookConfig.location, cache.locations)
+  return clampProgress(await calculateShelfProgress(format, bookData, bookConfig, cache))
 }

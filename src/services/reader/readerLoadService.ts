@@ -15,11 +15,11 @@ export interface ReaderLoadResult {
   bookArrayBuffer: ArrayBuffer
 }
 
-export const loadReaderBookData = async (bookName: string): Promise<ReaderLoadResult> => {
-  const bookConfig = await loadBookConfig(bookName)
+export const loadReaderBookData = async (bookKey: string): Promise<ReaderLoadResult> => {
+  const bookConfig = await loadBookConfig(bookKey)
   const [bookCache, loadedBook] = await Promise.all([
-    ensureBookCache(bookConfig),
-    loadBookBinary(bookConfig),
+    ensureBookCache(bookKey),
+    loadBookBinary(bookKey),
   ])
   const bookArrayBuffer = loadedBook.bookData.buffer.slice(
     loadedBook.bookData.byteOffset,

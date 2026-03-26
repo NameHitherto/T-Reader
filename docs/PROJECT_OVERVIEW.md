@@ -167,7 +167,7 @@ src-tauri/
 
 | 文件 | 职责 |
 |------|------|
-| `bookIdentity.ts` | 生成书籍唯一标识 `name`、配置文件名、缓存文件名 |
+| `bookIdentity.ts` | 生成书名 `name`、内部 key、配置文件名、缓存文件名 |
 | `bookImportService.ts` | 从导入文件生成 `BookConfig` |
 | `bookRepository.ts` | 书籍配置、书籍文件、缓存、索引的统一仓储入口 |
 | `bookMarksRepository.ts` | 从 `system/BookMarks.json` 统一读写所有书籍笔记 |
@@ -184,7 +184,7 @@ src-tauri/
   -> parse meta
   -> buildBookName(title, author)
   -> buildBookConfigFromImport()
-  -> 保存 books/*.epub|txt + bookProgress/*.json
+  -> 保存 books/*.epub|txt + bookProgress/<bookKey>.json
   -> 笔记独立保存到 system/BookMarks.json
   -> primeBookCacheAfterImport()
   -> 书架侧通过 bookRepository/loadBookConfigs + cache 展示
@@ -218,15 +218,15 @@ src-tauri/
 当前阅读流程：
 
 ```
-主窗口 emit LOAD_BOOK_NAME
+主窗口 emit LOAD_BOOK_KEY
   -> ReaderApp 注册窗口事件
-  -> loadReaderBookData(bookName)
+  -> loadReaderBookData(bookKey)
   -> resolve format + config + cache + binary
   -> format adapter 渲染
   -> applyReaderStyles()
   -> 从 BookMarks.json 恢复当前书 location / bookmarks
   -> 用户交互
-  -> saveReaderProgress(bookName, format, location, bookMarks)
+  -> saveReaderProgress(bookKey, format, location, bookMarks)
 ```
 
 ### 3.3 文件系统域：`src/services/fileSystem/`
@@ -288,7 +288,7 @@ src-tauri/
 | 命令 | 说明 |
 |------|------|
 | `save_file` | 以文本形式保存文件 |
-| `load_books` | 读取 `bookProgress` 下所有书籍配置 |
+| `load_books` | 读取 `bookProgress` 下所有书籍配置与配置文件名 |
 | `delete_book` | 删除指定子目录中的文件 |
 | `read_file` | 从本地目录读取二进制文件 |
 | `write_file` | 写入二进制文件 |
@@ -352,16 +352,18 @@ WebDAV/T-Reader/
 ```ts
 interface BookConfig {
   name: string
-  title: string
   author: string
-  location?: string
-  updatedAt?: string
+  durChapterIndex: number
+  durChapterPos: number
+  durChapterTitle: string
+  durChapterTime: number
 }
 ```
 
 说明：
 
-- 当前书籍唯一标识字段已经统一为 `name`
+- `name` 当前仅表示纯标题，不再承担内部唯一标识职责
+- 内部唯一标识统一来自 `bookProgress/<bookKey>.json` 的文件名前缀
 - 旧的 `id` 已经在当前主流程中移除
 - 书籍格式、封面、进度等派生信息由仓储/缓存/展示服务动态补足，不再全部固化在 `BookConfig`
 - 笔记数据已从 `BookConfig` 拆出，统一保存在 `system/BookMarks.json`
@@ -450,8 +452,8 @@ pub struct Book {
 
 ```ts
 export const WINDOW_EVENTS = {
-  READY_TO_RECEIVE_BOOK_NAME: 'ready-to-receive-book-name',
-  LOAD_BOOK_NAME: 'load-book-name',
+  READY_TO_RECEIVE_BOOK_KEY: 'ready-to-receive-book-key',
+  LOAD_BOOK_KEY: 'load-book-key',
   SHOW_BOOK_INFO: 'show-book-info',
   SHOW_ASSISTANT: 'show-assistant',
   SHOW_HELP: 'show-help',
@@ -461,17 +463,18 @@ export const WINDOW_EVENTS = {
 
 说明：
 
-- 当前事件载荷已统一使用 `{ name, cfi }`
+- 当前事件载荷已统一使用 `{ bookKey, cfi }`
 - 旧的 `LOAD_BOOK_ID / READY_TO_RECEIVE_BOOK_ID` 已废弃
 
 ---
 
 ## 六、关键技术决策
 
-### 6.1 书籍标识统一使用 `name`
+### 6.1 书籍标识拆分为标题与内部 key
 
-- 当前领域命名中，书籍唯一标识统一为 `name`
-- `name` 由标题与作者派生生成，用于：
+- `BookConfig.name` 仅保存纯标题，用于展示与业务文案
+- 内部唯一标识 `bookKey` 不写入 `BookConfig`，统一来自配置文件名前缀
+- `bookKey` 继续由标题与作者派生生成，用于：
   - 书籍配置文件名
   - 主窗口与阅读器之间的事件传递
   - 书签归属关联

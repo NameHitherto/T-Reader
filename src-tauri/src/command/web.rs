@@ -26,18 +26,17 @@ fn get_remote_file_url(base_url: &str, subdir: &str, filename: &str) -> String {
     format!("{}/{}/{}", base_url.trim_end_matches('/'), subdir, filename)
 }
 
-fn read_updated_at(contents: &[u8]) -> Option<String> {
+fn read_dur_chapter_time(contents: &[u8]) -> Option<i64> {
     let value = serde_json::from_slice::<serde_json::Value>(contents).ok()?;
     value
-        .get("updatedAt")
-        .and_then(|updated_at| updated_at.as_str())
-        .map(|updated_at| updated_at.to_string())
+        .get("durChapterTime")
+        .and_then(|dur_chapter_time| dur_chapter_time.as_i64())
 }
 
 fn should_upload_local_config(local_contents: &[u8], cloud_contents: &[u8]) -> bool {
     match (
-        read_updated_at(local_contents),
-        read_updated_at(cloud_contents),
+        read_dur_chapter_time(local_contents),
+        read_dur_chapter_time(cloud_contents),
     ) {
         (Some(local), Some(cloud)) => local > cloud,
         (Some(_), None) => true,

@@ -59,7 +59,7 @@
     </el-menu>
   </el-drawer>
   <!-- 书籍详情信息 -->
-  <book-info-dialog v-model="bookInfoVisible" :bookName="bookIsReading" />
+  <book-info-dialog v-model="bookInfoVisible" :bookKey="currentBookKey" />
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
@@ -69,7 +69,7 @@
     @delete="(markId: string) => delBookMark(markId)"
   />
   <!-- AI 助手 -->
-  <AssistantDialog v-model="assistantVisible" :bookName="bookIsReading" />
+  <AssistantDialog v-model="assistantVisible" :bookKey="currentBookKey" />
   <!-- 功能帮助 -->
   <HelpDialog v-model="helpVisible" />
   <!-- 阅读进度 -->
@@ -96,7 +96,6 @@ import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
 import { BookFormat } from './js/bookFormat'
 import { WINDOW_EVENTS } from '@/constants/events'
 import {
-  parseTxtLocation,
   calcTxtProgress,
   findParagraphIndexByScroll,
 } from '@/services/reader/txtReaderService'
@@ -105,6 +104,7 @@ import {
   renderEpubBook,
 } from '@/services/reader/adapters/epubAdapter'
 import { renderTxtBook } from '@/services/reader/adapters/txtAdapter'
+import { resolveReaderDisplayTarget } from '@/services/reader/progressSnapshotService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
 import { registerReaderWindowEvents } from '@/services/reader/readerWindowEventsService'
@@ -137,7 +137,7 @@ import {
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
-import { loadBookMarksByBookName } from '@/services/book/bookMarksRepository'
+import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 
 export default {
   name: 'ReaderApp',
@@ -150,10 +150,10 @@ export default {
     HelpDialog,
   },
   setup() {
-    // 当前正在阅读的书籍 name
-    const bookIsReading = ref<string | null>(null)
-    // 待加载书籍的 name
-    const pendingBookName = ref<string | null>(null)
+    // 当前正在阅读的书籍内部 key
+    const currentBookKey = ref<string | null>(null)
+    // 待加载书籍的内部 key
+    const pendingBookKey = ref<string | null>(null)
     // 书籍信息弹窗
     const bookInfoVisible = ref(false)
     // EPUB 渲染对象
@@ -330,13 +330,12 @@ export default {
       await saveReaderConfigToDisk(readerConfig.value)
     }
 
-    const restoreTxtLocation = async (location?: string | null) => {
+    const restoreTxtLocation = async (paragraphIndex = 0) => {
       await nextTick()
       const txtReader = document.getElementById('txt-reader')
       if (!txtReader) {
         return
       }
-      const paragraphIndex = parseTxtLocation(location)
       txtCurrentParagraph.value = paragraphIndex
       const paragraphElement = txtReader.querySelector(
         `[data-idx="${paragraphIndex}"]`
@@ -350,12 +349,12 @@ export default {
 
     // 保存阅读进度
     const saveReaderRendition = async () => {
-      if (!bookIsReading.value) {
+      if (!currentBookKey.value) {
         return
       }
 
       const savedConfig = await saveReaderProgress({
-        bookName: bookIsReading.value,
+        bookKey: currentBookKey.value,
         format: currentBookFormat.value,
         rendition: rendition.value,
         txtCurrentParagraph: txtCurrentParagraph.value,
@@ -369,14 +368,14 @@ export default {
 
     // 初始化当前书籍书签
     const initAllBookMarks = async () => {
-      if (!bookIsReading.value) {
+      if (!currentBookKey.value) {
         return
       }
 
       initBookMarksForBook(
         rendition.value,
         bookMarks.value,
-        bookIsReading.value,
+        currentBookKey.value,
         defaultHighlightColor
       )
     }
@@ -386,7 +385,7 @@ export default {
       const tempId = generateID(3)
       const bookMark: BookMark = {
         id: tempId,
-        bookName: bookIsReading.value ? bookIsReading.value : '',
+        bookName: currentBookKey.value ? currentBookKey.value : '',
         bookCfi: selectedRange.value ? selectedRange.value : '',
         bookTitle: (await rendition.value?.book?.loaded?.metadata)?.title || '未知书籍',
         content: selectedText.value,
@@ -417,9 +416,9 @@ export default {
     }
 
     registerReaderWindowEvents({
-      onLoadBookName: async (event) => {
+      onLoadBookKey: async (event) => {
         await saveReaderRendition()
-        pendingBookName.value = event.payload.name
+        pendingBookKey.value = event.payload.bookKey
         if (event.payload.cfi !== '') {
           await loadBook(event.payload.cfi)
         } else {
@@ -456,7 +455,7 @@ export default {
     })
 
     // 通知主窗口阅读器已准备好接收书籍 name
-    getCurrentWebviewWindow().emitTo('main', WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_NAME)
+    getCurrentWebviewWindow().emitTo('main', WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY)
 
     // 绑定 Rendition 事件
     const handleRenditionEvents = () => {
@@ -464,7 +463,7 @@ export default {
         bindRenditionEvents(rendition.value, {
           onRelocated: (location) => {
             if (location.start) {
-              activeChapter.value = location.end.href
+              activeChapter.value = location.start.href
             }
             const percentage = location.start.percentage
             if (percentage !== undefined && percentage !== null) {
@@ -515,17 +514,17 @@ export default {
 
     // 加载书籍
     const loadBook = async (cfi?: string) => {
-      if (!pendingBookName.value) {
+      if (!pendingBookKey.value) {
         setTimeout(loadBook, 500) // 500ms 后重试加载书籍
         return
       }
-      // 将待加载 name 设为当前阅读书籍
-      bookIsReading.value = pendingBookName.value
-      // 书籍开始加载后清空待处理 name，避免重复触发
-      pendingBookName.value = null
+      // 将待加载 key 设为当前阅读书籍
+      currentBookKey.value = pendingBookKey.value
+      // 书籍开始加载后清空待处理 key，避免重复触发
+      pendingBookKey.value = null
 
       await withReaderLoading(async () => {
-        const loadedBook = await loadReaderBookData(bookIsReading.value as string)
+        const loadedBook = await loadReaderBookData(currentBookKey.value as string)
         const { bookConfig, bookCache, format, bookData, bookArrayBuffer } = loadedBook
 
         currentBookConfig.value = bookConfig
@@ -547,12 +546,15 @@ export default {
         if (currentBookFormat.value === 'txt') {
           toc.value = []
           activeChapter.value = ''
+          const displayTarget = await resolveReaderDisplayTarget('txt', bookData, bookConfig)
+          const paragraphIndex =
+            typeof displayTarget === 'number' ? displayTarget : 0
 
-          const txtBook = renderTxtBook(bookData, cfi || bookConfig.location)
+          const txtBook = renderTxtBook(bookData, paragraphIndex)
           txtParagraphs.value = txtBook.paragraphs
 
           await applyReaderStyle()
-          await restoreTxtLocation(txtBook.location)
+          await restoreTxtLocation(txtBook.paragraphIndex)
           const txtReader = document.getElementById('txt-reader')
           if (txtReader) {
             readingPercentage.value = calcTxtProgress(
@@ -567,7 +569,8 @@ export default {
         const epubBook = await renderEpubBook(
           bookArrayBuffer as ArrayBuffer,
           readerConfig.value.flow,
-          cfi || bookConfig.location,
+          cfi,
+          bookConfig,
           bookCache?.locations
         )
         rendition.value = epubBook.rendition
@@ -579,7 +582,7 @@ export default {
         if (!bookCache?.locations) {
           queueMicrotask(() => {
             void primeBookCacheAfterImport(
-              bookConfig,
+              currentBookKey.value as string,
               bookArrayBuffer as ArrayBuffer,
               format,
               bookCache.bookFileName || `${bookConfig.name}.${format}`
@@ -589,13 +592,13 @@ export default {
           })
         }
 
-        const currentBookMarks = await loadBookMarksByBookName(bookConfig.name)
+        const currentBookMarks = await loadBookMarksByBookKey(currentBookKey.value as string)
         if (currentBookMarks.length > 0) {
           bookMarkStore.importBookMark(currentBookMarks)
           void initAllBookMarks()
         }
 
-        console.log('EPUB 解析完成:', bookIsReading.value, bookConfig.title)
+        console.log('EPUB 解析完成:', currentBookKey.value, bookCache?.title || bookConfig.name)
       }).catch((e) => {
         console.log('书籍加载失败', e)
       })
@@ -739,13 +742,13 @@ export default {
     })
 
     return {
-      pendingBookName,
+      pendingBookKey,
       nextPage,
       prevPage,
       currentBookFormat,
       txtParagraphs,
       onTxtScroll,
-      bookIsReading,
+      currentBookKey,
       readerConfig,
       tocDrawer,
       tocMenuRef,

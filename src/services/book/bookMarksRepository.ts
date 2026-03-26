@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import { BookMark } from '@/store/bookMark'
+import { encodeJson } from '@/utils/json'
 
 export interface BookMarksFile {
   updatedAt: string
@@ -37,9 +38,9 @@ export const loadAllBookMarks = async (): Promise<BookMark[]> => {
   return Array.isArray(payload?.bookMarks) ? payload.bookMarks : []
 }
 
-export const loadBookMarksByBookName = async (bookName: string): Promise<BookMark[]> => {
+export const loadBookMarksByBookKey = async (bookKey: string): Promise<BookMark[]> => {
   const bookMarks = await loadAllBookMarks()
-  return bookMarks.filter((bookMark) => bookMark.bookName === bookName)
+  return bookMarks.filter((bookMark) => bookMark.bookName === bookKey)
 }
 
 export const saveAllBookMarks = async (bookMarks: BookMark[]): Promise<void> => {
@@ -49,12 +50,12 @@ export const saveAllBookMarks = async (bookMarks: BookMark[]): Promise<void> => 
   await invoke('write_file', {
     subdir: dirs.system,
     filename: BOOK_MARKS_FILENAME,
-    contents: Array.from(new TextEncoder().encode(JSON.stringify(payload))),
+    contents: Array.from(encodeJson(payload)),
   })
 }
 
 export const replaceBookMarksForBook = async (
-  bookName: string,
+  bookKey: string,
   nextMarks: BookMark[]
 ): Promise<void> => {
   const payload = await readBookMarksFile()
@@ -63,16 +64,16 @@ export const replaceBookMarksForBook = async (
   }
 
   const bookMarks = payload?.bookMarks || []
-  const remainingMarks = bookMarks.filter((bookMark) => bookMark.bookName !== bookName)
+  const remainingMarks = bookMarks.filter((bookMark) => bookMark.bookName !== bookKey)
   await saveAllBookMarks(remainingMarks.concat(nextMarks))
 }
 
-export const removeBookMarksByBookName = async (bookName: string): Promise<void> => {
+export const removeBookMarksByBookKey = async (bookKey: string): Promise<void> => {
   const payload = await readBookMarksFile()
   if (!payload) {
     return
   }
 
   const bookMarks = payload.bookMarks
-  await saveAllBookMarks(bookMarks.filter((bookMark) => bookMark.bookName !== bookName))
+  await saveAllBookMarks(bookMarks.filter((bookMark) => bookMark.bookName !== bookKey))
 }

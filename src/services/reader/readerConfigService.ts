@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import { encodeJson } from '@/utils/json'
 
 export const loadReaderConfigFromDisk = async () => {
   const dirs = await getLocalDirNames()
@@ -12,10 +13,9 @@ export const loadReaderConfigFromDisk = async () => {
 
 export const saveReaderConfigToDisk = async (config: Record<string, any>) => {
   const dirs = await getLocalDirNames()
-  const jsonStr = JSON.stringify(config)
   await invoke('write_file', {
     subdir: dirs.system,
     filename: 'ReaderConfig.json',
-    contents: Array.from(new TextEncoder().encode(jsonStr)),
+    contents: Array.from(encodeJson(config)),
   })
 }

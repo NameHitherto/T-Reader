@@ -1,21 +1,21 @@
 import { invoke } from '@tauri-apps/api/core'
 import ePub from 'libs/epub.js'
-import { BookConfig } from '@/js/map'
 import { BookFormat } from '@/js/bookFormat'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
+import { parseTxtMeta } from '@/services/book/parsers/txtParser'
 import { splitTextToParagraphs } from '@/services/reader/txtReaderService'
 import { toBookCacheFilename } from '@/services/book/bookIdentity'
 import { createDurationLogger, logWarn } from '@/utils/logger'
+import { stringifyJson } from '@/utils/json'
 
 export interface BookCachePayload {
+  title?: string
   cover?: string
   locations?: string
   paragraphCount?: number
   bookFileName?: string
 }
-
-type BookCacheIdentity = Pick<BookConfig, 'title' | 'author'>
 
 const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
   if (data instanceof Uint8Array) {
@@ -29,14 +29,12 @@ const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array
   return new Uint8Array(data)
 }
 
-export const getBookCacheFilename = (title?: string, author?: string): string => {
-  return toBookCacheFilename(title, author)
+export const getBookCacheFilename = (bookKey: string): string => {
+  return toBookCacheFilename(bookKey)
 }
 
-export const loadBookCache = async (
-  bookConfig: Pick<BookConfig, 'title' | 'author'>
-): Promise<BookCachePayload | null> => {
-  const filename = getBookCacheFilename(bookConfig.title, bookConfig.author)
+export const loadBookCache = async (bookKey: string): Promise<BookCachePayload | null> => {
+  const filename = getBookCacheFilename(bookKey)
   const finishLog = createDurationLogger('book-cache-service', 'load-book-cache', {
     fileName: filename,
   })
@@ -66,15 +64,15 @@ export const loadBookCache = async (
 }
 
 export const saveBookCache = async (
-  bookConfig: Pick<BookConfig, 'title' | 'author'>,
+  bookKey: string,
   payload: BookCachePayload
 ): Promise<BookCachePayload> => {
-  const filename = getBookCacheFilename(bookConfig.title, bookConfig.author)
+  const filename = getBookCacheFilename(bookKey)
   const finishLog = createDurationLogger('book-cache-service', 'save-book-cache', {
     fileName: filename,
   })
   const dirs = await getLocalDirNames()
-  const currentCache = (await loadBookCache(bookConfig)) || {}
+  const currentCache = (await loadBookCache(bookKey)) || {}
   const nextCache = {
     ...currentCache,
     ...payload,
@@ -83,7 +81,7 @@ export const saveBookCache = async (
   await invoke('save_file', {
     subdir: dirs.cached,
     filename,
-    contents: JSON.stringify(nextCache),
+    contents: stringifyJson(nextCache),
   })
 
   finishLog({
@@ -128,7 +126,7 @@ const extractTxtParagraphCount = (fileBuffer: ArrayBuffer): number => {
 }
 
 export const primeBookCacheAfterImport = async (
-  bookConfig: BookCacheIdentity,
+  bookKey: string,
   fileBuffer: ArrayBuffer,
   format: BookFormat,
   bookFileName: string
@@ -140,10 +138,11 @@ export const primeBookCacheAfterImport = async (
 
   if (format !== 'epub') {
     const payload = {
+      title: parseTxtMeta(bookFileName).title,
       paragraphCount: extractTxtParagraphCount(fileBuffer),
       bookFileName,
     }
-    await saveBookCache(bookConfig, payload)
+    await saveBookCache(bookKey, payload)
     finishLog({
       fileName: bookFileName,
       format,
@@ -157,7 +156,8 @@ export const primeBookCacheAfterImport = async (
       parseEpubMeta(fileBuffer, { includeCover: true }),
       extractEpubLocations(fileBuffer),
     ])
-    const payload = await saveBookCache(bookConfig, {
+    const payload = await saveBookCache(bookKey, {
+      title: meta.title,
       cover: meta.cover || '',
       locations,
       bookFileName,
@@ -178,7 +178,7 @@ export const primeBookCacheAfterImport = async (
     const payload = {
       bookFileName,
     }
-    await saveBookCache(bookConfig, payload)
+    await saveBookCache(bookKey, payload)
     finishLog({
       fileName: bookFileName,
       format,
