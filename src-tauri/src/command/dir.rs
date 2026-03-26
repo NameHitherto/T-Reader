@@ -2,7 +2,7 @@ use dirs::document_dir;
 use serde::Serialize;
 use std::fs;
 
-use crate::logging::{finish_timer, log_error, log_info, log_warn, start_timer};
+use crate::logging::{log_error, log_info, log_warn};
 
 const LOCAL_BOOKS_DIR: &str = "books";
 const LOCAL_PROGRESS_DIR: &str = "bookProgress";
@@ -62,7 +62,6 @@ pub fn get_local_system_dir() -> Result<std::path::PathBuf, String> {
 }
 
 pub fn check_local_dirs() -> Result<std::path::PathBuf, String> {
-    let started_at = start_timer("dir", "check-local-dirs");
     let root_path = get_local_root_dir()?;
 
     if !root_path.exists() {
@@ -104,12 +103,10 @@ pub fn check_local_dirs() -> Result<std::path::PathBuf, String> {
         }
     }
 
-    finish_timer("dir", "check-local-dirs", started_at);
     Ok(root_path)
 }
 
 pub async fn check_cloud_dirs(settings: &crate::model::Settings) -> Result<(), String> {
-    let started_at = start_timer("dir", "check-cloud-dirs");
     let client = reqwest::Client::new();
 
     for subdir in CLOUD_SUBDIRS {
@@ -153,7 +150,6 @@ pub async fn check_cloud_dirs(settings: &crate::model::Settings) -> Result<(), S
         .send()
         .await;
 
-    finish_timer("dir", "check-cloud-dirs", started_at);
     Ok(())
 }
 
