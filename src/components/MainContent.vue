@@ -146,7 +146,7 @@
 </template>
 
 <script lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
@@ -466,20 +466,34 @@ export default {
 
         await removeBookMarksByBookName(bookName)
 
-        await invoke('webdav_delete', {
-          subdir: dirs.progress,
-          filename: toBookConfigFilename(bookName),
-        })
-
-        if (resolvedBookFile) {
-          await invoke('webdav_delete', {
-            subdir: dirs.books,
-            filename: resolvedBookFile.fileName,
-          })
-        }
-
         invalidateBookFileIndex()
         books.value = books.value.filter((book) => book.name !== bookName)
+        showMenu.value = false
+
+        queueMicrotask(() => {
+          void Promise.allSettled([
+            invoke('webdav_delete', {
+              subdir: dirs.progress,
+              filename: toBookConfigFilename(bookName),
+            }),
+            ...(resolvedBookFile
+              ? [
+                  invoke('webdav_delete', {
+                    subdir: dirs.books,
+                    filename: resolvedBookFile.fileName,
+                  }),
+                ]
+              : []),
+          ]).then((results) => {
+            const rejected = results.find((result) => result.status === 'rejected')
+            if (rejected) {
+              logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
+                bookName,
+              })
+            }
+          })
+        })
+
         finishLog({
           total: books.value.length,
         })
@@ -613,6 +627,10 @@ export default {
 
     onMounted(() => {
       loadBooks()
+    })
+
+    onUnmounted(() => {
+      unlistenReady.value?.()
     })
 
     return {
