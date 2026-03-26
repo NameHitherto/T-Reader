@@ -1,4 +1,5 @@
 mod command;
+mod logging;
 mod model;
 
 use command::{

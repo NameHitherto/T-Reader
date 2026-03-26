@@ -8,8 +8,11 @@ use std::io::{Read, Write};
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
 
-use crate::command::dir::{check_cloud_dirs, check_local_dirs, CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR};
+use crate::command::dir::{
+    check_cloud_dirs, check_local_dirs, CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR,
+};
 use crate::command::load_settings;
+use crate::logging::{finish_timer, log_error, log_info, start_timer};
 
 fn is_supported_book_file(filename: &str) -> bool {
     filename.ends_with(".epub") || filename.ends_with(".txt")
@@ -32,7 +35,10 @@ fn read_updated_at(contents: &[u8]) -> Option<String> {
 }
 
 fn should_upload_local_config(local_contents: &[u8], cloud_contents: &[u8]) -> bool {
-    match (read_updated_at(local_contents), read_updated_at(cloud_contents)) {
+    match (
+        read_updated_at(local_contents),
+        read_updated_at(cloud_contents),
+    ) {
         (Some(local), Some(cloud)) => local > cloud,
         (Some(_), None) => true,
         (None, Some(_)) => false,
@@ -40,7 +46,14 @@ fn should_upload_local_config(local_contents: &[u8], cloud_contents: &[u8]) -> b
     }
 }
 
-async fn list_remote_files(client: &Client, base_url: &str, subdir: &str, username: &str, password: &str) -> Result<Vec<String>, String> {
+async fn list_remote_files(
+    client: &Client,
+    base_url: &str,
+    subdir: &str,
+    username: &str,
+    password: &str,
+) -> Result<Vec<String>, String> {
+    let started_at = start_timer("webdav", "list-remote-files");
     let url = format!("{}/{}/", base_url.trim_end_matches('/'), subdir);
     let response = client
         .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
@@ -51,11 +64,20 @@ async fn list_remote_files(client: &Client, base_url: &str, subdir: &str, userna
         .map_err(|e| format!("failed to list remote files: {:?}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("failed to list remote files: {:?}", response.status()));
+        return Err(format!(
+            "failed to list remote files: {:?}",
+            response.status()
+        ));
     }
 
     let body = response.text().await.map_err(|e| e.to_string())?;
-    parse_webdav_response(&body)
+    let files = parse_webdav_response(&body)?;
+    log_info(
+        "webdav",
+        &format!("list-remote-files subdir={} total={}", subdir, files.len()),
+    );
+    finish_timer("webdav", "list-remote-files", started_at);
+    Ok(files)
 }
 
 fn list_local_files(dir_path: &Path) -> Result<Vec<String>, String> {
@@ -82,6 +104,7 @@ async fn download_remote_file(
     username: &str,
     password: &str,
 ) -> Result<Vec<u8>, String> {
+    let started_at = start_timer("webdav", "download-remote-file");
     let url = get_remote_file_url(base_url, subdir, filename);
     let response = client
         .get(&url)
@@ -91,10 +114,24 @@ async fn download_remote_file(
         .map_err(|e| format!("failed to download remote file: {:?}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("failed to download remote file: {:?}", response.status()));
+        return Err(format!(
+            "failed to download remote file: {:?}",
+            response.status()
+        ));
     }
 
-    Ok(response.bytes().await.map_err(|e| e.to_string())?.to_vec())
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?.to_vec();
+    log_info(
+        "webdav",
+        &format!(
+            "download-remote-file subdir={} filename={} bytes={}",
+            subdir,
+            filename,
+            bytes.len()
+        ),
+    );
+    finish_timer("webdav", "download-remote-file", started_at);
+    Ok(bytes)
 }
 
 async fn upload_remote_file(
@@ -106,6 +143,8 @@ async fn upload_remote_file(
     username: &str,
     password: &str,
 ) -> Result<(), String> {
+    let started_at = start_timer("webdav", "upload-remote-file");
+    let content_len = contents.len();
     let url = get_remote_file_url(base_url, subdir, filename);
     let response = client
         .put(&url)
@@ -116,18 +155,30 @@ async fn upload_remote_file(
         .map_err(|e| format!("failed to upload remote file: {:?}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("failed to upload remote file: {:?}", response.status()));
+        return Err(format!(
+            "failed to upload remote file: {:?}",
+            response.status()
+        ));
     }
 
+    log_info(
+        "webdav",
+        &format!(
+            "upload-remote-file subdir={} filename={} bytes={}",
+            subdir, filename, content_len
+        ),
+    );
+    finish_timer("webdav", "upload-remote-file", started_at);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn webdav_upload(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(), String> {
+    let started_at = start_timer("webdav", "webdav-upload");
     let settings = load_settings()?;
     check_cloud_dirs(&settings).await?;
     let client = Client::new();
-    upload_remote_file(
+    let result = upload_remote_file(
         &client,
         &settings.webdav_url,
         subdir,
@@ -136,14 +187,19 @@ pub async fn webdav_upload(subdir: &str, filename: &str, contents: Vec<u8>) -> R
         &settings.webdav_user,
         &settings.webdav_pass,
     )
-    .await
+    .await;
+    if result.is_ok() {
+        finish_timer("webdav", "webdav-upload", started_at);
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn webdav_get(subdir: &str, filename: &str) -> Result<Vec<u8>, String> {
+    let started_at = start_timer("webdav", "webdav-get");
     let settings = load_settings()?;
     let client = Client::new();
-    download_remote_file(
+    let result = download_remote_file(
         &client,
         &settings.webdav_url,
         subdir,
@@ -151,11 +207,16 @@ pub async fn webdav_get(subdir: &str, filename: &str) -> Result<Vec<u8>, String>
         &settings.webdav_user,
         &settings.webdav_pass,
     )
-    .await
+    .await;
+    if result.is_ok() {
+        finish_timer("webdav", "webdav-get", started_at);
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn webdav_delete(subdir: &str, filename: &str) -> Result<(), String> {
+    let started_at = start_timer("webdav", "webdav-delete");
     let settings = load_settings()?;
     let client = Client::new();
     let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
@@ -168,14 +229,23 @@ pub async fn webdav_delete(subdir: &str, filename: &str) -> Result<(), String> {
         .map_err(|e| format!("failed to delete remote file: {:?}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("failed to delete remote file: {:?}", response.status()));
+        return Err(format!(
+            "failed to delete remote file: {:?}",
+            response.status()
+        ));
     }
 
+    log_info(
+        "webdav",
+        &format!("webdav-delete subdir={} filename={}", subdir, filename),
+    );
+    finish_timer("webdav", "webdav-delete", started_at);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn webdav_sync_files() -> Result<(), String> {
+    let started_at = start_timer("webdav", "webdav-sync-files");
     let settings = load_settings()?;
     let client = Client::new();
     let base_url = settings.webdav_url.trim_end_matches('/').to_string();
@@ -217,6 +287,17 @@ pub async fn webdav_sync_files() -> Result<(), String> {
     .into_iter()
     .filter(|file_name| is_config_file(file_name))
     .collect();
+
+    log_info(
+        "webdav",
+        &format!(
+            "sync-snapshot local_books={} cloud_books={} local_configs={} cloud_configs={}",
+            local_books.len(),
+            cloud_books.len(),
+            local_configs.len(),
+            cloud_configs.len()
+        ),
+    );
 
     for file_name in local_books.difference(&cloud_books) {
         let file_path = books_path.join(file_name);
@@ -321,6 +402,7 @@ pub async fn webdav_sync_files() -> Result<(), String> {
         }
     }
 
+    finish_timer("webdav", "webdav-sync-files", started_at);
     Ok(())
 }
 
@@ -355,6 +437,7 @@ pub fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
 
 #[tauri::command]
 pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String> {
+    let started_at = start_timer("ai-stream", "start-stream");
     let setting = load_settings()?;
     let client = Client::new();
     const EVENT_NAME: &str = "stream-chunk";
@@ -364,6 +447,15 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
     let api_key = setting.model_api_key;
     let api_url = setting.model_url;
     let model_name = setting.model_name;
+
+    log_info(
+        "ai-stream",
+        &format!(
+            "start-stream model={} message_chars={}",
+            model_name,
+            messages.len()
+        ),
+    );
 
     let request_body = json!({
         "model": model_name,
@@ -403,10 +495,12 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
                 }
             }
             Err(e) => {
+                log_error("ai-stream", &format!("stream-receive failed error={}", e));
                 return Err(format!("failed to receive stream data: {:?}", e));
             }
         }
     }
 
+    finish_timer("ai-stream", "start-stream", started_at);
     Ok(())
 }

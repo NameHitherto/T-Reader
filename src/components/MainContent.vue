@@ -60,119 +60,86 @@
         @click="addBook"
       />
       <div v-else class="bookcase">
-        <el-skeleton :loading="booksLoading" animated :count="10">
-          <template #template>
+        <div v-if="booksLoading" class="bookcase-placeholder">
+          正在加载书架数据...
+        </div>
+        <div
+          v-else
+          class="bookcase-body"
+          :class="
+            shelfViewMode === 'list'
+              ? 'bookcase-body--list'
+              : 'bookcase-body--grid'
+          "
+        >
+          <div
+            v-for="book in books"
+            :key="book.id"
+            class="shelf-item"
+            :class="
+              shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'
+            "
+            @click="openBook(book.id)"
+            @contextmenu="onContextMenu($event, book.id)"
+          >
             <div
               v-if="shelfViewMode === 'list'"
-              class="shelf-list-card shelf-skeleton"
+              class="shelf-list-cover"
             >
-              <div class="shelf-list-cover">
-                <el-skeleton-item style="width: 72px; height: 96px" />
-              </div>
-              <div class="shelf-list-content">
-                <div class="shelf-list-title">
-                  <el-skeleton-item style="width: 65%; height: 18px" />
-                </div>
-                <div class="shelf-list-subtitle">
-                  <el-skeleton-item style="width: 48%; height: 12px" />
-                </div>
-                <div class="shelf-list-meta">
-                  <el-skeleton-item style="width: 42%; height: 12px" />
-                </div>
-                <div class="shelf-list-progress">
-                  <el-skeleton-item style="width: 26%; height: 12px" />
-                  <el-skeleton-item style="width: 100%; height: 6px" />
-                </div>
-              </div>
+              <img :src="getBookCover(book.cover)" alt="封面" />
+              <span class="book-format-badge">
+                {{ getBookFormatBadge(book) }}
+              </span>
             </div>
-            <div v-else class="shelf-grid-card shelf-skeleton">
-              <div class="shelf-grid-cover">
-                <el-skeleton-item style="width: 100%; height: 180px" />
-              </div>
-              <div class="shelf-grid-title">
-                <el-skeleton-item style="width: 90%; height: 16px" />
-              </div>
-            </div>
-          </template>
-          <template #default>
             <div
-              class="bookcase-body"
-              :class="
-                shelfViewMode === 'list'
-                  ? 'bookcase-body--list'
-                  : 'bookcase-body--grid'
-              "
+              v-if="shelfViewMode === 'list'"
+              class="shelf-list-content"
             >
               <div
-                v-for="book in books"
-                :key="book.id"
-                class="shelf-item"
-                :class="
-                  shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'
-                "
-                @click="openBook(book.id)"
-                @contextmenu="onContextMenu($event, book.id)"
+                v-if="book.author"
+                class="shelf-list-author"
+                :title="book.author"
               >
-                <div
-                  v-if="shelfViewMode === 'list'"
-                  class="shelf-list-cover"
-                >
-                  <img :src="getBookCover(book.cover)" alt="封面" />
-                  <span class="book-format-badge">
-                    {{ getBookFormatBadge(book) }}
-                  </span>
+                {{ book.author }}
+              </div>
+              <div class="shelf-list-title" :title="book.title">
+                <span>{{ book.title }}</span>
+              </div>
+              <div class="shelf-list-subtitle" :title="getListSubtitle(book)">
+                {{ getListSubtitle(book) }}
+              </div>
+              <div class="shelf-list-meta" :title="getListMeta(book)">
+                {{ getListMeta(book) }}
+              </div>
+              <div class="shelf-list-progress">
+                <div class="shelf-progress-label">
+                  {{ getProgressPercent(book) }}
                 </div>
-                <div
-                  v-if="shelfViewMode === 'list'"
-                  class="shelf-list-content"
-                >
+                <div class="shelf-progress-track">
                   <div
-                    v-if="book.author"
-                    class="shelf-list-author"
-                    :title="book.author"
-                  >
-                    {{ book.author }}
-                  </div>
-                  <div class="shelf-list-title" :title="book.title">
-                    <span>{{ book.title }}</span>
-                  </div>
-                  <div class="shelf-list-subtitle" :title="getListSubtitle(book)">
-                    {{ getListSubtitle(book) }}
-                  </div>
-                  <div class="shelf-list-meta" :title="getListMeta(book)">
-                    {{ getListMeta(book) }}
-                  </div>
-                  <div class="shelf-list-progress">
-                    <div class="shelf-progress-label">
-                      {{ getProgressPercent(book) }}
-                    </div>
-                    <div class="shelf-progress-track">
-                      <div
-                        class="shelf-progress-value"
-                        :style="{ width: `${getProgressValue(book)}%` }"
-                      />
-                    </div>
-                  </div>
+                    class="shelf-progress-value"
+                    :style="{ width: `${getProgressValue(book)}%` }"
+                  />
                 </div>
-
-                <template v-else>
-                  <div class="shelf-grid-cover">
-                    <img :src="getBookCover(book.cover)" alt="封面" />
-                    <span class="book-format-badge">
-                      {{ getBookFormatBadge(book) }}
-                    </span>
-                    <div class="shelf-grid-progress-overlay">
-                      {{ getGridProgressText(book) }}
-                    </div>
-                  </div>
-                  <div class="shelf-grid-title" :title="book.title">
-                    {{ book.title }}
-                  </div>
-                </template>
               </div>
             </div>
-          </template>
-        </el-skeleton>
+
+            <template v-else>
+              <div class="shelf-grid-cover">
+                <img :src="getBookCover(book.cover)" alt="封面" />
+                <span class="book-format-badge">
+                  {{ getBookFormatBadge(book) }}
+                </span>
+                <div class="shelf-grid-progress-overlay">
+                  {{ getGridProgressText(book) }}
+                </div>
+              </div>
+              <div class="shelf-grid-title" :title="book.title">
+                {{ book.title }}
+              </div>
+            </template>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -221,6 +188,12 @@ import {
   resolveBookFormat,
 } from '@/services/book/bookRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
+import {
+  createDurationLogger,
+  logError,
+  logInfo,
+  logWarn,
+} from '@/utils/logger'
 
 export default {
   name: 'MainContent',
@@ -263,34 +236,49 @@ export default {
     }
 
     const buildShelfBook = async (book: BookConfig): Promise<ShelfBook> => {
+      const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
+        bookId: book.id,
+      })
       const format = await resolveBookFormat(book)
       const cache = await ensureBookCache(book)
       const bookData =
         format === 'epub' && book.location ? (await loadBookBinary(book)).bookData : undefined
       const progressValue = await deriveShelfProgress(book, format, cache, bookData)
 
-      return {
+      const shelfBook = {
         ...book,
         cover: cache.cover,
         format,
         progressValue,
         lastReadLabel: buildLastReadLabel(book, progressValue),
       }
+
+      finishLog({
+        bookId: book.id,
+        format,
+        progressValue,
+      })
+      return shelfBook
     }
 
     const loadBooks = async () => {
+      const finishLog = createDurationLogger('bookshelf', 'load-books')
       try {
         booksLoading.value = true
         const loadedBooks = await loadBookConfigs()
         books.value = await Promise.all(loadedBooks.map((book) => buildShelfBook(book)))
+        finishLog({
+          total: books.value.length,
+        })
       } catch (error) {
-        console.error('Error loading books:', error)
+        logError('bookshelf', 'load-books failed', error)
       } finally {
         booksLoading.value = false
       }
     }
 
     const syncFiles = async () => {
+      const finishLog = createDurationLogger('bookshelf', 'sync-files')
       loadingText.value =
         'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server'
       isLoading.value = true
@@ -298,8 +286,11 @@ export default {
         await invoke('webdav_sync_files')
         invalidateBookFileIndex()
         await loadBooks()
+        finishLog({
+          total: books.value.length,
+        })
       } catch (error) {
-        console.error('文件同步失败:', error)
+        logError('bookshelf', 'sync-files failed', error)
       } finally {
         isLoading.value = false
       }
@@ -321,6 +312,10 @@ export default {
         return
       }
 
+      logInfo('bookshelf', 'select-book-files', {
+        count: selectedFilePath.length,
+      })
+
       for (const path of selectedFilePath) {
         await addBookByPath(path)
       }
@@ -330,10 +325,16 @@ export default {
       const originalFileName = getFileNameFromPath(path)
       const format = detectBookFormatFromPath(path)
       if (!format) {
-        console.log('不支持的书籍格式:', path)
+        logWarn('bookshelf', 'unsupported-book-format', {
+          path,
+        })
         return
       }
 
+      const finishLog = createDurationLogger('bookshelf', 'import-book', {
+        fileName: originalFileName,
+        format,
+      })
       loadingText.value =
         `Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file`
       isLoading.value = true
@@ -350,12 +351,17 @@ export default {
         const importedIdentity = await getImportedBookIdentity(originalFileName, bufferFile)
 
         if (books.value.find((book) => book.id === importedIdentity.id)) {
-          console.log('该书籍已存在:', importedIdentity.id)
+          logWarn('bookshelf', 'duplicate-book-detected', {
+            bookId: importedIdentity.id,
+            fileName: originalFileName,
+          })
           return
         }
 
         if (await hasOriginalFilenameConflict(originalFileName)) {
-          console.log('原始文件名已存在，拒绝导入:', originalFileName)
+          logWarn('bookshelf', 'duplicate-file-name-detected', {
+            fileName: originalFileName,
+          })
           return
         }
 
@@ -416,14 +422,23 @@ export default {
             }),
           ])
         })
+        finishLog({
+          bookId: newBook.id,
+          total: books.value.length,
+        })
       } catch (error) {
-        console.error('Error reading or saving the file:', error)
+        logError('bookshelf', 'import-book failed', error, {
+          fileName: originalFileName,
+        })
       } finally {
         isLoading.value = false
       }
     }
 
     const deleteBook = async (id: string) => {
+      const finishLog = createDurationLogger('bookshelf', 'delete-book', {
+        bookId: id,
+      })
       try {
         const dirs = await getLocalDirNames()
         const targetBook = books.value.find((book) => book.id === id)
@@ -462,8 +477,13 @@ export default {
 
         invalidateBookFileIndex()
         books.value = books.value.filter((book) => book.id !== id)
+        finishLog({
+          total: books.value.length,
+        })
       } catch (error) {
-        console.error('Error deleting the book:', error)
+        logError('bookshelf', 'delete-book failed', error, {
+          bookId: id,
+        })
       }
     }
 
@@ -880,8 +900,13 @@ export default {
         cursor: var(--t-mouse-cursor-link), pointer;
       }
 
-      .shelf-skeleton {
-        pointer-events: none;
+      .bookcase-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 240px;
+        color: #6b7280;
+        font-size: 14px;
       }
 
       .shelf-list-card {

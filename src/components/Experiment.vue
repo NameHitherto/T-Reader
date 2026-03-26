@@ -1,7 +1,7 @@
 <template>
   <div class="exp">
-    <div class="skeleton">
-      <el-skeleton :rows="8" animated />
+    <div class="placeholder">
+      实验页面建设中
     </div>
   </div>
 </template>
@@ -31,12 +31,13 @@ export default defineComponent({
   width: 100%;
   padding: 200px;
 
-  .skeleton {
+  .placeholder {
     width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+    color: #6b7280;
   }
 }
 </style>

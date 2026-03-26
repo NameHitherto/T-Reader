@@ -2,21 +2,13 @@ use dirs::document_dir;
 use serde::Serialize;
 use std::fs;
 
-/// 本地目录结构：
-/// T-Reader/
-///   ├── books/         书籍文件（epub/txt）
-///   ├── bookProgress/  阅读进度配置（json）
-///   ├── cached/        缓存文件
-///   └── system/        系统文件
+use crate::logging::{finish_timer, log_error, log_info, log_warn, start_timer};
+
 const LOCAL_BOOKS_DIR: &str = "books";
 const LOCAL_PROGRESS_DIR: &str = "bookProgress";
 const LOCAL_CACHED_DIR: &str = "cached";
 pub const LOCAL_SYSTEM_DIR: &str = "system";
 
-/// 云端目录结构：
-/// /T-Reader/
-///   ├── books/         书籍文件（epub/txt）
-///   └── bookProgress/  阅读进度配置（json）
 pub const CLOUD_BOOKS_DIR: &str = "books";
 pub const CLOUD_PROGRESS_DIR: &str = "bookProgress";
 
@@ -69,34 +61,55 @@ pub fn get_local_system_dir() -> Result<std::path::PathBuf, String> {
     Ok(root.join(LOCAL_SYSTEM_DIR))
 }
 
-/// 检查并创建本地目录结构，返回根目录路径。
 pub fn check_local_dirs() -> Result<std::path::PathBuf, String> {
+    let started_at = start_timer("dir", "check-local-dirs");
     let root_path = get_local_root_dir()?;
 
     if !root_path.exists() {
-        println!("本地根目录 T-Reader 不存在，正在创建...");
-        fs::create_dir_all(&root_path).map_err(|e| {
-            println!("创建本地根目录失败：{}", e);
-            e.to_string()
+        log_info(
+            "dir",
+            &format!("creating-local-root path={}", root_path.display()),
+        );
+        fs::create_dir_all(&root_path).map_err(|error| {
+            log_error(
+                "dir",
+                &format!(
+                    "create-local-root failed path={} error={}",
+                    root_path.display(),
+                    error
+                ),
+            );
+            error.to_string()
         })?;
     }
 
     for subdir in LOCAL_SUBDIRS {
         let subdir_path = root_path.join(subdir);
         if !subdir_path.exists() {
-            println!("本地子目录 '{}' 不存在，正在创建...", subdir);
-            fs::create_dir_all(&subdir_path).map_err(|e| {
-                println!("创建子目录 '{}' 失败：{}", subdir, e);
-                e.to_string()
+            log_info(
+                "dir",
+                &format!("creating-local-subdir path={}", subdir_path.display()),
+            );
+            fs::create_dir_all(&subdir_path).map_err(|error| {
+                log_error(
+                    "dir",
+                    &format!(
+                        "create-local-subdir failed path={} error={}",
+                        subdir_path.display(),
+                        error
+                    ),
+                );
+                error.to_string()
             })?;
         }
     }
 
+    finish_timer("dir", "check-local-dirs", started_at);
     Ok(root_path)
 }
 
-/// 通过 MKCOL 检查并创建云端目录。
 pub async fn check_cloud_dirs(settings: &crate::model::Settings) -> Result<(), String> {
+    let started_at = start_timer("dir", "check-cloud-dirs");
     let client = reqwest::Client::new();
 
     for subdir in CLOUD_SUBDIRS {
@@ -111,15 +124,24 @@ pub async fn check_cloud_dirs(settings: &crate::model::Settings) -> Result<(), S
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    println!("云端目录 '{}' 创建成功。", subdir);
+                    log_info(
+                        "dir",
+                        &format!("cloud-dir-ready subdir={} status={}", subdir, status),
+                    );
                 } else if status.as_u16() == 409 {
-                    println!("云端目录 '{}' 已存在。", subdir);
+                    log_info("dir", &format!("cloud-dir-exists subdir={}", subdir));
                 } else {
-                    println!("云端目录 '{}' 检查结果：{:?}", subdir, status);
+                    log_warn(
+                        "dir",
+                        &format!("cloud-dir-check status={} subdir={}", status, subdir),
+                    );
                 }
             }
             Err(error) => {
-                println!("检查云端目录 '{}' 失败：{:?}", subdir, error);
+                log_warn(
+                    "dir",
+                    &format!("cloud-dir-check failed subdir={} error={}", subdir, error),
+                );
             }
         }
     }
@@ -131,6 +153,7 @@ pub async fn check_cloud_dirs(settings: &crate::model::Settings) -> Result<(), S
         .send()
         .await;
 
+    finish_timer("dir", "check-cloud-dirs", started_at);
     Ok(())
 }
 
