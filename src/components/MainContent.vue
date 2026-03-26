@@ -163,12 +163,12 @@ import defaultCover from '@/assets/default-cover.png'
 import {
   BookFormat,
   detectBookFormatFromPath,
-  getBookFormatDisplayName,
   getFileNameFromPath,
 } from '@/js/bookFormat'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
   getBookCacheFilename,
   primeBookCacheAfterImport,
@@ -222,12 +222,32 @@ export default {
       lastReadLabel: string
     }
 
+    interface BatchImportContext {
+      batchNotifier: ReturnType<typeof createMainTaskBatchNotifier>
+      dirs: LocalDirNames
+      reservedBookKeys: Set<string>
+      reservedOriginalFileNames: Set<string>
+    }
+
+    const MAX_PARALLEL_IMPORTS = 3
+    const IMPORT_LOADING_TEXT = {
+      parsing:
+        'Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files',
+      saving:
+        'Saving book files - Saving book files - Saving book files - Saving book files - Saving book files - Saving book files',
+      uploading:
+        'Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server',
+      syncing:
+        'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server',
+    } as const
+
     const books = ref<ShelfBook[]>([])
     const isLoading = ref(false)
     const booksLoading = ref(true)
     const loadingText = ref(
       'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
     )
+    const activeLoadingTasks = ref(0)
     const settingVisible = ref(false)
     const bookInfoVisible = ref(false)
     const bookInfoKey = ref<String>('')
@@ -254,6 +274,49 @@ export default {
       }
 
       return '发生未知异常'
+    }
+
+    const beginLoading = (text: string) => {
+      activeLoadingTasks.value += 1
+      loadingText.value = text
+      isLoading.value = true
+    }
+
+    const updateLoadingText = (text: string) => {
+      if (activeLoadingTasks.value > 0) {
+        loadingText.value = text
+      }
+    }
+
+    const endLoading = () => {
+      activeLoadingTasks.value = Math.max(0, activeLoadingTasks.value - 1)
+      isLoading.value = activeLoadingTasks.value > 0
+    }
+
+    const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
+
+    const runWithConcurrencyLimit = async <T>(
+      items: readonly T[],
+      limit: number,
+      worker: (item: T, index: number) => Promise<void>
+    ) => {
+      let nextIndex = 0
+      const workerCount = Math.min(limit, items.length)
+
+      await Promise.all(
+        Array.from({ length: workerCount }, async () => {
+          while (true) {
+            const currentIndex = nextIndex
+            nextIndex += 1
+
+            if (currentIndex >= items.length) {
+              return
+            }
+
+            await worker(items[currentIndex], currentIndex)
+          }
+        })
+      )
     }
 
     const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
@@ -310,9 +373,7 @@ export default {
 
     const syncFiles = async () => {
       const finishLog = createDurationLogger('bookshelf', 'sync-files')
-      loadingText.value =
-        'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server'
-      isLoading.value = true
+      beginLoading(IMPORT_LOADING_TEXT.syncing)
       try {
         await invoke('webdav_sync_files')
         invalidateBookFileIndex()
@@ -335,7 +396,7 @@ export default {
           taskKey: 'bookshelf-sync',
         })
       } finally {
-        isLoading.value = false
+        endLoading()
       }
     }
 
@@ -355,8 +416,12 @@ export default {
         return
       }
 
+      const selectedPaths = Array.isArray(selectedFilePath) ? selectedFilePath : [selectedFilePath]
+      const parallelImports = Math.min(MAX_PARALLEL_IMPORTS, selectedPaths.length)
+
       logInfo('bookshelf', 'select-book-files', {
-        count: selectedFilePath.length,
+        count: selectedPaths.length,
+        parallelImports,
       })
 
       const batchNotifier = createMainTaskBatchNotifier({
@@ -367,21 +432,37 @@ export default {
         actionLabel: '云端同步',
       })
 
-      for (const path of selectedFilePath) {
-        await addBookByPath(path, batchNotifier)
+      const dirs = await getLocalDirNames()
+      const batchContext: BatchImportContext = {
+        batchNotifier,
+        dirs,
+        reservedBookKeys: new Set<string>(),
+        reservedOriginalFileNames: new Set<string>(),
       }
 
-      batchNotifier.flushWhenComplete()
+      try {
+        await runWithConcurrencyLimit(selectedPaths, parallelImports, (path) =>
+          addBookByPath(path, batchContext)
+        )
+      } finally {
+        batchNotifier.flushWhenComplete()
+      }
     }
 
-    const addBookByPath = async (
-      path: string,
-      batchNotifier?: ReturnType<typeof createMainTaskBatchNotifier>
-    ) => {
+    const addBookByPath = async (path: string, batchContext: BatchImportContext) => {
       const originalFileName = getFileNameFromPath(path)
+      const normalizedOriginalFileName = normalizeOriginalFileName(originalFileName)
       const format = detectBookFormatFromPath(path)
       if (!format) {
         logWarn('bookshelf', 'unsupported-book-format', {
+          path,
+        })
+        return
+      }
+
+      if (batchContext.reservedOriginalFileNames.has(normalizedOriginalFileName)) {
+        logWarn('bookshelf', 'duplicate-batch-file-name-detected', {
+          fileName: originalFileName,
           path,
         })
         return
@@ -391,11 +472,18 @@ export default {
         fileName: originalFileName,
         format,
       })
-      loadingText.value =
-        `Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file`
-      isLoading.value = true
+      batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
+      let reservedBookKey: string | null = null
+      beginLoading(IMPORT_LOADING_TEXT.parsing)
 
       try {
+        if (await hasOriginalFilenameConflict(originalFileName)) {
+          logWarn('bookshelf', 'duplicate-file-name-detected', {
+            fileName: originalFileName,
+          })
+          return
+        }
+
         const u8File: Uint8Array = await invoke('read_file_by_path', {
           filepath: path,
         })
@@ -406,22 +494,18 @@ export default {
         ) as ArrayBuffer
         const importedBook = await getImportedBookName(originalFileName, bufferFile)
 
-        if (books.value.find((book) => book.bookKey === importedBook.bookKey)) {
+        if (
+          batchContext.reservedBookKeys.has(importedBook.bookKey) ||
+          books.value.find((book) => book.bookKey === importedBook.bookKey)
+        ) {
           logWarn('bookshelf', 'duplicate-book-detected', {
             bookKey: importedBook.bookKey,
             fileName: originalFileName,
           })
           return
         }
-
-        if (await hasOriginalFilenameConflict(originalFileName)) {
-          logWarn('bookshelf', 'duplicate-file-name-detected', {
-            fileName: originalFileName,
-          })
-          return
-        }
-
-        const dirs = await getLocalDirNames()
+        batchContext.reservedBookKeys.add(importedBook.bookKey)
+        reservedBookKey = importedBook.bookKey
         const newBook = await buildBookConfigFromImport({
           sourcePath: path,
           originalFileName,
@@ -429,18 +513,18 @@ export default {
           fileBuffer: bufferFile,
         })
         const bookConfigJson = stringifyJson(newBook)
+        const encodedBookConfig = new TextEncoder().encode(bookConfigJson)
 
-        loadingText.value =
-          'Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - '
+        updateLoadingText(IMPORT_LOADING_TEXT.saving)
 
         await invoke('write_file', {
-          subdir: dirs.books,
+          subdir: batchContext.dirs.books,
           filename: originalFileName,
           contents: Array.from(fileBytes),
         })
 
         await invoke('save_file', {
-          subdir: dirs.progress,
+          subdir: batchContext.dirs.progress,
           filename: toBookConfigFilename(importedBook.bookKey),
           contents: bookConfigJson,
         })
@@ -463,22 +547,21 @@ export default {
           lastReadLabel: '未读',
         })
 
-        loadingText.value =
-          'Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - '
+        updateLoadingText(IMPORT_LOADING_TEXT.uploading)
 
         const bookLabel = cachedPayload.title || newBook.name || importedBook.name
-        batchNotifier?.registerTask(bookLabel)
+        batchContext.batchNotifier.registerTask(bookLabel)
         queueMicrotask(() => {
           void Promise.allSettled([
             invoke('webdav_upload', {
-              subdir: dirs.books,
+              subdir: batchContext.dirs.books,
               filename: originalFileName,
               contents: Array.from(fileBytes),
             }),
             invoke('webdav_upload', {
-              subdir: dirs.progress,
+              subdir: batchContext.dirs.progress,
               filename: toBookConfigFilename(importedBook.bookKey),
-              contents: Array.from(new TextEncoder().encode(bookConfigJson)),
+              contents: Array.from(encodedBookConfig),
             }),
           ])
             .then((results) => {
@@ -490,11 +573,11 @@ export default {
                   fileName: originalFileName,
                   reason,
                 })
-                batchNotifier?.recordFailure(bookLabel, reason)
+                batchContext.batchNotifier.recordFailure(bookLabel, reason)
                 return
               }
 
-              batchNotifier?.recordSuccess(bookLabel)
+              batchContext.batchNotifier.recordSuccess(bookLabel)
             })
         })
         finishLog({
@@ -506,7 +589,11 @@ export default {
           fileName: originalFileName,
         })
       } finally {
-        isLoading.value = false
+        batchContext.reservedOriginalFileNames.delete(normalizedOriginalFileName)
+        if (reservedBookKey) {
+          batchContext.reservedBookKeys.delete(reservedBookKey)
+        }
+        endLoading()
       }
     }
 
