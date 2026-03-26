@@ -1,7 +1,7 @@
 # T-Reader 项目全景摘要
 
-> 文档版本：1.0
-> 最后更新：2026-03-25
+> 文档版本：2.0  
+> 最后更新：2026-03-26  
 > 项目版本：v0.5.2
 
 ---
@@ -10,326 +10,450 @@
 
 ### 1.1 项目定位
 
-T-Reader 是一款专注于阅读**日系轻小说**的跨平台 ePub 阅读器，采用 Tauri 框架构建，提供 Windows 桌面端和移动端（独立项目）双端体验。
+T-Reader 是一个基于 Tauri 的桌面阅读器项目，当前这份仓库主要面向 **Windows 桌面端**。  
+项目核心目标是提供轻量、流畅、可同步的本地阅读体验，当前已支持：
 
-### 1.2 核心技术栈
+- EPUB / TXT 导入与阅读
+- 书架管理与阅读进度恢复
+- EPUB 书签与笔记
+- WebDAV 云同步
+- AI 辅助问答
+
+移动端为独立仓库，不在本项目内维护。
+
+### 1.2 当前技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 前端框架 | Vue 3.3+ + TypeScript + Vite 5 |
-| 桌面容器 | Tauri 2.0+ (Rust) |
-| 状态管理 | Pinia 2.2+ |
-| 路由 | Vue Router 4.4+ |
-| UI 组件库 | Element Plus 2.8+ |
-| ePub 解析 | 二次开发的 epub.js (0.3.93) |
-| 样式预处理 | Sass |
-| 同步协议 | WebDAV (坚果云) |
-| AI 功能 | 智谱清言 / DeepSeek 大模型 |
+| 前端框架 | Vue 3 + TypeScript + Vite 5 |
+| 桌面容器 | Tauri 2 + Rust |
+| 状态管理 | Pinia |
+| 路由 | Vue Router |
+| UI 组件 | Element Plus |
+| 阅读引擎 | 二次开发的 `libs/epub.js` |
+| 样式 | Sass |
+| 同步 | WebDAV |
+| AI 能力 | 后端 `start_stream` 转发流式模型响应 |
 
 ### 1.3 开发环境要求
 
-| 组件 | 版本要求 |
+| 组件 | 当前要求 |
 |------|----------|
-| Rust (rustc) | 1.89.0 |
-| Node.js (前端) | v22.17.1 |
-| Node.js (epub.js) | v16.20.2 |
+| Rust | 1.89.0 |
+| Node.js（主项目） | v22.17.1 |
+| Node.js（`libs/epub.js`） | v16.20.2 |
 
 ---
 
-## 二、项目架构
+## 二、当前架构
 
-### 2.1 整体架构图
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                      T-Reader App                        │
-├─────────────────────────────────────────────────────────┤
-│  Frontend (Vue 3 + TypeScript)                          │
-│  ┌─────────────┬─────────────┬─────────────────────┐   │
-│  │ Components  │ Composables │ Store (Pinia)       │   │
-│  ├─────────────┴─────────────┴─────────────────────┤   │
-│  │ Services Layer (业务逻辑层)                       │   │
-│  │  - services/reader  (阅读流程、样式、导航、进度)  │   │
-│  │  - services/book    (书籍导入、元数据、仓储)     │   │
-│  │  - services/sync    (同步、Legado 映射)          │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │ Constants / Utils                               │   │
-│  └─────────────────────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────┤
-│  Tauri Bridge (IPC 通信层)                               │
-├─────────────────────────────────────────────────────────┤
-│  Backend (Rust)                                         │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │ Commands (命令层)                                │   │
-│  │  - file.rs     (文件读写、书籍管理、设置)        │   │
-│  │  - web.rs      (WebDAV 同步、SSE 流)             │   │
-│  │  - font.rs     (系统字体获取)                   │   │
-│  │  - proxy.rs    (更新器代理)                     │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │ Model (数据模型)                                 │   │
-│  │  - Book, Settings, FontNameEntry                │   │
-│  ├─────────────────────────────────────────────────┤   │
-│  │ Tauri Plugins                                    │   │
-│  │  - fs, dialog, http, os, shell, window-state    │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 2.2 目录结构
+### 2.1 整体结构
 
 ```
-d:/T-Reader/T-Reader/
-├── src/                          # 前端源代码
-│   ├── components/               # UI 组件
-│   │   ├── common/               # 通用组件 (AppIcon 等)
-│   │   ├── ContextMenu/          # 右键菜单
-│   │   ├── BookMark/             # 书签相关
-│   │   ├── SettingDialog/        # 设置对话框
-│   │   └── ...
-│   ├── composables/              # 组合式函数
-│   ├── store/                    # Pinia 状态管理
-│   │   ├── bookMark.ts           # 书签状态
-│   │   └── readerConfigStore.ts  # 阅读器配置
-│   ├── services/                 # 业务服务层
-│   │   ├── reader/               # 阅读器服务
-│   │   │   ├── adapters/         # 格式适配器 (epub/txt)
-│   │   │   └── ...
-│   │   ├── book/                 # 书籍服务
-│   │   │   ├── parsers/          # 元数据解析器
-│   │   │   └── ...
-│   │   └── sync/                 # 同步服务
-│   ├── constants/                # 常量定义
-│   ├── icons/                    # 图标注册
-│   │   └── registry.ts           # 图标注册表
-│   ├── router/                   # 路由配置
-│   ├── css/                      # 样式文件
-│   ├── js/                       # 工具函数
-│   │   ├── bookFormat.ts         # 书籍格式定义
-│   │   ├── map.ts                # 类型定义 (BookConfig)
-│   │   └── utils.ts              # 通用工具
-│   ├── assets/                   # 静态资源 (SVG 图标等)
-│   ├── App.vue                   # 主应用组件
-│   ├── main.ts                   # 主入口 (书架)
-│   └── readerMain.ts             # 阅读器入口
-├── src-tauri/                    # Rust 后端
-│   ├── src/
-│   │   ├── command/              # Tauri 命令
-│   │   │   ├── file.rs           # 文件操作
-│   │   │   ├── web.rs            # WebDAV 同步
-│   │   │   ├── font.rs           # 字体服务
-│   │   │   ├── proxy.rs          # 代理
-│   │   │   └── mod.rs
-│   │   ├── model/                # 数据模型
-│   │   │   ├── index.rs          # Book, Settings 等
-│   │   │   └── mod.rs
-│   │   ├── lib.rs                # 库入口
-│   │   └── main.rs               # 可执行入口
-│   ├── icons/                    # 应用图标
-│   ├── Cargo.toml                # Rust 依赖
-│   └── tauri.conf.json           # Tauri 配置
-├── libs/                         # 第三方库
-│   └── epub.js/                  # 二次开发的 ePub 解析库
-├── docs/                         # 项目文档
-│   ├── PROJECT_OVERVIEW.md       # 项目全景 (本文档)
-│   ├── module-architecture-spec.md  # 模块架构规范
-│   ├── icon-management-spec.md   # 图标管理规范
-│   └── SKILL.md                  # 开发技能规范
-├── scripts/                      # 构建脚本
-│   └── bump-version.js           # 版本号递增
-├── package.json                  # 前端依赖
-├── vite.config.ts                # Vite 配置
-├── tsconfig.json                 # TypeScript 配置
-├── index.html                    # 主页面 (书架)
-└── reader.html                   # 阅读器页面
+┌────────────────────────────────────────────────────────────┐
+│                        T-Reader App                        │
+├────────────────────────────────────────────────────────────┤
+│ Frontend (Vue + TypeScript)                               │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ App.vue + Router + Pinia                             │ │
+│ │ Components / Composables / Store                     │ │
+│ │ Services                                              │ │
+│ │  - book       书籍导入、仓储、缓存、展示数据         │ │
+│ │  - reader     阅读器渲染、进度、样式、交互、事件     │ │
+│ │  - fileSystem 目录名称与路径访问                     │ │
+│ │ Constants / Utils / Icons / JS helpers               │ │
+│ └────────────────────────────────────────────────────────┘ │
+├────────────────────────────────────────────────────────────┤
+│ Tauri IPC Bridge                                          │
+├────────────────────────────────────────────────────────────┤
+│ Backend (Rust)                                            │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ command/dir.rs   本地/云端目录管理                    │ │
+│ │ command/file.rs  文件读写、书籍配置、设置             │ │
+│ │ command/web.rs   WebDAV 同步、AI 流式转发             │ │
+│ │ command/font.rs  系统字体枚举                         │ │
+│ │ command/proxy.rs 更新代理准备                         │ │
+│ │ model/index.rs  Book / Settings / FontNameEntry       │ │
+│ │ logging.rs      后端统一日志输出                      │ │
+│ └────────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 多入口结构
+
+项目当前是双入口桌面应用：
+
+- `index.html` + `src/main.ts`
+  - 书架主窗口
+  - 路由入口为 `src/App.vue`
+- `reader.html` + `src/readerMain.ts`
+  - 独立阅读器窗口
+  - 负责标题栏交互、样式菜单、阅读事件桥接
+
+### 2.3 前端目录摘要
+
+```
+src/
+├── assets/               # 静态资源与 SVG
+├── components/           # 业务组件与对话框
+│   ├── common/           # AppIcon、LoadingBlockade 等通用组件
+│   ├── AssistantDialog/  # AI 对话
+│   ├── BookInfoDialog/   # 书籍详情
+│   ├── BookMark/         # 书签/笔记编辑
+│   ├── ContextMenu/      # 右键菜单
+│   ├── HelpDialog/       # 帮助
+│   ├── SettingDialog/    # 设置
+│   ├── StyleMenu/        # 阅读样式菜单
+│   └── TocMenu/          # 目录树
+├── composables/          # 组合逻辑（如 useBookmarkEditor）
+├── constants/            # 窗口事件等常量
+├── css/                  # 全局样式
+├── font/                 # 字体资源
+├── icons/                # 图标注册表
+├── js/                   # 轻量类型与工具函数
+├── router/               # Vue Router 路由
+├── services/             # 前端服务层
+│   ├── book/             # 书籍导入、仓储、缓存、元数据、展示数据
+│   ├── fileSystem/       # 本地/云端目录名称访问
+│   └── reader/           # 阅读器流程、进度、样式、事件、交互
+├── store/                # Pinia store
+├── utils/                # 通用日志等工具
+├── App.vue               # 主窗口壳层
+├── ReaderApp.vue         # 阅读器根组件
+├── main.ts               # 主窗口入口
+└── readerMain.ts         # 阅读器入口
+```
+
+### 2.4 后端目录摘要
+
+```
+src-tauri/
+├── src/
+│   ├── command/
+│   │   ├── dir.rs        # 本地/云端目录检查与目录名返回
+│   │   ├── file.rs       # 文件读写、书架配置、设置
+│   │   ├── font.rs       # 系统字体读取
+│   │   ├── proxy.rs      # 更新器代理
+│   │   ├── web.rs        # WebDAV 与 AI 流
+│   │   └── mod.rs
+│   ├── model/
+│   │   ├── index.rs      # Rust 数据模型
+│   │   └── mod.rs
+│   ├── lib.rs            # Tauri 插件与命令注册
+│   ├── logging.rs        # 后端日志工具
+│   └── main.rs
+├── icons/
+├── Cargo.toml
+└── tauri.conf.json
 ```
 
 ---
 
-## 三、核心功能模块
+## 三、核心前端模块
 
-### 3.1 书籍管理模块 (`services/book/`)
+### 3.1 书籍域：`src/services/book/`
 
-**职责：** 书籍导入、元数据解析、持久化存储
+当前书籍域已经从“单一导入/解析”扩展成完整的书籍服务层，主要职责包括：
+
+- 书籍唯一标识生成
+- 导入时配置构建
+- 本地/云端配置读写
+- 书籍文件解析与定位
+- 书籍缓存构建与命中
+- 书架展示数据计算
+- EPUB 全文提取供 AI 问答使用
+
+关键文件：
 
 | 文件 | 职责 |
 |------|------|
-| `bookImportService.ts` | 构建书籍配置，协调解析器和同步元数据 |
-| `bookRepository.ts` | 书籍仓储，处理本地/云端读写 |
-| `epubParser.ts` | EPUB 元数据解析 (标题、作者、封面) |
-| `txtParser.ts` | TXT 元数据解析 (文件名作为标题) |
-| `types.ts` | 类型定义 (`BookConfig`, `ParsedBookMeta`) |
+| `bookIdentity.ts` | 生成书名 `name`、内部 key、配置文件名、缓存文件名 |
+| `bookImportService.ts` | 从导入文件生成 `BookConfig` |
+| `bookRepository.ts` | 书籍配置、书籍文件、缓存、索引的统一仓储入口 |
+| `bookMarksRepository.ts` | 从 `system/BookMarks.json` 统一读写所有书籍笔记 |
+| `bookCacheService.ts` | 缓存封面、EPUB locations、TXT paragraphCount |
+| `bookPresentationService.ts` | 计算书架阅读进度、最近阅读标签 |
+| `epubContentService.ts` | 提取 EPUB 文本内容供 AI 使用 |
+| `parsers/epubParser.ts` | EPUB 元数据解析 |
+| `parsers/txtParser.ts` | TXT 元数据解析 |
 
-**数据流：**
+当前数据流：
+
 ```
-用户导入 → detectBookFormat → parseMeta → buildBookConfig → saveBookConfig
-                                    ↓
-                              (本地 + WebDAV 云同步)
-```
-
-### 3.2 阅读器模块 (`services/reader/`)
-
-**职责：** 书籍渲染、进度管理、样式控制、用户交互
-
-| 子目录/文件 | 职责 |
-|-------------|------|
-| `adapters/epubAdapter.ts` | EPUB 渲染 (调用 epub.js) |
-| `adapters/txtAdapter.ts` | TXT 渲染 (段落分割) |
-| `readerLoadService.ts` | 阅读器数据加载 |
-| `readerProgressService.ts` | 进度保存/恢复 |
-| `readerStyleService.ts` | 样式应用 |
-| `navigationService.ts` | 目录导航 |
-| `contextMenuService.ts` | 右键菜单 |
-| `interactionService.ts` | 键盘交互 |
-| `bookmarkService.ts` | 书签管理 |
-
-**阅读流程：**
-```
-1. loadReaderBookData(bookId) → BookConfig + ArrayBuffer
-2. 根据 format 选择 adapter:
-   - epub: renderEpubBook() → Rendition + TOC
-   - txt: renderTxtBook() → paragraphs[]
-3. 应用样式 → applyReaderStyles()
-4. 恢复进度 → display(location) / scrollTo(paragraph)
-5. 监听用户操作 → saveReaderProgress()
+导入文件
+  -> parse meta
+  -> buildBookName(title, author)
+  -> buildBookConfigFromImport()
+  -> 保存 books/*.epub|txt + bookProgress/<bookKey>.json
+  -> 笔记独立保存到 system/BookMarks.json
+  -> primeBookCacheAfterImport()
+  -> 书架侧通过 bookRepository/loadBookConfigs + cache 展示
 ```
 
-### 3.3 同步模块 (`services/sync/`)
+### 3.2 阅读器域：`src/services/reader/`
 
-**职责：** WebDAV 同步、阅读进度跨设备同步、Legado 格式映射
+阅读器域已经拆分为更细粒度的职责模块，核心分层如下：
+
+- `adapters/`
+  - `epubAdapter.ts`
+  - `txtAdapter.ts`
+- 读取与加载
+  - `readerLoadService.ts`
+  - `readerLoadingService.ts`
+  - `readerConfigService.ts`
+- 渲染与样式
+  - `readerStyleService.ts`
+  - `renditionEventsService.ts`
+  - `tocService.ts`
+- 交互与行为
+  - `interactionService.ts`
+  - `navigationService.ts`
+  - `contextMenuService.ts`
+  - `readerWindowEventsService.ts`
+- 数据保存
+  - `readerProgressService.ts`
+  - `bookmarkService.ts`
+  - `txtReaderService.ts`
+
+当前阅读流程：
+
+```
+主窗口 emit LOAD_BOOK_KEY
+  -> ReaderApp 注册窗口事件
+  -> loadReaderBookData(bookKey)
+  -> resolve format + config + cache + binary
+  -> format adapter 渲染
+  -> applyReaderStyles()
+  -> 从 BookMarks.json 恢复当前书 location / bookmarks
+  -> 用户交互
+  -> saveReaderProgress(bookKey, format, location, bookMarks)
+```
+
+### 3.3 文件系统域：`src/services/fileSystem/`
+
+当前前端已经不再硬编码目录名，而是通过后端返回的目录名称访问本地与云端目录。
+
+关键文件：
 
 | 文件 | 职责 |
 |------|------|
-| `syncMetaService.ts` | 附加/构建设备元数据 (deviceId, updatedAt) |
-| `legadoMapper.ts` | 与"阅读"App(Legado) 的进度格式互转 |
-| `legadoMapper.ts::normalizeBookConfigFromLegado` | 解决云端与本地进度冲突 (时间戳比较) |
+| `dirService.ts` | 获取本地/云端目录名称、检查目录、拼接本地目录路径 |
 
-**同步策略：**
-- 云端与本地共存：下载云端 JSON 覆盖本地
-- 仅本地存在：删除本地文件
-- 仅云端存在：下载到本地
+设计特点：
 
-### 3.4 Rust 后端命令 (`src-tauri/src/command/`)
+- 目录名称从 Rust 后端统一返回
+- 前端不感知 `books / bookProgress / cached / system` 的硬编码来源
+- 本地和云端目录检查由后端命令保证
 
-| 命令 | 参数 | 返回值 | 描述 |
-|------|------|--------|------|
-| `save_file` | filename, contents | () | 保存文件到本地 |
-| `load_books` | directory | Vec\<Book\> | 加载书架列表 |
-| `delete_book` | filename | () | 删除书籍 |
-| `read_file_by_path` | filepath | Vec\<u8\> | 读取文件二进制 |
-| `save_settings` | json_str | () | 保存设置 |
-| `load_settings` | () | Settings | 加载设置 |
-| `webdav_upload` | filename, contents | () | 上传到 WebDAV |
-| `webdav_get` | filename | Vec\<u8\> | 从 WebDAV 下载 |
-| `webdav_delete` | filename | () | 删除 WebDAV 文件 |
-| `webdav_sync_files` | directory | () | 执行全量同步 |
-| `get_system_fonts` | () | Vec\<FontNameEntry\> | 获取系统字体列表 |
-| `start_stream` | messages | () | AI 流式响应 (SSE) |
+### 3.4 状态管理
+
+当前 Pinia store 只有两块核心状态：
+
+| Store | 职责 |
+|------|------|
+| `readerConfigStore.ts` | 阅读样式配置与调节 |
+| `bookMark.ts` | 当前阅读书签集合与增删改查 |
+
+### 3.5 日志体系
+
+本轮结构调整后，前后端都已经引入必要日志节点：
+
+- 前端：`src/utils/logger.ts`
+  - `logInfo`
+  - `logWarn`
+  - `logError`
+  - `createDurationLogger`
+- 后端：`src-tauri/src/logging.rs`
+  - 统一输出 `[backend][scope] ...`
+  - 支持定时起止日志
+
+目前日志重点覆盖：
+
+- 书架加载
+- 书籍导入
+- 书籍仓储回退本地/云端
+- 缓存构建
+- WebDAV 同步
+- AI 流式调用
+- 后端文件操作
 
 ---
 
-## 四、数据模型
+## 四、后端命令与数据模型
 
-### 4.1 BookConfig (前端)
+### 4.1 Tauri 命令分组
 
-```typescript
+#### 文件与设置：`command/file.rs`
+
+| 命令 | 说明 |
+|------|------|
+| `save_file` | 以文本形式保存文件 |
+| `load_books` | 读取 `bookProgress` 下所有书籍配置与配置文件名 |
+| `delete_book` | 删除指定子目录中的文件 |
+| `read_file` | 从本地目录读取二进制文件 |
+| `write_file` | 写入二进制文件 |
+| `read_file_by_path` | 从绝对路径读取导入文件 |
+| `list_files` | 枚举本地目录文件名 |
+| `save_settings` | 保存设置到 `system/setting.json` |
+| `load_settings` | 从 `system/setting.json` 读取设置 |
+
+#### 目录管理：`command/dir.rs`
+
+| 命令 | 说明 |
+|------|------|
+| `check_local_dirs_command` | 检查并创建本地目录 |
+| `check_cloud_dirs_command` | 检查并创建云端目录 |
+| `get_local_dir_names_command` | 返回本地目录名称 |
+| `get_cloud_dir_names_command` | 返回云端目录名称 |
+
+#### WebDAV 与 AI：`command/web.rs`
+
+| 命令 | 说明 |
+|------|------|
+| `webdav_upload` | 上传文件到云端 |
+| `webdav_get` | 从云端下载文件 |
+| `webdav_delete` | 删除云端文件 |
+| `webdav_sync_files` | 同步 books 与 bookProgress（不包含 system） |
+| `start_stream` | 向 AI 服务发起流式请求并转发到阅读器窗口 |
+
+#### 其他命令
+
+| 命令 | 模块 | 说明 |
+|------|------|------|
+| `get_system_fonts` | `font.rs` | 获取系统字体 |
+| `prepare_updater_proxy` | `proxy.rs` | 更新代理准备 |
+
+### 4.2 当前目录结构
+
+本地目录根路径：
+
+```
+Document/T-Reader/
+├── books/         # 原始书籍文件（epub/txt）
+├── bookProgress/  # 书籍配置 JSON
+├── cached/        # 书籍缓存 JSON
+└── system/        # setting.json / ReaderConfig.json / BookMarks.json
+```
+
+云端目录结构：
+
+```
+WebDAV/T-Reader/
+├── books/
+└── bookProgress/
+```
+
+### 4.3 当前前端数据模型
+
+#### `BookConfig`
+
+定义位置：`src/js/map.ts`
+
+```ts
 interface BookConfig {
-  schemaVersion?: number;
-  id: string;
-  format?: BookFormat;  // 'epub' | 'txt'
-  locationFormat?: 'cfi' | 'paragraph';
-  source?: string;  // 同步源标识
-  deviceId?: string;
-  updatedAt?: string;
-  legacySync?: {  // 与 Legado 兼容的进度数据
-    bookId: string;
-    progress: number;
-    location: string;
-    updatedAt: string;
-    source: string;
-    deviceId: string;
-  };
-  cover: string;  // Base64 封面图
-  title: string;
-  author: string;
-  language: string;
-  size: string;
-  progress?: number;  // 阅读进度百分比
-  lastRead: string;
-  added: string;
-  path: string;  // 本地文件路径
-  location: string;  // 阅读位置 (CFI 或段落号)
-  bookMarks?: BookMark[];
+  name: string
+  author: string
+  durChapterIndex: number
+  durChapterPos: number
+  durChapterTitle: string
+  durChapterTime: number
 }
 ```
 
-### 4.2 Book (Rust)
+说明：
+
+- `name` 当前仅表示纯标题，不再承担内部唯一标识职责
+- 内部唯一标识统一来自 `bookProgress/<bookKey>.json` 的文件名前缀
+- 旧的 `id` 已经在当前主流程中移除
+- 书籍格式、封面、进度等派生信息由仓储/缓存/展示服务动态补足，不再全部固化在 `BookConfig`
+- 笔记数据已从 `BookConfig` 拆出，统一保存在 `system/BookMarks.json`
+
+#### `BookMark`
+
+定义位置：`src/store/bookMark.ts`
+
+```ts
+interface BookMark {
+  id: string
+  content: string
+  bookName: string
+  bookTitle: string
+  bookCfi: string
+  createTime: string
+  comments?: string
+  color?: string
+  hasBorder?: boolean
+}
+```
+
+全局笔记文件结构：
+
+```ts
+interface BookMarksFile {
+  updatedAt: string
+  bookMarks: BookMark[]
+}
+```
+
+#### `ReaderConfig`
+
+定义位置：`src/store/readerConfigStore.ts`
+
+包含：
+
+- 字体、字号、字重
+- 行距、段距、字距
+- 上下左右边距
+- 分栏数量、首行缩进
+- 背景色、字体颜色
+- 阅读流模式 `flow`
+
+### 4.4 当前 Rust 数据模型
+
+定义位置：`src-tauri/src/model/index.rs`
+
+#### `Book`
 
 ```rust
 pub struct Book {
-    pub schema_version: u32,
-    pub id: String,
-    pub format: String,
-    pub location_format: String,
-    pub cover: String,
+    pub name: String,
     pub title: String,
     pub author: String,
-    pub language: String,
-    pub size: String,
-    pub progress: Option<f64>,
-    pub source: Option<String>,
-    pub device_id: Option<String>,
-    pub updated_at: Option<String>,
-    pub last_read: String,
-    pub added: String,
-    pub path: String,
     pub location: String,
+    pub updated_at: Option<String>,
 }
 ```
 
-### 4.3 ReaderConfig (阅读设置)
+#### `Settings`
 
-```typescript
-interface ReaderConfig {
-  fontSize: number;           // 字号
-  fontWeight: number;         // 字重
-  lineSpacing: number;        // 行距
-  paragraphSpacing: number;   // 段间距
-  letterSpacing: number;      // 字间距
-  boxPaddingTop: number;      // 内边距
-  boxPaddingBottom: number;
-  boxPaddingHorizontal: number;
-  columnCount: number;        // 分栏数
-  indent: number;             // 首行缩进
-  font: string;               // 字体
-  color: string;              // 背景色
-  fontColor: string;          // 文字颜色
-  flow: ReaderFlowMode;       // 翻页模式
-}
-```
+用于保存：
+
+- WebDAV 根地址、文件夹、完整 URL
+- 用户名与密码
+- AI 开关
+- 模型名、模型地址、API Key
 
 ---
 
-## 五、页面路由
+## 五、页面与窗口事件
 
-| 路径 | 组件 | 描述 |
+### 5.1 当前路由
+
+| 路径 | 组件 | 说明 |
 |------|------|------|
-| `/` | `MainContent.vue` | 书架主页 (书籍列表/网格视图) |
-| `/bookmark` | `BookMark.vue` | 笔记管理页 |
-| `/about` | `AboutView.vue` | 关于页面 |
-| `/experiment` | `Experiment.vue` | 实验性功能页 |
+| `/` | `MainContent.vue` | 书架主页 |
+| `/bookmark` | `BookMark.vue` | 书签/笔记页 |
+| `/about` | `AboutView.vue` | 关于页 |
+| `/experiment` | `Experiment.vue` | 实验页 |
 
-**阅读器窗口：** 独立窗口，使用 `reader.html` 入口，通过窗口事件与主窗口通信。
+### 5.2 阅读器窗口事件契约
 
----
+定义位置：`src/constants/events.ts`
 
-## 六、窗口事件契约
-
-定义于 `src/constants/events.ts`：
-
-```typescript
+```ts
 export const WINDOW_EVENTS = {
-  READY_TO_RECEIVE_BOOK_ID: 'ready-to-receive-book-id',
-  LOAD_BOOK_ID: 'load-book-id',
+  READY_TO_RECEIVE_BOOK_KEY: 'ready-to-receive-book-key',
+  LOAD_BOOK_KEY: 'load-book-key',
   SHOW_BOOK_INFO: 'show-book-info',
   SHOW_ASSISTANT: 'show-assistant',
   SHOW_HELP: 'show-help',
@@ -337,198 +461,100 @@ export const WINDOW_EVENTS = {
 } as const
 ```
 
----
+说明：
 
-## 七、图标管理系统
-
-### 7.1 图标注册表 (`src/icons/registry.ts`)
-
-所有 SVG 图标统一注册，业务代码仅引用 `IconName` 枚举值：
-
-```typescript
-export type IconName =
-  | 'addBook' | 'refresh' | 'setting'
-  | 'listView' | 'gridView'
-  | 'sidebarBookshelf' | 'sidebarNote' | 'sidebarAbout' | 'sidebarMore'
-  | 'bookOpen' | 'delete' | 'goBack' | 'info'
-  | 'bookmark' | 'delBookMark' | 'comment' | 'default'
-```
-
-### 7.2 统一图标组件 (`AppIcon/index.vue`)
-
-```vue
-<AppIcon
-  :name="settingIcon"
-  :size="24"
-  :color="iconColor"
-/>
-```
-
-**渲染模式：**
-- `mask` (推荐)：使用 CSS mask 渲染单色图标，`color` 可响应式变化
-- `image`：保留多色原图 (品牌 Logo)
+- 当前事件载荷已统一使用 `{ bookKey, cfi }`
+- 旧的 `LOAD_BOOK_ID / READY_TO_RECEIVE_BOOK_ID` 已废弃
 
 ---
 
-## 八、设计规范摘要
+## 六、关键技术决策
 
-### 8.1 设计原则 (from `module-architecture-spec.md`)
+### 6.1 书籍标识拆分为标题与内部 key
 
-1. **单一职责**：模块只做一件事
-2. **分层依赖**：UI → composables/store/services → 底层 I/O
-3. **格式无关**：功能面向 `BookFormat` 抽象
-4. **可回收生命周期**：所有监听必须可解绑
-5. **常量契约化**：窗口事件、关键字段统一常量定义
-6. **无需向下兼容**：早期开发阶段，测试数据可重构
+- `BookConfig.name` 仅保存纯标题，用于展示与业务文案
+- 内部唯一标识 `bookKey` 不写入 `BookConfig`，统一来自配置文件名前缀
+- `bookKey` 继续由标题与作者派生生成，用于：
+  - 书籍配置文件名
+  - 主窗口与阅读器之间的事件传递
+  - 书签归属关联
+  - 书籍仓储解析与缓存命中
 
-### 8.2 目录职责边界
+### 6.2 书架展示依赖缓存而非配置膨胀
 
-| 目录 | 职责 | 禁止项 |
-|------|------|--------|
-| `components` | UI 展示、交互 | 直接调用 `readFile`/`invoke` |
-| `composables` | 组件复用状态与逻辑 | 处理底层协议细节 |
-| `store` | 全局状态管理 | 使用 `any` 弱类型 |
-| `services` | 业务逻辑与基础设施 | - |
-| `constants` | 项目级常量 | - |
-| `src-tauri/command` | 参数校验、调用 service | 复杂业务分支 |
+- `BookConfig` 当前保持轻量
+- 封面、EPUB locations、TXT 段落数、最近阅读标签、进度百分比等由服务层动态计算
+- 当前缓存文件放在 `cached/` 中，由 `bookCacheService.ts` 维护
+- 所有书籍笔记统一放在 `system/BookMarks.json`，不再写入 `bookProgress/*.json`
 
-### 8.3 扩展书籍格式流程
+### 6.3 同步职责主要下沉到 Rust 后端
 
-新增格式 (如 PDF/MOBI) 需完成：
-1. `bookFormat.ts` 定义格式枚举
-2. `services/book/parsers/` 新增元数据解析器
-3. `services/reader/adapters/` 新增渲染适配器
-4. `readerLoadService` / `bookRepository` 打通读取流程
-5. `readerProgressService` 定义 `locationFormat` 与进度计算
-6. 验证 WebDAV 同步兼容
+- 前端不再维护单独的 `services/sync` 目录
+- WebDAV 文件同步、云端目录检查、冲突比较主要在 Rust `web.rs` 中完成
+- 前端主要负责触发命令与消费结果
+
+### 6.4 当前平台范围
+
+- 桌面仓库当前以 Windows 为主
+- `src/main.ts` 中 Android 分支已明确标记为当前不支持
+- 移动端能力仍由独立仓库承载
 
 ---
 
-## 九、构建与发布
+## 七、构建与开发
 
-### 9.1 开发命令
+### 7.1 常用命令
 
 ```bash
-# 开发模式
-npm run dev           # 启动 Vite 开发服务器
-npm run tauri dev     # 启动 Tauri 开发应用
-
-# 构建
-npm run build         # 前端构建
-npm run tauri build   # 构建桌面应用
-
-# 预览
+npm run dev
+npm run tauri dev
+npm run build
+npm run tauri build
 npm run preview
-
-# 版本发布
-npm run release       # 自动递增版本号
+npm run release
 ```
 
-### 9.2 构建配置要点
+### 7.2 开发时的重点约束
 
-**vite.config.ts：**
-- 端口：1420 (严格模式)
-- 多页面：`index.html` (书架) + `reader.html` (阅读器)
-- 资源内联：禁用 (`assetsInlineLimit: 0`)
+- 优先通过服务层组织业务逻辑，不在组件中直接堆叠 I/O
+- 组件负责展示和事件触发，复杂逻辑下沉到 `services/`
+- 书籍标识统一使用 `name`，不要回退到旧 `id`
+- 阅读器相关事件统一使用 `WINDOW_EVENTS`
+- 中文源码统一使用 UTF-8
+- 修改前后端核心流程时同步更新本文档
 
-**tauri.conf.json：**
-- 窗口：880x660，无边框模式
-- 更新器：GitHub Releases + 自定义公钥
+### 7.3 提交前建议检查
 
-### 9.3 发布流程
-
-1. `npm run release` 递增版本号
-2. Git 提交并打 tag
-3. GitHub Actions 构建
-4. 生成 `latest.json` 到 Releases
-
----
-
-## 十、关键技术决策
-
-### 10.1 为什么选择 Tauri？
-
-- 相比 Electron 更小的包体积和内存占用
-- Rust 后端提供更好的系统级能力
-- 支持跨平台 (Windows/Linux/Mac/Android/iOS)
-
-### 10.2 为什么二次开发 epub.js？
-
-- 原版不支持某些轻小说特有的排版需求
-- 需要与 Legado 进度格式互转
-- 修复已知 bug 和优化性能
-
-### 10.3 为什么使用 WebDAV？
-
-- 协议简单，易于实现
-- 坚果云提供稳定免费额度
-- 用户可自行更换任意 WebDAV 服务
-
-### 10.4 Legado 格式兼容
-
-- 移动端"阅读"App 用户基数大
-- 通过 `legacySync` 字段双向兼容
-- 时间戳比较解决冲突 (新胜旧)
+- `npm run build`
+- `cargo check --manifest-path src-tauri/Cargo.toml`
+- 书架导入 EPUB/TXT 正常
+- 阅读器打开、定位恢复、目录、书签正常
+- WebDAV 同步不会覆盖更新较新的 `bookProgress`
 
 ---
 
-## 十二、开发检查清单
+## 八、相关资源
 
-### 12.1 提交前验证
-
-- [ ] `npm run build` 通过
-- [ ] `cargo check --manifest-path src-tauri/Cargo.toml` 通过
-- [ ] 无跨层调用 (UI → services → command)
-- [ ] 无 `any` 弱类型入口
-- [ ] 生命周期清理完整 (事件监听移除)
-- [ ] 图标调用通过 `AppIcon` + `registry`
-
-### 12.2 回归测试
-
-- [ ] EPUB：导入、打开、翻页、目录、书签、进度恢复
-- [ ] TXT：导入、滚动翻页、进度保存恢复
-- [ ] 窗口：标题栏按钮、样式菜单、帮助/AI/关于事件
-- [ ] 同步：本地与云端往返后进度不回退
+- Tauri: https://tauri.app/
+- Vue 3: https://vuejs.org/
+- Pinia: https://pinia.vuejs.org/
+- Element Plus: https://element-plus.org/
+- epub.js fork: https://github.com/NameHitherto/epub.js
+- 桌面端仓库: https://github.com/NameHitherto/T-Reader
+- 移动端仓库: https://github.com/NameHitherto/T-Reader-Mobile.git
 
 ---
 
-## 十三、相关资源
+## 九、文档维护说明
 
-### 13.1 依赖库
+以下情况应同步更新本文档：
 
-- [Tauri](https://tauri.app/)
-- [Vue 3](https://vuejs.org/)
-- [Pinia](https://pinia.vuejs.org/)
-- [Element Plus](https://element-plus.org/)
-- [epub.js (fork)](https://github.com/NameHitherto/epub.js)
-
-### 13.2 项目仓库
-
-- [T-Reader (桌面端)](https://github.com/NameHitherto/T-Reader)
-
-### 13.3 内部文档
-
-- `docs/module-architecture-spec.md` - 模块架构规范
-- `docs/icon-management-spec.md` - 图标管理规范
+1. 前端分层或目录结构发生明显调整
+2. `BookConfig` / `Book` / `BookMark` 字段变化
+3. Tauri 命令列表变更
+4. 主窗口与阅读器的事件契约变化
+5. 同步、缓存、日志等基础设施调整
 
 ---
 
-## 十四、文档维护指南
-
-### 14.1 何时更新本文档
-
-1. 新增核心功能模块
-2. 架构分层发生重大调整
-3. 数据模型字段变更
-4. 关键技术决策变更
-5. 构建/发布流程变化
-
-### 14.2 更新责任
-
-- 重构发起人负责同步更新本文档
-- 在 PR 描述中说明变更内容
-- 合并后立即更新 `docs/PROJECT_OVERVIEW.md`
-
----
-
-*本文档由 Claude Code 辅助生成，最后由人工审核。*
+*本文档已根据当前代码结构重新整理，后续应以代码为准持续维护。*

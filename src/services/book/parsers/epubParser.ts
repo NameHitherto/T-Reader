@@ -1,18 +1,50 @@
 import ePub from 'libs/epub.js'
 import { convertBlobToBase64 } from '@/js/utils.js'
 import { ParsedBookMeta } from '@/services/book/types'
+import { createDurationLogger, logWarn } from '@/utils/logger'
 
-export const parseEpubMeta = async (buffer: ArrayBuffer): Promise<ParsedBookMeta> => {
+interface ParseEpubMetaOptions {
+  includeCover?: boolean
+}
+
+export const parseEpubMeta = async (
+  buffer: ArrayBuffer,
+  options: ParseEpubMetaOptions = {}
+): Promise<ParsedBookMeta> => {
+  const finishLog = createDurationLogger('epub-parser', 'parse-epub-meta', {
+    includeCover: Boolean(options.includeCover),
+    byteLength: buffer.byteLength,
+  })
   const book = ePub(buffer)
-  const metadata = await book.loaded.metadata
-  const coverBlob = await book.coverUrl()
-  const cover = coverBlob ? await convertBlobToBase64(coverBlob) : ''
 
-  return {
-    format: 'epub',
-    title: metadata.title || '未知书名',
-    author: metadata.creator || '未知作者',
-    language: metadata.language || '未知',
-    cover,
+  try {
+    const metadata = await book.loaded.metadata
+
+    let cover = ''
+    if (options.includeCover) {
+      const coverBlobUrl = await book.coverUrl()
+      cover = coverBlobUrl ? await convertBlobToBase64(coverBlobUrl) : ''
+    }
+
+    const payload = {
+      format: 'epub' as const,
+      title: metadata.title || '未知书名',
+      author: metadata.creator || '未知作者',
+      cover,
+    }
+    finishLog({
+      title: payload.title,
+      author: payload.author,
+      hasCover: Boolean(payload.cover),
+    })
+    return payload
+  } finally {
+    try {
+      book.destroy?.()
+    } catch (error) {
+      logWarn('epub-parser', 'destroy-epub-instance failed', {
+        error,
+      })
+    }
   }
 }

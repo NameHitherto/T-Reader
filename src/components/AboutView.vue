@@ -4,6 +4,7 @@ import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { getVersion } from '@tauri-apps/api/app'
 import { invoke } from '@tauri-apps/api/core'
+import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 
 const version = ref<string>('')
 const checking = ref(false)
@@ -28,6 +29,18 @@ onMounted(async () => {
   statusTitle.value = '更新检查'
   statusMessage.value = '可手动检查更新'
 })
+
+const toTaskErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  return '发生未知异常'
+}
 
 async function applyProxy() {
   try {
@@ -72,17 +85,35 @@ async function checkForUpdates() {
       statusType.value = 'success'
       statusTitle.value = '发现更新'
       statusMessage.value = `发现新版本 v${update.version}`
+      showMainTaskMessage({
+        type: 'success',
+        title: '发现新版本',
+        message: `检测到可用更新 v${update.version}。`,
+        taskKey: 'app-update-check',
+      })
     } else {
       updateAvailable.value = false
       statusType.value = 'info'
       statusTitle.value = '暂无更新'
       statusMessage.value = '当前已是最新版本'
+      showMainTaskMessage({
+        type: 'info',
+        title: '当前已是最新版本',
+        message: '未检测到新的应用更新。',
+        taskKey: 'app-update-check',
+      })
     }
   } catch (error) {
     console.error('检查更新失败:', error)
     statusType.value = 'error'
     statusTitle.value = '检查失败'
-    statusMessage.value = error instanceof Error ? error.message : String(error)
+    statusMessage.value = toTaskErrorMessage(error)
+    showMainTaskMessage({
+      type: 'error',
+      title: '检查更新失败',
+      message: statusMessage.value,
+      taskKey: 'app-update-check',
+    })
   } finally {
     checking.value = false
   }
@@ -128,6 +159,12 @@ async function startUpdate() {
     statusType.value = 'success'
     statusTitle.value = '更新成功'
     statusMessage.value = '更新安装成功，即将重启...'
+    showMainTaskMessage({
+      type: 'success',
+      title: '更新安装成功',
+      message: '应用即将重启以完成更新。',
+      taskKey: 'app-update-install',
+    })
     setTimeout(async () => {
       await relaunch()
     }, 1500)
@@ -136,8 +173,14 @@ async function startUpdate() {
     console.error('更新失败:', error)
     statusType.value = 'error'
     statusTitle.value = '更新失败'
-    statusMessage.value = error instanceof Error ? error.message : String(error)
+    statusMessage.value = toTaskErrorMessage(error)
     downloading.value = false
+    showMainTaskMessage({
+      type: 'error',
+      title: '更新安装失败',
+      message: statusMessage.value,
+      taskKey: 'app-update-install',
+    })
   }
 }
 </script>

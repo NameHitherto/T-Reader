@@ -1,23 +1,36 @@
 import { BookConfig } from '@/js/map'
 import { BookFormat } from '@/js/bookFormat'
-import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
+import {
+  ensureBookCache,
+  loadBookBinary,
+  loadBookConfig,
+} from '@/services/book/bookRepository'
+import { BookCachePayload } from '@/services/book/bookCacheService'
 
 export interface ReaderLoadResult {
   bookConfig: BookConfig
+  bookCache: BookCachePayload
   format: BookFormat
   bookData: Uint8Array
   bookArrayBuffer: ArrayBuffer
 }
 
-export const loadReaderBookData = async (bookId: string): Promise<ReaderLoadResult> => {
-  const bookConfig = await loadBookConfig(bookId)
-  const format = (bookConfig.format || 'epub') as BookFormat
-  const bookData = await loadBookBinary(bookId, format)
+export const loadReaderBookData = async (bookKey: string): Promise<ReaderLoadResult> => {
+  const bookConfig = await loadBookConfig(bookKey)
+  const [bookCache, loadedBook] = await Promise.all([
+    ensureBookCache(bookKey),
+    loadBookBinary(bookKey),
+  ])
+  const bookArrayBuffer = loadedBook.bookData.buffer.slice(
+    loadedBook.bookData.byteOffset,
+    loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength
+  ) as ArrayBuffer
 
   return {
     bookConfig,
-    format,
-    bookData,
-    bookArrayBuffer: bookData.buffer as ArrayBuffer,
+    bookCache,
+    format: loadedBook.format,
+    bookData: loadedBook.bookData,
+    bookArrayBuffer,
   }
 }

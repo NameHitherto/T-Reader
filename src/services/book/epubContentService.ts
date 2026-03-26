@@ -1,21 +1,19 @@
 import ePub from 'libs/epub.js'
-import { readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import JSZip from 'jszip'
+import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
 
-/**
- * 从EPUB书籍中提取纯文本内容
- */
-export const extractEpubContent = async (bookName: string): Promise<string> => {
-  const bookData = await readFile(`T-Reader/${bookName}.epub`, {
-    baseDir: BaseDirectory.Document,
-  })
+export const extractEpubContent = async (bookKey: string): Promise<string> => {
+  await loadBookConfig(bookKey)
+  const loadedBook = await loadBookBinary(bookKey)
 
-  const arrayBuffer = (() => {
-    const buf = new ArrayBuffer(bookData.byteLength)
-    new Uint8Array(buf).set(bookData)
-    return buf
-  })()
+  if (loadedBook.format !== 'epub') {
+    return new TextDecoder().decode(loadedBook.bookData).slice(0, 10000)
+  }
 
+  const arrayBuffer = loadedBook.bookData.buffer.slice(
+    loadedBook.bookData.byteOffset,
+    loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength
+  ) as ArrayBuffer
   const book = ePub(arrayBuffer)
   await book.ready
 
@@ -31,8 +29,6 @@ export const extractEpubContent = async (bookName: string): Promise<string> => {
     try {
       if (zipData.folder('OEBPS')) {
         filePath = `OEBPS/${chapterHref}`
-      } else {
-        console.error('未找到OEBPS文件夹')
       }
 
       const chapterContent = await zipData.file(filePath)?.async('string')
@@ -40,10 +36,10 @@ export const extractEpubContent = async (bookName: string): Promise<string> => {
         const htmlDoc = parser.parseFromString(chapterContent, 'text/html')
         const textContent = htmlDoc.body.textContent
         const cleanText = textContent?.replace(/\s+/g, ' ').trim()
-        fullText += cleanText + '\n\n'
+        fullText += `${cleanText}\n\n`
       }
-    } catch (e) {
-      console.error(e)
+    } catch (error) {
+      console.error(error)
     }
   }
 
