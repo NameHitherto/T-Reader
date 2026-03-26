@@ -191,6 +191,10 @@ import {
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
 import {
+  createMainTaskBatchNotifier,
+  showMainTaskMessage,
+} from '@/services/notification/mainTaskMessageService'
+import {
   createDurationLogger,
   logError,
   logInfo,
@@ -238,6 +242,18 @@ export default {
     const toggleShelfViewMode = () => {
       shelfViewMode.value = shelfViewMode.value === 'list' ? 'grid' : 'list'
       localStorage.setItem('shelfViewMode', shelfViewMode.value)
+    }
+
+    const toTaskErrorMessage = (error: unknown): string => {
+      if (error instanceof Error) {
+        return error.message
+      }
+
+      if (typeof error === 'string') {
+        return error
+      }
+
+      return '发生未知异常'
     }
 
     const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
@@ -301,11 +317,23 @@ export default {
         await invoke('webdav_sync_files')
         invalidateBookFileIndex()
         await loadBooks()
+        showMainTaskMessage({
+          type: 'success',
+          title: '云同步完成',
+          message: '书架数据已完成同步并刷新。',
+          taskKey: 'bookshelf-sync',
+        })
         finishLog({
           total: books.value.length,
         })
       } catch (error) {
         logError('bookshelf', 'sync-files failed', error)
+        showMainTaskMessage({
+          type: 'error',
+          title: '云同步失败',
+          message: toTaskErrorMessage(error),
+          taskKey: 'bookshelf-sync',
+        })
       } finally {
         isLoading.value = false
       }
@@ -331,12 +359,25 @@ export default {
         count: selectedFilePath.length,
       })
 
+      const batchNotifier = createMainTaskBatchNotifier({
+        taskKey: 'bookshelf-import-cloud-sync',
+        successTitle: '云端同步完成',
+        partialFailureTitle: '云端同步部分完成',
+        errorTitle: '云端同步失败',
+        actionLabel: '云端同步',
+      })
+
       for (const path of selectedFilePath) {
-        await addBookByPath(path)
+        await addBookByPath(path, batchNotifier)
       }
+
+      batchNotifier.flushWhenComplete()
     }
 
-    const addBookByPath = async (path: string) => {
+    const addBookByPath = async (
+      path: string,
+      batchNotifier?: ReturnType<typeof createMainTaskBatchNotifier>
+    ) => {
       const originalFileName = getFileNameFromPath(path)
       const format = detectBookFormatFromPath(path)
       if (!format) {
@@ -425,6 +466,8 @@ export default {
         loadingText.value =
           'Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - '
 
+        const bookLabel = cachedPayload.title || newBook.name || importedBook.name
+        batchNotifier?.registerTask(bookLabel)
         queueMicrotask(() => {
           void Promise.allSettled([
             invoke('webdav_upload', {
@@ -438,6 +481,21 @@ export default {
               contents: Array.from(new TextEncoder().encode(bookConfigJson)),
             }),
           ])
+            .then((results) => {
+              const rejected = results.find((result) => result.status === 'rejected')
+              if (rejected) {
+                const reason = toTaskErrorMessage(rejected.reason)
+                logWarn('bookshelf', 'import-book remote-sync-failed', {
+                  bookKey: importedBook.bookKey,
+                  fileName: originalFileName,
+                  reason,
+                })
+                batchNotifier?.recordFailure(bookLabel, reason)
+                return
+              }
+
+              batchNotifier?.recordSuccess(bookLabel)
+            })
         })
         finishLog({
           bookKey: importedBook.bookKey,
@@ -506,7 +564,21 @@ export default {
               logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
                 bookKey,
               })
+              showMainTaskMessage({
+                type: 'warning',
+                title: '云端清理失败',
+                message: `本地已删除书籍，但云端清理失败：${toTaskErrorMessage(rejected.reason)}`,
+                taskKey: `bookshelf-delete:${bookKey}`,
+              })
+              return
             }
+
+            showMainTaskMessage({
+              type: 'success',
+              title: '删除完成',
+              message: '书籍已从本地与云端同步清理。',
+              taskKey: `bookshelf-delete:${bookKey}`,
+            })
           })
         })
 
@@ -516,6 +588,12 @@ export default {
       } catch (error) {
         logError('bookshelf', 'delete-book failed', error, {
           bookKey,
+        })
+        showMainTaskMessage({
+          type: 'error',
+          title: '删除失败',
+          message: toTaskErrorMessage(error),
+          taskKey: `bookshelf-delete:${bookKey}`,
         })
       }
     }
