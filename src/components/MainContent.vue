@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="main-content">
-    <!-- 加载条动画 -->
+    <!-- 加载遮罩 -->
     <Transition name="loading">
       <loadingBlockade
         v-if="isLoading"
@@ -10,7 +10,7 @@
     </Transition>
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
-    <!-- 书籍信息框 -->
+    <!-- 书籍信息弹窗 -->
     <BookInfoDialog v-model="bookInfoVisible" :bookId="bookInfoId" />
     <header class="header">
       <div class="header-menu">
@@ -179,7 +179,7 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
@@ -187,26 +187,40 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from './ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
-import { ContextMenuData, ContextMenuItem } from '../js/map'
+import { BookConfig, ContextMenuData, ContextMenuItem } from '../js/map'
 import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
 import '../js/iconfont.js'
-import { BookConfig } from '../js/map'
 import defaultCover from '@/assets/default-cover.png'
 import {
+  BookFormat,
   detectBookFormatFromPath,
-  getBookFilename,
   getBookFormatDisplayName,
+  getFileNameFromPath,
 } from '@/js/bookFormat'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import {
   getBookCacheFilename,
-  loadBookCache,
   primeBookCacheAfterImport,
 } from '@/services/book/bookCacheService'
+import {
+  buildLastReadLabel,
+  deriveShelfProgress,
+} from '@/services/book/bookPresentationService'
+import {
+  ensureBookCache,
+  getImportedBookIdentity,
+  hasOriginalFilenameConflict,
+  invalidateBookFileIndex,
+  loadBookBinary,
+  loadBookConfigs,
+  resolveBookFile,
+  resolveBookFormat,
+} from '@/services/book/bookRepository'
+import { toBookConfigFilename } from '@/services/book/bookIdentity'
 
 export default {
   name: 'MainContent',
@@ -219,17 +233,23 @@ export default {
   },
   setup() {
     type ShelfViewMode = 'list' | 'grid'
-    type ShelfBook = BookConfig & { cover?: string }
+    type ShelfBook = BookConfig & {
+      cover?: string
+      format: BookFormat
+      progressValue: number
+      lastReadLabel: string
+    }
+
     const books = ref<ShelfBook[]>([])
-    const isLoading = ref(false) // 是否正在加载
-    const booksLoading = ref(true) // 书籍是否加载完成
+    const isLoading = ref(false)
+    const booksLoading = ref(true)
     const loadingText = ref(
       'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
-    ) // 加载时的提示文字
-    const settingVisible = ref(false) // 设置中心
-    const bookInfoVisible = ref(false) // 书籍信息框
-    const bookInfoId = ref<String>('') // 书籍ID
-    let unlistenReady = ref<UnlistenFn | null>(null)
+    )
+    const settingVisible = ref(false)
+    const bookInfoVisible = ref(false)
+    const bookInfoId = ref<String>('')
+    const unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
     const isBooksEmpty = computed(() => books.value.length === 0)
@@ -242,20 +262,27 @@ export default {
       localStorage.setItem('shelfViewMode', shelfViewMode.value)
     }
 
+    const buildShelfBook = async (book: BookConfig): Promise<ShelfBook> => {
+      const format = await resolveBookFormat(book)
+      const cache = await ensureBookCache(book)
+      const bookData =
+        format === 'epub' && book.location ? (await loadBookBinary(book)).bookData : undefined
+      const progressValue = await deriveShelfProgress(book, format, cache, bookData)
+
+      return {
+        ...book,
+        cover: cache.cover,
+        format,
+        progressValue,
+        lastReadLabel: buildLastReadLabel(book, progressValue),
+      }
+    }
+
     const loadBooks = async () => {
       try {
         booksLoading.value = true
-        const dirs = await getLocalDirNames()
-        const loadedBooks: BookConfig[] = await invoke('load_books', { subdir: dirs.progress })
-        books.value = await Promise.all(
-          loadedBooks.map(async (book) => {
-            const cache = await loadBookCache(book)
-            return {
-              ...book,
-              cover: cache?.cover,
-            }
-          })
-        )
+        const loadedBooks = await loadBookConfigs()
+        books.value = await Promise.all(loadedBooks.map((book) => buildShelfBook(book)))
       } catch (error) {
         console.error('Error loading books:', error)
       } finally {
@@ -269,13 +296,13 @@ export default {
       isLoading.value = true
       try {
         await invoke('webdav_sync_files')
-        console.log('文件同步成功')
+        invalidateBookFileIndex()
         await loadBooks()
       } catch (error) {
-        isLoading.value = false
         console.error('文件同步失败:', error)
+      } finally {
+        isLoading.value = false
       }
-      isLoading.value = false
     }
 
     const addBook = async () => {
@@ -300,77 +327,91 @@ export default {
     }
 
     const addBookByPath = async (path: string) => {
-      if (books.value.find((book) => book.path === path)) {
-        console.log('该文件已经添加过了')
-        return
-      }
+      const originalFileName = getFileNameFromPath(path)
       const format = detectBookFormatFromPath(path)
       if (!format) {
         console.log('不支持的书籍格式:', path)
         return
       }
+
       loadingText.value =
         `Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file - Parsing ${getBookFormatDisplayName(format)} file`
       isLoading.value = true
+
       try {
-      const u8File: Uint8Array = await invoke('read_file_by_path', {
-        filepath: path,
-      })
-      const fileBytes = u8File instanceof Uint8Array ? u8File : new Uint8Array(u8File)
-      const bufferFile = fileBytes.buffer.slice(
-        fileBytes.byteOffset,
-        fileBytes.byteOffset + fileBytes.byteLength
-      ) as ArrayBuffer
-      const newBookId = Date.now().toString()
-      const dirs = await getLocalDirNames()
+        const u8File: Uint8Array = await invoke('read_file_by_path', {
+          filepath: path,
+        })
+        const fileBytes = u8File instanceof Uint8Array ? u8File : new Uint8Array(u8File)
+        const bufferFile = fileBytes.buffer.slice(
+          fileBytes.byteOffset,
+          fileBytes.byteOffset + fileBytes.byteLength
+        ) as ArrayBuffer
+        const importedIdentity = await getImportedBookIdentity(originalFileName, bufferFile)
 
-      loadingText.value =
-        'Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - '
+        if (books.value.find((book) => book.id === importedIdentity.id)) {
+          console.log('该书籍已存在:', importedIdentity.id)
+          return
+        }
 
-      // 保存到本地 books 目录
-      await invoke('write_file', {
-        subdir: dirs.books,
-        filename: getBookFilename(newBookId, format),
-        contents: Array.from(fileBytes),
-      })
+        if (await hasOriginalFilenameConflict(originalFileName)) {
+          console.log('原始文件名已存在，拒绝导入:', originalFileName)
+          return
+        }
 
+        const dirs = await getLocalDirNames()
         const newBook = await buildBookConfigFromImport({
-          id: newBookId,
           sourcePath: path,
+          originalFileName,
           format,
-          fileSizeMB: (fileBytes.byteLength / 1024 / 1024).toFixed(2),
           fileBuffer: bufferFile,
         })
         const bookConfigJson = JSON.stringify(newBook)
 
+        loadingText.value =
+          'Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - Saving bookData - '
+
+        await invoke('write_file', {
+          subdir: dirs.books,
+          filename: originalFileName,
+          contents: Array.from(fileBytes),
+        })
+
         await invoke('save_file', {
           subdir: dirs.progress,
-          filename: `${newBook.id}.json`,
+          filename: toBookConfigFilename(newBook.id),
           contents: bookConfigJson,
         })
 
-        books.value.push({ ...newBook })
+        invalidateBookFileIndex()
+        const cachedPayload = await primeBookCacheAfterImport(
+          newBook,
+          bufferFile,
+          format,
+          originalFileName
+        )
+
+        books.value.push({
+          ...newBook,
+          cover: cachedPayload.cover,
+          format,
+          progressValue: 0,
+          lastReadLabel: '未读',
+        })
 
         loadingText.value =
           'Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - Uploading bookData to server - '
 
-          // 上传到webDAV服务器中
         queueMicrotask(() => {
           void Promise.allSettled([
-            primeBookCacheAfterImport(newBook, bufferFile).then((cachedPayload) => {
-              const targetBook = books.value.find((book) => book.id === newBook.id)
-              if (targetBook && cachedPayload.cover !== undefined) {
-                targetBook.cover = cachedPayload.cover
-              }
-            }),
             invoke('webdav_upload', {
               subdir: dirs.books,
-              filename: getBookFilename(newBook.id, format),
+              filename: originalFileName,
               contents: Array.from(fileBytes),
             }),
-            invoke('webdav_upload_progress', {
+            invoke('webdav_upload', {
               subdir: dirs.progress,
-              filename: `${newBook.id}.json`,
+              filename: toBookConfigFilename(newBook.id),
               contents: Array.from(new TextEncoder().encode(bookConfigJson)),
             }),
           ])
@@ -386,18 +427,40 @@ export default {
       try {
         const dirs = await getLocalDirNames()
         const targetBook = books.value.find((book) => book.id === id)
-        await invoke('delete_book', { subdir: dirs.progress, filename: `${id}.json` })
-        await invoke('delete_book', { subdir: dirs.books, filename: `${id}.epub` })
-        await invoke('delete_book', { subdir: dirs.books, filename: `${id}.txt` })
+        const resolvedBookFile = targetBook ? await resolveBookFile(targetBook) : null
+
+        await invoke('delete_book', {
+          subdir: dirs.progress,
+          filename: toBookConfigFilename(id),
+        })
+
+        if (resolvedBookFile) {
+          await invoke('delete_book', {
+            subdir: dirs.books,
+            filename: resolvedBookFile.fileName,
+          })
+        }
+
         if (targetBook) {
           await invoke('delete_book', {
             subdir: dirs.cached,
             filename: getBookCacheFilename(targetBook.title, targetBook.author),
           })
         }
-        await invoke('webdav_delete', { subdir: dirs.progress, filename: `${id}.json` })
-        await invoke('webdav_delete', { subdir: dirs.books, filename: `${id}.epub` })
-        await invoke('webdav_delete', { subdir: dirs.books, filename: `${id}.txt` })
+
+        await invoke('webdav_delete', {
+          subdir: dirs.progress,
+          filename: toBookConfigFilename(id),
+        })
+
+        if (resolvedBookFile) {
+          await invoke('webdav_delete', {
+            subdir: dirs.books,
+            filename: resolvedBookFile.fileName,
+          })
+        }
+
+        invalidateBookFileIndex()
         books.value = books.value.filter((book) => book.id !== id)
       } catch (error) {
         console.error('Error deleting the book:', error)
@@ -405,8 +468,6 @@ export default {
     }
 
     const openBook = (id: string) => {
-      console.log('Opening book:', id)
-
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
         title: '阅读',
@@ -416,34 +477,23 @@ export default {
       })
 
       webview.once('tauri://created', async function () {
-        // 先移除相同的监听器
         unlistenReady.value?.()
-        // 等待阅读器准备好接受书籍ID
         unlistenReady.value = await listen<string>(
           WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_ID,
           async () => {
-            WebviewWindow.getCurrent().emitTo(
-              'reader',
-              WINDOW_EVENTS.LOAD_BOOK_ID,
-              {
-                id: id.toString(),
-                cfi: '',
-              }
-            )
+            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_ID, {
+              id: id.toString(),
+              cfi: '',
+            })
           }
         )
       })
 
       webview.once('tauri://error', function () {
-        // 阅读器已加载，此时只需要发送新的书籍ID
-        WebviewWindow.getCurrent().emitTo(
-          'reader',
-          WINDOW_EVENTS.LOAD_BOOK_ID,
-          {
-            id: id.toString(),
-            cfi: '',
-          }
-        )
+        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_ID, {
+          id: id.toString(),
+          cfi: '',
+        })
       })
     }
 
@@ -452,12 +502,9 @@ export default {
       bookInfoVisible.value = true
     }
 
-    // 右键菜单
     const onContextMenu = (e: MouseEvent, bookId: string) => {
-      //e.preventDefault()
       let menuX = e.x
       let menuY = e.y
-      // 菜单选项
       const menuItems: ContextMenuItem[] = [
         {
           label: '打开 | 开始阅读',
@@ -475,24 +522,24 @@ export default {
           onClick: () => deleteBook(bookId),
         },
       ]
-      const menuWidth = 200 // 菜单宽度
-      const menuHeight = 35 * menuItems.length // 菜单预估高度
-      const pageWidth = document.documentElement.clientWidth // 页面宽度
-      const pageHeight = document.documentElement.clientHeight // 页面高度
-      const precision = 20 // 菜单距离页面边缘的最小距离
-      // 如果菜单最右边超过页面宽度，则调整位置
+      const menuWidth = 200
+      const menuHeight = 35 * menuItems.length
+      const pageWidth = document.documentElement.clientWidth
+      const pageHeight = document.documentElement.clientHeight
+      const precision = 20
+
       if (menuX + menuWidth > pageWidth) {
         menuX -= menuWidth
       }
       menuX = Math.max(precision, menuX)
       menuX = Math.min(pageWidth - precision - menuWidth, menuX)
-      // 如果菜单最下边超过页面高度，则调整位置
+
       if (menuY + menuHeight > pageHeight) {
         menuY -= menuHeight
       }
       menuY = Math.max(precision, menuY)
       menuY = Math.min(pageHeight - precision - menuHeight, menuY)
-      // 赋值
+
       menuOptions.value = {
         x: menuX,
         y: menuY,
@@ -500,58 +547,45 @@ export default {
         items: menuItems,
         theme: 'dark',
       }
-      // 显示菜单
       showMenu.value = true
     }
 
-    // 打开设置
     const openSetting = () => {
       settingVisible.value = true
     }
 
-    // 获取书籍封面
     const getBookCover = (cover?: string) => {
       if (cover && cover.startsWith('data:image')) return cover
       return defaultCover
     }
 
-    const getBookFormatBadge = (book: BookConfig): string => {
-      if (book.format === 'txt') {
-        return 'TXT'
-      }
-      if (book.format === 'epub') {
-        return 'EPUB'
-      }
-
-      return detectBookFormatFromPath(book.path) === 'txt' ? 'TXT' : 'EPUB'
+    const getBookFormatBadge = (book: ShelfBook): string => {
+      return book.format === 'txt' ? 'TXT' : 'EPUB'
     }
 
-    const getProgressValue = (book: BookConfig): number => {
-      const value = Number(book.progress ?? 0)
+    const getProgressValue = (book: ShelfBook): number => {
+      const value = Number(book.progressValue ?? 0)
       if (Number.isNaN(value)) {
         return 0
       }
       return Math.min(100, Math.max(0, value))
     }
 
-    const getProgressPercent = (book: BookConfig): string => {
+    const getProgressPercent = (book: ShelfBook): string => {
       return `${getProgressValue(book).toFixed(1)}%`
     }
 
-    const getGridProgressText = (book: BookConfig): string => {
+    const getGridProgressText = (book: ShelfBook): string => {
       const progress = getProgressValue(book)
       return progress > 0 ? `阅读进度：${progress.toFixed(1)}%` : '未读'
     }
 
-    const getListSubtitle = (book: BookConfig): string => {
-      if (book.location) {
-        return `章节：${book.location}`
-      }
-      return book.author ? `作者：${book.author}` : '章节：暂无'
+    const getListSubtitle = (book: ShelfBook): string => {
+      return book.author ? `作者：${book.author}` : '作者：未知'
     }
 
-    const getListMeta = (book: BookConfig): string => {
-      return book.lastRead ? `阅读时长：${book.lastRead}` : '阅读时长：暂无'
+    const getListMeta = (book: ShelfBook): string => {
+      return `最近阅读：${book.lastReadLabel}`
     }
 
     onMounted(() => {
@@ -834,7 +868,7 @@ export default {
         display: grid;
         gap: var(--shelf-grid-gap);
         justify-content: start;
-        /* 固定列宽自动填充：书架变宽时优先加列，卡片宽度不会变小 */
+        /* 鍥哄畾鍒楀鑷姩濉厖锛氫功鏋跺彉瀹芥椂浼樺厛鍔犲垪锛屽崱鐗囧搴︿笉浼氬彉灏?*/
         grid-template-columns: repeat(
           auto-fill,
           minmax(var(--shelf-grid-item-width), var(--shelf-grid-item-width))
@@ -1122,7 +1156,7 @@ export default {
         overflow: hidden;
       }
 
-      /* 断点分段：列宽只递增不递减，宽度增长时自动增加栏数 */
+      /* 鏂偣鍒嗘锛氬垪瀹藉彧閫掑涓嶉€掑噺锛屽搴﹀闀挎椂鑷姩澧炲姞鏍忔暟 */
       @media (min-width: 980px) {
         .bookcase-body--grid {
           --shelf-grid-item-width: 156px;
@@ -1163,7 +1197,7 @@ export default {
         }
       }
 
-      /* 小宽度兜底：避免极窄窗口卡片溢出 */
+      /* 灏忓搴﹀厹搴曪細閬垮厤鏋佺獎绐楀彛鍗＄墖婧㈠嚭 */
       @media (max-width: 520px) {
         .bookcase-body--grid {
           --shelf-grid-item-width: 132px;
@@ -1280,3 +1314,4 @@ export default {
   backdrop-filter: 0;
 }
 </style>
+

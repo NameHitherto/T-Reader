@@ -6,7 +6,6 @@ export const parseTxtMeta = (path: string): ParsedBookMeta => {
     format: 'txt',
     title: getFileNameWithoutExtension(path),
     author: '未知作者',
-    language: '未知',
     cover: '',
   }
 }

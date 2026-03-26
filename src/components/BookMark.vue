@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="bookmark">
     <div class="bookmark-header">
       <span class="prefix">笔记</span>
@@ -48,7 +48,7 @@
           />
           <el-table-column 
             prop="content" 
-            label="正文内容"
+            label="内容"
             show-overflow-tooltip
             min-width="120"
           />
@@ -76,17 +76,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 import BookMarkTag from './BookMark/bookMarkTag.vue'
 import { BookMark } from '@/store/bookMark'
-import { invoke } from '@tauri-apps/api/core'
 import { formatDateToNumber } from '@/js/utils'
 import { BookConfig } from '@/js/map'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus'
 import 'element-plus/es/components/message-box/style/css'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import {
+  loadBookConfig,
+  loadBookConfigs,
+  saveBookConfig,
+} from '@/services/book/bookRepository'
 
 export default defineComponent({
   name: 'BookMark',
@@ -100,24 +103,20 @@ export default defineComponent({
       scrollLeft: 0,
       viewType: '' as 'tag' | 'table',
       tableMaxHeight: 0,
-      unlistenReady : ref<UnlistenFn | null>(null),
+      unlistenReady: null as UnlistenFn | null,
     }
   },
   computed: {
-    // 将书签列表按照书籍ID分组
     groupedBooksMarks() {
-      // 临时变量，不影响原数组
       const temp = [...this.booksMarks]
-      const groupedBooksMarks = temp.reduce((acc, bookMark) => {
+      return temp.reduce((acc, bookMark) => {
         if (!acc[bookMark.bookId]) {
           acc[bookMark.bookId] = []
         }
         acc[bookMark.bookId].push(bookMark)
         return acc
       }, {} as Record<string, BookMark[]>)
-      return groupedBooksMarks
     },
-    // 按照时间排序的书签列表
     rankedBooksMarks() {
       return this.booksMarks.sort((a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime))
     },
@@ -130,74 +129,26 @@ export default defineComponent({
       return contentWidth - wrapperWidth
     },
   },
-  watch: {
-  },
   methods: {
     async loadBookMarks() {
-      const dirs = await getLocalDirNames()
-      this.loadedBooks = await invoke('load_books', { subdir: dirs.progress })
+      this.loadedBooks = await loadBookConfigs()
       this.booksMarks = []
-      for(const book of this.loadedBooks) {
-        let bookConfigData
-        try {
-          // 尝试获取云同步配置文件
-          const cloudConfigData = await invoke('webdav_get_progress', {
-            subdir: dirs.progress,
-            filename: `${book.id}.json`,
-          })
-          bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
-        } catch (e) {
-          // 获取云同步配置文件失败，使用本地配置文件
-          const localData = await invoke('read_file', {
-            subdir: dirs.progress,
-            filename: `${book.id}.json`,
-          })
-          bookConfigData = new Uint8Array(localData as ArrayBufferLike)
-        }
-        const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
+      for (const book of this.loadedBooks) {
+        const bookConfig = await loadBookConfig(book.id)
         if (bookConfig.bookMarks) {
           this.booksMarks = [...this.booksMarks, ...bookConfig.bookMarks]
         }
       }
     },
     async saveBookMarks() {
-      // 根据分组后的书签列表更新配置文件
-      const dirs = await getLocalDirNames()
       for (const book of this.loadedBooks) {
-        let bookConfigData
-        try {
-          // 尝试获取云同步配置文件
-          const cloudConfigData = await invoke('webdav_get_progress', {
-            subdir: dirs.progress,
-            filename: `${book.id}.json`,
-          })
-          bookConfigData = new Uint8Array(cloudConfigData as ArrayBufferLike)
-        } catch (e) {
-          // 获取云同步配置文件失败，使用本地配置文件
-          const localData = await invoke('read_file', {
-            subdir: dirs.progress,
-            filename: `${book.id}.json`,
-          })
-          bookConfigData = new Uint8Array(localData as ArrayBufferLike)
-        }
-        const bookConfig = JSON.parse(new TextDecoder().decode(bookConfigData))
+        const bookConfig = await loadBookConfig(book.id)
         if (!this.groupedBooksMarks[book.id]) {
           delete bookConfig.bookMarks
         } else {
           bookConfig.bookMarks = this.groupedBooksMarks[book.id]
         }
-        const jsonString = JSON.stringify(bookConfig)
-        const jsonUint8Array = new TextEncoder().encode(jsonString)
-        await invoke('save_file', {
-          subdir: dirs.progress,
-          filename: `${book.id}.json`,
-          contents: jsonString,
-        })
-        await invoke('webdav_upload_progress', {
-          subdir: dirs.progress,
-          filename: `${book.id}.json`,
-          contents: Array.from(jsonUint8Array),
-        })
+        await saveBookConfig(book.id, bookConfig)
       }
     },
     async deleteBookMark(bookMark: BookMark) {
@@ -212,7 +163,6 @@ export default defineComponent({
             showClose: false
         }
       ).then(async () => {
-        // 删除此笔记
         this.booksMarks = this.booksMarks.filter((item) => item.id !== bookMark.id)
         await this.saveBookMarks()
       }).catch(() => {
@@ -222,7 +172,6 @@ export default defineComponent({
     handleWheel(e: WheelEvent) {
       e.preventDefault()
       const scrollbarRef = this.$refs.scrollbar as any
-      // 根据滚动幅度调整滚动条位置
       this.scrollLeft = this.scrollLeft + e.deltaY >= 0 ? this.scrollLeft + e.deltaY : 0
       this.scrollLeft = this.scrollLeft > this.scrollLeftMax ? this.scrollLeftMax : this.scrollLeft
       scrollbarRef?.setScrollLeft(this.scrollLeft)
@@ -249,29 +198,24 @@ export default defineComponent({
                 showClose: false
             }
         ).then(() => {
-            // 跳转到阅读处
-            console.log('即将跳转:', bookMark.bookId)
             this.openBook(bookMark.bookId, bookMark.bookCfi)
         }).catch(() => {
             return
         })
     },
     openBook(id: string, cfi: string) {
-      let unlistenReady = this.unlistenReady;
-
       const webview = new WebviewWindow('reader', {
         url: 'reader.html',
         title: 'T-Reader',
         decorations: false,
         minHeight: 660,
         minWidth: 880,
-      });
+      })
 
-      webview.once('tauri://created', async function () {
-        // 先移除相同的监听器
-        unlistenReady?.()
-        // 等待阅读器准备好接受书籍ID
-        unlistenReady = await listen<string>(
+      const vm = this
+      webview.once('tauri://created', async () => {
+        vm.unlistenReady?.()
+        vm.unlistenReady = await listen<string>(
           'ready-to-receive-book-id',
           async () => {
             WebviewWindow.getCurrent().emitTo(
@@ -284,10 +228,9 @@ export default defineComponent({
             )
           }
         )
-      });
+      })
 
       webview.once('tauri://error', function () {
-        // 阅读器已加载，此时只需要发送新的书籍ID
         WebviewWindow.getCurrent().emitTo(
           'reader',
           'load-book-id',
@@ -296,25 +239,21 @@ export default defineComponent({
             cfi: cfi,
           }
         )
-      });
+      })
     },
   },
   async mounted() {
-    // 获取本地存储的书签视图类型
     const storedViewType = localStorage.getItem('bookMarkViewType')
     if (storedViewType) {
       this.viewType = storedViewType as 'tag' | 'table'
     } else {
       this.viewType = 'tag'
     }
-    // 初始化表格高度
     this.updateTableMaxHeight()
     window.addEventListener('resize', this.updateTableMaxHeight)
-    // 加载书签数据
     await this.loadBookMarks()
   },
   beforeUnmount() {
-    // 清除事件监听器
     window.removeEventListener('resize', this.updateTableMaxHeight)
   }
 })
@@ -415,3 +354,4 @@ export default defineComponent({
   }
 }
 </style>
+

@@ -6,15 +6,12 @@ interface ParseEpubMetaOptions {
   includeCover?: boolean
 }
 
-/**
- * 解析 EPUB 元数据。
- * 导入阶段默认跳过封面提取，避免阻塞主流程。
- */
 export const parseEpubMeta = async (
   buffer: ArrayBuffer,
   options: ParseEpubMetaOptions = {}
 ): Promise<ParsedBookMeta> => {
   const book = ePub(buffer)
+
   try {
     const metadata = await book.loaded.metadata
 
@@ -28,14 +25,13 @@ export const parseEpubMeta = async (
       format: 'epub',
       title: metadata.title || '未知书名',
       author: metadata.creator || '未知作者',
-      language: metadata.language || '未知',
       cover,
     }
   } finally {
     try {
       book.destroy?.()
     } catch (error) {
-      console.warn('清理 EPUB 解析实例失败:', error)
+      console.warn('销毁 EPUB 元数据实例失败:', error)
     }
   }
 }

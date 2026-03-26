@@ -354,7 +354,6 @@ export default {
         format: currentBookFormat.value,
         rendition: rendition.value,
         txtCurrentParagraph: txtCurrentParagraph.value,
-        txtReaderElement: document.getElementById('txt-reader'),
         bookMarks: bookMarks.value,
       })
 
@@ -494,7 +493,7 @@ export default {
           buildContextMenuItems: () => {
             return [
               {
-                label: '标记 | 添加标签',
+                label: '标记 | 添加书签',
                 type: 'bookmark',
                 onClick: () => addBookMark(),
               },
@@ -526,8 +525,7 @@ export default {
 
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
-        readingPercentage.value =
-          typeof bookConfig.progress === 'number' ? bookConfig.progress.toFixed(1) : ''
+        readingPercentage.value = ''
         bookMarkStore.clearBookMarks()
         txtParagraphs.value = []
         txtCurrentParagraph.value = 0
@@ -536,7 +534,7 @@ export default {
           try {
             destroyEpubRendition(rendition.value)
           } catch (e) {
-            console.log('销毁旧的Rendition失败', e)
+            console.log('销毁旧的 Rendition 失败', e)
           }
           rendition.value = null
         }
@@ -545,12 +543,19 @@ export default {
           toc.value = []
           activeChapter.value = ''
 
-          const txtBook = renderTxtBook(bookData, cfi || bookConfig.location, bookConfig.progress)
+          const txtBook = renderTxtBook(bookData, cfi || bookConfig.location)
           txtParagraphs.value = txtBook.paragraphs
 
           await applyReaderStyle()
           await restoreTxtLocation(txtBook.location)
-          readingPercentage.value = txtBook.progress.toFixed(1)
+          const txtReader = document.getElementById('txt-reader')
+          if (txtReader) {
+            readingPercentage.value = calcTxtProgress(
+              txtReader.scrollTop,
+              txtReader.scrollHeight,
+              txtReader.clientHeight
+            ).toFixed(1)
+          }
           return
         }
 
@@ -568,7 +573,12 @@ export default {
 
         if (!bookCache?.locations) {
           queueMicrotask(() => {
-            void primeBookCacheAfterImport(bookConfig, bookArrayBuffer as ArrayBuffer).catch(
+            void primeBookCacheAfterImport(
+              bookConfig,
+              bookArrayBuffer as ArrayBuffer,
+              format,
+              bookCache.bookFileName || `${bookConfig.id}.${format}`
+            ).catch(
               (error) => {
                 console.warn('补全 EPUB locations 缓存失败:', error)
               }
@@ -581,7 +591,7 @@ export default {
           void initAllBookMarks()
         }
 
-        console.log('EPUB解析完成:', bookIsReading.value, bookConfig.title)
+        console.log('EPUB 解析完成:', bookIsReading.value, bookConfig.title)
       }).catch((e) => {
         console.log('书籍加载失败', e)
       })

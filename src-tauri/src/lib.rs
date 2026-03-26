@@ -1,16 +1,11 @@
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 mod command;
 mod model;
 
 use command::{
-    save_file, load_books, delete_book, read_file_by_path, read_file, write_file,
-    webdav_upload, webdav_get, webdav_delete, webdav_sync_files,
-    save_settings, load_settings, start_stream,
-    get_system_fonts,
-    prepare_updater_proxy,
-    check_local_dirs_command, check_cloud_dirs_command,
-    webdav_upload_progress, webdav_get_progress,
-    get_local_dir_names_command, get_cloud_dir_names_command
+    check_cloud_dirs_command, check_local_dirs_command, delete_book, get_cloud_dir_names_command,
+    get_local_dir_names_command, get_system_fonts, list_files, load_books, load_settings,
+    prepare_updater_proxy, read_file, read_file_by_path, save_file, save_settings, start_stream,
+    webdav_delete, webdav_get, webdav_sync_files, webdav_upload, write_file,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -31,6 +26,7 @@ pub fn run() {
             read_file_by_path,
             read_file,
             write_file,
+            list_files,
             webdav_upload,
             webdav_get,
             webdav_delete,
@@ -42,8 +38,6 @@ pub fn run() {
             prepare_updater_proxy,
             check_local_dirs_command,
             check_cloud_dirs_command,
-            webdav_upload_progress,
-            webdav_get_progress,
             get_local_dir_names_command,
             get_cloud_dir_names_command
         ])

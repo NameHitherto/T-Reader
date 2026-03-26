@@ -10,7 +10,7 @@
   >
     <div class="info-container">
       <div class="book-image">
-        <img :src="bookCover"/>
+        <img :src="bookCover" />
       </div>
       <div class="book-details">
         <el-scrollbar class="book-details-scrollbar">
@@ -18,45 +18,45 @@
             <el-row class="row">
               <el-col class="col title" :span="24">
                 <span class="col-title">书名</span>
-                <span class="book-title">{{ title ? title : '--' }}</span>
+                <span class="book-title">{{ title || '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col description" :span="24">
                 <span class="col-title">简介</span>
-                <span class="col-text">{{ description ? description : '--' }}</span>
+                <span class="col-text">{{ description || '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col creator" :span="6">
                 <span class="col-title">作者</span>
-                <span class="col-h">{{ creator ? creator : '--' }}</span>
+                <span class="col-h">{{ creator || '--' }}</span>
               </el-col>
               <el-col class="col publisher" :span="17">
                 <span class="col-title">出版社</span>
-                <span class="col-h">{{ publisher ? publisher : '--' }}</span>
+                <span class="col-h">{{ publisher || '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col pubdate" :span="24">
                 <span class="col-title">出版日期</span>
-                <span class="col-h">{{ pubdate ? pubdate : '--' }}</span>
+                <span class="col-h">{{ pubdate || '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col language" :span="6">
                 <span class="col-title">语言</span>
-                <span class="col-h">{{ language ? language : '--' }}</span>
+                <span class="col-h">{{ language || '--' }}</span>
               </el-col>
               <el-col class="col rights" :span="17">
                 <span class="col-title">版权信息</span>
-                <span class="col-h">{{ rights ? rights : '--' }}</span>
+                <span class="col-h">{{ rights || '--' }}</span>
               </el-col>
             </el-row>
             <el-row class="row">
               <el-col class="col identifier" :span="24">
                 <span class="col-title">唯一标识</span>
-                <span class="col-h">{{ identifier ? identifier : '--' }}</span>
+                <span class="col-h">{{ identifier || '--' }}</span>
               </el-col>
             </el-row>
           </div>
@@ -69,37 +69,42 @@
 <script>
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
-import { loadBookBinary, loadBookCacheByConfig, loadBookConfig } from '@/services/book/bookRepository'
+import {
+  ensureBookCache,
+  loadBookBinary,
+  loadBookConfig,
+} from '@/services/book/bookRepository'
+
 export default {
   name: 'BookInfoDialog',
   props: {
     bookId: {
       type: String,
-      required: true
-    }
-  },  
+      required: true,
+    },
+  },
   data() {
     return {
-      defaultCover, // 默认封面
-      bookCover: '', // 书籍封面
-      creator: '', // 作者
-      description: '', // 书籍描述
-      identifier: '', // 书籍唯一标识
-      language: '', // 语言
-      pubdate: '', // 出版日期
-      publisher: '', // 出版社
-      rights: '', // 版权信息
-      title: '', // 书籍标题
+      defaultCover,
+      bookCover: '',
+      creator: '',
+      description: '',
+      identifier: '',
+      language: '',
+      pubdate: '',
+      publisher: '',
+      rights: '',
+      title: '',
       languageType: {
-        'zh': '中文',
+        zh: '中文',
         'zh-cn': '简体中文',
         'zh-CN': '简体中文',
         'zh-tw': '繁体中文',
         'zh-TW': '繁体中文',
-        'en': '英文',
-        'jp': '日文',
+        en: '英语',
+        jp: '日语',
       },
-    };
+    }
   },
   methods: {
     resetFields() {
@@ -117,36 +122,44 @@ export default {
       this.resetFields()
 
       const bookConfig = await loadBookConfig(this.bookId)
-      const bookCache = await loadBookCacheByConfig(bookConfig)
+      const bookCache = await ensureBookCache(bookConfig)
       this.bookCover = bookCache?.cover || this.defaultCover
       this.creator = bookConfig.author || ''
-      this.language = this.languageType[bookConfig.language] ?? bookConfig.language ?? ''
       this.title = bookConfig.title || ''
 
-      if (bookConfig.format !== 'epub') {
+      const loadedBook = await loadBookBinary(bookConfig)
+      if (loadedBook.format !== 'epub') {
         return
       }
 
-      const bookData = await loadBookBinary(this.bookId, 'epub')
-      const arrayBuffer = bookData.buffer.slice(
-        bookData.byteOffset,
-        bookData.byteOffset + bookData.byteLength
+      const arrayBuffer = loadedBook.bookData.buffer.slice(
+        loadedBook.bookData.byteOffset,
+        loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength
       )
       const epub = ePub(arrayBuffer)
-      const cover = await epub.coverUrl()
-      this.bookCover = cover ?? this.bookCover
-      const metadata = await epub.loaded.metadata
-      this.creator = metadata.creator || this.creator
-      this.description = metadata.description || ''
-      this.identifier = metadata.identifier || ''
-      this.language = this.languageType[metadata.language] ?? metadata.language ?? this.language
-      this.pubdate = metadata.pubdate || ''
-      this.publisher = metadata.publisher || ''
-      this.rights = metadata.rights || ''
-      this.title = metadata.title || this.title
-    }
+
+      try {
+        const cover = await epub.coverUrl()
+        this.bookCover = cover ?? this.bookCover
+        const metadata = await epub.loaded.metadata
+        this.creator = metadata.creator || this.creator
+        this.description = metadata.description || ''
+        this.identifier = metadata.identifier || ''
+        this.language = this.languageType[metadata.language] ?? metadata.language ?? ''
+        this.pubdate = metadata.pubdate || ''
+        this.publisher = metadata.publisher || ''
+        this.rights = metadata.rights || ''
+        this.title = metadata.title || this.title
+      } finally {
+        try {
+          epub.destroy?.()
+        } catch (error) {
+          console.warn('销毁 EPUB 详情实例失败:', error)
+        }
+      }
+    },
   },
-};
+}
 </script>
 
 <style scoped>
@@ -180,7 +193,7 @@ export default {
       width: 100%;
       height: 100%;
 
-      img{
+      img {
         position: relative;
         max-height: 70vh;
         transition: all 0.2s ease-out;
@@ -245,16 +258,16 @@ export default {
             font-weight: bold;
           }
           .col-title {
-            opacity: .8;
+            opacity: 0.8;
             font-size: 12px;
-            margin-bottom: .5rem;
+            margin-bottom: 0.5rem;
           }
           .col-text {
             font-size: 16px;
             line-height: 2;
           }
           .col-h {
-            margin-bottom: .5rem;
+            margin-bottom: 0.5rem;
             font-size: 20px;
             font-weight: 700;
             line-height: 1;
@@ -307,6 +320,7 @@ export default {
     }
   }
 }
+
 @keyframes imgBlendIn {
   0% {
     opacity: 1;

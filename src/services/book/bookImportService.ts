@@ -2,30 +2,21 @@ import { BookConfig } from '@/js/map'
 import { ImportBookParams } from '@/services/book/types'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
 import { parseTxtMeta } from '@/services/book/parsers/txtParser'
-import { buildInitialSyncMeta } from '@/services/sync/syncMetaService'
+import { buildBookIdentity } from '@/services/book/bookIdentity'
 
 export const buildBookConfigFromImport = async (
   params: ImportBookParams
 ): Promise<BookConfig> => {
-  const { id, sourcePath, format, fileSizeMB, fileBuffer } = params
+  const { originalFileName, format, fileBuffer } = params
 
   const meta =
-    format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(sourcePath)
+    format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(originalFileName)
 
-  const now = new Date().toLocaleDateString()
   return {
-    ...buildInitialSyncMeta(),
-    id,
-    format,
-    locationFormat: format === 'epub' ? 'cfi' : 'paragraph',
-    progress: 0,
+    id: buildBookIdentity(meta.title, meta.author),
     title: meta.title,
     author: meta.author,
-    language: meta.language,
-    size: `${fileSizeMB}MB`,
-    lastRead: now,
-    added: now,
-    path: sourcePath,
     location: format === 'epub' ? '' : '0',
+    updatedAt: new Date().toISOString(),
   }
 }

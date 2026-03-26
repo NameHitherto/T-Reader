@@ -1,18 +1,20 @@
 import { invoke } from '@tauri-apps/api/core'
 import ePub from 'libs/epub.js'
 import { BookConfig } from '@/js/map'
+import { BookFormat } from '@/js/bookFormat'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
+import { splitTextToParagraphs } from '@/services/reader/txtReaderService'
+import { toBookCacheFilename } from '@/services/book/bookIdentity'
 
 export interface BookCachePayload {
   cover?: string
   locations?: string
+  paragraphCount?: number
+  bookFileName?: string
 }
 
-type BookCacheIdentity = Pick<BookConfig, 'title' | 'author' | 'format'>
-
-const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\u0000-\u001f]/g
-const MULTIPLE_SPACES = /\s+/g
+type BookCacheIdentity = Pick<BookConfig, 'title' | 'author'>
 
 const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
   if (data instanceof Uint8Array) {
@@ -26,19 +28,8 @@ const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array
   return new Uint8Array(data)
 }
 
-const sanitizeCacheNamePart = (value?: string, fallback = 'unknown'): string => {
-  const sanitized = (value || '')
-    .replace(INVALID_FILENAME_CHARS, '_')
-    .replace(MULTIPLE_SPACES, ' ')
-    .trim()
-
-  return sanitized || fallback
-}
-
 export const getBookCacheFilename = (title?: string, author?: string): string => {
-  const safeTitle = sanitizeCacheNamePart(title, 'untitled')
-  const safeAuthor = sanitizeCacheNamePart(author, 'unknown')
-  return `${safeTitle}_${safeAuthor}.json`
+  return toBookCacheFilename(title, author)
 }
 
 export const loadBookCache = async (
@@ -98,12 +89,22 @@ const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> =>
   }
 }
 
+const extractTxtParagraphCount = (fileBuffer: ArrayBuffer): number => {
+  const textContent = new TextDecoder().decode(fileBuffer)
+  return splitTextToParagraphs(textContent).length
+}
+
 export const primeBookCacheAfterImport = async (
   bookConfig: BookCacheIdentity,
-  fileBuffer: ArrayBuffer
+  fileBuffer: ArrayBuffer,
+  format: BookFormat,
+  bookFileName: string
 ): Promise<BookCachePayload> => {
-  if (bookConfig.format !== 'epub') {
-    const payload = {}
+  if (format !== 'epub') {
+    const payload = {
+      paragraphCount: extractTxtParagraphCount(fileBuffer),
+      bookFileName,
+    }
     await saveBookCache(bookConfig, payload)
     return payload
   }
@@ -116,10 +117,13 @@ export const primeBookCacheAfterImport = async (
     return await saveBookCache(bookConfig, {
       cover: meta.cover || '',
       locations,
+      bookFileName,
     })
   } catch (error) {
     console.warn('提取书籍缓存失败:', error)
-    const payload = {}
+    const payload = {
+      bookFileName,
+    }
     await saveBookCache(bookConfig, payload)
     return payload
   }

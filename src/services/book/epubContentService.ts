@@ -1,27 +1,19 @@
 import ePub from 'libs/epub.js'
-import { invoke } from '@tauri-apps/api/core'
 import JSZip from 'jszip'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
 
-/**
- * 从 EPUB 书籍中提取纯文本内容
- */
-export const extractEpubContent = async (bookName: string): Promise<string> => {
-  const dirs = await getLocalDirNames()
-  const bookData = await invoke('read_file', {
-    subdir: dirs.books,
-    filename: `${bookName}.epub`,
-  })
-  const bytes = bookData instanceof Uint8Array
-    ? bookData
-    : Array.isArray(bookData)
-      ? Uint8Array.from(bookData)
-      : new Uint8Array(bookData as ArrayBufferLike)
-  const arrayBuffer = bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength
+export const extractEpubContent = async (bookId: string): Promise<string> => {
+  const bookConfig = await loadBookConfig(bookId)
+  const loadedBook = await loadBookBinary(bookConfig)
+
+  if (loadedBook.format !== 'epub') {
+    return new TextDecoder().decode(loadedBook.bookData).slice(0, 10000)
+  }
+
+  const arrayBuffer = loadedBook.bookData.buffer.slice(
+    loadedBook.bookData.byteOffset,
+    loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength
   ) as ArrayBuffer
-
   const book = ePub(arrayBuffer)
   await book.ready
 
@@ -37,8 +29,6 @@ export const extractEpubContent = async (bookName: string): Promise<string> => {
     try {
       if (zipData.folder('OEBPS')) {
         filePath = `OEBPS/${chapterHref}`
-      } else {
-        console.error('未找到 OEBPS 文件夹')
       }
 
       const chapterContent = await zipData.file(filePath)?.async('string')
@@ -46,10 +36,10 @@ export const extractEpubContent = async (bookName: string): Promise<string> => {
         const htmlDoc = parser.parseFromString(chapterContent, 'text/html')
         const textContent = htmlDoc.body.textContent
         const cleanText = textContent?.replace(/\s+/g, ' ').trim()
-        fullText += cleanText + '\n\n'
+        fullText += `${cleanText}\n\n`
       }
-    } catch (e) {
-      console.error(e)
+    } catch (error) {
+      console.error(error)
     }
   }
 
