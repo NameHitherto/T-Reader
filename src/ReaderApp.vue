@@ -525,7 +525,7 @@ export default {
 
       await withReaderLoading(async () => {
         const loadedBook = await loadReaderBookData(currentBookKey.value as string)
-        const { bookConfig, bookCache, format, bookData, bookArrayBuffer } = loadedBook
+        const { bookConfig, bookCache, format, fileName, bookData, bookArrayBuffer } = loadedBook
 
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
@@ -585,7 +585,7 @@ export default {
               currentBookKey.value as string,
               bookArrayBuffer as ArrayBuffer,
               format,
-              bookCache.bookFileName || `${bookConfig.name}.${format}`
+              fileName
             ).catch((error) => {
               console.warn('补全 EPUB locations 缓存失败:', error)
             })

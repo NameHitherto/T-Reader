@@ -14,4 +14,6 @@ pub use file::{
 };
 pub use font::get_system_fonts;
 pub use proxy::prepare_updater_proxy;
-pub use web::{start_stream, webdav_delete, webdav_get, webdav_sync_files, webdav_upload};
+pub use web::{
+    start_stream, webdav_delete, webdav_exists, webdav_get, webdav_sync_files, webdav_upload,
+};

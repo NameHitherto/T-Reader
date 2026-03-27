@@ -12,14 +12,18 @@
         <div class="menu-body">
           <div class="menu-list" v-for="(item, idx) in menuData.items" :key="idx">
             <div class="separator" v-if="item.type === 'delete'"></div>
-            <div class="menu-item" @click="(event) => handleClick(item, event)">
-              <span class="label">{{ item.label }}</span>
+            <div
+              class="menu-item"
+              :class="{ 'menu-item--danger': item.type === 'delete' }"
+              @click="(event) => handleClick(item, event)"
+            >
               <AppIcon
                 class="menu-icon"
                 :name="resolveIconName(item.type)"
-                :size="22"
-                :color="menuData.theme === 'dark' ? '#e9e9e9' : '#333333'"
+                :size="18"
+                :color="item.type === 'delete' ? '#dc2626' : '#475569'"
               />
+              <span class="label">{{ item.label }}</span>
             </div>
           </div>
         </div>
@@ -86,16 +90,23 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style scoped lang="scss">
 .context-menu {
   position: absolute;
-  border-radius: 10px;
-  padding: 3px 4px;
+  border-radius: 16px;
+  padding: 6px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.12),
+    0 4px 14px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(12px);
 
   .menu-body {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
 
     .menu-list {
       display: flex;
@@ -103,30 +114,53 @@ export default {
 
       .separator {
         width: 100%;
-        border-radius: 10px;
-        margin: 2px 0 5px 0;
+        border-radius: 999px;
+        margin: 4px 0 6px 0;
+        border: 1px dashed rgba(203, 213, 225, 0.9);
       }
 
       .menu-item {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        transition: all 0.3s ease;
-        padding: 6px 8px;
-        border-radius: 5px;
+        gap: 10px;
+        transition:
+          background-color 0.2s ease,
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+        padding: 10px 12px;
+        border-radius: 12px;
         cursor: var(--t-mouse-cursor-link), pointer;
         position: relative;
         overflow: hidden;
         user-select: none;
+        color: #334155;
 
         .label {
-          font-weight: 400;
-          transition: all 0.2s ease;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          transition: color 0.2s ease;
         }
 
         .menu-icon {
-          width: 22px;
-          height: 22px;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+
+        &:hover {
+          background: rgba(59, 130, 246, 0.1);
+          box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.08);
+          transform: translateY(-1px);
+        }
+
+        &.menu-item--danger {
+          color: #991b1b;
+
+          &:hover {
+            background: rgba(239, 68, 68, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.08);
+          }
         }
       }
     }
@@ -134,49 +168,22 @@ export default {
 }
 
 .dark {
-  background: #363636;
-  border: 2px solid #313131;
-
-  .menu-list {
-    color: #e9e9e9;
-
-    .separator {
-      border: 1px solid #444444;
-    }
-
-    .menu-item {
-      &:hover {
-        background: #6a6c6d;
-      }
-    }
-  }
+  background:
+    linear-gradient(180deg, rgba(45, 55, 72, 0.96), rgba(30, 41, 59, 0.96));
+  border-color: rgba(71, 85, 105, 0.9);
 }
 
 .light {
-  background: #f9f9f9;
-  border: 2px solid #e9e9e9;
-
-  .menu-list {
-    color: #333;
-
-    .separator {
-      border: 1px solid #e9e9e9;
-    }
-
-    .menu-item {
-      &:hover {
-        background: #e9e9e9;
-      }
-    }
-  }
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
 }
 
 .menu-enter-active, .menu-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .menu-enter-from, .menu-leave-to{
   opacity: 0;
-  transform: scale(0.95);
+  transform: translateY(6px) scale(0.98);
 }
 </style>

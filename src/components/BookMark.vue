@@ -73,12 +73,10 @@ import { defineComponent } from 'vue'
 import BookMarkTag from './BookMark/bookMarkTag.vue'
 import { BookMark } from '@/store/bookMark'
 import { formatDateToNumber } from '@/js/utils'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { ElMessageBox } from 'element-plus'
 import 'element-plus/es/components/message-box/style/css'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookMarksRepository'
-import { WINDOW_EVENTS } from '@/constants/events'
+import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
 
 export default defineComponent({
   name: 'BookMark',
@@ -91,7 +89,6 @@ export default defineComponent({
       scrollLeft: 0,
       viewType: '' as 'tag' | 'table',
       tableMaxHeight: 0,
-      unlistenReady: null as UnlistenFn | null,
     }
   },
   computed: {
@@ -167,42 +164,15 @@ export default defineComponent({
         center: true,
         showClose: false,
       })
-        .then(() => {
-          this.openBook(bookMark.bookName, bookMark.bookCfi)
+        .then(async () => {
+          await this.openBook(bookMark.bookName, bookMark.bookCfi)
         })
         .catch(() => {
           return
         })
     },
-    openBook(bookKey: string, cfi: string) {
-      const webview = new WebviewWindow('reader', {
-        url: 'reader.html',
-        title: 'T-Reader',
-        decorations: false,
-        minHeight: 660,
-        minWidth: 880,
-      })
-
-      const vm = this
-      webview.once('tauri://created', async () => {
-        vm.unlistenReady?.()
-        vm.unlistenReady = await listen<string>(
-          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY,
-          async () => {
-            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
-              bookKey,
-              cfi: cfi,
-            })
-          }
-        )
-      })
-
-      webview.once('tauri://error', function () {
-        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
-          bookKey,
-          cfi: cfi,
-        })
-      })
+    async openBook(bookKey: string, cfi: string) {
+      await openReaderWindowWithPrecheck(bookKey, cfi)
     },
   },
   async mounted() {
