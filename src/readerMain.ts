@@ -1,9 +1,8 @@
 import { createApp } from 'vue';
 import ReaderApp from './ReaderApp.vue';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import showStyleMenu, { disposeStyleMenu } from './js/showStyleMenu';
 import { createPinia } from 'pinia';
-import { WINDOW_EVENTS } from '@/constants/events';
+import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events';
 import { bindWindowTitlebarControls } from './js/init';
 import './css/global.scss';
 
@@ -19,7 +18,9 @@ const disposeTitlebarControls = bindWindowTitlebarControls();
 
 const webviewWindow = getCurrentWebviewWindow();
 
-const onStyleMenuClick = () => showStyleMenu();
+const onStyleMenuClick = () => {
+  window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.TOGGLE_STYLE_MENU));
+};
 const onShowBookInfoClick = () => {
   webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_BOOK_INFO);
 };
@@ -58,5 +59,4 @@ window.addEventListener('beforeunload', () => {
   document.getElementById('titlebar-help')?.removeEventListener('click', onShowHelpClick);
   document.removeEventListener('contextmenu', onContextMenu);
   disposeTitlebarControls();
-  disposeStyleMenu();
 });

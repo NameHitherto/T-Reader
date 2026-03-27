@@ -1,5 +1,9 @@
 <template>
-  <div class="menu fade-in">
+  <div
+    ref="menuElement"
+    class="menu"
+    :style="menuStyle"
+  >
     <div class="menu-hero">
       <div class="menu-title">阅读样式</div>
       <div class="menu-subtitle">在这里修改背景、调整字距，并启用你最喜爱的字体。</div>
@@ -32,6 +36,7 @@
           v-model="selectedFont"
           placeholder="系统默认（PingFang）"
           class="font-select"
+          popper-class="style-menu-select-popper"
           @change="selectFont"
         >
           <el-option
@@ -47,7 +52,7 @@
         <span class="summary-pill">已启用 {{ enabledFontCount }} 款系统字体</span>
       </div>
 
-      <button class="font-manage-button" @click="fontDialogVisible = true">
+      <button class="font-manage-button" @click="openFontDialog">
         选择系统字体
       </button>
     </div>
@@ -95,16 +100,11 @@
       </span>
       <span class="button-text">恢复默认样式</span>
     </div>
-
-    <SystemFontEnableDialog
-      v-model="fontDialogVisible"
-      @saved="handleFontDialogSaved"
-    />
   </div>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
@@ -113,7 +113,6 @@ import '@/css/ResetButton.css'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildReaderFontOptions } from '@/services/reader/systemFontService'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
-import SystemFontEnableDialog from '@/components/SystemFontEnableDialog/index.vue'
 
 type NumericSettingKey =
   | 'indent'
@@ -139,16 +138,20 @@ interface ReaderNumericSetting {
 
 export default defineComponent({
   name: 'StyleMenu',
-  components: {
-    SystemFontEnableDialog,
+  props: {
+    maxHeight: {
+      type: Number,
+      default: null,
+    },
   },
-  setup() {
+  emits: ['open-font-dialog'],
+  setup(props, { emit }) {
     const readerConfigStore = useReaderConfigStore()
     const { readerConfig } = storeToRefs(readerConfigStore)
 
+    const menuElement = ref<HTMLElement | null>(null)
     const colors = ['#FFFFFF', '#faebd7', '#000000']
     const selectedFont = ref(readerConfig.value.font)
-    const fontDialogVisible = ref(false)
     const settings = ref<ReaderNumericSetting[]>([
       {
         label: '首行缩进',
@@ -248,6 +251,15 @@ export default defineComponent({
     })
     const fontOptions = computed(() => buildReaderFontOptions(readerConfig.value.enabledSystemFonts))
     const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
+    const menuStyle = computed(() => {
+      if (!props.maxHeight) {
+        return undefined
+      }
+
+      return {
+        maxHeight: `${props.maxHeight}px`,
+      }
+    })
 
     const updateVisual = () => {
       settings.value = settings.value.map((setting) => {
@@ -305,8 +317,9 @@ export default defineComponent({
       emitStyleApplication()
     }
 
-    const handleFontDialogSaved = () => {
+    const openFontDialog = () => {
       selectedFont.value = readerConfig.value.font
+      emit('open-font-dialog')
     }
 
     watch(
@@ -316,16 +329,9 @@ export default defineComponent({
       }
     )
 
-    onMounted(() => {
-      const menuElement = document.querySelector('.menu') as HTMLElement
-      if (menuElement) {
-        const windowHeight = window.innerHeight
-        const menuHeight = menuElement.offsetHeight
-        menuElement.style.height = `${Math.min(windowHeight - 100, menuHeight)}px`
-      }
-    })
-
     return {
+      menuElement,
+      menuStyle,
       colors,
       selectedFont,
       settings,
@@ -339,29 +345,13 @@ export default defineComponent({
       readerConfig,
       fontOptions,
       enabledFontCount,
-      fontDialogVisible,
-      handleFontDialogSaved,
+      openFontDialog,
     }
   },
 })
 </script>
 
 <style lang="scss" scoped>
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(-24px) scale(0.96);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.18s ease-out;
-}
-
 label {
   font-size: 14px;
 }
@@ -369,6 +359,7 @@ label {
 .menu {
   width: 290px;
   padding: 16px;
+  box-sizing: content-box;
   border-radius: 20px;
   border: 1px solid rgba(226, 232, 240, 0.92);
   background: rgba(248, 250, 252, 0.98);
@@ -589,6 +580,10 @@ label {
   box-shadow:
     0 0 0 1px rgba(59, 130, 246, 0.28) inset,
     0 0 0 4px rgba(59, 130, 246, 0.08) !important;
+}
+
+:global(.style-menu-select-popper) {
+  z-index: 4800 !important;
 }
 
 :deep(.input-number.el-input-number) {

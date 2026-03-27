@@ -1,7 +1,13 @@
+import { READER_DOM_EVENTS } from '@/constants/events'
+
 interface ReaderKeydownHandlers {
   onPrevPage: () => void
   onNextPage: () => void
   onToggleFullscreen: () => void
+}
+
+interface ResetReaderTransientUiHandlers {
+  hideContextMenu: () => void
 }
 
 export const dispatchReaderKeydown = (
@@ -23,11 +29,9 @@ export const dispatchReaderKeydown = (
   }
 }
 
-export const resetReaderTransientUi = (hideContextMenu: () => void) => {
-  document.getElementById('customer-menu')?.remove()
-  const frontButtons = document.getElementsByClassName('titlebar-front-button')
-  for (let i = 0; i < frontButtons.length; i++) {
-    frontButtons[i].classList.remove('active')
-  }
-  hideContextMenu()
+export const resetReaderTransientUi = (
+  handlers: ResetReaderTransientUiHandlers
+) => {
+  window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.CLOSE_STYLE_MENU))
+  handlers.hideContextMenu()
 }

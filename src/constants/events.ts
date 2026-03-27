@@ -6,3 +6,8 @@ export const WINDOW_EVENTS = {
   SHOW_HELP: 'show-help',
   UPDATE_READER_STYLE: 'update-reader-style',
 } as const
+
+export const READER_DOM_EVENTS = {
+  TOGGLE_STYLE_MENU: 'reader:toggle-style-menu',
+  CLOSE_STYLE_MENU: 'reader:close-style-menu',
+} as const
