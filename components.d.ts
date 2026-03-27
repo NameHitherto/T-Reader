@@ -28,6 +28,8 @@ declare module 'vue' {
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElProgress: typeof import('element-plus/es')['ElProgress']
+    ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
+    ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -44,6 +46,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
+    SystemFontEnableDialog: typeof import('./src/components/SystemFontEnableDialog/index.vue')['default']
     TocMenu: typeof import('./src/components/TocMenu/index.vue')['default']
   }
 }

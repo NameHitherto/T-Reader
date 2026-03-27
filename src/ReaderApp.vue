@@ -136,8 +136,13 @@ import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
+import {
+  fetchSystemFonts,
+  normalizeReaderConfig,
+} from '@/services/reader/systemFontService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
+import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 
 export default {
   name: 'ReaderApp',
@@ -222,6 +227,11 @@ export default {
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
       const columnStyle = {}
+      const currentFontSource =
+        readerConfig.value.font === DEFAULT_READER_FONT
+          ? `url('/src/font/pingfang.ttf') format('truetype')`
+          : `local("${readerConfig.value.font}")`
+
       if (readerConfig.value.flow === 'paginated') {
         Object.assign(columnStyle, {
           'column-width': 'auto !important',
@@ -276,7 +286,7 @@ export default {
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
-          src: `local("${readerConfig.value.font}")`,
+          src: currentFontSource,
         },
       }
       return themeReturned
@@ -316,8 +326,20 @@ export default {
     // 读取阅读配置
     const loadReaderConfig = async () => {
       try {
-        const configTemp = await loadReaderConfigFromDisk()
-        readerConfigStore.setReaderConfig(configTemp)
+        const [configTemp, systemFonts] = await Promise.all([
+          loadReaderConfigFromDisk(),
+          fetchSystemFonts().catch((error) => {
+            console.warn('加载系统字体失败，将跳过阅读器字体迁移', error)
+            return []
+          }),
+        ])
+
+        const normalizedConfig = normalizeReaderConfig(configTemp, systemFonts)
+        readerConfigStore.setReaderConfig(normalizedConfig)
+
+        if (JSON.stringify(configTemp) !== JSON.stringify(normalizedConfig)) {
+          await saveReaderConfigToDisk(normalizedConfig)
+        }
       } catch (e) {
         // 首次打开阅读器或配置文件不存在时回退默认配置
         readerConfigStore.setDefaultConfig()

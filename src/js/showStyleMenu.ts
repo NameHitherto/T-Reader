@@ -63,7 +63,7 @@ export default function showStyleMenu() {
 
     // 计算菜单位置
     const buttonRect = customerButton.getBoundingClientRect();
-    const menuWidth = 300;
+    const menuWidth = 360;
     const offsetLeft = Math.min(buttonRect.left, window.innerWidth - menuWidth - 10);
     menuContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
     menuContainer.style.left = `${offsetLeft}px`;
@@ -78,7 +78,14 @@ export default function showStyleMenu() {
     mountedApp.mount(menuContainer);
 
     outsideClickHandler = (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null;
+        const isInsideFontDialog = Boolean(
+            target?.closest('.system-font-enable-dialog-wrapper') ||
+            target?.closest('.system-font-enable-dialog-overlay')
+        );
+
         if (
+            isInsideFontDialog ||
             e.target === menuContainer ||
             e.target === customerButton ||
             menuContainer.contains(e.target as Node) ||
