@@ -15,7 +15,7 @@ export const detectBookFormatFromPath = (path: string): BookFormat | null => {
   return null
 }
 
-export const getBookFilename = (id: string, format: BookFormat): string => `${id}.${format}`
+export const detectBookFormatFromFilename = detectBookFormatFromPath
 
 export const toJsonFilename = (id: string): string => `${id}.json`
 
@@ -32,4 +32,9 @@ export const getFileNameWithoutExtension = (path: string): string => {
   const fileName = normalized.substring(normalized.lastIndexOf('/') + 1)
   const dot = fileName.lastIndexOf('.')
   return dot > 0 ? fileName.slice(0, dot) : fileName
+}
+
+export const getFileNameFromPath = (path: string): string => {
+  const normalized = path.replace(/\\/g, '/')
+  return normalized.substring(normalized.lastIndexOf('/') + 1)
 }

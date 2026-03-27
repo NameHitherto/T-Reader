@@ -1,4 +1,6 @@
 import ePub, { Rendition } from 'libs/epub.js'
+import { BookConfig } from '@/js/map'
+import { resolveEpubDisplayTarget } from '@/services/reader/epubProgressService'
 
 export interface EpubRenderResult {
   rendition: Rendition
@@ -20,7 +22,9 @@ export const destroyEpubRendition = (rendition: any) => {
 export const renderEpubBook = async (
   bookArrayBuffer: ArrayBuffer,
   flow: string,
-  location?: string
+  explicitCfi?: string,
+  progressSnapshot?: Partial<BookConfig>,
+  cachedLocations?: string
 ): Promise<EpubRenderResult> => {
   const ePubBook = ePub(bookArrayBuffer)
   await ePubBook.ready
@@ -39,14 +43,24 @@ export const renderEpubBook = async (
     allowScriptedContent: true,
   })
 
-  if (location) {
-    await rendition.display(location)
+  if (cachedLocations) {
+    try {
+      ePubBook.locations.load(cachedLocations)
+    } catch (error) {
+      console.warn('加载 EPUB locations 缓存失败:', error)
+    }
+  } else {
+    void ePubBook.locations.generate(1000).catch((error: unknown) => {
+      console.warn('生成 EPUB locations 失败:', error)
+    })
+  }
+
+  const displayTarget = explicitCfi || (await resolveEpubDisplayTarget(ePubBook, progressSnapshot || {}))
+  if (displayTarget) {
+    await rendition.display(displayTarget)
   } else {
     await rendition.display()
   }
-
-  await ePubBook.ready
-  await ePubBook.locations.generate(1000)
 
   const tocData = await ePubBook.loaded.navigation
 

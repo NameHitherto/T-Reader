@@ -3,7 +3,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { WINDOW_EVENTS } from '@/constants/events'
 
 interface RegisterReaderWindowEventsArgs {
-  onLoadBookId: (event: any) => Promise<void> | void
+  onLoadBookKey: (event: any) => Promise<void> | void
   onShowBookInfo: () => void
   onShowAssistant: () => void
   onShowHelp: () => void
@@ -23,7 +23,7 @@ interface ReaderWindowEventUnlisteners {
 export const registerReaderWindowEvents = async (
   args: RegisterReaderWindowEventsArgs
 ): Promise<ReaderWindowEventUnlisteners> => {
-  const unlistenBook = await listen<any>(WINDOW_EVENTS.LOAD_BOOK_ID, args.onLoadBookId)
+  const unlistenBook = await listen<any>(WINDOW_EVENTS.LOAD_BOOK_KEY, args.onLoadBookKey)
   const unlistenShowBookInfo = await listen(
     WINDOW_EVENTS.SHOW_BOOK_INFO,
     args.onShowBookInfo

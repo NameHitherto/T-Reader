@@ -1,60 +1,168 @@
 # T-Reader
-该项目是使用跨平台开发框架进行开发的ePub阅读器，旨在为阅读轻小说提供最连贯流畅的体验。
+
+T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、AI 阅读助手与应用内更新能力。
+
+![version](https://img.shields.io/badge/version-1.0.0-blue)
+![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+
+## 核心能力
+
+- 支持 `EPUB` / `TXT` 导入、书架展示与打开阅读
+- 书架支持列表 / 网格双视图，并展示封面、格式、最近阅读与进度
+- 独立阅读器窗口支持目录、翻页、滚动、快捷键与沉浸式阅读
+- 支持 EPUB 书签、高亮和个人笔记，笔记页可统一浏览与跳转
+- 阅读样式支持字体、字号、字重、行距、段距、页边距、栏数、翻页模式调节
+- 支持 WebDAV 云同步，云端与本地进度按时间戳择优合并
+- 支持 AI 阅读助手，可基于当前书籍内容进行问答
+- 支持缓存封面、EPUB locations、TXT 段落统计，减少重复加载开销
+- 支持应用内检查更新、下载更新并重启安装
+- 主流程带通知反馈与前后端日志，便于排查问题
 
 ## 技术栈
-`Tauri` + `Vue` + `TypeScript` + `Rust`
 
-## 项目介绍
-这是一款专注于阅读日系轻小说的双端软件，文件支持ePub格式，该项目具有简约、轻便的操作界面，支持用户导入、管理、阅读书籍和书籍笔记。  
-数据同步使用WebDAV协议，目前支持坚果云平台。AI功能(试行)支持智谱清言、Deepseek大模型。
+- 前端：`Vue 3` + `TypeScript` + `Vite 5`
+- 桌面容器：`Tauri 2`
+- 后端：`Rust`
+- 状态管理：`Pinia`
+- UI：`Element Plus`
+- 阅读引擎：二次开发的 [`libs/epub.js`](./libs/epub.js)
 
-## 发行
-理论上Tauri框架可以构建支持Windows、Linux和Mac的安装程序，但本人懒且无人有此需求，因此目前该项目仅提供Windows系统的安装包。
+## 项目结构
 
-移动端见另一个项目[T-Reader-Mobile](https://github.com/NameHitherto/T-Reader-Mobile.git)，其提供了安卓系统的安装包。
-
-## 演示
-
-## 开发
-该项目基于Tauri框架进行开发，因此在开始前请先查阅Tauri[官方文档](https://tauri.app/zh-cn/start/prerequisites/)确认框架所需的前置环境是否已配置完成。
-
-### 初始准备
-
-> **注意**：`rustc`的版本为**1.89.0**
-
-1. 克隆该项目到本地，在项目根目录下创建`libs`目录，项目的默认分支是*develop*。
-2. 进入`[root]/libs`目录，克隆本人二次开发过的[epub.js](https://github.com/NameHitherto/epub.js.git)库。
-3. 进入`[root]/libs/epub.js`目录，运行`npm install`安装epub.js项目的依赖，注意**node**版本为**v16.20.2**。
-4. 回到项目根目录，运行`npm install`安装本项目的依赖，注意**node**版本为**v22.17.1**。
-5. 运行`npm run tauri dev`启动项目，若无报错并生成了阅读器窗口则表示项目初始化成功。
-
-### 可能遇到的问题
-
-1. 若在安装依赖时遇到phantomjs库依赖下载的问题，例如：
-```bash
-npm ERR! command C:\Windows\system32\cmd.exe /d /s /c node install.js
-npm ERR! PhantomJS not found on PATH
-npm ERR! Downloading https://github.com/Medium/phantomjs/releases/download/v2.1.1/phantomjs-2.1.1-windows.zip
-npm ERR! Saving to C:\Users\NAMEHI~1\AppData\Local\Temp\phantomjs\phantomjs-2.1.1-windows.zip
-npm ERR! Receiving...
-npm ERR! Error making request.
-npm ERR! Error: read ECONNRESET
+```text
+T-Reader/
+├─ src/                  # Vue 前端
+│  ├─ components/        # 主窗口、阅读器与弹窗组件
+│  ├─ services/          # book / reader / fileSystem / notification
+│  ├─ store/             # Pinia 状态
+│  └─ router/            # 主窗口路由
+├─ src-tauri/            # Rust 后端与 Tauri 配置
+├─ docs/                 # 项目概览与规范文档
+├─ libs/epub.js/         # epub.js 子模块
+└─ scripts/              # 版本与发布脚本
 ```
-Windows解决方法可以是在终端中指定phantomjs的镜像下载源`$env:PHANTOMJS_CDNURL='https://npmmirror.com/mirrors/phantomjs'; npm install`。
 
-2. 若在启动项目时遇到端口相关问题，例如：
-```bash
-error when starting dev server:
-Error: listen EACCES: permission denied 0.0.0.0:1420
-    at Server.setupListenHandle [as _listen2] (node:net:1918:21)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-```
-可考虑修改服务端口，修改根目录下`[root]/vite.config.ts`中的`port`值以及修改`[root]/src-tauri/tauri.conf.json`中的`devUrl`即可。
+## 本地与云端数据目录
 
-3. Rust下载速度慢
-在终端配置环境变量，将rust下载源修改为镜像源：
-```bash
-$ENV:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
+本地根目录位于 `Document/T-Reader/`：
+
+```text
+T-Reader/
+├─ books/         # 原始书籍文件（epub / txt）
+├─ bookProgress/  # 书籍进度配置
+├─ cached/        # 封面、locations、段落统计等缓存
+└─ system/        # setting.json / ReaderConfig.json / BookMarks.json
 ```
+
+云端 WebDAV 目录：
+
+```text
+T-Reader/
+├─ books/
+└─ bookProgress/
+```
+
+说明：
+
+- `cached/` 与 `system/BookMarks.json` 当前不参与 WebDAV 同步
+- 云端与本地进度冲突时，优先使用 `durChapterTime` 更新较新的配置
+
+## 开发环境
+
+- `Rust 1.89.0`
+- 主项目 `Node.js v22.17.1`
+- `libs/epub.js` 建议使用 `Node.js v16.20.2`
+
+开始前请先确认本机已满足 Tauri 官方前置环境要求：
+
+- https://tauri.app/start/prerequisites/
+
+## 本地开发
+
+1. 克隆仓库并初始化子模块：
+
+```bash
+git clone <repo-url>
+cd T-Reader
+git submodule update --init --recursive
+```
+
+2. 安装 `libs/epub.js` 依赖：
+
+```bash
+cd libs/epub.js
+npm install
+cd ../..
+```
+
+3. 安装主项目依赖：
+
+```bash
+npm install
+```
+
+4. 启动桌面开发环境：
+
+```bash
+npm run tauri dev
+```
+
+## 常用命令
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run tauri dev
+npm run tauri build
+npm run release -- v1.0.1
+```
+
+## 开发说明
+
+- 主窗口入口：`index.html` + `src/main.ts`
+- 阅读器入口：`reader.html` + `src/readerMain.ts`
+- 主窗口路由：
+  - `/` 书架
+  - `/bookmark` 笔记
+  - `/about` 关于 / 更新
+  - `/experiment` 实验页占位
+- 阅读器窗口事件统一定义在 `src/constants/events.ts`
+
+## 常见问题
+
+### 1. 开发端口冲突
+
+若启动时出现 `1420` 端口占用，需要同时修改：
+
+- `vite.config.ts`
+- `src-tauri/tauri.conf.json` 中的 `devUrl`
+
+### 2. Rust 下载慢
+
+可先配置镜像源：
+
+```bash
+$env:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
+```
+
+### 3. 子模块依赖安装异常
+
+若 `libs/epub.js` 安装依赖时遇到 `phantomjs` 下载失败，可尝试：
+
+```bash
+$env:PHANTOMJS_CDNURL='https://npmmirror.com/mirrors/phantomjs'
+npm install
+```
+
+## 相关文档
+
+- [项目全景摘要](./docs/PROJECT_OVERVIEW.md)
+- [模块架构规范](./docs/module-architecture-spec.md)
+- [图标管理规范](./docs/icon-management-spec.md)
+- [发布说明](./RELEASE_NOTES.md)
+
+## 相关仓库
+
+- 桌面端仓库：https://github.com/NameHitherto/T-Reader
+- 移动端仓库：https://github.com/NameHitherto/T-Reader-Mobile

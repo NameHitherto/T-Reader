@@ -2,20 +2,16 @@ import { splitTextToParagraphs } from '@/services/reader/txtReaderService'
 
 export interface TxtRenderResult {
   paragraphs: string[]
-  location: string
-  progress: number
+  paragraphIndex: number
 }
 
-export const renderTxtBook = (
-  bookData: Uint8Array,
-  location?: string,
-  progress?: number
-): TxtRenderResult => {
+export const renderTxtBook = (bookData: Uint8Array, paragraphIndex = 0): TxtRenderResult => {
   const textContent = new TextDecoder().decode(bookData)
+  const paragraphs = splitTextToParagraphs(textContent)
+  const safeIndex = Math.max(0, Math.min(Math.floor(paragraphIndex), Math.max(0, paragraphs.length - 1)))
 
   return {
-    paragraphs: splitTextToParagraphs(textContent),
-    location: location || '0',
-    progress: progress || 0,
+    paragraphs,
+    paragraphIndex: safeIndex,
   }
 }
