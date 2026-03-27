@@ -9,6 +9,7 @@ import sidebarAboutIcon from '@/assets/icons/sidebar-about.svg'
 import sidebarMoreIcon from '@/assets/icons/sidebar-more.svg'
 
 import bookOpenIcon from '@/components/ContextMenu/assets/book-open.svg'
+import uploadIcon from '@/components/ContextMenu/assets/upload.svg'
 import deleteIcon from '@/components/ContextMenu/assets/delete.svg'
 import goBackIcon from '@/components/ContextMenu/assets/go-back.svg'
 import infoIcon from '@/components/ContextMenu/assets/info.svg'
@@ -30,6 +31,7 @@ export type IconName =
   | 'sidebarAbout'
   | 'sidebarMore'
   | 'bookOpen'
+  | 'upload'
   | 'delete'
   | 'goBack'
   | 'info'
@@ -54,6 +56,7 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   sidebarAbout: { src: sidebarAboutIcon, mode: 'mask' },
   sidebarMore: { src: sidebarMoreIcon, mode: 'mask' },
   bookOpen: { src: bookOpenIcon, mode: 'mask' },
+  upload: { src: uploadIcon, mode: 'mask' },
   delete: { src: deleteIcon, mode: 'mask' },
   goBack: { src: goBackIcon, mode: 'mask' },
   info: { src: infoIcon, mode: 'mask' },

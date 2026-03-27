@@ -14,7 +14,21 @@ export interface BookCachePayload {
   cover?: string
   locations?: string
   paragraphCount?: number
-  bookFileName?: string
+  progress?: number
+}
+
+const normalizeBookCachePayload = (payload: Partial<BookCachePayload> & Record<string, unknown>): BookCachePayload => {
+  return {
+    title: typeof payload.title === 'string' ? payload.title : undefined,
+    cover: typeof payload.cover === 'string' ? payload.cover : undefined,
+    locations: typeof payload.locations === 'string' ? payload.locations : undefined,
+    paragraphCount:
+      typeof payload.paragraphCount === 'number' ? payload.paragraphCount : undefined,
+    progress:
+      typeof payload.progress === 'number' && Number.isFinite(payload.progress)
+        ? Math.min(100, Math.max(0, payload.progress))
+        : undefined,
+  }
 }
 
 const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
@@ -48,7 +62,9 @@ export const loadBookCache = async (bookKey: string): Promise<BookCachePayload |
     const decoded = new TextDecoder().decode(
       toUint8Array(fileData as ArrayBufferLike | Uint8Array | number[])
     )
-    const payload = JSON.parse(decoded) as BookCachePayload
+    const payload = normalizeBookCachePayload(
+      JSON.parse(decoded) as Partial<BookCachePayload> & Record<string, unknown>
+    )
     finishLog({
       fileName: filename,
       hit: true,
@@ -73,10 +89,10 @@ export const saveBookCache = async (
   })
   const dirs = await getLocalDirNames()
   const currentCache = (await loadBookCache(bookKey)) || {}
-  const nextCache = {
+  const nextCache = normalizeBookCachePayload({
     ...currentCache,
     ...payload,
-  }
+  })
 
   await invoke('save_file', {
     subdir: dirs.cached,
@@ -129,24 +145,27 @@ export const primeBookCacheAfterImport = async (
   bookKey: string,
   fileBuffer: ArrayBuffer,
   format: BookFormat,
-  bookFileName: string
+  originalFileName: string
 ): Promise<BookCachePayload> => {
   const finishLog = createDurationLogger('book-cache-service', 'prime-book-cache-after-import', {
-    fileName: bookFileName,
+    fileName: originalFileName,
     format,
   })
+  const currentCache = await loadBookCache(bookKey)
+  const progress = currentCache?.progress ?? 0
 
   if (format !== 'epub') {
     const payload = {
-      title: parseTxtMeta(bookFileName).title,
+      title: parseTxtMeta(originalFileName).title,
       paragraphCount: extractTxtParagraphCount(fileBuffer),
-      bookFileName,
+      progress,
     }
     await saveBookCache(bookKey, payload)
     finishLog({
-      fileName: bookFileName,
+      fileName: originalFileName,
       format,
       paragraphCount: payload.paragraphCount,
+      progress: payload.progress,
     })
     return payload
   }
@@ -160,29 +179,31 @@ export const primeBookCacheAfterImport = async (
       title: meta.title,
       cover: meta.cover || '',
       locations,
-      bookFileName,
+      progress,
     })
     finishLog({
-      fileName: bookFileName,
+      fileName: originalFileName,
       format,
       hasCover: Boolean(payload.cover),
       hasLocations: Boolean(payload.locations),
+      progress: payload.progress,
     })
     return payload
   } catch (error) {
     logWarn('book-cache-service', 'prime-book-cache-after-import fallback', {
-      fileName: bookFileName,
+      fileName: originalFileName,
       format,
       error,
     })
     const payload = {
-      bookFileName,
+      progress,
     }
     await saveBookCache(bookKey, payload)
     finishLog({
-      fileName: bookFileName,
+      fileName: originalFileName,
       format,
       fallback: true,
+      progress: payload.progress,
     })
     return payload
   }

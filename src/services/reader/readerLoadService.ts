@@ -11,6 +11,7 @@ export interface ReaderLoadResult {
   bookConfig: BookConfig
   bookCache: BookCachePayload
   format: BookFormat
+  fileName: string
   bookData: Uint8Array
   bookArrayBuffer: ArrayBuffer
 }
@@ -30,6 +31,7 @@ export const loadReaderBookData = async (bookKey: string): Promise<ReaderLoadRes
     bookConfig,
     bookCache,
     format: loadedBook.format,
+    fileName: loadedBook.fileName,
     bookData: loadedBook.bookData,
     bookArrayBuffer,
   }

@@ -1,5 +1,6 @@
 type iconType =
   | 'bookOpen'
+  | 'upload'
   | 'delete'
   | 'info'
   | 'goBack'

@@ -214,6 +214,34 @@ pub async fn webdav_get(subdir: &str, filename: &str) -> Result<Vec<u8>, String>
 }
 
 #[tauri::command]
+pub async fn webdav_exists(subdir: &str, filename: &str) -> Result<bool, String> {
+    let settings = load_settings()?;
+    let client = Client::new();
+    let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
+
+    let response = client
+        .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+        .header("Depth", "0")
+        .send()
+        .await
+        .map_err(|e| format!("failed to check remote file exists: {:?}", e))?;
+
+    if response.status().is_success() {
+        return Ok(true);
+    }
+
+    if response.status().as_u16() == 404 {
+        return Ok(false);
+    }
+
+    Err(format!(
+        "failed to check remote file exists: {:?}",
+        response.status()
+    ))
+}
+
+#[tauri::command]
 pub async fn webdav_delete(subdir: &str, filename: &str) -> Result<(), String> {
     let settings = load_settings()?;
     let client = Client::new();

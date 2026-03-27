@@ -146,11 +146,9 @@
 </template>
 
 <script lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from './ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
@@ -165,35 +163,37 @@ import {
   detectBookFormatFromPath,
   getFileNameFromPath,
 } from '@/js/bookFormat'
-import { WINDOW_EVENTS } from '@/constants/events'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
+  loadBookCache,
   getBookCacheFilename,
   primeBookCacheAfterImport,
 } from '@/services/book/bookCacheService'
 import {
   buildLastReadLabel,
-  deriveShelfProgress,
 } from '@/services/book/bookPresentationService'
 import {
-  ensureBookCache,
   getImportedBookName,
   hasOriginalFilenameConflict,
   invalidateBookFileIndex,
-  loadBookBinary,
   loadBookConfigs,
+  reconcileLibraryBookFileIndex,
+  removeBookFileIndexEntry,
   resolveBookFile,
   resolveBookFormat,
   StoredBookConfig,
+  uploadLocalBookFileToCloud,
 } from '@/services/book/bookRepository'
+import { setBookFileIndexEntry } from '@/services/book/bookFileIndexRepository'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
 import {
   createMainTaskBatchNotifier,
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
+import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
 import {
   createDurationLogger,
   logError,
@@ -213,11 +213,12 @@ export default {
   },
   setup() {
     type ShelfViewMode = 'list' | 'grid'
+    type ShelfBookFormat = BookFormat | 'unknown'
     type ShelfBook = BookConfig & {
       bookKey: string
       displayTitle: string
       cover?: string
-      format: BookFormat
+      format: ShelfBookFormat
       progressValue: number
       lastReadLabel: string
     }
@@ -251,7 +252,6 @@ export default {
     const settingVisible = ref(false)
     const bookInfoVisible = ref(false)
     const bookInfoKey = ref<String>('')
-    const unlistenReady = ref<UnlistenFn | null>(null)
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
     const isBooksEmpty = computed(() => books.value.length === 0)
@@ -324,35 +324,54 @@ export default {
       const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
         bookKey,
       })
-      const format = await resolveBookFormat(bookKey)
-      const cache = await ensureBookCache(bookKey)
-      const hasEpubProgress =
-        typeof book.durChapterIndex === 'number' &&
-        (book.durChapterIndex !== 0 ||
-          (book.durChapterPos || 0) > 0 ||
-          Boolean(book.durChapterTitle))
-      const bookData =
-        format === 'epub' && hasEpubProgress
-          ? (await loadBookBinary(bookKey)).bookData
-          : undefined
-      const progressValue = await deriveShelfProgress(book, format, cache, bookData)
+      try {
+        const format = await resolveBookFormat(bookKey)
+        const cache = (await loadBookCache(bookKey)) || {}
+        const progressValue =
+          typeof cache.progress === 'number' && Number.isFinite(cache.progress)
+            ? Math.min(100, Math.max(0, cache.progress))
+            : 0
 
-      const shelfBook = {
-        ...book,
-        bookKey,
-        displayTitle: cache.title || book.name,
-        cover: cache.cover,
-        format,
-        progressValue,
-        lastReadLabel: buildLastReadLabel(book, progressValue),
+        const shelfBook = {
+          ...book,
+          bookKey,
+          displayTitle: cache.title || book.name,
+          cover: cache.cover,
+          format,
+          progressValue,
+          lastReadLabel: buildLastReadLabel(book, progressValue),
+        }
+
+        finishLog({
+          bookKey,
+          format,
+          progressValue,
+        })
+        return shelfBook
+      } catch (error) {
+        logWarn('bookshelf', 'build-shelf-book unresolved-file', {
+          bookKey,
+          error,
+        })
+
+        const cache = (await loadBookCache(bookKey)) || {}
+        const shelfBook = {
+          ...book,
+          bookKey,
+          displayTitle: cache.title || book.name,
+          cover: cache.cover,
+          format: 'unknown' as ShelfBookFormat,
+          progressValue: 0,
+          lastReadLabel: '文件缺失',
+        }
+
+        finishLog({
+          bookKey,
+          format: 'unknown',
+          progressValue: 0,
+        })
+        return shelfBook
       }
-
-      finishLog({
-        bookKey,
-        format,
-        progressValue,
-      })
-      return shelfBook
     }
 
     const loadBooks = async () => {
@@ -360,6 +379,7 @@ export default {
       try {
         booksLoading.value = true
         const loadedBooks = await loadBookConfigs()
+        await reconcileLibraryBookFileIndex(loadedBooks.map((book) => book.bookKey))
         books.value = await Promise.all(loadedBooks.map((book) => buildShelfBook(book)))
         finishLog({
           total: books.value.length,
@@ -529,6 +549,8 @@ export default {
           contents: bookConfigJson,
         })
 
+        await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
+
         invalidateBookFileIndex()
         const cachedPayload = await primeBookCacheAfterImport(
           importedBook.bookKey,
@@ -553,11 +575,6 @@ export default {
         batchContext.batchNotifier.registerTask(bookLabel)
         queueMicrotask(() => {
           void Promise.allSettled([
-            invoke('webdav_upload', {
-              subdir: batchContext.dirs.books,
-              filename: originalFileName,
-              contents: Array.from(fileBytes),
-            }),
             invoke('webdav_upload', {
               subdir: batchContext.dirs.progress,
               filename: toBookConfigFilename(importedBook.bookKey),
@@ -604,7 +621,9 @@ export default {
       try {
         const dirs = await getLocalDirNames()
         const targetBook = books.value.find((book) => book.bookKey === bookKey)
-        const resolvedBookFile = targetBook ? await resolveBookFile(bookKey) : null
+        const resolvedBookFile = targetBook
+          ? await resolveBookFile(bookKey).catch(() => null)
+          : null
 
         await invoke('delete_book', {
           subdir: dirs.progress,
@@ -626,6 +645,7 @@ export default {
         }
 
         await removeBookMarksByBookKey(bookKey)
+        await removeBookFileIndexEntry(bookKey)
 
         invalidateBookFileIndex()
         books.value = books.value.filter((book) => book.bookKey !== bookKey)
@@ -685,34 +705,27 @@ export default {
       }
     }
 
-    const openBook = (bookKey: string) => {
-      const webview = new WebviewWindow('reader', {
-        url: 'reader.html',
-        title: '阅读',
-        decorations: false,
-        minHeight: 660,
-        minWidth: 880,
-      })
+    const openBook = async (bookKey: string) => {
+      await openReaderWindowWithPrecheck(bookKey.toString())
+    }
 
-      webview.once('tauri://created', async function () {
-        unlistenReady.value?.()
-        unlistenReady.value = await listen<string>(
-          WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY,
-          async () => {
-            WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
-              bookKey: bookKey.toString(),
-              cfi: '',
-            })
-          }
-        )
-      })
-
-      webview.once('tauri://error', function () {
-        WebviewWindow.getCurrent().emitTo('reader', WINDOW_EVENTS.LOAD_BOOK_KEY, {
-          bookKey: bookKey.toString(),
-          cfi: '',
+    const uploadBookToCloud = async (bookKey: string) => {
+      try {
+        await uploadLocalBookFileToCloud(bookKey)
+        showMainTaskMessage({
+          type: 'success',
+          title: '上传完成',
+          message: '书籍文件已上传至云端。',
+          taskKey: `bookshelf-upload:${bookKey}`,
         })
-      })
+      } catch (error) {
+        showMainTaskMessage({
+          type: 'error',
+          title: '上传失败',
+          message: toTaskErrorMessage(error),
+          taskKey: `bookshelf-upload:${bookKey}`,
+        })
+      }
     }
 
     const showBookInfo = (bookKey: string) => {
@@ -727,7 +740,12 @@ export default {
         {
           label: '打开 | 开始阅读',
           type: 'bookOpen',
-          onClick: () => openBook(bookKey),
+          onClick: () => void openBook(bookKey),
+        },
+        {
+          label: '上传 | 上传到云端',
+          type: 'upload',
+          onClick: () => void uploadBookToCloud(bookKey),
         },
         {
           label: '信息 | 详细信息',
@@ -740,7 +758,7 @@ export default {
           onClick: () => deleteBook(bookKey),
         },
       ]
-      const menuWidth = 200
+      const menuWidth = 170
       const menuHeight = 35 * menuItems.length
       const pageWidth = document.documentElement.clientWidth
       const pageHeight = document.documentElement.clientHeight
@@ -763,7 +781,7 @@ export default {
         y: menuY,
         width: menuWidth,
         items: menuItems,
-        theme: 'dark',
+        theme: 'light',
       }
       showMenu.value = true
     }
@@ -778,6 +796,10 @@ export default {
     }
 
     const getBookFormatBadge = (book: ShelfBook): string => {
+      if (book.format === 'unknown') {
+        return '--'
+      }
+
       return book.format === 'txt' ? 'TXT' : 'EPUB'
     }
 
@@ -808,10 +830,6 @@ export default {
 
     onMounted(() => {
       loadBooks()
-    })
-
-    onUnmounted(() => {
-      unlistenReady.value?.()
     })
 
     return {

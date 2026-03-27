@@ -10,8 +10,15 @@ import {
   BookCachePayload,
   loadBookCache,
   primeBookCacheAfterImport,
-  saveBookCache,
 } from '@/services/book/bookCacheService'
+import {
+  BookFileIndexEntry,
+  getFilenameByBookKey,
+  loadBookFileIndex,
+  removeBookFileIndexEntryByBookKey,
+  saveBookFileIndex,
+  setBookFileIndexEntry,
+} from '@/services/book/bookFileIndexRepository'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
 import { parseTxtMeta } from '@/services/book/parsers/txtParser'
 import {
@@ -88,6 +95,18 @@ const getDurChapterTime = (config: Partial<BookConfig> | null | undefined): numb
   return config.durChapterTime
 }
 
+const toResolvedBookFile = (fileName: string): ResolvedBookFile | null => {
+  const format = detectBookFormatFromFilename(fileName)
+  if (!format) {
+    return null
+  }
+
+  return {
+    fileName,
+    format,
+  }
+}
+
 const persistBookConfigToLocal = async (filename: string, config: BookConfig): Promise<void> => {
   const dirs = await getLocalDirNames()
   await invoke('save_file', {
@@ -156,68 +175,126 @@ const listLocalBookFiles = async (): Promise<string[]> => {
   return filenames.filter((filename) => detectBookFormatFromFilename(filename))
 }
 
-const rebuildBookFileIndex = async (): Promise<Map<string, ResolvedBookFile>> => {
-  const finishLog = createDurationLogger('book-repository', 'rebuild-book-file-index')
-  const filenames = await listLocalBookFiles()
-  const entries = new Map<string, ResolvedBookFile>()
+const loadStoredBookIndexMap = async (): Promise<Map<string, ResolvedBookFile>> => {
+  if (cachedBookFileIndex) {
+    return cachedBookFileIndex
+  }
 
-  for (const filename of filenames) {
-    const format = detectBookFormatFromFilename(filename)
-    if (!format) {
+  const payload = await loadBookFileIndex()
+  const indexMap = new Map<string, ResolvedBookFile>()
+
+  for (const entry of payload?.entries || []) {
+    const resolved = toResolvedBookFile(entry.fileName)
+    if (!resolved) {
       continue
     }
 
-    const bookData = await readLocalBookFile(filename)
-    const fileBuffer = toArrayBuffer(bookData)
-    const meta =
-      format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(filename)
-    const bookName = buildBookName(meta.title, meta.author)
+    indexMap.set(entry.bookKey, resolved)
+  }
 
-    if (!entries.has(bookName)) {
-      entries.set(bookName, {
-        fileName: filename,
-        format,
-      })
+  cachedBookFileIndex = indexMap
+  return indexMap
+}
+
+const persistRecoveredIndexEntries = async (entries: BookFileIndexEntry[]) => {
+  if (entries.length === 0) {
+    return
+  }
+
+  const currentPayload = (await loadBookFileIndex()) || {
+    updatedAt: new Date().toISOString(),
+    entries: [],
+  }
+
+  const nextEntries = [...currentPayload.entries]
+  for (const entry of entries) {
+    const duplicateIndex = nextEntries.findIndex(
+      (current) => current.bookKey === entry.bookKey || current.fileName === entry.fileName
+    )
+
+    if (duplicateIndex >= 0) {
+      nextEntries.splice(duplicateIndex, 1)
     }
+
+    nextEntries.push(entry)
   }
 
-  cachedBookFileIndex = entries
-  finishLog({
-    sourceFiles: filenames.length,
-    indexedBooks: entries.size,
-  })
-  return entries
-}
-
-const getBookFileFromCache = async (
-  bookKey: string
-): Promise<ResolvedBookFile | null> => {
-  const cache = await loadBookCache(bookKey)
-  const fileName = cache?.bookFileName
-  const format = fileName ? detectBookFormatFromFilename(fileName) : null
-
-  if (!fileName || !format) {
-    return null
-  }
-
-  return {
-    fileName,
-    format,
-  }
-}
-
-const persistResolvedBookFile = async (
-  bookKey: string,
-  resolved: ResolvedBookFile
-) => {
-  await saveBookCache(bookKey, {
-    bookFileName: resolved.fileName,
+  await saveBookFileIndex({
+    updatedAt: new Date().toISOString(),
+    entries: nextEntries,
   })
 }
 
 export const invalidateBookFileIndex = () => {
   cachedBookFileIndex = null
   logInfo('book-repository', 'invalidate-book-file-index')
+}
+
+export const reconcileLibraryBookFileIndex = async (
+  targetBookKeys: string[] = []
+): Promise<Map<string, ResolvedBookFile>> => {
+  const finishLog = createDurationLogger('book-repository', 'reconcile-library-book-file-index', {
+    targetBookKeys,
+  })
+  const currentIndex = await loadStoredBookIndexMap()
+  const targetSet = new Set(targetBookKeys.filter((bookKey) => !currentIndex.has(bookKey)))
+  const localFiles = await listLocalBookFiles()
+  const indexedFileNames = new Set(
+    Array.from(currentIndex.values()).map((entry) => entry.fileName.toLowerCase())
+  )
+  const unresolvedFiles = localFiles.filter((fileName) => !indexedFileNames.has(fileName.toLowerCase()))
+
+  if (targetBookKeys.length > 0 && targetSet.size === 0) {
+    finishLog({
+      recovered: 0,
+      sourceFiles: unresolvedFiles.length,
+    })
+    return currentIndex
+  }
+
+  const recoveredEntries: BookFileIndexEntry[] = []
+
+  for (const fileName of unresolvedFiles) {
+    const format = detectBookFormatFromFilename(fileName)
+    if (!format) {
+      continue
+    }
+
+    const bookData = await readLocalBookFile(fileName)
+    const fileBuffer = toArrayBuffer(bookData)
+    const meta = format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(fileName)
+    const bookKey = buildBookName(meta.title, meta.author)
+
+    if (!currentIndex.has(bookKey)) {
+      const resolved = {
+        fileName,
+        format,
+      }
+      currentIndex.set(bookKey, resolved)
+      recoveredEntries.push({
+        bookKey,
+        fileName,
+      })
+    }
+
+    targetSet.delete(bookKey)
+    if (targetBookKeys.length > 0 && targetSet.size === 0) {
+      break
+    }
+  }
+
+  await persistRecoveredIndexEntries(recoveredEntries)
+  cachedBookFileIndex = currentIndex
+  finishLog({
+    recovered: recoveredEntries.length,
+    sourceFiles: unresolvedFiles.length,
+  })
+  return currentIndex
+}
+
+export const hasLocalBookFile = async (fileName: string): Promise<boolean> => {
+  const filenames = await listLocalBookFiles()
+  return filenames.includes(fileName)
 }
 
 export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {
@@ -293,16 +370,11 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   return config
 }
 
-export const loadBookCacheByKey = async (
-  bookKey: string
-) => {
+export const loadBookCacheByKey = async (bookKey: string) => {
   return loadBookCache(bookKey)
 }
 
-export const saveBookConfig = async (
-  bookKey: string,
-  config: BookConfig
-): Promise<void> => {
+export const saveBookConfig = async (bookKey: string, config: BookConfig): Promise<void> => {
   const finishLog = createDurationLogger('book-repository', 'save-book-config', {
     bookKey,
   })
@@ -319,68 +391,50 @@ export const saveBookConfig = async (
   })
 }
 
-export const resolveBookFile = async (
-  bookKey: string
-): Promise<ResolvedBookFile> => {
+export const resolveBookFile = async (bookKey: string): Promise<ResolvedBookFile> => {
   const finishLog = createDurationLogger('book-repository', 'resolve-book-file', {
     bookKey,
   })
-  const cachedResolved = await getBookFileFromCache(bookKey)
-  if (cachedResolved) {
+  const storedFileName = await getFilenameByBookKey(bookKey)
+  const storedResolved = storedFileName ? toResolvedBookFile(storedFileName) : null
+
+  if (storedResolved) {
+    const currentIndex = await loadStoredBookIndexMap()
+    currentIndex.set(bookKey, storedResolved)
+    cachedBookFileIndex = currentIndex
     finishLog({
       bookKey,
-      source: 'cache',
-      fileName: cachedResolved.fileName,
-      format: cachedResolved.format,
+      source: 'global-index',
+      fileName: storedResolved.fileName,
+      format: storedResolved.format,
     })
-    return cachedResolved
+    return storedResolved
   }
 
-  if (!cachedBookFileIndex) {
-    await rebuildBookFileIndex()
-  }
-
-  const indexed = cachedBookFileIndex?.get(bookKey)
-  if (indexed) {
-    await persistResolvedBookFile(bookKey, indexed)
-    finishLog({
-      bookKey,
-      source: 'memory-index',
-      fileName: indexed.fileName,
-      format: indexed.format,
-    })
-    return indexed
-  }
-
-  const rebuiltIndex = await rebuildBookFileIndex()
-  const rebuilt = rebuiltIndex.get(bookKey)
-  if (!rebuilt) {
+  const reconciledIndex = await reconcileLibraryBookFileIndex([bookKey])
+  const recovered = reconciledIndex.get(bookKey)
+  if (!recovered) {
     logError('book-repository', 'resolve-book-file missing', undefined, {
       bookKey,
     })
-    throw new Error(`Book file not found for ${bookKey}`)
+    throw new Error('未能定位到对应书籍文件。')
   }
 
-  await persistResolvedBookFile(bookKey, rebuilt)
   finishLog({
     bookKey,
-    source: 'rebuilt-index',
-    fileName: rebuilt.fileName,
-    format: rebuilt.format,
+    source: 'targeted-recovery',
+    fileName: recovered.fileName,
+    format: recovered.format,
   })
-  return rebuilt
+  return recovered
 }
 
-export const resolveBookFormat = async (
-  bookKey: string
-): Promise<BookFormat> => {
+export const resolveBookFormat = async (bookKey: string): Promise<BookFormat> => {
   const resolved = await resolveBookFile(bookKey)
   return resolved.format
 }
 
-export const ensureBookCache = async (
-  bookKey: string
-): Promise<BookCachePayload> => {
+export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload> => {
   const finishLog = createDurationLogger('book-repository', 'ensure-book-cache', {
     bookKey,
   })
@@ -388,10 +442,10 @@ export const ensureBookCache = async (
   const resolved = await resolveBookFile(bookKey)
   const hasRequiredCache =
     resolved.format === 'epub'
-      ? Boolean(currentCache.bookFileName && currentCache.locations && currentCache.title)
-      : Boolean(currentCache.bookFileName && currentCache.paragraphCount && currentCache.title)
+      ? Boolean(currentCache.locations && currentCache.title && currentCache.cover !== undefined)
+      : Boolean(currentCache.paragraphCount && currentCache.title)
 
-  if (hasRequiredCache && (resolved.format !== 'epub' || currentCache.cover !== undefined)) {
+  if (hasRequiredCache) {
     finishLog({
       bookKey,
       source: 'existing-cache',
@@ -415,9 +469,22 @@ export const ensureBookCache = async (
   return payload
 }
 
-export const loadBookBinary = async (
+export const loadLocalBookBinary = async (
   bookKey: string
-): Promise<LoadedBookBinary> => {
+): Promise<LoadedBookBinary | null> => {
+  const resolved = await resolveBookFile(bookKey)
+  const exists = await hasLocalBookFile(resolved.fileName)
+  if (!exists) {
+    return null
+  }
+
+  return {
+    ...resolved,
+    bookData: await readLocalBookFile(resolved.fileName),
+  }
+}
+
+export const loadBookBinary = async (bookKey: string): Promise<LoadedBookBinary> => {
   const finishLog = createDurationLogger('book-repository', 'load-book-binary', {
     bookKey,
   })
@@ -454,6 +521,39 @@ export const loadBookBinary = async (
     })
     return payload
   }
+}
+
+export const downloadBookFileToLocal = async (bookKey: string): Promise<LoadedBookBinary> => {
+  const resolved = await resolveBookFile(bookKey)
+  const bookData = await readCloudBookFile(resolved.fileName)
+  await setBookFileIndexEntry(bookKey, resolved.fileName)
+  const currentIndex = await loadStoredBookIndexMap()
+  currentIndex.set(bookKey, resolved)
+  cachedBookFileIndex = currentIndex
+
+  return {
+    ...resolved,
+    bookData,
+  }
+}
+
+export const uploadLocalBookFileToCloud = async (bookKey: string): Promise<ResolvedBookFile> => {
+  const resolved = await resolveBookFile(bookKey)
+  const bookData = await readLocalBookFile(resolved.fileName)
+  const dirs = await getLocalDirNames()
+
+  await invoke('webdav_upload', {
+    subdir: dirs.books,
+    filename: resolved.fileName,
+    contents: Array.from(bookData),
+  })
+
+  return resolved
+}
+
+export const removeBookFileIndexEntry = async (bookKey: string): Promise<void> => {
+  await removeBookFileIndexEntryByBookKey(bookKey)
+  cachedBookFileIndex?.delete(bookKey)
 }
 
 export const getImportedBookName = async (
