@@ -72,6 +72,27 @@
   <AssistantDialog v-model="assistantVisible" :bookKey="currentBookKey" />
   <!-- 功能帮助 -->
   <HelpDialog v-model="helpVisible" />
+  <SystemFontEnableDialog v-model="systemFontDialogVisible" />
+  <Teleport to="body">
+    <Transition
+      name="style-menu"
+      @enter="handleStyleMenuEnter"
+      @after-enter="handleStyleMenuAfterEnter"
+    >
+      <div
+        v-if="styleMenuVisible"
+        id="customer-menu"
+        ref="styleMenuPanelRef"
+        class="style-menu-panel"
+        :style="styleMenuPanelStyle"
+      >
+        <StyleMenu
+          :max-height="styleMenuPosition.maxHeight"
+          @open-font-dialog="handleOpenSystemFontDialog"
+        />
+      </div>
+    </Transition>
+  </Teleport>
   <!-- 阅读进度 -->
   <div v-if="readingPercentage" class="reading-percentage">
     {{ readingPercentage }}%
@@ -79,7 +100,7 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { UnlistenFn } from '@tauri-apps/api/event'
 import { Rendition } from 'libs/epub.js'
@@ -91,10 +112,12 @@ import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import AssistantDialog from './components/AssistantDialog/index.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
+import StyleMenu from './components/StyleMenu/index.vue'
+import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
 import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
 import { BookFormat } from './js/bookFormat'
-import { WINDOW_EVENTS } from '@/constants/events'
+import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events'
 import {
   calcTxtProgress,
   findParagraphIndexByScroll,
@@ -136,8 +159,13 @@ import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
+import {
+  fetchSystemFonts,
+  normalizeReaderConfig,
+} from '@/services/reader/systemFontService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
+import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 
 export default {
   name: 'ReaderApp',
@@ -148,8 +176,15 @@ export default {
     AssistantDialog,
     TocMenu,
     HelpDialog,
+    StyleMenu,
+    SystemFontEnableDialog,
   },
   setup() {
+    const STYLE_MENU_ESTIMATED_WIDTH = 324
+    const STYLE_MENU_LEFT_OFFSET = 12
+    const STYLE_MENU_SAFE_TOP = 56
+    const STYLE_MENU_SAFE_BOTTOM = 64
+
     // 当前正在阅读的书籍内部 key
     const currentBookKey = ref<string | null>(null)
     // 待加载书籍的内部 key
@@ -218,10 +253,25 @@ export default {
     const assistantVisible = ref(false)
     // 帮助弹窗状态
     const helpVisible = ref(false)
+    // 系统字体弹窗状态
+    const systemFontDialogVisible = ref(false)
+    // 样式菜单状态
+    const styleMenuVisible = ref(false)
+    const styleMenuPosition = ref({
+      left: STYLE_MENU_LEFT_OFFSET,
+      top: STYLE_MENU_SAFE_TOP,
+      maxHeight: 320,
+    })
+    const styleMenuPanelRef = ref<HTMLElement | null>(null)
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
       const columnStyle = {}
+      const currentFontSource =
+        readerConfig.value.font === DEFAULT_READER_FONT
+          ? `url('/src/font/pingfang.ttf') format('truetype')`
+          : `local("${readerConfig.value.font}")`
+
       if (readerConfig.value.flow === 'paginated') {
         Object.assign(columnStyle, {
           'column-width': 'auto !important',
@@ -276,7 +326,7 @@ export default {
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
-          src: `local("${readerConfig.value.font}")`,
+          src: currentFontSource,
         },
       }
       return themeReturned
@@ -289,6 +339,100 @@ export default {
         readerDefaultTheme.value,
         rendition.value
       )
+    }
+
+    const getStyleMenuButton = () => {
+      return document.getElementById('titlebar-customer') as HTMLElement | null
+    }
+
+    const setStyleMenuButtonActive = (active: boolean) => {
+      getStyleMenuButton()?.classList.toggle('active', active)
+    }
+
+    const isStyleMenuRelatedTarget = (target: HTMLElement | null) => {
+      if (!target) {
+        return false
+      }
+
+      if (
+        target.closest('#customer-menu') ||
+        target.closest('#titlebar-customer') ||
+        target.closest('.system-font-enable-dialog-wrapper') ||
+        target.closest('.system-font-enable-dialog-overlay') ||
+        target.closest('.el-popper')
+      ) {
+        return true
+      }
+
+      return false
+    }
+
+    const computeStyleMenuPosition = (
+      _width = STYLE_MENU_ESTIMATED_WIDTH,
+      height?: number
+    ) => {
+      const viewportHeight = window.innerHeight
+      const safeMaxHeight = Math.max(
+        220,
+        viewportHeight - STYLE_MENU_SAFE_TOP - STYLE_MENU_SAFE_BOTTOM
+      )
+      const measuredHeight = height ?? safeMaxHeight
+      const visibleHeight = Math.min(measuredHeight, safeMaxHeight)
+
+      const top = Math.max(
+        STYLE_MENU_SAFE_TOP,
+        Math.round((viewportHeight - visibleHeight) / 2)
+      )
+
+      styleMenuPosition.value = {
+        left: STYLE_MENU_LEFT_OFFSET,
+        top,
+        maxHeight: safeMaxHeight,
+      }
+    }
+
+    const syncStyleMenuLayout = async () => {
+      if (!styleMenuVisible.value) {
+        return
+      }
+
+      await nextTick()
+      window.requestAnimationFrame(() => {
+        const panel = styleMenuPanelRef.value
+        if (!panel) {
+          computeStyleMenuPosition()
+          return
+        }
+
+        computeStyleMenuPosition(panel.offsetWidth, panel.offsetHeight)
+      })
+    }
+
+    const openStyleMenu = async () => {
+      styleMenuVisible.value = true
+      computeStyleMenuPosition()
+      await syncStyleMenuLayout()
+    }
+
+    const closeStyleMenu = () => {
+      styleMenuVisible.value = false
+    }
+
+    const toggleStyleMenu = async () => {
+      if (styleMenuVisible.value) {
+        closeStyleMenu()
+        return
+      }
+
+      await openStyleMenu()
+    }
+
+    const handleStyleMenuEnter = () => {
+      void syncStyleMenuLayout()
+    }
+
+    const handleStyleMenuAfterEnter = () => {
+      void syncStyleMenuLayout()
     }
 
     const onTxtScroll = () => {
@@ -316,8 +460,20 @@ export default {
     // 读取阅读配置
     const loadReaderConfig = async () => {
       try {
-        const configTemp = await loadReaderConfigFromDisk()
-        readerConfigStore.setReaderConfig(configTemp)
+        const [configTemp, systemFonts] = await Promise.all([
+          loadReaderConfigFromDisk(),
+          fetchSystemFonts().catch((error) => {
+            console.warn('加载系统字体失败，将跳过阅读器字体迁移', error)
+            return []
+          }),
+        ])
+
+        const normalizedConfig = normalizeReaderConfig(configTemp, systemFonts)
+        readerConfigStore.setReaderConfig(normalizedConfig)
+
+        if (JSON.stringify(configTemp) !== JSON.stringify(normalizedConfig)) {
+          await saveReaderConfigToDisk(normalizedConfig)
+        }
       } catch (e) {
         // 首次打开阅读器或配置文件不存在时回退默认配置
         readerConfigStore.setDefaultConfig()
@@ -484,8 +640,10 @@ export default {
             switchFullscreen()
           },
           onReaderClick: () => {
-            resetReaderTransientUi(() => {
-              showContextMenu.value = false
+            resetReaderTransientUi({
+              hideContextMenu: () => {
+                showContextMenu.value = false
+              },
             })
           },
           onMarkClicked: (markId: string) => {
@@ -721,16 +879,62 @@ export default {
       }
     }
 
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      if (!styleMenuVisible.value) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+      if (isStyleMenuRelatedTarget(target)) {
+        return
+      }
+
+      closeStyleMenu()
+    }
+
+    const handleReaderDomToggleStyleMenu = () => {
+      void toggleStyleMenu()
+    }
+
+    const handleReaderDomCloseStyleMenu = () => {
+      closeStyleMenu()
+    }
+
+    const handleOpenSystemFontDialog = () => {
+      closeStyleMenu()
+      systemFontDialogVisible.value = true
+    }
+
+    const handleWindowResize = () => {
+      if (!styleMenuVisible.value) {
+        return
+      }
+
+      void syncStyleMenuLayout()
+    }
+
+    watch(styleMenuVisible, (visible) => {
+      setStyleMenuButtonActive(visible)
+    })
+
     onMounted(async () => {
       // 加载阅读器配置
       await loadReaderConfig()
 
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler)
+      document.addEventListener('pointerdown', handleDocumentPointerDown)
+      window.addEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
+      window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
+      window.addEventListener('resize', handleWindowResize)
     })
 
     onUnmounted(() => {
       document.removeEventListener('keydown', keydownHandler)
+      document.removeEventListener('pointerdown', handleDocumentPointerDown)
+      window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
+      window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
+      window.removeEventListener('resize', handleWindowResize)
       unlistenBook.value?.()
       unlistenStyle.value?.()
       unlistenClosed.value?.()
@@ -739,6 +943,14 @@ export default {
       unlistenShowHelp.value?.()
       detachTocButtonListener?.()
       detachTocButtonListener = null
+      setStyleMenuButtonActive(false)
+    })
+
+    const styleMenuPanelStyle = computed(() => {
+      return {
+        top: `${styleMenuPosition.value.top}px`,
+        left: `${styleMenuPosition.value.left}px`,
+      }
     })
 
     return {
@@ -764,7 +976,15 @@ export default {
       bookMarkEditionContent,
       assistantVisible,
       helpVisible,
+      systemFontDialogVisible,
       delBookMark,
+      styleMenuVisible,
+      styleMenuPosition,
+      styleMenuPanelRef,
+      styleMenuPanelStyle,
+      handleStyleMenuEnter,
+      handleStyleMenuAfterEnter,
+      handleOpenSystemFontDialog,
     }
   },
 }
@@ -798,6 +1018,36 @@ export default {
 :global(.bookmark-highlight rect) {
   rx: 5;
   ry: 5;
+}
+
+:global(.style-menu-panel) {
+  position: fixed;
+  z-index: 4700;
+  transform-origin: left center;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  max-height: calc(100vh - 120px);
+  max-width: calc(100vw - 24px);
+}
+
+:global(.style-menu-enter-active),
+:global(.style-menu-leave-active) {
+  transition:
+    opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+    filter 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:global(.style-menu-enter-from) {
+  opacity: 0;
+  transform: translate3d(-20px, 0, 0) scale(0.8);
+  filter: blur(4px);
+}
+
+:global(.style-menu-leave-to) {
+  opacity: 0;
+  transform: translate3d(-16px, 0, 0) scale(0.86);
+  filter: blur(4px);
 }
 
 .reader {

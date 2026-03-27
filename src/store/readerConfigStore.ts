@@ -1,6 +1,8 @@
 // src/stores/readerConfigStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import type { EnabledSystemFont } from '@/types/readerFonts';
+import { DEFAULT_READER_FONT } from '@/types/readerFonts';
 
 export type ReaderFlowMode =
   | 'auto'
@@ -24,9 +26,10 @@ export interface ReaderConfig {
   color: string;
   fontColor: string;
   flow: ReaderFlowMode;
+  enabledSystemFonts: EnabledSystemFont[];
 }
 
-const createDefaultReaderConfig = (): ReaderConfig => ({
+export const createDefaultReaderConfig = (): ReaderConfig => ({
   fontSize: 16,
   fontWeight: 400,
   lineSpacing: 1.3,
@@ -37,10 +40,11 @@ const createDefaultReaderConfig = (): ReaderConfig => ({
   boxPaddingHorizontal: 20,
   columnCount: 2,
   indent: 2,
-  font: 'system-ui',
+  font: DEFAULT_READER_FONT,
   color: '#FFFFFF',
   fontColor: '#000000',
   flow: 'paginated',
+  enabledSystemFonts: [],
 });
 
 export const useReaderConfigStore = defineStore('readerConfig', () => {

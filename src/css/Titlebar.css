@@ -10,6 +10,13 @@
   left: 0;
   right: 0;
   z-index: 4500;
+  align-items: stretch;
+}
+
+.titlebar-drag-region {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .titlebar-button {
@@ -20,6 +27,8 @@
   height: 30px;
   -webkit-user-select: none;
   user-select: none;
+  position: relative;
+  z-index: 1;
 }
 
 .titlebar-button:hover {
@@ -31,6 +40,8 @@
   /* 使该元素相对于父元素以flex-start的方式布局 */
   margin-right: auto;
   margin-left: 10px;
+  position: relative;
+  z-index: 1;
 
   .titlebar-front-button{
     display: inline-flex;
@@ -54,6 +65,7 @@
 /* 当同时包含两个类时 */
 .titlebar-front-button.active{
   opacity: 1;
+  background: rgba(37, 99, 235, 0.14);
 }
 
 /* 黑暗背景下按钮的悬浮效果 */

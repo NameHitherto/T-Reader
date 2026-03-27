@@ -46,6 +46,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
+    SystemFontEnableDialog: typeof import('./src/components/SystemFontEnableDialog/index.vue')['default']
     TocMenu: typeof import('./src/components/TocMenu/index.vue')['default']
   }
 }
