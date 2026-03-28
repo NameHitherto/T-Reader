@@ -2,6 +2,7 @@ pub mod dir;
 pub mod file;
 pub mod font;
 pub mod proxy;
+pub mod updater;
 pub mod web;
 
 pub use dir::{
@@ -14,6 +15,7 @@ pub use file::{
 };
 pub use font::get_system_fonts;
 pub use proxy::prepare_updater_proxy;
+pub use updater::{check_app_update, install_app_update, AppUpdateState};
 pub use web::{
     start_stream, webdav_delete, webdav_exists, webdav_get, webdav_sync_files, webdav_upload,
 };

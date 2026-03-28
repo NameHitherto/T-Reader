@@ -1,19 +1,12 @@
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProxyPrepareResult {
     pub enabled: bool,
     pub source: String,
+    pub proxy_mode: String,
     pub proxy_url: Option<String>,
-}
-
-fn apply_proxy_env(proxy_url: &str) {
-    std::env::set_var("HTTP_PROXY", proxy_url);
-    std::env::set_var("HTTPS_PROXY", proxy_url);
-    std::env::set_var("ALL_PROXY", proxy_url);
-    std::env::set_var("http_proxy", proxy_url);
-    std::env::set_var("https_proxy", proxy_url);
-    std::env::set_var("all_proxy", proxy_url);
 }
 
 fn first_non_empty_env(keys: &[&str]) -> Option<String> {
@@ -52,8 +45,8 @@ fn normalize_proxy_url(raw: &str) -> Option<String> {
 
 #[cfg(target_os = "windows")]
 fn read_windows_system_proxy() -> Option<String> {
-    use winreg::RegKey;
     use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let internet = hkcu
@@ -74,8 +67,7 @@ fn read_windows_system_proxy() -> Option<String> {
     None
 }
 
-#[tauri::command]
-pub fn prepare_updater_proxy() -> Result<ProxyPrepareResult, String> {
+pub fn detect_updater_proxy() -> ProxyPrepareResult {
     if let Some(proxy_url) = first_non_empty_env(&[
         "HTTPS_PROXY",
         "https_proxy",
@@ -84,26 +76,32 @@ pub fn prepare_updater_proxy() -> Result<ProxyPrepareResult, String> {
         "ALL_PROXY",
         "all_proxy",
     ]) {
-        apply_proxy_env(&proxy_url);
-        return Ok(ProxyPrepareResult {
+        return ProxyPrepareResult {
             enabled: true,
             source: "environment".to_string(),
+            proxy_mode: "environment".to_string(),
             proxy_url: Some(proxy_url),
-        });
+        };
     }
 
     if let Some(proxy_url) = read_windows_system_proxy() {
-        apply_proxy_env(&proxy_url);
-        return Ok(ProxyPrepareResult {
+        return ProxyPrepareResult {
             enabled: true,
             source: "system".to_string(),
+            proxy_mode: "system".to_string(),
             proxy_url: Some(proxy_url),
-        });
+        };
     }
 
-    Ok(ProxyPrepareResult {
+    ProxyPrepareResult {
         enabled: false,
         source: "none".to_string(),
+        proxy_mode: "direct".to_string(),
         proxy_url: None,
-    })
+    }
+}
+
+#[tauri::command]
+pub fn prepare_updater_proxy() -> Result<ProxyPrepareResult, String> {
+    Ok(detect_updater_proxy())
 }

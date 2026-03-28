@@ -1,117 +1,159 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { check } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
 import { getVersion } from '@tauri-apps/api/app'
-import { invoke } from '@tauri-apps/api/core'
+import { Channel, invoke } from '@tauri-apps/api/core'
+import { computed, onMounted, ref } from 'vue'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
+import type { AppUpdateCheckResult, AppUpdateProgressEvent } from '@/types/appUpdate'
 
-const version = ref<string>('')
+const version = ref('')
 const checking = ref(false)
-const updateAvailable = ref(false)
-const downloadProgress = ref(0)
-const downloading = ref(false)
-const updater = ref<any>(null)
-const updateNotes = ref('')
-const newVersion = ref('')
-const statusType = ref<'success' | 'info' | 'warning' | 'error'>('info')
-const statusTitle = ref('状态')
-const statusMessage = ref('')
-
-type ProxyPrepareResult = {
-  enabled: boolean
-  source: 'environment' | 'system' | 'none' | string
-  proxy_url: string | null
-}
-
-onMounted(async () => {
-  version.value = await getVersion()
-  statusTitle.value = '更新检查'
-  statusMessage.value = '可手动检查更新'
-})
+const installing = ref(false)
+const checkResult = ref<AppUpdateCheckResult | null>(null)
+const currentProgress = ref<AppUpdateProgressEvent | null>(null)
 
 const toTaskErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message
   }
-
   if (typeof error === 'string') {
     return error
   }
-
-  return '发生未知异常'
+  return '发生未知错误'
 }
 
-async function applyProxy() {
-  try {
-    const proxyResult = await invoke<ProxyPrepareResult>('prepare_updater_proxy')
-    if (proxyResult.enabled) {
-      statusType.value = 'info'
-      statusTitle.value = '代理提示'
-      statusMessage.value = `已检测到代理并应用（来源: ${proxyResult.source}）`
-    } else {
-      statusType.value = 'info'
-      statusTitle.value = '连接提示'
-      statusMessage.value = '未检测到系统代理，使用直连方式'
-    }
-    return proxyResult
-  } catch (proxyError) {
-    console.warn('代理检测失败:', proxyError)
-    statusType.value = 'warning'
-    statusTitle.value = '代理失败'
-    statusMessage.value = '代理检测失败，已切换为直连方式'
-    return { enabled: false, source: 'none', proxy_url: null }
+const formatDateTime = (timestamp: number | null | undefined): string => {
+  if (!timestamp) {
+    return '暂无'
   }
+
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) {
+    return '暂无'
+  }
+  return date.toLocaleString()
 }
 
-async function checkForUpdates() {
-  if (checking.value || downloading.value) return
-  
+const formatBytes = (bytes: number | null | undefined): string => {
+  if (!bytes || bytes <= 0) {
+    return '0 B'
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = bytes
+  let index = 0
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024
+    index += 1
+  }
+  const rounded = value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)
+  return `${rounded} ${units[index]}`
+}
+
+const stageToLabel = (stage: string | undefined): string => {
+  const labels: Record<string, string> = {
+    preparing: '准备中',
+    downloading: '下载中',
+    installing: '安装中',
+    handoff: '安装接管',
+    failed: '失败',
+  }
+  if (!stage) {
+    return '待开始'
+  }
+  return labels[stage] ?? stage
+}
+
+const canStartInstall = computed(() => {
+  const result = checkResult.value
+  return Boolean(result?.hasUpdate && result.updateToken && !checking.value && !installing.value)
+})
+
+const showProgressTimeline = computed(() => {
+  return Boolean(installing.value || currentProgress.value)
+})
+
+const showReleaseNotes = computed(() => {
+  const hasUpdate = Boolean(checkResult.value?.hasUpdate)
+  return hasUpdate && !showProgressTimeline.value
+})
+
+const progressPercent = computed(() => {
+  const event = currentProgress.value
+  if (!event || typeof event.percent !== 'number') {
+    return 0
+  }
+  return Math.max(0, Math.min(100, Number(event.percent.toFixed(1))))
+})
+
+const transferText = computed(() => {
+  const event = currentProgress.value
+  if (!event) {
+    return '暂无'
+  }
+  const downloaded = formatBytes(event.downloadedBytes)
+  const total = event.totalBytes ? formatBytes(event.totalBytes) : '总大小未知'
+  return `${downloaded} / ${total}`
+})
+
+const statusText = computed(() => {
+  if (checking.value) {
+    return '正在检查更新...'
+  }
+  if (installing.value) {
+    return '正在下载安装更新...'
+  }
+  if (checkResult.value?.hasUpdate) {
+    return `发现新版本 v${checkResult.value.latestVersion || '未知'}`
+  }
+  if (checkResult.value && !checkResult.value.error) {
+    return `当前已是最新版本 v${checkResult.value.currentVersion}`
+  }
+  return '可手动检查更新'
+})
+
+const checkForUpdates = async () => {
+  if (checking.value || installing.value) {
+    return
+  }
+
   checking.value = true
-  statusTitle.value = '正在检查'
-  statusMessage.value = '正在准备网络环境...'
-  
-  // 检查更新前先尝试应用代理
-  await applyProxy()
-  
+  currentProgress.value = null
+
   try {
-    const update = await check()
-    
-    if (update) {
-      updateAvailable.value = true
-      updater.value = update
-      newVersion.value = update.version
-      updateNotes.value = update.body || '无更新说明'
-      statusType.value = 'success'
-      statusTitle.value = '发现更新'
-      statusMessage.value = `发现新版本 v${update.version}`
+    const result = await invoke<AppUpdateCheckResult>('check_app_update')
+    checkResult.value = result
+
+    if (result.error) {
+      showMainTaskMessage({
+        type: 'error',
+        title: '检查更新失败',
+        message: result.error,
+        taskKey: 'app-update-check',
+      })
+      return
+    }
+
+    if (result.hasUpdate) {
       showMainTaskMessage({
         type: 'success',
-        title: '发现新版本',
-        message: `检测到可用更新 v${update.version}。`,
+        title: '发现可用更新',
+        message: `检测到版本 v${result.latestVersion || '未知'}。`,
         taskKey: 'app-update-check',
       })
-    } else {
-      updateAvailable.value = false
-      statusType.value = 'info'
-      statusTitle.value = '暂无更新'
-      statusMessage.value = '当前已是最新版本'
-      showMainTaskMessage({
-        type: 'info',
-        title: '当前已是最新版本',
-        message: '未检测到新的应用更新。',
-        taskKey: 'app-update-check',
-      })
+      return
     }
+
+    showMainTaskMessage({
+      type: 'info',
+      title: '当前已是最新版本',
+      message: `当前版本 ${result.currentVersion} 已是最新。`,
+      taskKey: 'app-update-check',
+    })
   } catch (error) {
-    console.error('检查更新失败:', error)
-    statusType.value = 'error'
-    statusTitle.value = '检查失败'
-    statusMessage.value = toTaskErrorMessage(error)
     showMainTaskMessage({
       type: 'error',
       title: '检查更新失败',
-      message: statusMessage.value,
+      message: toTaskErrorMessage(error),
       taskKey: 'app-update-check',
     })
   } finally {
@@ -119,205 +161,181 @@ async function checkForUpdates() {
   }
 }
 
-async function startUpdate() {
-  if (!updater.value || downloading.value) return
+const startUpdate = async () => {
+  const token = checkResult.value?.updateToken
+  if (!token || installing.value) {
+    return
+  }
 
-  // 下载前再次确保代理已应用（虽然检查更新时可能已经应用过）
-  await applyProxy()
-  
-  downloading.value = true
-  downloadProgress.value = 0
-  
+  installing.value = true
+  currentProgress.value = null
+
+  const onEvent = new Channel<AppUpdateProgressEvent>((event) => {
+    currentProgress.value = event
+    if (event.stage === 'handoff') {
+      showMainTaskMessage({
+        type: 'success',
+        title: '安装器已启动',
+        message: event.message,
+        taskKey: 'app-update-install',
+      })
+    }
+    if (event.stage === 'failed' && event.errorSummary) {
+      showMainTaskMessage({
+        type: 'error',
+        title: '更新下载失败',
+        message: event.errorSummary,
+        taskKey: 'app-update-install',
+      })
+    }
+  })
+
   try {
-    let totalSize = 0
-    let downloadedSize = 0
-    await updater.value.downloadAndInstall((event: any) => {
-      switch (event.event) {
-        case 'Started':
-          totalSize = event.data.contentLength || 0
-          downloadedSize = 0
-          statusTitle.value = '正在下载'
-          statusMessage.value = '正在建立连接...'
-          break
-        case 'Progress':
-          downloadedSize += event.data.chunkLength || 0
-          if (totalSize > 0) {
-            downloadProgress.value = Math.min(
-              100,
-              Math.round((downloadedSize / totalSize) * 100)
-            )
-          }
-          break
-        case 'Finished':
-          downloadProgress.value = 100
-          statusTitle.value = '下载完成'
-          statusMessage.value = '正在安装更新...'
-          break
-      }
+    await invoke('install_app_update', {
+      updateToken: token,
+      onEvent,
     })
-
-    statusType.value = 'success'
-    statusTitle.value = '更新成功'
-    statusMessage.value = '更新安装成功，即将重启...'
-    showMainTaskMessage({
-      type: 'success',
-      title: '更新安装成功',
-      message: '应用即将重启以完成更新。',
-      taskKey: 'app-update-install',
-    })
-    setTimeout(async () => {
-      await relaunch()
-    }, 1500)
-    
   } catch (error) {
-    console.error('更新失败:', error)
-    statusType.value = 'error'
-    statusTitle.value = '更新失败'
-    statusMessage.value = toTaskErrorMessage(error)
-    downloading.value = false
     showMainTaskMessage({
       type: 'error',
       title: '更新安装失败',
-      message: statusMessage.value,
+      message: toTaskErrorMessage(error),
       taskKey: 'app-update-install',
     })
+  } finally {
+    installing.value = false
   }
 }
+
+onMounted(async () => {
+  version.value = await getVersion()
+})
 </script>
 
 <template>
   <div class="about-container">
-    <div class="card about-card">
-      <div class="app-info">
-        <img src="/src-tauri/icons/reader.png" class="app-logo" alt="logo" />
-        <h2>T-Reader</h2>
-        <p class="version-text">当前版本: v{{ version }}</p>
-        <el-alert
-          class="status-alert"
-          :type="statusType"
-          :title="statusTitle"
-          :description="statusMessage"
-          :closable="false"
-          show-icon
-        />
-      </div>
-
-      <div class="update-section">
-        <el-button 
-          v-if="!updateAvailable" 
-          type="primary" 
-          :loading="checking" 
-          @click="checkForUpdates"
-        >
-          检查更新
-        </el-button>
-
-        <div v-else class="update-info">
-          <el-alert
-            :title="`新版本 v${newVersion} 可用`"
-            type="success"
-            :description="updateNotes"
-            show-icon
-            :closable="false"
-          />
-          
-          <div v-if="downloading" class="progress-box">
-             <span>正在下载更新...</span>
-             <el-progress :percentage="downloadProgress" />
-          </div>
-
-          <el-button 
-            v-if="!downloading" 
-            type="success" 
-            @click="startUpdate"
-            class="update-btn"
-          >
-            立即更新
-          </el-button>
+    <section class="surface-card surface-card--strong hero-card">
+      <div class="hero-main">
+        <img src="/src-tauri/icons/reader.png" class="app-logo" alt="T-Reader logo" />
+        <div class="hero-copy">
+          <h2>更新中心</h2>
+          <p class="hero-subtitle">当前版本：<strong>v{{ version }}</strong></p>
+          <p class="hero-meta">{{ statusText }}</p>
         </div>
       </div>
-    </div>
+
+      <div class="hero-actions">
+        <el-button type="primary" :loading="checking" @click="checkForUpdates">检查更新</el-button>
+        <el-button type="success" :loading="installing" :disabled="!canStartInstall" @click="startUpdate">
+          下载并安装
+        </el-button>
+      </div>
+    </section>
+
+    <section v-if="showReleaseNotes" class="surface-card info-card">
+      <h3>版本说明</h3>
+      <p class="info-line"><strong>目标版本：</strong>{{ checkResult?.latestVersion || '暂无' }}</p>
+      <div class="notes-box">{{ checkResult?.releaseNotes || '暂无版本说明。' }}</div>
+    </section>
+
+    <section v-if="showProgressTimeline" class="surface-card info-card">
+      <h3>进度时间线</h3>
+      <p class="info-line"><strong>阶段：</strong>{{ stageToLabel(currentProgress?.stage) }}</p>
+      <p class="info-line"><strong>更新时间：</strong>{{ formatDateTime(currentProgress?.eventAt) }}</p>
+      <el-progress :percentage="progressPercent" :stroke-width="12" />
+      <p class="info-line"><strong>传输：</strong>{{ transferText }}</p>
+      <p class="info-line"><strong>状态：</strong>{{ currentProgress?.message || '等待下载开始' }}</p>
+    </section>
   </div>
 </template>
 
 <style scoped lang="scss">
 .about-container {
-  padding: 32px;
-  width: 100%;
   height: 100%;
+  width: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 12% 10%, var(--surface-brand-soft), transparent 32%),
+    radial-gradient(circle at 82% 14%, var(--surface-warning-soft), transparent 28%),
+    var(--app-bg-accent);
+  color: var(--text-primary);
+}
+
+.hero-card {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  background: var(--app-bg-accent);
-  
-  .about-card {
-    background: var(--surface-strong);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-default);
-    padding: 40px;
-    width: 100%;
-    max-width: 500px;
-    box-shadow: var(--shadow-md);
-    text-align: center;
-  }
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-brand);
+}
 
-  .app-info {
-    margin-bottom: 30px;
-    
-    .app-logo {
-      justify-self: center;
-      width: 80px;
-      height: 80px;
-      border-radius: 16px;
-      margin-bottom: 16px;
-    }
-    
-    h2 {
-      margin: 0;
-      font-size: 24px;
-      color: var(--el-text-color-primary);
-    }
-    
-    .version-text {
-      color: var(--el-text-color-secondary);
-      margin-top: 8px;
-    }
+.hero-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 
-    .status-alert {
-      margin-top: 14px;
-      text-align: left;
-      max-height: 200px;
-      overflow-y: auto;
-      
-      :deep(.el-alert__description) {
-        word-break: break-all;
-        white-space: pre-wrap;
-      }
-    }
-  }
+.app-logo {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
 
-  .update-section {
-    border-top: 1px solid var(--el-border-color-lighter);
-    padding-top: 24px;
-    
-    .update-info {
-      text-align: left;
-      
-      .update-btn {
-        margin-top: 20px;
-        width: 100%;
-      }
-      
-      .progress-box {
-        margin-top: 20px;
-        span {
-          display: block;
-          margin-bottom: 8px;
-          color: var(--el-text-color-regular);
-          font-size: 14px;
-        }
-      }
-    }
+.hero-copy {
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: 0.02em;
   }
+}
+
+.hero-subtitle {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.hero-meta {
+  margin: 6px 0 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.info-card {
+  padding: 18px;
+  border: 1px solid var(--border-default);
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+  }
+}
+
+.info-line {
+  margin: 8px 0;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.notes-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card-soft);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 220px;
+  overflow-y: auto;
 }
 </style>
