@@ -118,6 +118,8 @@ npm run tauri build
 npm run release -- v1.0.1
 ```
 
+`npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
+
 ## 开发说明
 
 - 主窗口入口：`index.html` + `src/main.ts`

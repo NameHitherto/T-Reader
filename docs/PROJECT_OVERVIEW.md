@@ -459,6 +459,8 @@ npm run preview
 npm run release -- v1.0.1
 ```
 
+`npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
+
 ### 10.2 建议回归项
 
 - EPUB：导入、打开、目录、翻页、书签、笔记、进度恢复
