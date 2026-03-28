@@ -56,7 +56,7 @@
         :image="emptyStateImage"
         image-size="160px"
         description="点击添加书籍吧"
-        style="flex: 1;"
+        class="book-empty-state"
         @click="addBook"
       />
       <div v-else class="bookcase">
@@ -194,6 +194,8 @@ import {
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
 import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
+import { buildContextMenuData } from '@/services/reader/contextMenuService'
+import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import {
   createDurationLogger,
   logError,
@@ -734,8 +736,6 @@ export default {
     }
 
     const onContextMenu = (e: MouseEvent, bookKey: string) => {
-      let menuX = e.x
-      let menuY = e.y
       const menuItems: ContextMenuItem[] = [
         {
           label: '打开 | 开始阅读',
@@ -758,31 +758,15 @@ export default {
           onClick: () => deleteBook(bookKey),
         },
       ]
-      const menuWidth = 170
-      const menuHeight = 35 * menuItems.length
-      const pageWidth = document.documentElement.clientWidth
-      const pageHeight = document.documentElement.clientHeight
-      const precision = 20
-
-      if (menuX + menuWidth > pageWidth) {
-        menuX -= menuWidth
-      }
-      menuX = Math.max(precision, menuX)
-      menuX = Math.min(pageWidth - precision - menuWidth, menuX)
-
-      if (menuY + menuHeight > pageHeight) {
-        menuY -= menuHeight
-      }
-      menuY = Math.max(precision, menuY)
-      menuY = Math.min(pageHeight - precision - menuHeight, menuY)
-
-      menuOptions.value = {
-        x: menuX,
-        y: menuY,
-        width: menuWidth,
-        items: menuItems,
-        theme: 'light',
-      }
+      menuOptions.value = buildContextMenuData({
+        x: e.x,
+        y: e.y,
+        menuItems,
+        width: 170,
+        itemHeight: 35,
+        precision: 20,
+        theme: getAppliedAppThemeMode(),
+      })
       showMenu.value = true
     }
 
@@ -870,7 +854,8 @@ export default {
   padding: 20px 0 20px 0;
   overflow: hidden;
   user-select: none;
-  background: #f5f6fa;
+  background: var(--app-bg-accent);
+  color: var(--text-primary);
 
   .header {
     display: flex;
@@ -880,12 +865,14 @@ export default {
 
     .header-menu {
       padding: 0.5rem;
-      background-color: #fff;
+      background-color: var(--surface-strong);
+      border: 1px solid var(--border-default);
       position: relative;
       display: flex;
       justify-content: center;
-      border-radius: 15px;
-      box-shadow: var(--t-box-shadow-3d-inactive);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(12px);
 
       &-item {
         display: inline-flex;
@@ -907,14 +894,14 @@ export default {
           z-index: -1;
           content: "";
           display: block;
-          border-radius: 8px;
+          border-radius: var(--radius-sm);
           width: 100%;
           height: 100%;
           top: 0;
           transform: translateX(100%);
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           transform-origin: center right;
-          background-color: #eee;
+          background-color: var(--surface-card-soft);
         }
 
         &:hover {
@@ -939,7 +926,7 @@ export default {
         :deep(.app-icon) {
           width: 100%;
           height: 100%;
-          color: #3f3f46;
+          color: var(--text-secondary);
         }
       }
       &-label {
@@ -965,7 +952,7 @@ export default {
       width: 6px;
     }
     &::-webkit-scrollbar-thumb {
-      background-color: rgba(0, 0, 0, 0.2);
+      background-color: var(--scrollbar-thumb);
       border-radius: 6px;
     }
     &::-webkit-scrollbar-track {
@@ -976,6 +963,11 @@ export default {
       width: auto;
       margin: 12px 12px 6px 12px;
       border-top-width: 3px;
+    }
+
+    :deep(.el-empty) {
+      flex: 1;
+      cursor: var(--t-mouse-cursor-link), pointer;
     }
 
     .book-item {
@@ -1031,7 +1023,7 @@ export default {
           }
           .book-author {
             background: var(--t-color-light-blue);
-            color: #ffffff;
+            color: var(--text-on-brand);
             padding: 0 5px;
             border-radius: 6px;
             text-align: center;
@@ -1077,7 +1069,7 @@ export default {
 
       &:hover {
         &::-webkit-scrollbar-thumb {
-          background-color: rgba(0, 0, 0, 0.2);
+          background-color: var(--scrollbar-thumb);
         }
       }
 
@@ -1125,7 +1117,7 @@ export default {
         align-items: center;
         justify-content: center;
         min-height: 240px;
-        color: #6b7280;
+        color: var(--text-tertiary);
         font-size: 14px;
       }
 
@@ -1135,11 +1127,11 @@ export default {
         align-items: center;
         gap: 16px;
         position: relative;
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 16px;
-        border: 1px solid #edf0f4;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        background: var(--surface-strong);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        border: 1px solid var(--border-default);
+        box-shadow: var(--shadow-sm);
         transition:
           transform 0.2s ease,
           box-shadow 0.2s ease,
@@ -1148,15 +1140,15 @@ export default {
 
         &:hover {
           transform: translateY(2px);
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+          box-shadow: var(--shadow-md);
         }
       }
 
       .shelf-list-cover {
         position: relative;
         flex: 0 0 auto;
-        width: 72px;
-        height: 96px;
+        width: 90px;
+        height: 120px;
         border-radius: 10px;
         overflow: hidden;
         transition: width 0.28s ease, height 0.28s ease, border-radius 0.28s ease;
@@ -1173,8 +1165,8 @@ export default {
         position: absolute;
         top: 0;
         right: 0;
-        color: #fff;
-        background: rgba(17, 24, 39, 0.55);
+        color: var(--text-on-brand);
+        background: var(--surface-overlay-strong);
         font-size: 10px;
         line-height: 1;
         padding: 4px 6px;
@@ -1200,8 +1192,8 @@ export default {
         max-width: 64px;
         padding: 2px 8px;
         border-radius: 999px;
-        background: var(--t-color-light-blue);
-        color: #ffffff;
+        background: var(--brand-primary);
+        color: var(--text-on-brand);
         font-size: 11px;
         white-space: nowrap;
         overflow: hidden;
@@ -1218,7 +1210,7 @@ export default {
 
       .shelf-list-author:hover {
         transform: translateY(-1px);
-        background: #1668c5;
+        background: var(--brand-primary-hover);
       }
 
       .shelf-list-title {
@@ -1226,7 +1218,7 @@ export default {
         font-size: 16px;
         line-height: 1.35;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1262,7 +1254,7 @@ export default {
       .shelf-list-title:hover {
         span {
           background: var(--t-color-light-yellow);
-          color: #ffffff;
+          color: var(--text-on-brand);
         }
 
         span::after {
@@ -1273,7 +1265,7 @@ export default {
       .shelf-list-subtitle,
       .shelf-list-meta {
         font-size: 12px;
-        color: #6b7280;
+        color: var(--text-tertiary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1289,7 +1281,7 @@ export default {
 
       .shelf-progress-label {
         font-size: 12px;
-        color: #2563eb;
+        color: var(--brand-primary);
         transition: font-size 0.28s ease;
       }
 
@@ -1297,7 +1289,7 @@ export default {
         width: 100%;
         height: 4px;
         border-radius: 999px;
-        background: #e5e7eb;
+        background: var(--surface-inset);
         overflow: hidden;
         transition: height 0.28s ease;
       }
@@ -1305,7 +1297,7 @@ export default {
       .shelf-progress-value {
         height: 4px;
         border-radius: 999px;
-        background: #3b82f6;
+        background: var(--brand-primary);
         transition: height 0.28s ease;
       }
 
@@ -1322,8 +1314,8 @@ export default {
         position: relative;
         border-radius: 8px;
         overflow: hidden;
-        border: 1px solid rgba(15, 23, 42, 0.06);
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        border: 1px solid var(--border-soft);
+        box-shadow: var(--shadow-md);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
 
         img {
@@ -1337,7 +1329,7 @@ export default {
 
       .shelf-grid-card:hover .shelf-grid-cover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+        box-shadow: var(--shadow-lg);
       }
 
       @keyframes shelf-grid-relayout-a {
@@ -1382,9 +1374,9 @@ export default {
         bottom: 0;
         left: 0;
         width: 100%;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.35));
+        background: var(--surface-overlay-gradient);
         backdrop-filter: blur(2px);
-        color: #fff;
+        color: var(--text-on-brand);
         font-size: 10px;
         padding: 4px 6px;
         box-sizing: border-box;
@@ -1395,7 +1387,7 @@ export default {
         font-size: 14px;
         line-height: 1.4;
         font-weight: 600;
-        color: #1f2937;
+        color: var(--text-primary);
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -1469,13 +1461,13 @@ export default {
         }
 
         .bookcase-body--list .shelf-list-card {
-          padding: 20px;
+          padding: 16px;
           border-radius: 14px;
         }
 
         .bookcase-body--list .shelf-list-cover {
-          width: 84px;
-          height: 112px;
+          width: 96px;
+          height: 132px;
           border-radius: 12px;
         }
 
@@ -1503,13 +1495,13 @@ export default {
         }
 
         .bookcase-body--list .shelf-list-card {
-          padding: 24px;
+          padding: 20px;
           border-radius: 16px;
         }
 
         .bookcase-body--list .shelf-list-cover {
-          width: 96px;
-          height: 128px;
+          width: 108px;
+          height: 144px;
           border-radius: 14px;
         }
 

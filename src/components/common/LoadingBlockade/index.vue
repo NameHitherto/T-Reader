@@ -72,7 +72,7 @@ export default {
 
     .blockade-line {
       position: relative;
-      box-shadow: 0 15px 12px #00000080;
+      box-shadow: var(--shadow-float-strong);
       display: flex;
       left: -150px;
       width: calc(100% + 650px);
@@ -80,9 +80,9 @@ export default {
       span {
         animation: HorseRacelamp_move_1 60s linear infinite;
         animation-delay: -60s;
-        background-color: #e9c804;
-        color: #1d1104;
-        font-family: SourceHanSansCN-Bold !important;
+        background: var(--loading-stripe-gradient);
+        color: var(--text-on-warning);
+        font-family: var(--font-family-base) !important;
         font-size: 26px;
         font-weight: 600;
         letter-spacing: 0.2em;

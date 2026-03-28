@@ -4,57 +4,67 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reader</title>
-    <link rel="stylesheet" href="/src/css/Titlebar.css"/>
   </head>
 
   <body>
     <div data-tauri-drag-region class="titlebar">
       <div class="titlebar-front-group">
         <div class="titlebar-front-button" id="titlebar-customer">
-          <img 
-            src="/src/assets/mdi-color.svg"
-            alt="customer"
-          />
+          <span
+            class="titlebar-icon"
+            style="--titlebar-icon: url('/src/assets/mdi-color.svg')"
+            aria-label="customer"
+          ></span>
         </div>
         <div class="titlebar-front-button" id="titlebar-toc">
-          <img 
-            src="/src/assets/toc-icon.svg"
-            alt="toc"
-          />
+          <span
+            class="titlebar-icon"
+            style="--titlebar-icon: url('/src/assets/toc-icon.svg')"
+            aria-label="toc"
+          ></span>
         </div>
         <div class="titlebar-front-button" id="titlebar-assistant">
-          <img 
-            src="/src/assets/assistant.svg"
-            alt="assistant"
-          />
+          <span
+            class="titlebar-icon"
+            style="--titlebar-icon: url('/src/assets/assistant.svg')"
+            aria-label="assistant"
+          ></span>
         </div>
         <div class="titlebar-front-button" id="titlebar-about">
-          <img 
-            src="/src/assets/book-info.svg"
-            alt="about"
-          />
+          <span
+            class="titlebar-icon"
+            style="--titlebar-icon: url('/src/assets/book-info.svg')"
+            aria-label="about"
+          ></span>
         </div>
         <div class="titlebar-front-button" id="titlebar-help">
-          <img 
-            src="/src/assets/help.svg"
-            alt="help"
-          />
+          <span
+            class="titlebar-icon"
+            style="--titlebar-icon: url('/src/assets/help.svg')"
+            aria-label="help"
+          ></span>
         </div>
       </div>
       <div class="titlebar-button" id="titlebar-minimize">
-        <img
-          src="/src/assets/window-minimize-outline.svg"
-          alt="minimize"
-        />
+        <span
+          class="titlebar-icon"
+          style="--titlebar-icon: url('/src/assets/window-minimize-outline.svg')"
+          aria-label="minimize"
+        ></span>
       </div>
       <div class="titlebar-button" id="titlebar-maximize">
-        <img
-          src="/src/assets/window-maximize.svg"
-          alt="maximize"
-        />
+        <span
+          class="titlebar-icon"
+          style="--titlebar-icon: url('/src/assets/window-maximize.svg')"
+          aria-label="maximize"
+        ></span>
       </div>
       <div class="titlebar-button" id="titlebar-close">
-        <img src="/src/assets/window-close.svg" alt="close" />
+        <span
+          class="titlebar-icon"
+          style="--titlebar-icon: url('/src/assets/window-close.svg')"
+          aria-label="close"
+        ></span>
       </div>
     </div>
     <div id="reader-app"></div>
@@ -62,13 +72,3 @@
     <script type="module" src="/src/readerMain.ts"></script>
   </body>
 </html>
-<style>
-  body{
-    margin: 0;
-    overflow: hidden;
-  }
-  #reader-app{
-    position: relative;
-    width: 100%;
-  }
-</style>

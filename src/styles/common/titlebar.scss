@@ -1,0 +1,84 @@
+.titlebar {
+  height: 30px;
+  background: transparent;
+  user-select: none;
+  display: flex;
+  justify-content: flex-end;
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 4500;
+  align-items: stretch;
+}
+
+.titlebar-drag-region {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.titlebar-button,
+.titlebar-front-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--titlebar-button-color);
+  transition:
+    background-color var(--duration-fast) var(--easing-standard),
+    opacity var(--duration-fast) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard);
+
+  .titlebar-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    background-color: currentColor;
+    -webkit-mask-image: var(--titlebar-icon);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    mask-image: var(--titlebar-icon);
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+  }
+}
+
+.titlebar-button {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 30px;
+
+  &:hover {
+    background: var(--titlebar-hover);
+  }
+}
+
+.titlebar-front-group {
+  display: flex;
+  margin-right: auto;
+  margin-left: 10px;
+  position: relative;
+  z-index: 1;
+
+  .titlebar-front-button {
+    opacity: 0;
+    width: 40px;
+    height: 25px;
+    margin-top: 5px;
+    border-radius: var(--radius-xs);
+
+    &:hover {
+      background: var(--titlebar-hover);
+    }
+
+    &.active {
+      opacity: 1;
+      background: var(--titlebar-active);
+    }
+  }
+
+  &:hover > .titlebar-front-button {
+    opacity: 1;
+  }
+}

@@ -196,14 +196,15 @@ export default defineComponent({
 .bookmark {
   width: 100%;
   height: 100%;
-  background-image: radial-gradient(rgba(12, 12, 12, 0.171) 2px, transparent 0);
+  background-image: radial-gradient(var(--surface-grid-dot) 2px, transparent 0);
   background-size: 30px 30px;
-  border-left: 2px dashed #ccc;
+  border-left: 2px dashed var(--border-default);
   animation: backgroundMove 2s infinite linear;
   display: flex;
   flex-direction: column;
   min-width: 0;
   user-select: none;
+  background-color: var(--app-bg);
 
   &-header {
     height: 15%;
@@ -216,8 +217,8 @@ export default defineComponent({
       font-weight: bold;
       font-style: italic;
       letter-spacing: 1em;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-      color: var(--t-color-dark-blue);
+      text-shadow: var(--text-shadow-soft);
+      color: var(--text-primary);
     }
 
     .prefix {
@@ -226,9 +227,10 @@ export default defineComponent({
 
     .bubble {
       padding: 6px;
-      border-radius: 10px;
-      background-color: var(--t-color-light-yellow);
-      box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-warning-gradient);
+      border: 1px solid var(--border-warning);
+      box-shadow: var(--shadow-sm);
 
       .suffix {
         position: relative;
@@ -243,7 +245,7 @@ export default defineComponent({
           grid-row-start: 1;
           grid-row-end: 1;
           transition: all 0.5s;
-          color: var(--t-color-brown);
+          color: var(--text-secondary);
         }
 
         &.tag .option-tag {
@@ -268,6 +270,11 @@ export default defineComponent({
   &-body {
     flex: 1;
     padding: 1rem;
+
+    .table {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
 
     .tag-scrollbar {
       .tag-wrapper {

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { EnabledSystemFont } from '@/types/readerFonts';
 import { DEFAULT_READER_FONT } from '@/types/readerFonts';
+import { getReaderThemeCompatColors } from '@/services/theme/themeService';
 
 export type ReaderFlowMode =
   | 'auto'
@@ -30,6 +31,7 @@ export interface ReaderConfig {
 }
 
 export const createDefaultReaderConfig = (): ReaderConfig => ({
+  ...getReaderThemeCompatColors(),
   fontSize: 16,
   fontWeight: 400,
   lineSpacing: 1.3,
@@ -41,8 +43,6 @@ export const createDefaultReaderConfig = (): ReaderConfig => ({
   columnCount: 2,
   indent: 2,
   font: DEFAULT_READER_FONT,
-  color: '#FFFFFF',
-  fontColor: '#000000',
   flow: 'paginated',
   enabledSystemFonts: [],
 });

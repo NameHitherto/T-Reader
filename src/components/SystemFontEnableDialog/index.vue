@@ -363,16 +363,14 @@ export default defineComponent({
   flex-direction: column;
   gap: 18px;
   min-height: 0;
-  color: #1f2937;
+  color: var(--text-primary);
 
   .dialog-hero {
     padding: 18px 20px;
-    border-radius: 18px;
-    border: 1px solid rgba(226, 232, 240, 0.92);
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow:
-      0 3px 6px rgba(15, 23, 42, 0.07),
-      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-default);
+    background: var(--surface-strong);
+    box-shadow: var(--shadow-sm), var(--shadow-inset-light);
   }
 
   .dialog-title {
@@ -383,7 +381,7 @@ export default defineComponent({
 
   .dialog-subtitle {
     margin-top: 6px;
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 14px;
     line-height: 1.6;
   }
@@ -399,18 +397,18 @@ export default defineComponent({
     display: inline-flex;
     align-items: center;
     padding: 6px 12px;
-    border-radius: 999px;
-    background: #f8fafc;
-    border: 1px solid rgba(226, 232, 240, 0.96);
-    color: #475569;
+    border-radius: var(--radius-pill);
+    background: var(--surface-card-soft);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
     font-size: 12px;
     font-weight: 600;
   }
 
   .stat-pill--active {
-    background: rgba(37, 99, 235, 0.08);
-    color: #1d4ed8;
-    border-color: rgba(37, 99, 235, 0.16);
+    background: var(--surface-brand-soft);
+    color: var(--brand-primary);
+    border-color: var(--border-brand);
   }
 
   .dialog-loading {
@@ -418,7 +416,7 @@ export default defineComponent({
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 14px;
   }
 
@@ -436,26 +434,26 @@ export default defineComponent({
     gap: 14px;
     min-width: 0;
     padding: 18px;
-    background: #ffffff;
-    border: 1px solid #edf0f4;
-    border-radius: 18px;
-    box-shadow: 0 0px 10px rgba(15, 23, 42, 0.06);
+    background: var(--surface-strong);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
     transition:
-      transform 0.22s ease,
-      box-shadow 0.22s ease,
-      border-color 0.22s ease;
+      transform var(--duration-fast) var(--easing-standard),
+      box-shadow var(--duration-fast) var(--easing-standard),
+      border-color var(--duration-fast) var(--easing-standard);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(15, 23, 42, 0.1);
+      box-shadow: var(--shadow-md);
     }
   }
 
   .font-card--active {
-    border-color: rgba(59, 130, 246, 0.22);
+    border-color: var(--border-brand);
     box-shadow:
-      0 8px 16px rgba(15, 23, 42, 0.07),
-      0 0 0 2px rgba(59, 130, 246, 0.045);
+      var(--shadow-md),
+      0 0 0 2px var(--ring-brand-subtle);
   }
 
   .font-card-header {
@@ -473,7 +471,7 @@ export default defineComponent({
 
   .font-card-meta {
     margin-top: 4px;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-size: 12px;
   }
 
@@ -481,32 +479,31 @@ export default defineComponent({
     display: inline-flex;
     align-items: center;
     padding: 5px 10px;
-    border-radius: 999px;
-    background: rgba(37, 99, 235, 0.08);
-    color: #1d4ed8;
+    border-radius: var(--radius-pill);
+    background: var(--surface-brand-soft);
+    color: var(--brand-primary);
     font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
   }
 
   .font-card-status--muted {
-    background: rgba(148, 163, 184, 0.12);
-    color: #64748b;
+    background: var(--surface-card-soft);
+    color: var(--text-tertiary);
   }
 
   .font-preview {
     padding: 18px;
-    border-radius: 16px;
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 251, 0.98));
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: linear-gradient(180deg, var(--surface-strong), var(--surface-card-soft));
   }
 
   .font-preview-caption {
     font-size: 11px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 
   .font-preview-title {
@@ -520,7 +517,7 @@ export default defineComponent({
     margin-top: 8px;
     font-size: 14px;
     line-height: 1.8;
-    color: #475569;
+    color: var(--text-secondary);
   }
 
   .font-control-panel {
@@ -539,12 +536,12 @@ export default defineComponent({
   .family-toggle-group,
   .font-style-group {
     :deep(.el-radio-button__inner) {
-      border-radius: 999px !important;
-      border: 1px solid #dbe4ee !important;
+      border-radius: var(--radius-pill) !important;
+      border: 1px solid var(--border-default) !important;
       box-shadow: none !important;
       padding: 8px 14px;
-      background: #ffffff;
-      color: #475569;
+      background: var(--surface-strong);
+      color: var(--text-secondary);
       font-weight: 600;
     }
 
@@ -554,9 +551,9 @@ export default defineComponent({
     }
 
     :deep(.el-radio-button.is-active .el-radio-button__inner) {
-      background: rgba(37, 99, 235, 0.96);
-      border-color: rgba(37, 99, 235, 0.96) !important;
-      color: #ffffff;
+      background: var(--surface-brand-strong);
+      border-color: var(--surface-brand-strong) !important;
+      color: var(--text-on-brand);
     }
   }
 
@@ -567,8 +564,8 @@ export default defineComponent({
     min-width: 0;
     padding: 14px;
     border-radius: 14px;
-    border: 1px solid rgba(226, 232, 240, 0.96);
-    background: rgba(248, 250, 252, 0.92);
+    border: 1px solid var(--border-default);
+    background: var(--surface-card-soft);
   }
 
   .family-style-head {
@@ -582,14 +579,14 @@ export default defineComponent({
   .family-style-label {
     font-size: 12px;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-tertiary);
     white-space: nowrap;
   }
 
   .family-style-current {
     min-width: 0;
     font-size: 12px;
-    color: #334155;
+    color: var(--text-secondary);
     text-align: right;
     white-space: nowrap;
     overflow: hidden;
@@ -602,10 +599,10 @@ export default defineComponent({
 
   .family-style-single {
     padding: 11px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(226, 232, 240, 0.96);
-    background: #ffffff;
-    color: #334155;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-default);
+    background: var(--surface-strong);
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 600;
   }
@@ -644,7 +641,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   max-height: min(82vh, 920px);
-  border-radius: 22px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
 
   .el-dialog__header {
@@ -661,58 +658,6 @@ export default defineComponent({
 
   .el-dialog__footer {
     padding: 22px;
-  }
-
-  .el-button {
-    height: 40px;
-    padding: 0 18px;
-    border-radius: 12px;
-    border-color: rgba(148, 163, 184, 0.28);
-    background: #ffffff;
-    color: #334155;
-    font-weight: 600;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-    transition:
-      transform 0.18s ease,
-      box-shadow 0.18s ease,
-      border-color 0.18s ease,
-      color 0.18s ease,
-      background-color 0.18s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-      border-color: rgba(59, 130, 246, 0.2);
-      color: #1d4ed8;
-      background: #ffffff;
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-    }
-  }
-
-  .el-button--primary {
-    border-color: rgba(37, 99, 235, 0.96);
-    background: rgba(37, 99, 235, 0.96);
-    color: #ffffff;
-
-    &:hover {
-      border-color: rgba(29, 78, 216, 0.96);
-      background: rgba(29, 78, 216, 0.96);
-      color: #ffffff;
-    }
-  }
-
-  .el-select__wrapper,
-  .el-input__wrapper {
-    min-height: 42px;
-    border-radius: 12px;
-    background: #ffffff;
-    box-shadow: 0 0 0 1px rgba(226, 232, 240, 0.96) inset !important;
-  }
-
-  .el-select__wrapper.is-focused,
-  .el-input__wrapper.is-focus {
-    box-shadow:
-      0 0 0 1px rgba(59, 130, 246, 0.28) inset,
-      0 0 0 4px rgba(59, 130, 246, 0.08) !important;
   }
 
   .el-scrollbar {
@@ -736,18 +681,13 @@ export default defineComponent({
     }
 
     &::-webkit-scrollbar-thumb {
-      background-color: rgba(148, 163, 184, 0.36);
-      border-radius: 999px;
+      background-color: var(--scrollbar-thumb);
+      border-radius: var(--radius-pill);
     }
 
     &:hover::-webkit-scrollbar-thumb {
-      background-color: var(--t-color-grey);
+      background-color: var(--scrollbar-thumb-strong);
     }
   }
-}
-
-.system-font-enable-dialog-overlay {
-  backdrop-filter: blur(12px);
-  background: rgba(15, 23, 42, 0.22);
 }
 </style>

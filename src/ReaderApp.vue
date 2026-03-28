@@ -23,7 +23,7 @@
           height="18"
           viewBox="0 0 20 20"
         >
-          <path fill="#000000" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z" />
+          <path fill="currentColor" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z" />
         </svg>
       </button>
       <button class="next-page button" @click="nextPage">
@@ -33,14 +33,14 @@
           height="18"
           viewBox="0 0 20 20"
         >
-          <path fill="#000000" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z" />
+          <path fill="currentColor" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z" />
         </svg>
       </button>
     </div>
   </div>
   <el-drawer v-model="tocDrawer" direction="ltr" :show-close="false" @open="handleTocOpen">
     <template #header>
-      <span style="font-size: large; text-align: center">目录</span>
+      <span class="drawer-title">目录</span>
     </template>
     <el-menu
       ref="tocMenuRef"
@@ -88,6 +88,7 @@
       >
         <StyleMenu
           :max-height="styleMenuPosition.maxHeight"
+          :theme-mode="appThemeMode"
           @open-font-dialog="handleOpenSystemFontDialog"
         />
       </div>
@@ -166,6 +167,13 @@ import {
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
+import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
+import {
+  getAppThemePalette,
+  getAppliedAppThemeMode,
+  syncReaderConfigThemeColors,
+} from '@/services/theme/themeService'
+import type { AppThemeMode } from '@/services/settings/appSettingsService'
 
 export default {
   name: 'ReaderApp',
@@ -205,6 +213,7 @@ export default {
     const unlistenBook = ref<UnlistenFn | null>(null)
     const unlistenClosed = ref<UnlistenFn | null>(null)
     const unlistenStyle = ref<UnlistenFn | null>(null)
+    const unlistenTheme = ref<UnlistenFn | null>(null)
     // 其他窗口事件监听
     const unlistenShowBookInfo = ref<UnlistenFn | null>(null)
     const unlistenShowAssistant = ref<UnlistenFn | null>(null)
@@ -238,7 +247,7 @@ export default {
     // 响应式书签引用
     const { bookMarks } = storeToRefs(bookMarkStore)
     // 默认高亮颜色
-    const defaultHighlightColor = '#6b7280'
+    const defaultHighlightColor = DEFAULT_BOOKMARK_HIGHLIGHT_COLOR
     const {
       bookMarkEditionVisible,
       bookMarkEditionContent,
@@ -263,6 +272,8 @@ export default {
       maxHeight: 320,
     })
     const styleMenuPanelRef = ref<HTMLElement | null>(null)
+    const appThemeMode = ref<AppThemeMode>(getAppliedAppThemeMode())
+    const readerPalette = computed(() => getAppThemePalette(appThemeMode.value))
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -284,6 +295,9 @@ export default {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
+          color: readerPalette.value.readerText,
+          background: readerPalette.value.readerBackground,
+          'background-color': readerPalette.value.readerBackground,
           'padding-top': `${readerConfig.value.boxPaddingTop}px !important`,
           'padding-bottom': `${readerConfig.value.boxPaddingBottom}px !important`,
           'padding-left': `${readerConfig.value.boxPaddingHorizontal}px !important`,
@@ -292,19 +306,19 @@ export default {
         },
         h1: {
           'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          color: readerPalette.value.readerText,
         },
         h2: {
           'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          color: readerPalette.value.readerText,
         },
         h3: {
           'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          color: readerPalette.value.readerText,
         },
         p: {
           'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          color: readerPalette.value.readerText,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
@@ -312,17 +326,25 @@ export default {
         },
         font: {
           'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          color: readerPalette.value.readerText,
+        },
+        a: {
+          color: readerPalette.value.readerLink,
+        },
+        blockquote: {
+          color: readerPalette.value.readerMutedText,
+          'border-left': `3px solid ${readerPalette.value.readerSelectionBackground}`,
         },
         '::selection': {
-          background: 'rgb(0 0 0 / 25%)',
-          color: 'rgb(0 0 0 / 75%)',
+          background: readerPalette.value.readerSelectionBackground,
+          color: readerPalette.value.readerSelectionColor,
         },
         html: {
           cursor: `url('/src/assets/cursor/pointer.cur'), default`,
         },
         img: {
           width: '100%',
+          filter: readerPalette.value.readerImageFilter,
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
@@ -337,7 +359,8 @@ export default {
       applyReaderStyles(
         readerConfig.value as ReaderStyleConfig,
         readerDefaultTheme.value,
-        rendition.value
+        rendition.value,
+        appThemeMode.value
       )
     }
 
@@ -469,21 +492,30 @@ export default {
         ])
 
         const normalizedConfig = normalizeReaderConfig(configTemp, systemFonts)
-        readerConfigStore.setReaderConfig(normalizedConfig)
+        const themedConfig = syncReaderConfigThemeColors(
+          normalizedConfig,
+          appThemeMode.value
+        )
+        readerConfigStore.setReaderConfig(themedConfig)
 
-        if (JSON.stringify(configTemp) !== JSON.stringify(normalizedConfig)) {
-          await saveReaderConfigToDisk(normalizedConfig)
+        if (JSON.stringify(configTemp) !== JSON.stringify(themedConfig)) {
+          await saveReaderConfigToDisk(themedConfig)
         }
       } catch (e) {
         // 首次打开阅读器或配置文件不存在时回退默认配置
         readerConfigStore.setDefaultConfig()
+        readerConfigStore.setReaderConfig(
+          syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+        )
         console.log('ReaderConfig.json文件不存在，已加载默认配置')
       }
     }
 
     // 保存阅读配置
     const saveReaderConfig = async () => {
-      await saveReaderConfigToDisk(readerConfig.value)
+      await saveReaderConfigToDisk(
+        syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+      )
     }
 
     const restoreTxtLocation = async (paragraphIndex = 0) => {
@@ -590,7 +622,17 @@ export default {
       onShowHelp: () => {
         helpVisible.value = true
       },
+      onUpdateAppTheme: async (mode) => {
+        appThemeMode.value = mode
+        readerConfigStore.setReaderConfig(
+          syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+        )
+        await applyReaderStyle()
+      },
       onUpdateReaderStyle: async () => {
+        readerConfigStore.setReaderConfig(
+          syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+        )
         await applyReaderStyle()
       },
       onCloseRequested: async () => {
@@ -604,6 +646,7 @@ export default {
     }).then((unlisteners) => {
       unlistenBook.value = unlisteners.unlistenBook
       unlistenStyle.value = unlisteners.unlistenStyle
+      unlistenTheme.value = unlisteners.unlistenTheme
       unlistenClosed.value = unlisteners.unlistenClose
       unlistenShowBookInfo.value = unlisteners.unlistenShowBookInfo
       unlistenShowAssistant.value = unlisteners.unlistenShowAssistant
@@ -854,7 +897,7 @@ export default {
         width: 160,
         itemHeight: 35,
         precision: 20,
-        theme: 'light',
+        theme: appThemeMode.value,
       })
       // 显示菜单
       showContextMenu.value = true
@@ -937,6 +980,7 @@ export default {
       window.removeEventListener('resize', handleWindowResize)
       unlistenBook.value?.()
       unlistenStyle.value?.()
+      unlistenTheme.value?.()
       unlistenClosed.value?.()
       unlistenShowBookInfo.value?.()
       unlistenShowAssistant.value?.()
@@ -977,6 +1021,7 @@ export default {
       assistantVisible,
       helpVisible,
       systemFontDialogVisible,
+      appThemeMode,
       delBookMark,
       styleMenuVisible,
       styleMenuPosition,
@@ -1005,7 +1050,7 @@ export default {
   background: transparent;
 }
 :global(.el-drawer__body::-webkit-scrollbar-thumb) {
-  background-color: var(--t-color-grey); /* 滚动条颜色 */
+  background-color: var(--scrollbar-thumb);
   border-radius: 6px;
   background-clip: content-box;
 }
@@ -1033,9 +1078,9 @@ export default {
 :global(.style-menu-enter-active),
 :global(.style-menu-leave-active) {
   transition:
-    opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1),
-    transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
-    filter 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    opacity var(--duration-slow) var(--easing-standard),
+    transform var(--duration-slow) var(--easing-standard),
+    filter var(--duration-slow) var(--easing-standard);
 }
 
 :global(.style-menu-enter-from) {
@@ -1053,6 +1098,7 @@ export default {
 .reader {
   width: 100%;
   height: 100%;
+  color: var(--reader-text);
 
   #epub-reader {
     position: absolute;
@@ -1067,6 +1113,8 @@ export default {
     width: 100%;
     height: calc(100vh - 60px);
     overflow-y: auto;
+    background: var(--reader-background);
+    color: var(--reader-text);
 
     #txt-reader-content {
       max-width: 860px;
@@ -1093,7 +1141,7 @@ export default {
     background: transparent;
   }
   #epub-reader :deep(.epub-container)::-webkit-scrollbar-thumb {
-    background-color: var(--t-color-grey); /* 滚动条颜色 */
+    background-color: var(--scrollbar-thumb);
     border-radius: 6px;
     background-clip: content-box;
   }
@@ -1111,17 +1159,25 @@ export default {
 
     .button {
       height: 100px;
-      background-color: rgba(0, 0, 0, 0.1); /* 按钮背景色 */
-      color: #585858;
-      border: none;
-      border-radius: 6px;
+      background: var(--reader-surface);
+      color: var(--reader-text-muted);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
       padding: 15px;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition:
+        opacity var(--duration-base) var(--easing-standard),
+        transform var(--duration-fast) var(--easing-standard),
+        background-color var(--duration-fast) var(--easing-standard),
+        color var(--duration-fast) var(--easing-standard);
       pointer-events: auto;
+      box-shadow: var(--shadow-sm);
 
       &:hover {
         opacity: 1;
+        transform: translateY(-1px);
+        background: var(--reader-surface-strong);
+        color: var(--reader-text);
       }
     }
 
@@ -1134,15 +1190,13 @@ export default {
       position: absolute;
       right: 10px;
     }
-
-    .button.dark {
-      background: #e8e8e8;
-
-      &:hover {
-        opacity: 0.5;
-      }
-    }
   }
+}
+
+.drawer-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .reading-percentage {
@@ -1150,7 +1204,8 @@ export default {
   bottom: 15px;
   line-height: 15px;
   left: 50px;
-  color: var(--t-color-dark-grey);
+  color: var(--reader-text-muted);
   font-weight: bold;
+  text-shadow: var(--text-shadow-soft);
 }
 </style>

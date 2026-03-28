@@ -1,0 +1,51 @@
+#app,
+#reader-app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+#reader-app {
+  position: relative;
+}
+
+img {
+  display: block;
+}
+
+.app-shell {
+  background: var(--app-bg-accent);
+  color: var(--text-primary);
+}
+
+.surface-card {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.surface-card--strong {
+  background: var(--surface-strong);
+}
+
+.surface-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card-soft);
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

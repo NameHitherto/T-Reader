@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+fn default_theme_mode() -> String {
+    "light".to_string()
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Book {
     pub name: String,
@@ -24,24 +28,26 @@ pub struct StoredBook {
 
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
-    #[serde(rename = "webdavUrlRoot")]
+    #[serde(default, rename = "webdavUrlRoot")]
     pub webdav_url_root: String,
-    #[serde(rename = "webdavUrlFolder")]
+    #[serde(default, rename = "webdavUrlFolder")]
     pub webdav_url_folder: String,
-    #[serde(rename = "webdavUrl")]
+    #[serde(default, rename = "webdavUrl")]
     pub webdav_url: String,
-    #[serde(rename = "webdavUser")]
+    #[serde(default, rename = "webdavUser")]
     pub webdav_user: String,
-    #[serde(rename = "webdavPass")]
+    #[serde(default, rename = "webdavPass")]
     pub webdav_pass: String,
-    #[serde(rename = "isAiEnabled")]
+    #[serde(default, rename = "isAiEnabled")]
     pub is_ai_enabled: String,
-    #[serde(rename = "modelName")]
+    #[serde(default, rename = "modelName")]
     pub model_name: String,
-    #[serde(rename = "modelUrl")]
+    #[serde(default, rename = "modelUrl")]
     pub model_url: String,
-    #[serde(rename = "modelApiKey")]
+    #[serde(default, rename = "modelApiKey")]
     pub model_api_key: String,
+    #[serde(default = "default_theme_mode", rename = "themeMode")]
+    pub theme_mode: String,
 }
 
 #[derive(Serialize)]

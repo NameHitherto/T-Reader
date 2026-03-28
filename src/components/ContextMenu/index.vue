@@ -21,7 +21,6 @@
                 class="menu-icon"
                 :name="resolveIconName(item.type)"
                 :size="18"
-                :color="item.type === 'delete' ? '#dc2626' : '#475569'"
               />
               <span class="label">{{ item.label }}</span>
             </div>
@@ -93,14 +92,11 @@ export default {
 <style scoped lang="scss">
 .context-menu {
   position: absolute;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 6px;
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
-  box-shadow:
-    0 16px 40px rgba(15, 23, 42, 0.12),
-    0 4px 14px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--border-default);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(12px);
 
   .menu-body {
@@ -114,9 +110,9 @@ export default {
 
       .separator {
         width: 100%;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         margin: 4px 0 6px 0;
-        border: 1px dashed rgba(203, 213, 225, 0.9);
+        border: 1px dashed var(--border-soft);
       }
 
       .menu-item {
@@ -128,18 +124,17 @@ export default {
           transform 0.2s ease,
           box-shadow 0.2s ease;
         padding: 10px 12px;
-        border-radius: 12px;
+        border-radius: var(--radius-sm);
         cursor: var(--t-mouse-cursor-link), pointer;
         position: relative;
         overflow: hidden;
         user-select: none;
-        color: #334155;
+        color: var(--text-secondary);
 
         .label {
           font-size: 13px;
           font-weight: 600;
           letter-spacing: 0.01em;
-          transition: color 0.2s ease;
         }
 
         .menu-icon {
@@ -149,17 +144,17 @@ export default {
         }
 
         &:hover {
-          background: rgba(59, 130, 246, 0.1);
-          box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.08);
+          background: var(--surface-brand-soft);
+          box-shadow: inset 0 0 0 1px var(--ring-brand-subtle);
           transform: translateY(-1px);
         }
 
         &.menu-item--danger {
-          color: #991b1b;
+          color: var(--text-danger);
 
           &:hover {
-            background: rgba(239, 68, 68, 0.1);
-            box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.08);
+            background: var(--surface-danger-soft);
+            box-shadow: inset 0 0 0 1px var(--ring-danger-subtle);
           }
         }
       }
@@ -168,14 +163,11 @@ export default {
 }
 
 .dark {
-  background:
-    linear-gradient(180deg, rgba(45, 55, 72, 0.96), rgba(30, 41, 59, 0.96));
-  border-color: rgba(71, 85, 105, 0.9);
+  background: var(--surface-strong);
 }
 
 .light {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  background: var(--surface-strong);
 }
 
 .menu-enter-active, .menu-leave-active {

@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type { ReaderConfig } from '@/store/readerConfigStore'
 import type { EnabledSystemFont, SystemFontEntry } from '@/types/readerFonts'
 import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/types/readerFonts'
+import { getReaderThemeCompatColors } from '@/services/theme/themeService'
 
 interface RawSystemFontEntry {
   family: string
@@ -234,6 +235,7 @@ export const normalizeReaderConfig = (
   systemFonts: SystemFontEntry[]
 ): ReaderConfig => {
   const baseConfig: ReaderConfig = {
+    ...getReaderThemeCompatColors(),
     fontSize: 16,
     fontWeight: 400,
     lineSpacing: 1.3,
@@ -245,8 +247,6 @@ export const normalizeReaderConfig = (
     columnCount: 2,
     indent: 2,
     font: DEFAULT_READER_FONT,
-    color: '#FFFFFF',
-    fontColor: '#000000',
     flow: 'paginated',
     enabledSystemFonts: [],
   }

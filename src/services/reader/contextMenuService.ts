@@ -1,4 +1,5 @@
 import { ContextMenuData, ContextMenuItem } from '@/js/map'
+import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 
 interface BuildContextMenuArgs {
   x: number
@@ -20,7 +21,7 @@ export const buildContextMenuData = (
     width = 160,
     itemHeight = 35,
     precision = 20,
-    theme = 'light',
+    theme = getAppliedAppThemeMode(),
   } = args
 
   let menuX = x

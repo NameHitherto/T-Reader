@@ -89,7 +89,6 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import MarkdownIt from 'markdown-it/index'
 import hljs from 'highlight.js'
-import 'highlight.js/styles/vs.css'
 import { extractEpubContent } from '@/services/book/epubContentService'
 
 interface StreamPayload {
@@ -242,6 +241,7 @@ export default defineComponent({
   .assistant-dialog-view {
     display: flex;
     flex-direction: column;
+    gap: 16px;
 
     .assistant-chat-container {
       .chat-welcome {
@@ -252,7 +252,7 @@ export default defineComponent({
 
         .chat-welcome-title {
           font-size: 22px;
-          color: #000;
+          color: var(--text-primary);
           font-weight: 500;
           display: inline-flex;
           gap: 14px;
@@ -270,7 +270,7 @@ export default defineComponent({
           }
         }
         .chat-welcome-desc {
-          color: #404040;
+          color: var(--text-tertiary);
           margin: 8px 0 20px 0;
           font-size: 14px;
           text-align: center;
@@ -285,14 +285,16 @@ export default defineComponent({
           .chat-content {
             font-size: 16px;
             line-height: 20px;
-            color: #262626;
+            color: var(--text-primary);
             max-width: calc(100% - 80px);
             padding: 10px 20px;
             white-space: pre-wrap;
             word-break: break-word;
-            background-color: #eff6ff;
+            background: var(--surface-brand-soft);
+            border: 1px solid var(--border-brand);
             border-radius: 14px;
             position: relative;
+            box-shadow: var(--shadow-sm);
           }
         }
         .chat-assistant {
@@ -303,7 +305,7 @@ export default defineComponent({
           .chat-favicon {
             width: 40px;
             height: 40px;
-            box-shadow: 0 0 0 1px #d5e4ff;
+            box-shadow: 0 0 0 1px var(--border-brand);
             border-radius: 50%;
 
             img {
@@ -315,7 +317,7 @@ export default defineComponent({
           .chat-content {
             font-size: 16px;
             line-height: 20px;
-            color: rgb(64 64 64);
+            color: var(--text-secondary);
             padding: 0 10px;
             max-width: calc(100% - 60px);
           }
@@ -329,8 +331,10 @@ export default defineComponent({
         align-items: flex-start;
         justify-content: flex-start;
         padding: 10px;
-        background-color: rgb(243 244 246);
-        box-shadow: 0px 0px 0px 0.5px #dce0e9;
+        background: var(--surface-card-soft);
+        box-shadow:
+          0 0 0 1px var(--border-default) inset,
+          var(--shadow-sm);
         border-radius: 24px;
 
         .input-textarea {
@@ -339,6 +343,7 @@ export default defineComponent({
           :deep(.el-textarea) {
             textarea {
               background-color: transparent;
+              color: var(--text-primary);
               margin: 0;
               padding: 0;
               outline: none;

@@ -248,15 +248,16 @@ async function startUpdate() {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background-color: var(--el-bg-color-page);
+  background: var(--app-bg-accent);
   
   .about-card {
-    background: var(--el-bg-color);
-    border-radius: 12px;
+    background: var(--surface-strong);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-default);
     padding: 40px;
     width: 100%;
     max-width: 500px;
-    box-shadow: var(--el-box-shadow-light);
+    box-shadow: var(--shadow-md);
     text-align: center;
   }
 
@@ -264,6 +265,7 @@ async function startUpdate() {
     margin-bottom: 30px;
     
     .app-logo {
+      justify-self: center;
       width: 80px;
       height: 80px;
       border-radius: 16px;

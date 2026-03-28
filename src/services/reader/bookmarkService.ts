@@ -1,4 +1,5 @@
 import { BookMark } from '@/store/bookMark'
+import { getAppThemePalette, getAppliedAppThemeMode } from '@/services/theme/themeService'
 
 export const applyBookmarkHighlight = (
   rendition: any,
@@ -9,6 +10,8 @@ export const applyBookmarkHighlight = (
     return
   }
 
+  const themePalette = getAppThemePalette(getAppliedAppThemeMode())
+
   rendition.annotations.remove(bookMark.bookCfi, 'highlight')
   rendition.annotations.add(
     'highlight',
@@ -18,7 +21,7 @@ export const applyBookmarkHighlight = (
     'bookmark-highlight',
     {
       fill: bookMark.color || defaultHighlightColor,
-      stroke: bookMark.hasBorder ? '#000' : 'none',
+      stroke: bookMark.hasBorder ? themePalette.readerText : 'none',
     }
   )
 }

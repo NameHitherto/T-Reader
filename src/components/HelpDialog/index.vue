@@ -133,11 +133,6 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-@font-face {
-  font-family: 'Jetbrains';
-  src: url('/src/font/JetBrainsMono.ttf') format('truetype');
-}
-
 .help-dialog-wrapper {
   max-width: 560px;
 
@@ -159,7 +154,7 @@ export default defineComponent({
         font-weight: 700;
         font-size: 24px;
         margin: 0 0 10px 4px;
-        color: #0f172a;
+        color: var(--text-primary);
       }
 
       .content-box {
@@ -167,21 +162,21 @@ export default defineComponent({
         flex-wrap: wrap;
         gap: 10px;
         padding: 10px;
-        border: 1px solid #edf0f4;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.92);
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        background: var(--surface-card);
+        box-shadow: var(--shadow-sm);
       }
 
       .code-style {
-        font-family: 'Jetbrains';
-        background: var(--t-color-code-block-grey);
+        font-family: var(--font-family-mono);
+        background: var(--surface-code-inline);
         padding: 4px 8px;
         border-radius: 6px;
         font-size: 14px;
         font-weight: 600;
         line-height: 1.2;
-        color: #6c6c6c;
+        color: var(--text-secondary);
       }
     }
 
@@ -192,10 +187,10 @@ export default defineComponent({
         flex-direction: column;
         gap: 6px;
         font-size: 18px;
-        border: 1px solid #edf0f4;
-        border-radius: 18px;
-        background: #ffffff;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        background: var(--surface-strong);
+        box-shadow: var(--shadow-md);
       }
 
       .row {
@@ -207,9 +202,9 @@ export default defineComponent({
 
       .header {
         font-weight: 700;
-        background: #f8fafc;
-        border-top-left-radius: 18px;
-        border-top-right-radius: 18px;
+        background: var(--surface-card-soft);
+        border-top-left-radius: var(--radius-lg);
+        border-top-right-radius: var(--radius-lg);
       }
 
       .col {
@@ -222,7 +217,7 @@ export default defineComponent({
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        color: var(--el-text-color-regular, #606266);
+        color: var(--text-secondary);
       }
 
       .key-seq {
@@ -233,7 +228,7 @@ export default defineComponent({
 
       .joiner {
         margin: 0 8px;
-        color: #999;
+        color: var(--text-muted);
         font-weight: 500;
       }
     }
@@ -246,7 +241,7 @@ export default defineComponent({
 
         img {
           width: 100%;
-          border-radius: 12px;
+          border-radius: var(--radius-sm);
         }
       }
     }
@@ -257,10 +252,10 @@ export default defineComponent({
         flex-direction: column;
         gap: 14px;
         padding: 16px;
-        border-radius: 18px;
-        border: 1px solid #edf0f4;
-        background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-default);
+        background: var(--surface-card);
+        box-shadow: var(--shadow-md);
       }
 
       .font-panel-head {
@@ -273,39 +268,19 @@ export default defineComponent({
       .font-panel-subtitle {
         font-size: 15px;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--text-primary);
       }
 
       .font-panel-description {
         margin-top: 6px;
         font-size: 13px;
         line-height: 1.7;
-        color: #64748b;
+        color: var(--text-tertiary);
       }
 
       :deep(.font-panel-button.el-button) {
         flex-shrink: 0;
-        height: 40px;
-        padding: 0 16px;
-        border-radius: 12px;
-        border: 1px solid rgba(148, 163, 184, 0.28);
-        background: #ffffff;
-        color: #334155;
-        font-size: 13px;
-        font-weight: 600;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-        transition:
-          transform 0.18s ease,
-          box-shadow 0.18s ease,
-          border-color 0.18s ease,
-          color 0.18s ease;
-
-        &:hover {
-          transform: translateY(-1px);
-          border-color: rgba(59, 130, 246, 0.2);
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-          color: #1d4ed8;
-        }
+        min-width: 140px;
       }
 
       .font-card-list {
@@ -317,29 +292,29 @@ export default defineComponent({
       .font-card {
         min-width: 150px;
         padding: 14px 16px;
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.92);
-        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+        border-radius: var(--radius-md);
+        background: var(--surface-strong);
+        border: 1px solid var(--border-default);
+        box-shadow: var(--shadow-sm);
       }
 
       .font-card-name {
         font-size: 15px;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--text-primary);
       }
 
       .font-card-meta {
         margin-top: 6px;
         font-size: 12px;
-        color: #64748b;
+        color: var(--text-tertiary);
       }
 
       .font-empty-state {
         padding: 18px;
-        border-radius: 16px;
-        background: rgba(148, 163, 184, 0.08);
-        color: #64748b;
+        border-radius: var(--radius-md);
+        background: var(--surface-card-soft);
+        color: var(--text-tertiary);
         font-size: 13px;
         line-height: 1.7;
       }
