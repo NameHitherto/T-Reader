@@ -740,7 +740,7 @@ export default {
           try {
             destroyEpubRendition(rendition.value)
           } catch (e) {
-            logWarn('reader', '销毁旧的 Rendition 失败', e)
+            logWarn('ReaderApp', '销毁旧的 Rendition 失败', e)
           }
           rendition.value = null
         }
@@ -789,7 +789,7 @@ export default {
               format,
               fileName
             ).catch((error) => {
-              logWarn('reader', '补全 EPUB locations 缓存失败', error)
+              logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
             })
           })
         }
@@ -800,9 +800,9 @@ export default {
           void initAllBookMarks()
         }
 
-        logInfo('reader', 'EPUB 解析完成', { bookKey: currentBookKey.value, title: bookCache?.title || bookConfig.name })
+        logInfo('ReaderApp', 'loadBook', { bookKey: currentBookKey.value, title: bookCache?.title || bookConfig.name })
       }).catch((e) => {
-        logError('reader', '书籍加载失败', e)
+        logError('ReaderApp', '书籍加载失败', e)
       })
     }
 

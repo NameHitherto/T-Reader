@@ -52,7 +52,6 @@ async fn list_remote_files(
     username: &str,
     password: &str,
 ) -> Result<Vec<String>, String> {
-    let started_at = start_timer("webdav", "list-remote-files");
     let url = format!("{}/{}/", base_url.trim_end_matches('/'), subdir);
     let response = client
         .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
@@ -75,7 +74,6 @@ async fn list_remote_files(
         "webdav",
         &format!("list-remote-files subdir={} total={}", subdir, files.len()),
     );
-    finish_timer("webdav", "list-remote-files", started_at);
     Ok(files)
 }
 
@@ -103,7 +101,6 @@ async fn download_remote_file(
     username: &str,
     password: &str,
 ) -> Result<Vec<u8>, String> {
-    let started_at = start_timer("webdav", "download-remote-file");
     let url = get_remote_file_url(base_url, subdir, filename);
     let response = client
         .get(&url)
@@ -129,7 +126,6 @@ async fn download_remote_file(
             bytes.len()
         ),
     );
-    finish_timer("webdav", "download-remote-file", started_at);
     Ok(bytes)
 }
 
@@ -142,7 +138,6 @@ async fn upload_remote_file(
     username: &str,
     password: &str,
 ) -> Result<(), String> {
-    let started_at = start_timer("webdav", "upload-remote-file");
     let content_len = contents.len();
     let url = get_remote_file_url(base_url, subdir, filename);
     let response = client
@@ -167,7 +162,6 @@ async fn upload_remote_file(
             subdir, filename, content_len
         ),
     );
-    finish_timer("webdav", "upload-remote-file", started_at);
     Ok(())
 }
 
@@ -462,7 +456,6 @@ pub fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
 
 #[tauri::command]
 pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String> {
-    let started_at = start_timer("ai-stream", "start-stream");
     let setting = load_settings()?;
     let client = Client::new();
     const EVENT_NAME: &str = "stream-chunk";
@@ -526,6 +519,5 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
         }
     }
 
-    finish_timer("ai-stream", "start-stream", started_at);
     Ok(())
 }

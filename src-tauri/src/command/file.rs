@@ -3,12 +3,11 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 
 use crate::command::dir::{check_local_dirs, get_local_root_dir, get_local_system_dir};
-use crate::logging::{finish_timer, log_error, log_info, start_timer};
+use crate::logging::{log_error, log_info};
 use crate::model::{Book, Settings, StoredBook};
 
 #[tauri::command]
 pub fn save_settings(json_str: &str) -> Result<(), String> {
-    let started_at = start_timer("file", "save-settings");
     let system_path = get_local_system_dir()?;
 
     if !system_path.exists() {
@@ -37,8 +36,6 @@ pub fn save_settings(json_str: &str) -> Result<(), String> {
     let mut file = File::create(&settings_path).map_err(|e| e.to_string())?;
     file.write_all(settings_json.as_bytes())
         .map_err(|e| e.to_string())?;
-
-    finish_timer("file", "save-settings", started_at);
     Ok(())
 }
 
@@ -68,7 +65,6 @@ pub fn load_settings() -> Result<Settings, String> {
 
 #[tauri::command]
 pub fn save_file(subdir: &str, filename: &str, contents: &str) -> Result<(), String> {
-    let started_at = start_timer("file", "save-file");
     let root_path = check_local_dirs()?;
     let dir_path = root_path.join(subdir);
 
@@ -89,13 +85,11 @@ pub fn save_file(subdir: &str, filename: &str, contents: &str) -> Result<(), Str
             contents.as_bytes().len()
         ),
     );
-    finish_timer("file", "save-file", started_at);
     Ok(())
 }
 
 #[tauri::command]
 pub fn load_books(subdir: &str) -> Result<Vec<StoredBook>, String> {
-    let started_at = start_timer("file", "load-books");
     let root_path = check_local_dirs()?;
     let dir_path = root_path.join(subdir);
 
@@ -131,7 +125,6 @@ pub fn load_books(subdir: &str) -> Result<Vec<StoredBook>, String> {
         "file",
         &format!("load-books subdir={} total={}", subdir, books.len()),
     );
-    finish_timer("file", "load-books", started_at);
     Ok(books)
 }
 
@@ -153,7 +146,6 @@ pub fn delete_book(subdir: &str, filename: &str) -> Result<(), String> {
 
 #[tauri::command]
 pub fn read_file(subdir: &str, filename: &str) -> Result<Vec<u8>, String> {
-    let started_at = start_timer("file", "read-file");
     let root_path = check_local_dirs()?;
     let dir_path = root_path.join(subdir);
     let file_path = dir_path.join(filename);
@@ -170,13 +162,11 @@ pub fn read_file(subdir: &str, filename: &str) -> Result<Vec<u8>, String> {
             contents.len()
         ),
     );
-    finish_timer("file", "read-file", started_at);
     Ok(contents)
 }
 
 #[tauri::command]
 pub fn write_file(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(), String> {
-    let started_at = start_timer("file", "write-file");
     let root_path = check_local_dirs()?;
     let dir_path = root_path.join(subdir);
 
@@ -196,13 +186,11 @@ pub fn write_file(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(),
             contents.len()
         ),
     );
-    finish_timer("file", "write-file", started_at);
     Ok(())
 }
 
 #[tauri::command]
 pub fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
-    let started_at = start_timer("file", "read-file-by-path");
     let mut file = File::open(filepath).map_err(|e| e.to_string())?;
     let mut contents = Vec::new();
     file.read_to_end(&mut contents).map_err(|e| e.to_string())?;
@@ -215,7 +203,6 @@ pub fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
             contents.len()
         ),
     );
-    finish_timer("file", "read-file-by-path", started_at);
     Ok(contents)
 }
 

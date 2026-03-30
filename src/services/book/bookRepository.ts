@@ -31,7 +31,6 @@ import { normalizeBookConfig } from '@/services/reader/progressSnapshotService'
 import {
   createDurationLogger,
   logError,
-  logInfo,
   logWarn,
 } from '@/utils/logger'
 import { encodeJson, stringifyJson } from '@/utils/json'
@@ -227,7 +226,6 @@ const persistRecoveredIndexEntries = async (entries: BookFileIndexEntry[]) => {
 
 export const invalidateBookFileIndex = () => {
   cachedBookFileIndex = null
-  logInfo('book-repository', 'invalidate-book-file-index')
 }
 
 export const reconcileLibraryBookFileIndex = async (
