@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{events::Event, name::QName, Reader};
 use reqwest::Client;
 use serde_json::json;
 use std::collections::HashSet;
@@ -427,16 +427,16 @@ pub async fn webdav_sync_files() -> Result<(), String> {
 
 pub fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
     let mut reader = Reader::from_str(response);
-    reader.trim_text(true);
+    reader.config_mut().trim_text(true);
     let mut buf = Vec::new();
     let mut files = Vec::new();
 
     loop {
-        match reader.read_event(&mut buf) {
-            Ok(Event::Start(ref e)) if e.name() == b"d:href" => {
-                if let Ok(href) = reader.read_text(b"d:href", &mut Vec::new()) {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"d:href" => {
+                if let Ok(href) = reader.read_text(QName(b"d:href")) {
                     if !href.ends_with('/') {
-                        if let Some(file_name) = Path::new(&href).file_name() {
+                        if let Some(file_name) = Path::new(href.as_ref()).file_name() {
                             if let Some(file_name_str) = file_name.to_str() {
                                 files.push(file_name_str.to_string());
                             }
