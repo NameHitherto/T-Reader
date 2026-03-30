@@ -46,6 +46,13 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+      },
+    },
+  },
   build:{
     assetsInlineLimit: 0,
     // 4. 此处进行前端多页面模板的配置

@@ -1,4 +1,4 @@
-use crate::model::{FontNameEntry};
+use crate::model::FontNameEntry;
 
 #[tauri::command]
 pub fn get_system_fonts() -> Vec<FontNameEntry> {
@@ -44,16 +44,16 @@ pub fn get_system_fonts() -> Vec<FontNameEntry> {
     // 去重
     use std::collections::HashSet;
     let mut seen = HashSet::new();
-    results  
-        .into_iter()  
-        .filter(|e| {  
-            let key = format!(  
-                "{}|{}|{}",  
-                e.family,  
-                e.postscript_name.clone().unwrap_or_default(),  
-                e.style.clone().unwrap_or_default()  
-            );  
-            seen.insert(key)  
-        })  
-        .collect()  
+    results
+        .into_iter()
+        .filter(|e| {
+            let key = format!(
+                "{}|{}|{}",
+                e.family,
+                e.postscript_name.clone().unwrap_or_default(),
+                e.style.clone().unwrap_or_default()
+            );
+            seen.insert(key)
+        })
+        .collect()
 }

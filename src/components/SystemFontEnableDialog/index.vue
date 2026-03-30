@@ -126,6 +126,7 @@ import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { saveReaderConfigToDisk } from '@/services/reader/readerConfigService'
+import { logError } from '@/utils/logger'
 import {
   fetchSystemFonts,
   findSystemFontMatch,
@@ -325,7 +326,7 @@ export default defineComponent({
         })
         closeDialog()
       } catch (error) {
-        console.error('保存系统字体启用项失败', error)
+        logError('systemFont', '保存系统字体启用项失败', error)
       } finally {
         saving.value = false
       }

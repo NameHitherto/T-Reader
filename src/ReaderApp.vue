@@ -108,6 +108,7 @@ import { Rendition } from 'libs/epub.js'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
 import { storeToRefs } from 'pinia'
+import { logInfo, logWarn, logError } from '@/utils/logger'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
@@ -486,7 +487,7 @@ export default {
         const [configTemp, systemFonts] = await Promise.all([
           loadReaderConfigFromDisk(),
           fetchSystemFonts().catch((error) => {
-            console.warn('加载系统字体失败，将跳过阅读器字体迁移', error)
+            logWarn('reader', '加载系统字体失败，将跳过阅读器字体迁移', error)
             return []
           }),
         ])
@@ -507,7 +508,7 @@ export default {
         readerConfigStore.setReaderConfig(
           syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
         )
-        console.log('ReaderConfig.json文件不存在，已加载默认配置')
+        logWarn('reader', 'ReaderConfig.json文件不存在，已加载默认配置')
       }
     }
 
@@ -637,10 +638,10 @@ export default {
       },
       onCloseRequested: async () => {
         await saveReaderRendition().catch(() => {
-          console.error('窗口关闭异常: 阅读进度保存失败')
+          logError('reader', '窗口关闭异常: 阅读进度保存失败')
         })
         await saveReaderConfig().catch(() => {
-          console.error('窗口关闭异常: 全局配置保存失败')
+          logError('reader', '窗口关闭异常: 全局配置保存失败')
         })
       },
     }).then((unlisteners) => {
@@ -739,7 +740,7 @@ export default {
           try {
             destroyEpubRendition(rendition.value)
           } catch (e) {
-            console.log('销毁旧的 Rendition 失败', e)
+            logWarn('reader', '销毁旧的 Rendition 失败', e)
           }
           rendition.value = null
         }
@@ -788,7 +789,7 @@ export default {
               format,
               fileName
             ).catch((error) => {
-              console.warn('补全 EPUB locations 缓存失败:', error)
+              logWarn('reader', '补全 EPUB locations 缓存失败', error)
             })
           })
         }
@@ -799,9 +800,9 @@ export default {
           void initAllBookMarks()
         }
 
-        console.log('EPUB 解析完成:', currentBookKey.value, bookCache?.title || bookConfig.name)
+        logInfo('reader', 'EPUB 解析完成', { bookKey: currentBookKey.value, title: bookCache?.title || bookConfig.name })
       }).catch((e) => {
-        console.log('书籍加载失败', e)
+        logError('reader', '书籍加载失败', e)
       })
     }
 

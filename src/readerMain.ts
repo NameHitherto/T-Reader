@@ -6,10 +6,12 @@ import { createPinia } from 'pinia';
 import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events';
 import { bindWindowTitlebarControls } from './js/init';
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService';
+import { initAppLogger } from '@/utils/logger';
 import './styles/index.scss';
 
 const bootstrap = async () => {
   await initializeAppTheme();
+  await initAppLogger('reader');
 
   const app = createApp(ReaderApp);
 

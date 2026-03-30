@@ -6,10 +6,12 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { bindWindowTitlebarControls } from './js/init';
 import { WINDOW_EVENTS } from '@/constants/events';
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService';
+import { initAppLogger, logError } from '@/utils/logger';
 import './styles/index.scss';
 
 const bootstrap = async () => {
   await initializeAppTheme();
+  await initAppLogger('main');
 
   // 根据当前平台创建不同实例
   const currentPlatform = platform();
@@ -38,9 +40,9 @@ const bootstrap = async () => {
     });
   }else if(currentPlatform === 'android'){
     // android平台
-    console.error('Android平台已不支持!');
+    logError('bootstrap', 'Android平台已不支持!');
   }else{
-    console.error('意料之外的平台!');
+    logError('bootstrap', '意料之外的平台!');
   }
 };
 

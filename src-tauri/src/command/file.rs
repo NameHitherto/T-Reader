@@ -114,7 +114,8 @@ pub fn load_books(subdir: &str) -> Result<Vec<StoredBook>, String> {
                 .map_err(|e| e.to_string())?;
             match serde_json::from_str::<Book>(&contents) {
                 Ok(book) => {
-                    if let Some(filename) = entry_path.file_name().and_then(|value| value.to_str()) {
+                    if let Some(filename) = entry_path.file_name().and_then(|value| value.to_str())
+                    {
                         books.push(StoredBook {
                             filename: filename.to_string(),
                             book,

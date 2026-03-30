@@ -90,6 +90,7 @@ import { listen } from '@tauri-apps/api/event'
 import MarkdownIt from 'markdown-it/index'
 import hljs from 'highlight.js'
 import { extractEpubContent } from '@/services/book/epubContentService'
+import { logError } from '@/utils/logger'
 
 interface StreamPayload {
   chunk: string
@@ -125,7 +126,7 @@ export default defineComponent({
   methods: {
     async onOpen() {
       if (this.bookKey === null) {
-        console.error('bookKey is required')
+        logError('assistant', 'bookKey is required')
         return
       }
       this.referedBookInfo = await extractEpubContent(this.bookKey)
@@ -183,7 +184,7 @@ export default defineComponent({
         })
       } catch (e) {
         this.chatHistory.pop()
-        console.log(e)
+        logError('assistant', '聊天流异常', e)
       }
     },
     stopStream() {
@@ -223,7 +224,7 @@ export default defineComponent({
                 }).value
               }</code></pre>`
             } catch (e) {
-              console.error(e)
+              logError('assistant', '代码高亮失败', e)
             }
           }
           return `<pre><code class="hljs">${md.utils.escapeHtml(str)}</code></pre>`

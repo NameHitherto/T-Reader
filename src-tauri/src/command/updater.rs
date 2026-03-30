@@ -127,15 +127,18 @@ fn build_mirror_endpoint(target: &str) -> String {
     format!("{base}/{}", target.trim_start_matches('/'))
 }
 
-fn rewrite_download_url_for_source(source: &AppUpdateSource, update: &mut Update) -> Result<(), String> {
+fn rewrite_download_url_for_source(
+    source: &AppUpdateSource,
+    update: &mut Update,
+) -> Result<(), String> {
     if source.kind != "mirror" {
         return Ok(());
     }
 
     let raw_url = update.download_url.as_str().to_string();
     let mirrored_url = build_mirror_endpoint(&raw_url);
-    let parsed = reqwest::Url::parse(&mirrored_url)
-        .map_err(|error| format!("镜像下载地址无效: {error}"))?;
+    let parsed =
+        reqwest::Url::parse(&mirrored_url).map_err(|error| format!("镜像下载地址无效: {error}"))?;
     update.download_url = parsed;
     Ok(())
 }

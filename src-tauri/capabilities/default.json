@@ -37,6 +37,7 @@
     "fs:allow-open",
     "window-state:allow-restore-state",
     "window-state:allow-save-window-state",
+    "log:default",
     {
       "identifier": "fs:allow-app-write",
       "allow": [

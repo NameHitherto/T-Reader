@@ -1,8 +1,3 @@
 pub mod index;
 
-pub use index::{
-    Book,
-    StoredBook,
-    Settings,
-    FontNameEntry,
-};
+pub use index::{Book, FontNameEntry, Settings, StoredBook};

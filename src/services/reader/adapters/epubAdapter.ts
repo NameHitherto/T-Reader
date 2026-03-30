@@ -1,6 +1,7 @@
 import ePub, { Rendition } from 'libs/epub.js'
 import { BookConfig } from '@/js/map'
 import { resolveEpubDisplayTarget } from '@/services/reader/epubProgressService'
+import { logWarn } from '@/utils/logger'
 
 export interface EpubRenderResult {
   rendition: Rendition
@@ -47,11 +48,11 @@ export const renderEpubBook = async (
     try {
       ePubBook.locations.load(cachedLocations)
     } catch (error) {
-      console.warn('加载 EPUB locations 缓存失败:', error)
+      logWarn('epubAdapter', '加载 EPUB locations 缓存失败', error)
     }
   } else {
     void ePubBook.locations.generate(1000).catch((error: unknown) => {
-      console.warn('生成 EPUB locations 失败:', error)
+      logWarn('epubAdapter', '生成 EPUB locations 失败', error)
     })
   }
 

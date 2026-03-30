@@ -1,5 +1,6 @@
 import ePub, { EpubCFI } from 'libs/epub.js'
 import { BookConfig } from '@/js/map'
+import { logWarn } from '@/utils/logger'
 
 export interface EpubProgressSnapshot {
   durChapterIndex: number
@@ -213,7 +214,7 @@ export const resolveEpubDisplayTarget = async (
   try {
     return section.cfiFromRange(range)
   } catch (error) {
-    console.warn('根据 EPUB 进度快照恢复 CFI 失败:', error)
+    logWarn('epubProgress', '根据 EPUB 进度快照恢复 CFI 失败', error)
     return section.href
   }
 }
@@ -243,13 +244,13 @@ export const calculateEpubProgressFromSnapshot = async (
     book.locations.load(cachedLocations)
     return book.locations.percentageFromCfi(cfi) * 100
   } catch (error) {
-    console.warn('根据 EPUB 进度快照计算进度失败:', error)
+    logWarn('epubProgress', '根据 EPUB 进度快照计算进度失败', error)
     return 0
   } finally {
     try {
       book.destroy?.()
     } catch (error) {
-      console.warn('销毁 EPUB 进度快照实例失败:', error)
+      logWarn('epubProgress', '销毁 EPUB 进度快照实例失败', error)
     }
   }
 }

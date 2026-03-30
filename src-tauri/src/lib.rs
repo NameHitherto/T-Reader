@@ -9,10 +9,29 @@ use command::{
     save_file, save_settings, start_stream, webdav_delete, webdav_exists, webdav_get,
     webdav_sync_files, webdav_upload, write_file, AppUpdateState,
 };
+use log::LevelFilter;
+use logging::build_log_target;
+use tauri_plugin_log::{TargetKind, TimezoneStrategy};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(LevelFilter::Info)
+                .timezone_strategy(TimezoneStrategy::UseLocal)
+                .clear_format()
+                .targets([
+                    build_log_target(TargetKind::Stdout),
+                    build_log_target(TargetKind::LogDir {
+                        file_name: Some("t-reader".to_string()),
+                    }),
+                    build_log_target(TargetKind::Webview),
+                ])
+                .max_file_size(1024 * 1024) // 1MB
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::new().build())

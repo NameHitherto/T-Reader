@@ -61,6 +61,7 @@
 <script lang="ts">
 import { ref, defineComponent } from 'vue';
 import { BOOKMARK_COLOR_CHOICES } from '@/constants/bookmark';
+import { logWarn } from '@/utils/logger';
 export default defineComponent({
     name: 'BookMarkDialog',
     props: {
@@ -82,7 +83,7 @@ export default defineComponent({
                 this.bookMarkJSON = JSON.parse(this.bookMarkList)
                 this.comments = this.bookMarkJSON.comments
             }else {
-                console.log('打开了一个空的笔记')
+                logWarn('bookmark', '打开了一个空的笔记')
             }
         },
         async onClose() {

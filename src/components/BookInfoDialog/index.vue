@@ -74,6 +74,7 @@ import {
   loadBookBinary,
   loadBookConfig,
 } from '@/services/book/bookRepository'
+import { logWarn } from '@/utils/logger'
 
 export default {
   name: 'BookInfoDialog',
@@ -154,7 +155,7 @@ export default {
         try {
           epub.destroy?.()
         } catch (error) {
-          console.warn('销毁 EPUB 详情实例失败:', error)
+          logWarn('bookInfo', '销毁 EPUB 实例失败', error)
         }
       }
     },

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { logWarn } from '@/utils/logger'
 
 export type AppThemeMode = 'light' | 'dark'
 
@@ -47,7 +48,7 @@ export const loadAppSettings = async (): Promise<AppSettings> => {
     const loadedSettings = await invoke<Partial<AppSettings>>('load_settings')
     return normalizeAppSettings(loadedSettings)
   } catch (error) {
-    console.warn('加载应用设置失败，已回退到默认设置', error)
+    logWarn('appSettings', '加载应用设置失败，已回退到默认设置', error)
     return { ...DEFAULT_APP_SETTINGS }
   }
 }

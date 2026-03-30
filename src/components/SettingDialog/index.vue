@@ -19,8 +19,7 @@
             :class="{ 'is-active': themeMode === 'light' }"
             @click="themeMode = 'light'"
           >
-            <span class="theme-mode-title">白天模式</span>
-            <span class="theme-mode-desc">适合明亮环境，主窗口与阅读正文同步使用浅色主题。</span>
+            <span class="theme-mode-title">白天模式☀️</span>
           </button>
           <button
             type="button"
@@ -28,8 +27,7 @@
             :class="{ 'is-active': themeMode === 'dark' }"
             @click="themeMode = 'dark'"
           >
-            <span class="theme-mode-title">黑夜模式</span>
-            <span class="theme-mode-desc">适合夜间阅读，主窗口、弹窗和正文一起切换为暗色主题。</span>
+            <span class="theme-mode-title">黑夜模式🌙</span>
           </button>
         </div>
       </section>
@@ -274,7 +272,6 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    min-height: 120px;
     padding: 16px;
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
@@ -307,12 +304,6 @@ export default {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
-  }
-
-  .theme-mode-desc {
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--text-tertiary);
   }
 
   .dialog-footer {

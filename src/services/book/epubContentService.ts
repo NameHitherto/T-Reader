@@ -1,6 +1,7 @@
 import ePub from 'libs/epub.js'
 import JSZip from 'jszip'
 import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
+import { logError } from '@/utils/logger'
 
 export const extractEpubContent = async (bookKey: string): Promise<string> => {
   await loadBookConfig(bookKey)
@@ -39,7 +40,7 @@ export const extractEpubContent = async (bookKey: string): Promise<string> => {
         fullText += `${cleanText}\n\n`
       }
     } catch (error) {
-      console.error(error)
+      logError('epubContent', '提取 EPUB 内容失败', error)
     }
   }
 
