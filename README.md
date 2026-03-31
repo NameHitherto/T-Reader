@@ -50,7 +50,7 @@ T-Reader/
 T-Reader/
 ├─ books/         # 原始书籍文件（epub / txt）
 ├─ bookProgress/  # 书籍进度配置
-├─ cached/        # 封面、locations、段落统计等缓存
+├─ cached/        # 封面、locations、段落统计缓存，以及生产日志 t-reader.log
 └─ system/        # setting.json / ReaderConfig.json / BookMarks.json
 ```
 
@@ -64,6 +64,8 @@ T-Reader/
 
 说明：
 
+- 开发态日志仅打印到 `npm run tauri dev` 的终端，不写入 DevTools 或本地日志文件
+- 打包后的日志写入 `Document/T-Reader/cached/t-reader.log`
 - `cached/` 与 `system/BookMarks.json` 当前不参与 WebDAV 同步
 - 云端与本地进度冲突时，优先使用 `durChapterTime` 更新较新的配置
 

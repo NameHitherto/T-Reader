@@ -61,6 +61,12 @@ pub fn get_local_system_dir() -> Result<std::path::PathBuf, String> {
     Ok(root.join(LOCAL_SYSTEM_DIR))
 }
 
+#[cfg(not(debug_assertions))]
+pub fn get_local_cached_dir() -> Result<std::path::PathBuf, String> {
+    let root = get_local_root_dir()?;
+    Ok(root.join(LOCAL_CACHED_DIR))
+}
+
 pub fn check_local_dirs() -> Result<std::path::PathBuf, String> {
     let root_path = get_local_root_dir()?;
 

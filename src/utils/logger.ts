@@ -1,5 +1,4 @@
 import {
-  attachConsole,
   error as logErrorFn,
   info as logInfoFn,
   warn as logWarnFn,
@@ -8,7 +7,6 @@ import {
 type LogPayload = Record<string, unknown> | undefined
 
 let windowLabel: string = 'unknown'
-let consoleAttached = false
 
 const buildFallbackConsolePrefix = (level: 'ERROR' | 'WARN'): string => {
   const now = new Date()
@@ -51,17 +49,6 @@ const buildLogMessage = (
 
 export const initAppLogger = async (label: 'main' | 'reader') => {
   windowLabel = label
-  if (!consoleAttached) {
-    try {
-      await attachConsole()
-      consoleAttached = true
-    } catch (error) {
-      console.error(
-        `${buildFallbackConsolePrefix('ERROR')}[${windowLabel}][logger] failed-to-attach-console`,
-        error
-      )
-    }
-  }
 }
 
 export const logInfo = (scope: string, message: string, payload?: LogPayload) => {

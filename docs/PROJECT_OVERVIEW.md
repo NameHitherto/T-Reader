@@ -311,7 +311,7 @@ interface BookMark {
 Document/T-Reader/
 ├── books/         # 原始书籍文件
 ├── bookProgress/  # <bookKey>.json
-├── cached/        # <bookKey>.json
+├── cached/        # <bookKey>.json + t-reader.log
 └── system/
     ├── setting.json
     ├── ReaderConfig.json
@@ -328,6 +328,8 @@ WebDAV/T-Reader/
 
 说明：
 
+- 开发态日志只打印到 `tauri dev` 终端
+- 打包后的日志写入 `Document/T-Reader/cached/t-reader.log`
 - 当前云端不保存 `cached/`
 - 当前云端不保存 `system/BookMarks.json`
 - 同步阶段会比较本地与云端进度文件中的 `durChapterTime`

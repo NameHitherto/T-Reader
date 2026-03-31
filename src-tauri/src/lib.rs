@@ -9,25 +9,37 @@ use command::{
     save_file, save_settings, start_stream, webdav_delete, webdav_exists, webdav_get,
     webdav_sync_files, webdav_upload, write_file, AppUpdateState,
 };
+#[cfg(not(debug_assertions))]
+use command::dir::get_local_cached_dir;
 use log::LevelFilter;
 use logging::build_log_target;
-use tauri_plugin_log::{TargetKind, TimezoneStrategy};
+use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
+
+#[cfg(debug_assertions)]
+fn build_log_targets() -> Result<Vec<Target>, String> {
+    Ok(vec![build_log_target(TargetKind::Stdout)])
+}
+
+#[cfg(not(debug_assertions))]
+fn build_log_targets() -> Result<Vec<Target>, String> {
+    let log_dir = get_local_cached_dir()?;
+    Ok(vec![build_log_target(TargetKind::Folder {
+        path: log_dir,
+        file_name: Some("t-reader".to_string()),
+    })])
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let log_targets = build_log_targets().expect("failed to configure log targets");
+
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(LevelFilter::Info)
                 .timezone_strategy(TimezoneStrategy::UseLocal)
                 .clear_format()
-                .targets([
-                    build_log_target(TargetKind::Stdout),
-                    build_log_target(TargetKind::LogDir {
-                        file_name: Some("t-reader".to_string()),
-                    }),
-                    build_log_target(TargetKind::Webview),
-                ])
+                .targets(log_targets)
                 .max_file_size(1024 * 1024) // 1MB
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                 .build(),
