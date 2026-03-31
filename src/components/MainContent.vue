@@ -173,6 +173,7 @@ import {
 } from '@/services/book/bookCacheService'
 import {
   buildLastReadLabel,
+  normalizeDisplayedChapterTitle,
 } from '@/services/book/bookPresentationService'
 import {
   getImportedBookName,
@@ -805,7 +806,7 @@ export default {
     }
 
     const getListSubtitle = (book: ShelfBook): string => {
-      return book.author ? `作者：${book.author}` : '作者：未知'
+      return normalizeDisplayedChapterTitle(book.durChapterTitle)
     }
 
     const getListMeta = (book: ShelfBook): string => {

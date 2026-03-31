@@ -2,12 +2,13 @@
   <div class="bookmark">
     <div class="bookmark-header">
       <span class="prefix">书签</span>
-      <div class="bubble">
-        <div class="suffix" :class="viewType" @click="toggleViewType">
-          <span class="option-tag">标签</span>
-          <span class="option-table">表格</span>
-        </div>
-      </div>
+      <BubbleToggle
+        v-model="viewType"
+        class="bookmark-view-toggle"
+        :options="viewTypeOptions"
+        aria-label="书签视图切换"
+        @change="handleViewTypeChange"
+      />
     </div>
     <div class="bookmark-body">
       <el-scrollbar
@@ -71,6 +72,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import BookMarkTag from './BookMark/bookMarkTag.vue'
+import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import { BookMark } from '@/store/bookMark'
 import { formatDateToNumber } from '@/js/utils'
 import { ElMessageBox } from 'element-plus'
@@ -82,12 +84,17 @@ export default defineComponent({
   name: 'BookMark',
   components: {
     BookMarkTag,
+    BubbleToggle,
   },
   data() {
     return {
       booksMarks: [] as BookMark[],
       scrollLeft: 0,
       viewType: '' as 'tag' | 'table',
+      viewTypeOptions: [
+        { label: '标签', value: 'tag' },
+        { label: '表格', value: 'table' },
+      ] as { label: string; value: 'tag' | 'table' }[],
       tableMaxHeight: 0,
     }
   },
@@ -149,9 +156,9 @@ export default defineComponent({
     handleScroll(amount: any) {
       this.scrollLeft = amount.scrollLeft
     },
-    toggleViewType() {
-      this.viewType = this.viewType === 'tag' ? 'table' : 'tag'
-      localStorage.setItem('bookMarkViewType', this.viewType)
+    handleViewTypeChange(value: 'tag' | 'table') {
+      this.viewType = value
+      localStorage.setItem('bookMarkViewType', value)
     },
     updateTableMaxHeight() {
       this.tableMaxHeight = window.innerHeight * 0.85 - 32
@@ -212,59 +219,29 @@ export default defineComponent({
     justify-content: center;
     align-items: end;
 
-    span {
+    .prefix {
       font-size: 24px;
       font-weight: bold;
       font-style: italic;
       letter-spacing: 1em;
       text-shadow: var(--text-shadow-soft);
       color: var(--text-primary);
-    }
-
-    .prefix {
       margin-bottom: 6px;
     }
 
-    .bubble {
-      padding: 6px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-warning-gradient);
-      border: 1px solid var(--border-warning);
-      box-shadow: var(--shadow-sm);
-
-      .suffix {
-        position: relative;
-        overflow: hidden;
-        display: grid;
-        margin-right: -1em;
-        cursor: var(--t-mouse-cursor-link), pointer;
-
-        span {
-          grid-column-start: 1;
-          grid-column-end: 1;
-          grid-row-start: 1;
-          grid-row-end: 1;
-          transition: all 0.5s;
-          color: var(--text-secondary);
-        }
-
-        &.tag .option-tag {
-          transform: translate(0px, 0%);
-          opacity: 1;
-        }
-        .option-tag {
-          transform: translate(0px, -100%);
-          opacity: 0;
-        }
-        .option-table {
-          transform: translate(0px, 100%);
-          opacity: 0;
-        }
-        &.table .option-table {
-          transform: translate(0px, 0%);
-          opacity: 1;
-        }
-      }
+    .bookmark-view-toggle {
+      --bubble-toggle-shell-padding: 6px;
+      --bubble-toggle-shell-bg: var(--surface-warning-gradient);
+      --bubble-toggle-shell-border: var(--border-warning);
+      --bubble-toggle-shell-shadow: var(--shadow-sm);
+      --bubble-toggle-focus-ring: var(--surface-warning-soft-strong);
+      --bubble-toggle-font-size: 24px;
+      --bubble-toggle-font-weight: 700;
+      --bubble-toggle-font-style: italic;
+      --bubble-toggle-letter-spacing: 1em;
+      --bubble-toggle-stage-offset-inline-end: -1em;
+      --bubble-toggle-text: var(--text-secondary);
+      --bubble-toggle-active-text: var(--text-primary);
     }
   }
   &-body {

@@ -88,14 +88,13 @@
       <span class="section-title">其他</span>
       <div class="flow-option">
         <label>翻页模式</label>
-        <el-tooltip :content="flowMode" placement="top">
-          <el-switch
-            v-model="flow"
-            active-value="scrolled"
-            inactive-value="paginated"
-            @change="switchFlow"
-          />
-        </el-tooltip>
+        <BubbleToggle
+          v-model="flow"
+          class="style-menu-flow-toggle"
+          :options="flowOptions"
+          aria-label="翻页模式切换"
+          @change="switchFlow"
+        />
       </div>
     </div>
 
@@ -110,6 +109,7 @@ import { computed, defineComponent, ref, watch, type PropType } from 'vue'
 import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
+import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildReaderFontOptions } from '@/services/reader/systemFontService'
@@ -151,6 +151,9 @@ interface ReaderNumericSetting {
 
 export default defineComponent({
   name: 'StyleMenu',
+  components: {
+    BubbleToggle,
+  },
   props: {
     maxHeight: {
       type: Number,
@@ -163,6 +166,8 @@ export default defineComponent({
   },
   emits: ['open-font-dialog'],
   setup(props, { emit }) {
+    type ReaderFlowToggleValue = 'paginated' | 'scrolled'
+
     const readerConfigStore = useReaderConfigStore()
     const { readerConfig } = storeToRefs(readerConfigStore)
 
@@ -261,13 +266,19 @@ export default defineComponent({
       },
     ])
 
+    const normalizeFlowToggleValue = (value: string): ReaderFlowToggleValue => {
+      return value === 'paginated' ? 'paginated' : 'scrolled'
+    }
+
+    const flowOptions = [
+      { label: '分页翻页', value: 'paginated' },
+      { label: '滚动翻页', value: 'scrolled' },
+    ] as { label: string; value: ReaderFlowToggleValue }[]
+
     const currentThemeMode = computed<AppThemeMode>(() => {
       return props.themeMode || getAppliedAppThemeMode()
     })
-    const flow = ref(readerConfig.value.flow)
-    const flowMode = computed(() => {
-      return flow.value === 'scrolled' ? '滚动翻页' : '分页翻页'
-    })
+    const flow = ref<ReaderFlowToggleValue>(normalizeFlowToggleValue(readerConfig.value.flow))
     const fontOptions = computed(() => buildReaderFontOptions(readerConfig.value.enabledSystemFonts))
     const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
     const themeModeLabel = computed(() => {
@@ -295,7 +306,7 @@ export default defineComponent({
         return setting
       })
       selectedFont.value = readerConfig.value.font
-      flow.value = readerConfig.value.flow
+      flow.value = normalizeFlowToggleValue(readerConfig.value.flow)
     }
 
     const emitStyleApplication = () => {
@@ -358,8 +369,10 @@ export default defineComponent({
       updateVisual()
     }
 
-    const switchFlow = () => {
-      readerConfigStore.changeState('flow', flow.value)
+    const switchFlow = (value?: ReaderFlowToggleValue) => {
+      const nextFlow = normalizeFlowToggleValue(value || flow.value)
+      flow.value = nextFlow
+      readerConfigStore.changeState('flow', nextFlow)
       emitStyleApplication()
     }
 
@@ -386,7 +399,7 @@ export default defineComponent({
       backgroundPresetOptions,
       enabledFontCount,
       flow,
-      flowMode,
+      flowOptions,
       fontOptions,
       menuElement,
       menuStyle,
@@ -556,7 +569,6 @@ label {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      margin-top: 12px;
     }
 
     .summary-pill {
@@ -611,6 +623,18 @@ label {
         color: var(--text-secondary);
         font-size: 14px;
         font-weight: 700;
+      }
+
+      .style-menu-flow-toggle {
+        --bubble-toggle-shell-padding: 5px 10px;
+        --bubble-toggle-shell-bg: var(--surface-brand-gradient);
+        --bubble-toggle-shell-border: var(--border-brand);
+        --bubble-toggle-shell-shadow: var(--shadow-xs);
+        --bubble-toggle-focus-ring: var(--ring-brand-soft);
+        --bubble-toggle-font-size: 12px;
+        --bubble-toggle-font-weight: 700;
+        --bubble-toggle-text: var(--text-secondary);
+        --bubble-toggle-active-text: var(--brand-primary);
       }
     }
   }

@@ -95,8 +95,8 @@
     </Transition>
   </Teleport>
   <!-- 阅读进度 -->
-  <div v-if="readingPercentage" class="reading-percentage">
-    {{ readingPercentage }}%
+  <div v-if="readingStatusText" class="reading-status" :title="readingStatusText">
+    {{ readingStatusText }}
   </div>
 </template>
 
@@ -166,9 +166,11 @@ import {
   normalizeReaderConfig,
 } from '@/services/reader/systemFontService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
+import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
+import { resolveEpubTocLabel } from '@/services/reader/epubProgressService'
 import {
   getAppliedAppThemeMode,
   getReaderRuntimePalette,
@@ -243,6 +245,7 @@ export default {
     const selectedRange = ref<string | null>(null)
     // 阅读进度百分比
     const readingPercentage = ref('')
+    const readingChapterTitle = ref('')
     // 当前书籍书签 store
     const bookMarkStore = useBookMarkStore()
     // 响应式书签引用
@@ -274,6 +277,13 @@ export default {
     })
     const styleMenuPanelRef = ref<HTMLElement | null>(null)
     const appThemeMode = ref<AppThemeMode>(getAppliedAppThemeMode())
+    const readingStatusText = computed(() => {
+      if (!readingPercentage.value) {
+        return ''
+      }
+
+      return `${normalizeDisplayedChapterTitle(readingChapterTitle.value)} · ${readingPercentage.value}%`
+    })
     const readerPalette = computed(() => {
       return getReaderRuntimePalette(readerConfig.value, appThemeMode.value)
     })
@@ -669,6 +679,9 @@ export default {
           onRelocated: (location) => {
             if (location.start) {
               activeChapter.value = location.start.href
+              readingChapterTitle.value =
+                resolveEpubTocLabel(rendition.value?.book?.navigation?.toc, location.start.href) ||
+                normalizeDisplayedChapterTitle(currentBookConfig.value?.durChapterTitle)
             }
             const percentage = location.start.percentage
             if (percentage !== undefined && percentage !== null) {
@@ -737,6 +750,7 @@ export default {
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
         readingPercentage.value = ''
+        readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
         bookMarkStore.clearBookMarks()
         txtParagraphs.value = []
         txtCurrentParagraph.value = 0
@@ -753,6 +767,7 @@ export default {
         if (currentBookFormat.value === 'txt') {
           toc.value = []
           activeChapter.value = ''
+          readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
           const displayTarget = await resolveReaderDisplayTarget('txt', bookData, bookConfig)
           const paragraphIndex =
             typeof displayTarget === 'number' ? displayTarget : 0
@@ -1022,6 +1037,7 @@ export default {
       showContextMenu,
       contextMenuOptions,
       readingPercentage,
+      readingStatusText,
       bookMarkEditionVisible,
       bookMarkEditionContent,
       assistantVisible,
@@ -1220,12 +1236,17 @@ export default {
   color: var(--text-primary);
 }
 
-.reading-percentage {
+.reading-status {
   position: fixed;
   bottom: 15px;
-  line-height: 15px;
   left: 50px;
+  max-width: min(54vw, calc(100vw - 88px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.45;
   color: var(--reader-text-muted);
+  font-size: 13px;
   font-weight: bold;
   text-shadow: var(--text-shadow-soft);
 }

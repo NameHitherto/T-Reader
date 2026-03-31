@@ -19,7 +19,7 @@ const flattenToc = (items: any[] = []): any[] => {
   return items.flatMap((item) => [item, ...flattenToc(item.subitems || [])])
 }
 
-const resolveTocLabel = (tocItems: any[] = [], href?: string): string | undefined => {
+export const resolveEpubTocLabel = (tocItems: any[] = [], href?: string): string | undefined => {
   if (!href) {
     return undefined
   }
@@ -187,7 +187,7 @@ export const serializeEpubProgress = async (rendition: any): Promise<EpubProgres
   return {
     durChapterIndex: parsedCfi.spinePos,
     durChapterPos: getPrefixTextLength(section, range),
-    durChapterTitle: resolveTocLabel(book.navigation?.toc, href) || href,
+    durChapterTitle: resolveEpubTocLabel(book.navigation?.toc, href) || href,
     durChapterTime: Date.now(),
   }
 }

@@ -7,12 +7,27 @@ import {
   normalizeBookConfig,
 } from '@/services/reader/progressSnapshotService'
 
+const TXT_CHAPTER_PLACEHOLDER_PATTERN = /^paragraph-\d+$/i
+
 const clampProgress = (value: number): number => {
   if (Number.isNaN(value)) {
     return 0
   }
 
   return Math.min(100, Math.max(0, value))
+}
+
+export const normalizeDisplayedChapterTitle = (
+  title?: string | null,
+  fallback = '暂无章节标题'
+) => {
+  const normalizedTitle = typeof title === 'string' ? title.trim() : ''
+
+  if (!normalizedTitle || TXT_CHAPTER_PLACEHOLDER_PATTERN.test(normalizedTitle)) {
+    return fallback
+  }
+
+  return normalizedTitle
 }
 
 export const buildLastReadLabel = (
