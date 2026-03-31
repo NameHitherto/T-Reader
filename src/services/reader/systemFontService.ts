@@ -262,22 +262,10 @@ export const normalizeReaderConfig = (
     ...(config || {}),
   } as ReaderConfig
 
-  let enabledSystemFonts = normalizeEnabledSystemFonts(
+  const enabledSystemFonts = normalizeEnabledSystemFonts(
     (config as Partial<ReaderConfig> | undefined)?.enabledSystemFonts,
     systemFonts
   )
-
-  if (
-    enabledSystemFonts.length === 0 &&
-    mergedConfig.font !== DEFAULT_READER_FONT &&
-    systemFonts.length > 0
-  ) {
-    const migratedFont = findSystemFontMatch(mergedConfig.font, systemFonts)
-    if (migratedFont) {
-      enabledSystemFonts = [toEnabledSystemFont(migratedFont)]
-      mergedConfig.font = getReaderFontValue(migratedFont)
-    }
-  }
 
   const matchedEnabledFont =
     mergedConfig.font === DEFAULT_READER_FONT

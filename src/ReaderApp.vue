@@ -168,7 +168,6 @@ import {
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
-import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
 import { resolveEpubTocLabel } from '@/services/reader/epubProgressService'
 import {
@@ -291,11 +290,6 @@ export default {
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
       const columnStyle = {}
-      const currentFontSource =
-        readerConfig.value.font === DEFAULT_READER_FONT
-          ? `url('/src/font/pingfang.ttf') format('truetype')`
-          : `local("${readerConfig.value.font}")`
-
       if (readerConfig.value.flow === 'paginated') {
         Object.assign(columnStyle, {
           'column-width': 'auto !important',
@@ -361,10 +355,6 @@ export default {
         img: {
           width: '100%',
           filter: readerPalette.value.imageFilter,
-        },
-        '@font-face': {
-          'font-family': `${readerConfig.value.font}`,
-          src: currentFontSource,
         },
       }
       return themeReturned

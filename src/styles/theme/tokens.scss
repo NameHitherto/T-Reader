@@ -1,23 +1,9 @@
-@font-face {
-  font-family: 'pingfang';
-  src: url('/src/font/pingfang.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Jetbrains';
-  src: url('/src/font/JetBrainsMono.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
 :root,
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --font-family-base: 'pingfang', 'Microsoft YaHei', sans-serif;
-  --font-family-mono: 'Jetbrains', 'Consolas', monospace;
+  --font-family-base: serif, 'cursive', 'auto';
+  --font-family-mono: serif, 'cursive', 'auto';
 
   --app-bg: #ffffff;
   --app-bg-accent: #f8fafc;

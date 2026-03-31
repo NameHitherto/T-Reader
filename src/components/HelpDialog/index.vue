@@ -46,7 +46,7 @@
               <div class="font-panel-copy">
                 <div class="font-panel-subtitle">当前可在样式菜单中选择的系统字体</div>
                 <div class="font-panel-description">
-                  没有启用时，阅读器只会使用系统默认 PingFang。
+                  没有启用时，阅读器只会使用系统默认 Serif。
                 </div>
               </div>
               <el-button class="font-panel-button" @click="fontDialogVisible = true">
@@ -69,7 +69,7 @@
             </div>
 
             <div v-else class="font-empty-state">
-              当前仅启用系统默认 PingFang，尚未选择额外系统字体。
+              当前仅启用系统默认 Serif，尚未选择额外系统字体。
             </div>
           </div>
         </div>
