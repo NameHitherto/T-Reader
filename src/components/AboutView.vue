@@ -253,7 +253,7 @@ onMounted(async () => {
 .about-container {
   height: 100%;
   width: 100%;
-  padding: 24px;
+  padding: 32px 24px;
   overflow-y: auto;
   background:
     radial-gradient(circle at 12% 10%, var(--surface-brand-soft), transparent 32%),

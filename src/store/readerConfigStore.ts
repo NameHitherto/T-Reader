@@ -4,6 +4,10 @@ import { ref } from 'vue';
 import type { EnabledSystemFont } from '@/types/readerFonts';
 import { DEFAULT_READER_FONT } from '@/types/readerFonts';
 import { getReaderThemeCompatColors } from '@/services/theme/themeService';
+import {
+  createDefaultReaderBackgroundPresets,
+  type ReaderBackgroundPresets,
+} from '@/types/readerBackground';
 
 export type ReaderFlowMode =
   | 'auto'
@@ -26,26 +30,32 @@ export interface ReaderConfig {
   font: string;
   color: string;
   fontColor: string;
+  backgroundPresets: ReaderBackgroundPresets;
   flow: ReaderFlowMode;
   enabledSystemFonts: EnabledSystemFont[];
 }
 
-export const createDefaultReaderConfig = (): ReaderConfig => ({
-  ...getReaderThemeCompatColors(),
-  fontSize: 16,
-  fontWeight: 400,
-  lineSpacing: 1.3,
-  paragraphSpacing: 0.2,
-  letterSpacing: 0,
-  boxPaddingTop: 20,
-  boxPaddingBottom: 20,
-  boxPaddingHorizontal: 20,
-  columnCount: 2,
-  indent: 2,
-  font: DEFAULT_READER_FONT,
-  flow: 'paginated',
-  enabledSystemFonts: [],
-});
+export const createDefaultReaderConfig = (): ReaderConfig => {
+  const backgroundPresets = createDefaultReaderBackgroundPresets();
+
+  return {
+    ...getReaderThemeCompatColors(backgroundPresets),
+    fontSize: 16,
+    fontWeight: 400,
+    lineSpacing: 1.3,
+    paragraphSpacing: 0.2,
+    letterSpacing: 0,
+    boxPaddingTop: 20,
+    boxPaddingBottom: 20,
+    boxPaddingHorizontal: 20,
+    columnCount: 2,
+    indent: 2,
+    font: DEFAULT_READER_FONT,
+    backgroundPresets,
+    flow: 'paginated',
+    enabledSystemFonts: [],
+  };
+};
 
 export const useReaderConfigStore = defineStore('readerConfig', () => {
     // 使用 ref 定义响应式状态

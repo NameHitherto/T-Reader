@@ -170,8 +170,8 @@ import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
 import {
-  getAppThemePalette,
   getAppliedAppThemeMode,
+  getReaderRuntimePalette,
   syncReaderConfigThemeColors,
 } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
@@ -274,7 +274,9 @@ export default {
     })
     const styleMenuPanelRef = ref<HTMLElement | null>(null)
     const appThemeMode = ref<AppThemeMode>(getAppliedAppThemeMode())
-    const readerPalette = computed(() => getAppThemePalette(appThemeMode.value))
+    const readerPalette = computed(() => {
+      return getReaderRuntimePalette(readerConfig.value, appThemeMode.value)
+    })
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -296,30 +298,31 @@ export default {
           'font-family': `${readerConfig.value.font}`,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
-          color: readerPalette.value.readerText,
-          background: readerPalette.value.readerBackground,
-          'background-color': readerPalette.value.readerBackground,
+          color: readerPalette.value.text,
+          background: readerPalette.value.contentBackground,
+          'background-color': readerPalette.value.contentBackground,
           'padding-top': `${readerConfig.value.boxPaddingTop}px !important`,
           'padding-bottom': `${readerConfig.value.boxPaddingBottom}px !important`,
           'padding-left': `${readerConfig.value.boxPaddingHorizontal}px !important`,
           'padding-right': `${readerConfig.value.boxPaddingHorizontal}px !important`,
+          'min-height': '100%',
           ...columnStyle,
         },
         h1: {
           'font-family': `${readerConfig.value.font}`,
-          color: readerPalette.value.readerText,
+          color: readerPalette.value.text,
         },
         h2: {
           'font-family': `${readerConfig.value.font}`,
-          color: readerPalette.value.readerText,
+          color: readerPalette.value.text,
         },
         h3: {
           'font-family': `${readerConfig.value.font}`,
-          color: readerPalette.value.readerText,
+          color: readerPalette.value.text,
         },
         p: {
           'font-family': `${readerConfig.value.font}`,
-          color: readerPalette.value.readerText,
+          color: readerPalette.value.text,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
@@ -327,25 +330,27 @@ export default {
         },
         font: {
           'font-family': `${readerConfig.value.font}`,
-          color: readerPalette.value.readerText,
+          color: readerPalette.value.text,
         },
         a: {
-          color: readerPalette.value.readerLink,
+          color: readerPalette.value.link,
         },
         blockquote: {
-          color: readerPalette.value.readerMutedText,
-          'border-left': `3px solid ${readerPalette.value.readerSelectionBackground}`,
+          color: readerPalette.value.mutedText,
+          'border-left': `3px solid ${readerPalette.value.selectionBackground}`,
         },
         '::selection': {
-          background: readerPalette.value.readerSelectionBackground,
-          color: readerPalette.value.readerSelectionColor,
+          background: readerPalette.value.selectionBackground,
+          color: readerPalette.value.selectionColor,
         },
         html: {
+          background: readerPalette.value.contentBackground,
+          'background-color': readerPalette.value.contentBackground,
           cursor: `url('/src/assets/cursor/pointer.cur'), default`,
         },
         img: {
           width: '100%',
-          filter: readerPalette.value.readerImageFilter,
+          filter: readerPalette.value.imageFilter,
         },
         '@font-face': {
           'font-family': `${readerConfig.value.font}`,
@@ -1100,12 +1105,14 @@ export default {
   width: 100%;
   height: 100%;
   color: var(--reader-text);
+  background: var(--reader-background);
 
   #epub-reader {
     position: absolute;
-    padding: 30px 0px 30px 0px;
+    padding: 30px 0px 40px 0px;
     width: 100%;
-    height: calc(100vh - 60px);
+    height: 100%;
+    background: var(--reader-background);
   }
 
   #txt-reader {
@@ -1121,6 +1128,16 @@ export default {
       max-width: 860px;
       margin: 0 auto;
       padding: 0 28px 40px 28px;
+      background: var(--reader-content-background);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      backdrop-filter: none;
+      transition:
+        background var(--duration-base) var(--easing-standard),
+        border-color var(--duration-fast) var(--easing-standard),
+        box-shadow var(--duration-fast) var(--easing-standard),
+        backdrop-filter var(--duration-fast) var(--easing-standard);
 
       .txt-paragraph {
         margin: 0 0 1.1em 0;
@@ -1134,6 +1151,9 @@ export default {
   /* 阅读容器滚动条样式 */
   #epub-reader :deep(.epub-container) {
     overflow-x: hidden !important;
+  }
+  #epub-reader :deep(iframe) {
+    background: transparent !important;
   }
   #epub-reader :deep(.epub-container)::-webkit-scrollbar {
     width: 12px;

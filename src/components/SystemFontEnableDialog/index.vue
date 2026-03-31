@@ -126,6 +126,7 @@ import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { saveReaderConfigToDisk } from '@/services/reader/readerConfigService'
+import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
 import { logError } from '@/utils/logger'
 import {
   fetchSystemFonts,
@@ -317,7 +318,9 @@ export default defineComponent({
           }
         }
 
-        await saveReaderConfigToDisk(readerConfig.value)
+        const syncedConfig = syncReaderConfigThemeColors(readerConfig.value)
+        readerConfigStore.setReaderConfig(syncedConfig)
+        await saveReaderConfigToDisk(syncedConfig)
         await getCurrentWebviewWindow().emitTo('reader', WINDOW_EVENTS.UPDATE_READER_STYLE)
 
         emit('saved', {

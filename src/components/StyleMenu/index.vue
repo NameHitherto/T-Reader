@@ -11,6 +11,29 @@
       </div>
     </div>
 
+    <div class="background-section section">
+      <div class="section-head">
+        <span class="section-title">背景</span>
+      </div>
+
+      <div class="background-grid">
+        <button
+          v-for="option in backgroundPresetOptions"
+          :key="option.value"
+          type="button"
+          class="background-card"
+          :class="{ 'is-active': option.value === activeBackgroundPreset }"
+          @click="selectBackgroundPreset(option.value)"
+        >
+          <span class="background-card-preview" :style="{ background: option.preview }">
+            <span v-if="option.value === activeBackgroundPreset" class="background-card-check">
+              ✓
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+
     <div class="font-section section">
       <div class="section-head">
         <span class="section-title">字体</span>
@@ -43,9 +66,9 @@
 
     <div class="basic-section section">
       <div
-        class="adjust-option"
         v-for="(setting, index) in settings"
         :key="index"
+        class="adjust-option"
       >
         <label>{{ setting.label }}</label>
         <el-input-number
@@ -77,25 +100,32 @@
     </div>
 
     <button class="menu-reset-button app-secondary-button" @click="resetStyle">
-      恢复默认排版
+      恢复默认样式
     </button>
   </div>
 </template>
 
 <script lang="ts">
 import { computed, defineComponent, ref, watch, type PropType } from 'vue'
-import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { storeToRefs } from 'pinia'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
+import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { buildReaderFontOptions } from '@/services/reader/systemFontService'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 import {
   getAppliedAppThemeMode,
+  getReaderBackgroundPresetOptions,
   syncReaderConfigThemeColors,
 } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
+import type {
+  ReaderBackgroundPreset,
+  ReaderBackgroundPresets,
+  ReaderDarkBackgroundPreset,
+  ReaderLightBackgroundPreset,
+} from '@/types/readerBackground'
 
 type NumericSettingKey =
   | 'indent'
@@ -231,6 +261,9 @@ export default defineComponent({
       },
     ])
 
+    const currentThemeMode = computed<AppThemeMode>(() => {
+      return props.themeMode || getAppliedAppThemeMode()
+    })
     const flow = ref(readerConfig.value.flow)
     const flowMode = computed(() => {
       return flow.value === 'scrolled' ? '滚动翻页' : '分页翻页'
@@ -238,8 +271,13 @@ export default defineComponent({
     const fontOptions = computed(() => buildReaderFontOptions(readerConfig.value.enabledSystemFonts))
     const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
     const themeModeLabel = computed(() => {
-      const currentTheme = props.themeMode || getAppliedAppThemeMode()
-      return currentTheme === 'dark' ? '黑夜模式' : '白天模式'
+      return currentThemeMode.value === 'dark' ? '黑夜模式' : '白天模式'
+    })
+    const backgroundPresetOptions = computed(() => {
+      return getReaderBackgroundPresetOptions(currentThemeMode.value)
+    })
+    const activeBackgroundPreset = computed(() => {
+      return readerConfig.value.backgroundPresets[currentThemeMode.value]
     })
     const menuStyle = computed(() => {
       if (!props.maxHeight) {
@@ -264,20 +302,51 @@ export default defineComponent({
       getCurrentWebviewWindow().emitTo('reader', WINDOW_EVENTS.UPDATE_READER_STYLE)
     }
 
+    const buildBackgroundPresetsForCurrentTheme = (
+      preset: ReaderBackgroundPreset
+    ): ReaderBackgroundPresets => {
+      if (currentThemeMode.value === 'dark') {
+        return {
+          ...readerConfig.value.backgroundPresets,
+          dark: preset as ReaderDarkBackgroundPreset,
+        }
+      }
+
+      return {
+        ...readerConfig.value.backgroundPresets,
+        light: preset as ReaderLightBackgroundPreset,
+      }
+    }
+
+    const syncCurrentThemeCompatColors = () => {
+      readerConfigStore.setReaderConfig(
+        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value)
+      )
+    }
+
     const resetStyle = async () => {
-      const confirmation = await confirm('确定要恢复默认排版吗？', {
-        title: '恢复默认排版',
+      const confirmation = await confirm('确定要恢复当前主题的默认阅读样式吗？', {
+        title: '恢复默认样式',
         kind: 'warning',
       })
       if (confirmation) {
+        const nextBackgroundPresets = buildBackgroundPresetsForCurrentTheme('default')
         readerConfigStore.setDefaultConfig()
-        readerConfigStore.setReaderConfig(
-          syncReaderConfigThemeColors(readerConfig.value, props.themeMode)
-        )
+        readerConfigStore.changeState('backgroundPresets', nextBackgroundPresets)
         selectedFont.value = DEFAULT_READER_FONT
+        syncCurrentThemeCompatColors()
         emitStyleApplication()
         updateVisual()
       }
+    }
+
+    const selectBackgroundPreset = (preset: ReaderBackgroundPreset) => {
+      readerConfigStore.changeState(
+        'backgroundPresets',
+        buildBackgroundPresetsForCurrentTheme(preset)
+      )
+      syncCurrentThemeCompatColors()
+      emitStyleApplication()
     }
 
     const selectFont = (font: string) => {
@@ -312,20 +381,23 @@ export default defineComponent({
     )
 
     return {
-      menuElement,
-      menuStyle,
-      selectedFont,
-      settings,
+      activeBackgroundPreset,
       adjustSetting,
-      resetStyle,
-      selectFont,
+      backgroundPresetOptions,
+      enabledFontCount,
       flow,
       flowMode,
-      switchFlow,
-      readerConfig,
       fontOptions,
-      enabledFontCount,
+      menuElement,
+      menuStyle,
       openFontDialog,
+      readerConfig,
+      resetStyle,
+      selectBackgroundPreset,
+      selectFont,
+      selectedFont,
+      settings,
+      switchFlow,
       themeModeLabel,
     }
   },
@@ -365,13 +437,6 @@ label {
     color: var(--text-primary);
   }
 
-  .menu-subtitle {
-    margin-top: 6px;
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--text-tertiary);
-  }
-
   .menu-theme {
     .summary-pill {
       width: fit-content;
@@ -407,9 +472,75 @@ label {
     gap: 12px;
   }
 
-  .section-caption {
-    font-size: 12px;
-    color: var(--text-muted);
+  .background-section {
+    .background-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .background-card {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
+      background: var(--surface-strong);
+      color: inherit;
+      text-align: left;
+      box-shadow: var(--shadow-xs);
+      transition:
+        transform var(--duration-fast) var(--easing-standard),
+        box-shadow var(--duration-fast) var(--easing-standard),
+        border-color var(--duration-fast) var(--easing-standard);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--border-emphasis);
+      }
+
+      &.is-active {
+        border-color: var(--border-brand);
+        box-shadow:
+          var(--shadow-md),
+          0 0 0 2px var(--ring-brand-subtle);
+      }
+    }
+
+    .background-card-preview {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 72px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-emphasis);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .background-card-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      box-shadow: var(--shadow-sm);
+    }
   }
 
   .font-section {
