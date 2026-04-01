@@ -21,6 +21,7 @@ pub use web::{
     start_stream, webdav_delete, webdav_exists, webdav_get, webdav_sync_files, webdav_upload,
 };
 pub use window::{
-    ack_reader_load, close_reader_window, dispatch_reader_event, open_reader_window,
+    ack_reader_load, close_reader_window, dispatch_main_event, dispatch_reader_event,
+    open_reader_window,
     reader_window_ready, ReaderWindowState,
 };

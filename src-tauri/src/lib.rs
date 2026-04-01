@@ -5,7 +5,7 @@ mod model;
 use command::{
     ack_reader_load,
     check_app_update, check_cloud_dirs_command, check_local_dirs_command, delete_book,
-    close_reader_window, dispatch_reader_event, get_cloud_dir_names_command,
+    close_reader_window, dispatch_main_event, dispatch_reader_event, get_cloud_dir_names_command,
     get_local_dir_names_command, get_system_fonts, install_app_update, list_files, load_books,
     load_settings, open_reader_window, prepare_updater_proxy, read_file, read_file_by_path,
     reader_window_ready, save_file, save_settings, start_stream, webdav_delete, webdav_exists,
@@ -85,6 +85,7 @@ pub fn run() {
             reader_window_ready,
             ack_reader_load,
             close_reader_window,
+            dispatch_main_event,
             dispatch_reader_event
         ])
         .run(tauri::generate_context!())

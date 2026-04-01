@@ -9,6 +9,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 const READER_LABEL: &str = "reader";
+const MAIN_LABEL: &str = "main";
 const LOAD_BOOK_EVENT: &str = "load-book-key";
 const OPEN_TIMEOUT_MS: u64 = 7000;
 const ACK_RETRY_WAIT_MS: u64 = 1800;
@@ -290,6 +291,26 @@ pub fn dispatch_reader_event(
         payload.unwrap_or_else(|| json!({})),
     )
     .map_err(|error| format!("failed to dispatch reader event: {:?}", error))?;
+
+    Ok(DispatchReaderEventResult { delivered: true })
+}
+
+#[tauri::command]
+pub fn dispatch_main_event(
+    app: AppHandle,
+    event_name: String,
+    payload: Option<Value>,
+) -> Result<DispatchReaderEventResult, String> {
+    if app.get_webview_window(MAIN_LABEL).is_none() {
+        return Ok(DispatchReaderEventResult { delivered: false });
+    }
+
+    app.emit_to(
+        MAIN_LABEL,
+        event_name.as_str(),
+        payload.unwrap_or_else(|| json!({})),
+    )
+    .map_err(|error| format!("failed to dispatch main event: {:?}", error))?;
 
     Ok(DispatchReaderEventResult { delivered: true })
 }

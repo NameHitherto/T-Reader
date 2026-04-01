@@ -14,6 +14,11 @@ interface SaveReaderProgressArgs {
   bookMarks: BookMark[]
 }
 
+export interface SavedReaderProgress {
+  bookConfig: BookConfig
+  progress: number
+}
+
 const clampProgress = (value: number): number => {
   if (!Number.isFinite(value)) {
     return 0
@@ -58,7 +63,7 @@ const resolveReaderProgressPercent = async (
 
 export const saveReaderProgress = async (
   args: SaveReaderProgressArgs
-): Promise<BookConfig | null> => {
+): Promise<SavedReaderProgress | null> => {
   const { bookKey, format, rendition, txtCurrentParagraph, bookMarks } = args
 
   const bookConfig = await loadBookConfig(bookKey)
@@ -94,5 +99,9 @@ export const saveReaderProgress = async (
   await saveBookCache(bookKey, {
     progress,
   })
-  return bookConfig
+
+  return {
+    bookConfig,
+    progress,
+  }
 }

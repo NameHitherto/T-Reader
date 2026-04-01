@@ -177,6 +177,7 @@ import {
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import {
   ackReaderLoadMessage,
+  dispatchBookshelfProgressSaved,
   notifyReaderWindowReady,
 } from '@/services/reader/readerWindowBridgeService'
 
@@ -550,7 +551,7 @@ export default {
         return
       }
 
-      const savedConfig = await saveReaderProgress({
+      const savedProgress = await saveReaderProgress({
         bookKey: currentBookKey.value,
         format: currentBookFormat.value,
         rendition: rendition.value,
@@ -558,8 +559,19 @@ export default {
         bookMarks: bookMarks.value,
       })
 
-      if (savedConfig) {
-        currentBookConfig.value = savedConfig
+      if (savedProgress) {
+        currentBookConfig.value = savedProgress.bookConfig
+
+        await dispatchBookshelfProgressSaved({
+          bookKey: currentBookKey.value,
+          progress: savedProgress.progress,
+          durChapterIndex: savedProgress.bookConfig.durChapterIndex,
+          durChapterPos: savedProgress.bookConfig.durChapterPos,
+          durChapterTitle: savedProgress.bookConfig.durChapterTitle,
+          durChapterTime: savedProgress.bookConfig.durChapterTime,
+        }).catch((error) => {
+          logWarn('reader', '通知主窗口刷新书架失败', error)
+        })
       }
     }
 

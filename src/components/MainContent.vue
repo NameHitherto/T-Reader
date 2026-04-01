@@ -146,8 +146,9 @@
 </template>
 
 <script lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from './ContextMenu/index.vue'
@@ -195,8 +196,10 @@ import {
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
 import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
+import type { BookshelfProgressSavedPayload } from '@/services/reader/readerWindowBridgeService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
+import { WINDOW_EVENTS } from '@/constants/events'
 import {
   createDurationLogger,
   logError,
@@ -258,6 +261,7 @@ export default {
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
     const isBooksEmpty = computed(() => books.value.length === 0)
+    let unlistenBookshelfProgressSaved: UnlistenFn | null = null
     const shelfViewMode = ref<ShelfViewMode>(
       localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list'
     )
@@ -712,6 +716,56 @@ export default {
       await openReaderWindowWithPrecheck(bookKey.toString())
     }
 
+    const clampProgressValue = (value: number) => {
+      if (!Number.isFinite(value)) {
+        return 0
+      }
+
+      return Math.min(100, Math.max(0, value))
+    }
+
+    const applyBookshelfProgressSaved = (payload: BookshelfProgressSavedPayload) => {
+      if (!payload.bookKey) {
+        return
+      }
+
+      const currentIndex = books.value.findIndex((book) => book.bookKey === payload.bookKey)
+      if (currentIndex < 0) {
+        void loadBooks()
+        return
+      }
+
+      const progressValue = clampProgressValue(payload.progress)
+      const currentBook = books.value[currentIndex]
+      books.value.splice(currentIndex, 1, {
+        ...currentBook,
+        durChapterIndex: payload.durChapterIndex,
+        durChapterPos: payload.durChapterPos,
+        durChapterTitle: payload.durChapterTitle,
+        durChapterTime: payload.durChapterTime,
+        progressValue,
+        lastReadLabel: buildLastReadLabel(
+          {
+            durChapterIndex: payload.durChapterIndex,
+            durChapterPos: payload.durChapterPos,
+            durChapterTitle: payload.durChapterTitle,
+            durChapterTime: payload.durChapterTime,
+          },
+          progressValue
+        ),
+      })
+    }
+
+    const registerBookshelfProgressSavedListener = async () => {
+      unlistenBookshelfProgressSaved?.()
+      unlistenBookshelfProgressSaved = await listen<BookshelfProgressSavedPayload>(
+        WINDOW_EVENTS.BOOKSHELF_PROGRESS_SAVED,
+        (event) => {
+          applyBookshelfProgressSaved(event.payload)
+        }
+      )
+    }
+
     const uploadBookToCloud = async (bookKey: string) => {
       try {
         await uploadLocalBookFileToCloud(bookKey)
@@ -814,7 +868,15 @@ export default {
     }
 
     onMounted(() => {
-      loadBooks()
+      void loadBooks()
+      void registerBookshelfProgressSavedListener().catch((error) => {
+        logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
+      })
+    })
+
+    onUnmounted(() => {
+      unlistenBookshelfProgressSaved?.()
+      unlistenBookshelfProgressSaved = null
     })
 
     return {
