@@ -102,7 +102,6 @@
 
 <script lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { UnlistenFn } from '@tauri-apps/api/event'
 import { Rendition } from 'libs/epub.js'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -119,7 +118,7 @@ import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vu
 import TocMenu from './components/TocMenu/index.vue'
 import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
 import { BookFormat } from './js/bookFormat'
-import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events'
+import { READER_DOM_EVENTS } from '@/constants/events'
 import {
   calcTxtProgress,
   findParagraphIndexByScroll,
@@ -176,6 +175,10 @@ import {
   syncReaderConfigThemeColors,
 } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
+import {
+  ackReaderLoadMessage,
+  notifyReaderWindowReady,
+} from '@/services/reader/readerWindowBridgeService'
 
 export default {
   name: 'ReaderApp',
@@ -611,10 +614,22 @@ export default {
 
     registerReaderWindowEvents({
       onLoadBookKey: async (event) => {
+        const payload = event.payload || {}
+        if (!payload.bookKey) {
+          logWarn('ReaderApp', '收到无效的load-book消息', payload)
+          return
+        }
+
+        if (payload.messageId) {
+          await ackReaderLoadMessage(payload.messageId).catch((error) => {
+            logWarn('ReaderApp', 'load-book ACK失败', error)
+          })
+        }
+
         await saveReaderRendition()
-        pendingBookKey.value = event.payload.bookKey
-        if (event.payload.cfi !== '') {
-          await loadBook(event.payload.cfi)
+        pendingBookKey.value = payload.bookKey
+        if (payload.cfi) {
+          await loadBook(payload.cfi)
         } else {
           await loadBook()
         }
@@ -659,8 +674,9 @@ export default {
       unlistenShowHelp.value = unlisteners.unlistenShowHelp
     })
 
-    // 通知主窗口阅读器已准备好接收书籍 name
-    getCurrentWebviewWindow().emitTo('main', WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY)
+    void notifyReaderWindowReady().catch((error) => {
+      logWarn('ReaderApp', '通知后端reader就绪失败', error)
+    })
 
     // 绑定 Rendition 事件
     const handleRenditionEvents = () => {

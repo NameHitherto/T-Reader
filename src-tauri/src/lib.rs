@@ -3,11 +3,14 @@ mod logging;
 mod model;
 
 use command::{
+    ack_reader_load,
     check_app_update, check_cloud_dirs_command, check_local_dirs_command, delete_book,
-    get_cloud_dir_names_command, get_local_dir_names_command, get_system_fonts, install_app_update,
-    list_files, load_books, load_settings, prepare_updater_proxy, read_file, read_file_by_path,
-    save_file, save_settings, start_stream, webdav_delete, webdav_exists, webdav_get,
-    webdav_sync_files, webdav_upload, write_file, AppUpdateState,
+    close_reader_window, dispatch_reader_event, get_cloud_dir_names_command,
+    get_local_dir_names_command, get_system_fonts, install_app_update, list_files, load_books,
+    load_settings, open_reader_window, prepare_updater_proxy, read_file, read_file_by_path,
+    reader_window_ready, save_file, save_settings, start_stream, webdav_delete, webdav_exists,
+    webdav_get, webdav_sync_files, webdav_upload, write_file, AppUpdateState,
+    ReaderWindowState,
 };
 #[cfg(not(debug_assertions))]
 use command::dir::get_local_cached_dir;
@@ -53,6 +56,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .manage(AppUpdateState::default())
+        .manage(ReaderWindowState::default())
         .invoke_handler(tauri::generate_handler![
             save_file,
             load_books,
@@ -76,7 +80,12 @@ pub fn run() {
             check_local_dirs_command,
             check_cloud_dirs_command,
             get_local_dir_names_command,
-            get_cloud_dir_names_command
+            get_cloud_dir_names_command,
+            open_reader_window,
+            reader_window_ready,
+            ack_reader_load,
+            close_reader_window,
+            dispatch_reader_event
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

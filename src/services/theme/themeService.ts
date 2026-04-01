@@ -1,5 +1,6 @@
-import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { WINDOW_EVENTS } from '@/constants/events'
+import { dispatchReaderThemeUpdate } from '@/services/reader/readerWindowBridgeService'
 import {
   loadAppSettings,
   normalizeAppThemeMode,
@@ -301,13 +302,10 @@ export const syncReaderConfigThemeColors = <
 export const emitAppThemeUpdate = async (mode: AppThemeMode) => {
   const normalizedMode = applyAppThemeMode(mode)
   const currentWindow = getCurrentWebviewWindow()
-  const readerWindow = await WebviewWindow.getByLabel('reader')
 
   await Promise.allSettled([
     currentWindow.emit(WINDOW_EVENTS.UPDATE_APP_THEME, { mode: normalizedMode }),
-    ...(readerWindow
-      ? [readerWindow.emit(WINDOW_EVENTS.UPDATE_APP_THEME, { mode: normalizedMode })]
-      : []),
+    dispatchReaderThemeUpdate(normalizedMode),
   ])
 
   return normalizedMode

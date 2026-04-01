@@ -1,4 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 
 export const bindWindowTitlebarControls = () => {
   const appWindow = getCurrentWindow();
@@ -23,7 +24,14 @@ export const bindWindowTitlebarControls = () => {
   const onMaximize = () => {
     toggleMaximize()
   }
-  const onClose = () => appWindow.close()
+  const onClose = async () => {
+    if (appWindow.label === 'reader') {
+      await invoke('close_reader_window').catch(() => appWindow.close())
+      return
+    }
+
+    appWindow.close()
+  }
 
   document
     .getElementById('titlebar-minimize')

@@ -107,12 +107,11 @@
 <script lang="ts">
 import { computed, defineComponent, ref, watch, type PropType } from 'vue'
 import { storeToRefs } from 'pinia'
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
-import { WINDOW_EVENTS } from '@/constants/events'
 import { buildReaderFontOptions } from '@/services/reader/systemFontService'
+import { dispatchReaderStyleUpdate } from '@/services/reader/readerWindowBridgeService'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 import {
   getAppliedAppThemeMode,
@@ -310,7 +309,7 @@ export default defineComponent({
     }
 
     const emitStyleApplication = () => {
-      getCurrentWebviewWindow().emitTo('reader', WINDOW_EVENTS.UPDATE_READER_STYLE)
+      void dispatchReaderStyleUpdate()
     }
 
     const buildBackgroundPresetsForCurrentTheme = (

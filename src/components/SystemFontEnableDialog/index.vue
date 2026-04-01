@@ -123,9 +123,9 @@
 <script lang="ts">
 import { defineComponent, computed, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { saveReaderConfigToDisk } from '@/services/reader/readerConfigService'
+import { dispatchReaderStyleUpdate } from '@/services/reader/readerWindowBridgeService'
 import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
 import { logError } from '@/utils/logger'
 import {
@@ -138,7 +138,6 @@ import {
   groupSystemFontsByFamily,
   toEnabledSystemFont,
 } from '@/services/reader/systemFontService'
-import { WINDOW_EVENTS } from '@/constants/events'
 import {
   DEFAULT_READER_FONT,
   SYSTEM_FONT_PREVIEW_TEXT,
@@ -321,7 +320,7 @@ export default defineComponent({
         const syncedConfig = syncReaderConfigThemeColors(readerConfig.value)
         readerConfigStore.setReaderConfig(syncedConfig)
         await saveReaderConfigToDisk(syncedConfig)
-        await getCurrentWebviewWindow().emitTo('reader', WINDOW_EVENTS.UPDATE_READER_STYLE)
+        await dispatchReaderStyleUpdate()
 
         emit('saved', {
           enabledFonts: nextEnabledFonts,

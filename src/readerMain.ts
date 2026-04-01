@@ -34,13 +34,13 @@ const bootstrap = async () => {
     window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.TOGGLE_STYLE_MENU));
   };
   const onShowBookInfoClick = () => {
-    webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_BOOK_INFO);
+    webviewWindow.emit(WINDOW_EVENTS.SHOW_BOOK_INFO);
   };
   const onShowAssistantClick = () => {
-    webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_ASSISTANT);
+    webviewWindow.emit(WINDOW_EVENTS.SHOW_ASSISTANT);
   };
   const onShowHelpClick = () => {
-    webviewWindow.emitTo('reader', WINDOW_EVENTS.SHOW_HELP);
+    webviewWindow.emit(WINDOW_EVENTS.SHOW_HELP);
   };
   const onContextMenu = (event: MouseEvent) => {
     event.preventDefault();
