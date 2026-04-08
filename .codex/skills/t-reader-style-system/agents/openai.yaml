@@ -1,0 +1,4 @@
+interface:
+  display_name: "T-Reader Style System"
+  short_description: "Style system and theme rules for T-Reader UI"
+  default_prompt: "Use $t-reader-style-system to implement or review frontend styling changes in this repository."

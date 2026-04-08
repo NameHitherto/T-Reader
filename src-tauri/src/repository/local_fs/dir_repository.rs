@@ -1,0 +1,146 @@
+use dirs::document_dir;
+use std::{fs, path::PathBuf};
+
+use crate::{
+    entities::{CloudDirNames, LocalDirNames, Settings},
+    utils::logging::{log_error, log_info, log_warn},
+};
+
+pub const LOCAL_BOOKS_DIR: &str = "books";
+pub const LOCAL_PROGRESS_DIR: &str = "bookProgress";
+pub const LOCAL_CACHED_DIR: &str = "cached";
+pub const LOCAL_SYSTEM_DIR: &str = "system";
+
+pub const CLOUD_BOOKS_DIR: &str = "books";
+pub const CLOUD_PROGRESS_DIR: &str = "bookProgress";
+
+const LOCAL_SUBDIRS: [&str; 4] = [
+    LOCAL_BOOKS_DIR,
+    LOCAL_PROGRESS_DIR,
+    LOCAL_CACHED_DIR,
+    LOCAL_SYSTEM_DIR,
+];
+const CLOUD_SUBDIRS: [&str; 2] = [CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR];
+
+pub fn get_local_dir_names() -> LocalDirNames {
+    LocalDirNames {
+        books: LOCAL_BOOKS_DIR.to_string(),
+        progress: LOCAL_PROGRESS_DIR.to_string(),
+        cached: LOCAL_CACHED_DIR.to_string(),
+        system: LOCAL_SYSTEM_DIR.to_string(),
+    }
+}
+
+pub fn get_cloud_dir_names() -> CloudDirNames {
+    CloudDirNames {
+        books: CLOUD_BOOKS_DIR.to_string(),
+        progress: CLOUD_PROGRESS_DIR.to_string(),
+    }
+}
+
+pub fn get_local_root_dir() -> Result<PathBuf, String> {
+    let mut path = document_dir().ok_or("err finding document_dir")?;
+    path.push("T-Reader");
+    Ok(path)
+}
+
+pub fn get_local_system_dir() -> Result<PathBuf, String> {
+    Ok(get_local_root_dir()?.join(LOCAL_SYSTEM_DIR))
+}
+
+#[cfg(not(debug_assertions))]
+pub fn get_local_cached_dir() -> Result<PathBuf, String> {
+    Ok(get_local_root_dir()?.join(LOCAL_CACHED_DIR))
+}
+
+pub fn ensure_local_dirs() -> Result<PathBuf, String> {
+    let root_path = get_local_root_dir()?;
+
+    if !root_path.exists() {
+        log_info(
+            "dir",
+            &format!("creating-local-root path={}", root_path.display()),
+        );
+        fs::create_dir_all(&root_path).map_err(|error| {
+            log_error(
+                "dir",
+                &format!(
+                    "create-local-root failed path={} error={}",
+                    root_path.display(),
+                    error
+                ),
+            );
+            error.to_string()
+        })?;
+    }
+
+    for subdir in LOCAL_SUBDIRS {
+        let subdir_path = root_path.join(subdir);
+        if !subdir_path.exists() {
+            log_info(
+                "dir",
+                &format!("creating-local-subdir path={}", subdir_path.display()),
+            );
+            fs::create_dir_all(&subdir_path).map_err(|error| {
+                log_error(
+                    "dir",
+                    &format!(
+                        "create-local-subdir failed path={} error={}",
+                        subdir_path.display(),
+                        error
+                    ),
+                );
+                error.to_string()
+            })?;
+        }
+    }
+
+    Ok(root_path)
+}
+
+pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
+    let client = reqwest::Client::new();
+
+    let root_url = settings.webdav_url.trim_end_matches('/').to_string() + "/";
+    let _ = client
+        .request(http::Method::from_bytes(b"MKCOL").unwrap(), &root_url)
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+        .send()
+        .await;
+
+    for subdir in CLOUD_SUBDIRS {
+        let dir_url = format!("{}{}/", settings.webdav_url, subdir);
+        let response = client
+            .request(http::Method::from_bytes(b"MKCOL").unwrap(), &dir_url)
+            .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+            .send()
+            .await;
+
+        match response {
+            Ok(resp) => {
+                let status = resp.status();
+                if status.is_success() {
+                    log_info(
+                        "dir",
+                        &format!("cloud-dir-ready subdir={} status={}", subdir, status),
+                    );
+                } else if status.as_u16() == 409 {
+                    log_info("dir", &format!("cloud-dir-exists subdir={}", subdir));
+                } else {
+                    log_warn(
+                        "dir",
+                        &format!("cloud-dir-check status={} subdir={}", status, subdir),
+                    );
+                }
+            }
+            Err(error) => {
+                log_warn(
+                    "dir",
+                    &format!("cloud-dir-check failed subdir={} error={}", subdir, error),
+                );
+            }
+        }
+    }
+
+    Ok(())
+}

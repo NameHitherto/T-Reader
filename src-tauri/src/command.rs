@@ -1,0 +1,33 @@
+pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![
+        crate::api::file::save_file,
+        crate::api::file::load_books,
+        crate::api::file::delete_book,
+        crate::api::file::read_file_by_path,
+        crate::api::file::read_file,
+        crate::api::file::write_file,
+        crate::api::file::list_files,
+        crate::api::webdav::webdav_upload,
+        crate::api::webdav::webdav_get,
+        crate::api::webdav::webdav_exists,
+        crate::api::webdav::webdav_delete,
+        crate::api::webdav::webdav_sync_files,
+        crate::api::file::save_settings,
+        crate::api::file::load_settings,
+        crate::api::ai::start_stream,
+        crate::api::font::get_system_fonts,
+        crate::api::updater::prepare_updater_proxy,
+        crate::api::updater::check_app_update,
+        crate::api::updater::install_app_update,
+        crate::api::dir::check_local_dirs_command,
+        crate::api::dir::check_cloud_dirs_command,
+        crate::api::dir::get_local_dir_names_command,
+        crate::api::dir::get_cloud_dir_names_command,
+        crate::api::window::open_reader_window,
+        crate::api::window::reader_window_ready,
+        crate::api::window::ack_reader_load,
+        crate::api::window::close_reader_window,
+        crate::api::window::dispatch_main_event,
+        crate::api::window::dispatch_reader_event
+    ]
+}
