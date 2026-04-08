@@ -16,10 +16,7 @@ interface BindRenditionEventsArgs {
   buildContextMenuItems: () => ReaderContextMenuItem[]
 }
 
-export const bindRenditionEvents = (
-  rendition: any,
-  args: BindRenditionEventsArgs
-) => {
+export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArgs) => {
   if (!rendition) {
     return
   }

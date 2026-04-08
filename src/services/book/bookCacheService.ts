@@ -1,12 +1,10 @@
 import { invoke } from '@tauri-apps/api/core'
-import ePub from 'libs/epub.js'
 import { BookFormat } from '@/types/book'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
-import { parseEpubMeta } from '@/services/book/parsers/epubParser'
-import { parseTxtMeta } from '@/services/book/parsers/txtParser'
-import { splitTextToParagraphs } from '@/services/reader/txtReaderService'
+import { epubBookCacheHandler } from '@/services/book/epub/epubCacheService'
+import { txtBookCacheHandler } from '@/services/book/txt/txtCacheService'
 import { toBookCacheFilename } from '@/services/book/bookIdentity'
-import { createDurationLogger, logWarn } from '@/utils/logger'
+import { createDurationLogger } from '@/utils/logger'
 import { stringifyJson } from '@/utils/json'
 
 export interface BookCachePayload {
@@ -107,38 +105,16 @@ export const saveBookCache = async (
   return nextCache
 }
 
-const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> => {
-  const finishLog = createDurationLogger('book-cache-service', 'extract-epub-locations')
-  const book = ePub(fileBuffer)
+const BOOK_CACHE_HANDLERS = {
+  epub: epubBookCacheHandler,
+  txt: txtBookCacheHandler,
+} as const
 
-  try {
-    await book.ready
-    await book.locations.generate(1000)
-    const locations = book.locations.save()
-    finishLog({
-      locationLength: locations.length,
-    })
-    return locations
-  } finally {
-    try {
-      book.destroy?.()
-    } catch (error) {
-      logWarn('book-cache-service', 'release-epub-locations-instance failed', {
-        error,
-      })
-    }
-  }
-}
-
-const extractTxtParagraphCount = (fileBuffer: ArrayBuffer): number => {
-  const finishLog = createDurationLogger('book-cache-service', 'extract-txt-paragraph-count')
-  const textContent = new TextDecoder().decode(fileBuffer)
-  const paragraphCount = splitTextToParagraphs(textContent).length
-  finishLog({
-    paragraphCount,
-    textLength: textContent.length,
-  })
-  return paragraphCount
+export const hasRequiredBookCache = (
+  format: BookFormat,
+  cache: BookCachePayload
+): boolean => {
+  return BOOK_CACHE_HANDLERS[format].hasRequiredCache(cache)
 }
 
 export const primeBookCacheAfterImport = async (
@@ -152,59 +128,20 @@ export const primeBookCacheAfterImport = async (
     format,
   })
   const currentCache = await loadBookCache(bookKey)
-  const progress = currentCache?.progress ?? 0
+  const nextPayload = await BOOK_CACHE_HANDLERS[format].buildCachePayload({
+    fileBuffer,
+    originalFileName,
+    currentCache: currentCache || {},
+  })
+  const payload = await saveBookCache(bookKey, nextPayload)
 
-  if (format !== 'epub') {
-    const payload = {
-      title: parseTxtMeta(originalFileName).title,
-      paragraphCount: extractTxtParagraphCount(fileBuffer),
-      progress,
-    }
-    await saveBookCache(bookKey, payload)
-    finishLog({
-      fileName: originalFileName,
-      format,
-      paragraphCount: payload.paragraphCount,
-      progress: payload.progress,
-    })
-    return payload
-  }
-
-  try {
-    const [meta, locations] = await Promise.all([
-      parseEpubMeta(fileBuffer, { includeCover: true }),
-      extractEpubLocations(fileBuffer),
-    ])
-    const payload = await saveBookCache(bookKey, {
-      title: meta.title,
-      cover: meta.cover || '',
-      locations,
-      progress,
-    })
-    finishLog({
-      fileName: originalFileName,
-      format,
-      hasCover: Boolean(payload.cover),
-      hasLocations: Boolean(payload.locations),
-      progress: payload.progress,
-    })
-    return payload
-  } catch (error) {
-    logWarn('book-cache-service', 'prime-book-cache-after-import fallback', {
-      fileName: originalFileName,
-      format,
-      error,
-    })
-    const payload = {
-      progress,
-    }
-    await saveBookCache(bookKey, payload)
-    finishLog({
-      fileName: originalFileName,
-      format,
-      fallback: true,
-      progress: payload.progress,
-    })
-    return payload
-  }
+  finishLog({
+    fileName: originalFileName,
+    format,
+    hasCover: Boolean(payload.cover),
+    hasLocations: Boolean(payload.locations),
+    paragraphCount: payload.paragraphCount,
+    progress: payload.progress,
+  })
+  return payload
 }

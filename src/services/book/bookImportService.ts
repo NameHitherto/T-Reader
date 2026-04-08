@@ -1,35 +1,29 @@
 import { BookConfig } from '@/types/book'
 import { ImportBookParams } from '@/services/book/types'
-import { parseEpubMeta } from '@/services/book/parsers/epubParser'
-import { parseTxtMeta } from '@/services/book/parsers/txtParser'
-import { buildBookTitle } from '@/services/book/bookIdentity'
-import { buildTxtProgressSnapshot } from '@/services/book/bookConfigService'
+import { epubBookImportHandler } from '@/services/book/epub/epubImportService'
+import { txtBookImportHandler } from '@/services/book/txt/txtImportService'
 import { createDurationLogger } from '@/utils/logger'
+
+const BOOK_IMPORT_HANDLERS = {
+  epub: epubBookImportHandler,
+  txt: txtBookImportHandler,
+} as const
+
+export const parseBookMetaByFormat = async (params: ImportBookParams) => {
+  return await BOOK_IMPORT_HANDLERS[params.format].parseMeta(params)
+}
 
 export const buildBookConfigFromImport = async (
   params: ImportBookParams
 ): Promise<BookConfig> => {
-  const { originalFileName, format, fileBuffer } = params
+  const { originalFileName, format } = params
   const finishLog = createDurationLogger('book-import-service', 'build-book-config', {
     fileName: originalFileName,
     format,
   })
 
-  const meta =
-    format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(originalFileName)
-
-  const nextConfig = {
-    name: buildBookTitle(meta.title),
-    author: meta.author,
-    ...(format === 'epub'
-      ? {
-          durChapterIndex: 0,
-          durChapterPos: 0,
-          durChapterTitle: '',
-          durChapterTime: Date.now(),
-        }
-      : buildTxtProgressSnapshot(0)),
-  }
+  const meta = await parseBookMetaByFormat(params)
+  const nextConfig = BOOK_IMPORT_HANDLERS[format].buildInitialBookConfig(meta)
 
   finishLog({
     bookTitle: nextConfig.name,

@@ -122,12 +122,12 @@ import { READER_DOM_EVENTS } from '@/constants/events'
 import {
   calcTxtProgress,
   findParagraphIndexByScroll,
-} from '@/services/reader/txtReaderService'
+} from '@/services/reader/txt/txtReaderService'
 import {
   destroyEpubRendition,
   renderEpubBook,
-} from '@/services/reader/adapters/epubAdapter'
-import { renderTxtBook } from '@/services/reader/adapters/txtAdapter'
+} from '@/services/reader/epub/epubAdapter'
+import { renderTxtBook } from '@/services/reader/txt/txtAdapter'
 import { resolveReaderDisplayTarget } from '@/services/reader/progressSnapshotService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
@@ -136,14 +136,14 @@ import {
   addBookmarkHighlight,
   initBookMarksForBook,
   removeBookmarkHighlight,
-} from '@/services/reader/bookmarkService'
-import { bindRenditionEvents } from '@/services/reader/renditionEventsService'
+} from '@/services/reader/epub/bookmarkService'
+import { bindRenditionEvents } from '@/services/reader/epub/renditionEventsService'
 import {
   collectParentChapterIndexes,
   scrollDrawerToActiveChapter,
-} from '@/services/reader/tocService'
+} from '@/services/reader/epub/tocService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
-import { scrollTxtByPage } from '@/services/reader/navigationService'
+import { scrollTxtByPage } from '@/services/reader/txt/navigationService'
 import {
   dispatchReaderKeydown,
   resetReaderTransientUi,
@@ -167,7 +167,7 @@ import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
-import { resolveEpubTocLabel } from '@/services/reader/epubProgressService'
+import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
 import {
   getAppliedAppThemeMode,
   getReaderRuntimePalette,

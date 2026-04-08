@@ -1,5 +1,6 @@
 import ePub, { EpubCFI } from 'libs/epub.js'
 import { BookConfig } from '@/types/book'
+import { ReaderProgressHandler } from '@/services/reader/formatTypes'
 import { logWarn } from '@/utils/logger'
 
 export interface EpubProgressSnapshot {
@@ -253,4 +254,33 @@ export const calculateEpubProgressFromSnapshot = async (
       logWarn('epubProgress', '销毁 EPUB 进度快照实例失败', error)
     }
   }
+}
+
+const clampProgress = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
+  return Math.min(100, Math.max(0, value))
+}
+
+export const epubReaderProgressHandler: ReaderProgressHandler = {
+  async serializeProgress({ rendition }) {
+    return await serializeEpubProgress(rendition)
+  },
+  async resolveDisplayTarget(source, snapshot) {
+    return await resolveEpubDisplayTarget(source, snapshot)
+  },
+  async calculateProgress({ rendition }) {
+    const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
+    const percentage = currentLocation?.start?.percentage
+    return typeof percentage === 'number' ? clampProgress(percentage * 100) : 0
+  },
+  async calculateShelfProgress({ bookData, snapshot, cache }) {
+    if (!bookData) {
+      return 0
+    }
+
+    return await calculateEpubProgressFromSnapshot(bookData, snapshot, cache.locations)
+  },
 }

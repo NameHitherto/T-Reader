@@ -89,7 +89,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import MarkdownIt from 'markdown-it/index'
 import hljs from 'highlight.js'
-import { extractEpubContent } from '@/services/book/epubContentService'
+import { extractBookContent } from '@/services/book/bookContentService'
 import { logError } from '@/utils/logger'
 
 interface StreamPayload {
@@ -129,7 +129,7 @@ export default defineComponent({
         logError('assistant', 'bookKey is required')
         return
       }
-      this.referedBookInfo = await extractEpubContent(this.bookKey)
+      this.referedBookInfo = await extractBookContent(this.bookKey)
     },
     async sendMessage() {
       if (!this.inputMessage) return

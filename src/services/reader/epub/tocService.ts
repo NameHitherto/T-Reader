@@ -1,7 +1,4 @@
-export const collectParentChapterIndexes = (
-  book: any,
-  activeChapter: string
-): string[] => {
+export const collectParentChapterIndexes = (book: any, activeChapter: string): string[] => {
   if (!book || !activeChapter) {
     return []
   }

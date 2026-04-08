@@ -1,14 +1,9 @@
 import { BookConfig, BookFormat, BookProgressSnapshot } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
-import {
-  buildTxtProgressSnapshot,
-  isUnreadProgressSnapshot,
-} from '@/services/book/bookConfigService'
-import {
-  calculateEpubProgressFromSnapshot,
-  resolveEpubDisplayTarget,
-  serializeEpubProgress,
-} from '@/services/reader/epubProgressService'
+import { isUnreadProgressSnapshot } from '@/services/book/bookConfigService'
+import { ReaderProgressHandler } from '@/services/reader/formatTypes'
+import { epubReaderProgressHandler } from '@/services/reader/epub/epubProgressService'
+import { txtReaderProgressHandler } from '@/services/reader/txt/txtProgressService'
 
 interface SerializeReaderProgressArgs {
   format: BookFormat
@@ -16,24 +11,23 @@ interface SerializeReaderProgressArgs {
   txtCurrentParagraph: number
 }
 
-const normalizeIndex = (value: unknown): number => {
-  const parsed = Number(value)
-  if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-    return 0
-  }
-  return Math.max(0, Math.floor(parsed))
+const READER_PROGRESS_HANDLERS: Record<BookFormat, ReaderProgressHandler> = {
+  epub: epubReaderProgressHandler,
+  txt: txtReaderProgressHandler,
+}
+
+export const getReaderProgressHandler = (format: BookFormat): ReaderProgressHandler => {
+  return READER_PROGRESS_HANDLERS[format]
 }
 
 export const serializeReaderProgress = async (
   args: SerializeReaderProgressArgs
 ): Promise<BookProgressSnapshot | null> => {
-  const { format, rendition, txtCurrentParagraph } = args
-
-  if (format === 'epub') {
-    return serializeEpubProgress(rendition)
-  }
-
-  return buildTxtProgressSnapshot(txtCurrentParagraph)
+  const handler = getReaderProgressHandler(args.format)
+  return await handler.serializeProgress({
+    rendition: args.rendition,
+    txtCurrentParagraph: args.txtCurrentParagraph,
+  })
 }
 
 export const resolveReaderDisplayTarget = async (
@@ -41,11 +35,7 @@ export const resolveReaderDisplayTarget = async (
   source: any,
   snapshot: BookProgressSnapshot
 ): Promise<string | number | undefined> => {
-  if (format === 'epub') {
-    return resolveEpubDisplayTarget(source, snapshot)
-  }
-
-  return normalizeIndex(snapshot.durChapterIndex)
+  return await getReaderProgressHandler(format).resolveDisplayTarget(source, snapshot)
 }
 
 export const calculateShelfProgress = async (
@@ -58,18 +48,11 @@ export const calculateShelfProgress = async (
     return 0
   }
 
-  if (format === 'epub') {
-    if (!bookData) {
-      return 0
-    }
-    return calculateEpubProgressFromSnapshot(bookData, snapshot, cache.locations)
-  }
-
-  if (!cache.paragraphCount || cache.paragraphCount <= 1) {
-    return 0
-  }
-
-  return (normalizeIndex(snapshot.durChapterIndex) / Math.max(1, cache.paragraphCount - 1)) * 100
+  return await getReaderProgressHandler(format).calculateShelfProgress({
+    bookData,
+    snapshot,
+    cache,
+  })
 }
 
 export const isNormalizedProgressSnapshot = (

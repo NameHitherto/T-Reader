@@ -1,6 +1,6 @@
 import ePub, { Rendition } from 'libs/epub.js'
 import { BookConfig } from '@/types/book'
-import { resolveEpubDisplayTarget } from '@/services/reader/epubProgressService'
+import { resolveEpubDisplayTarget } from '@/services/reader/epub/epubProgressService'
 import { logWarn } from '@/utils/logger'
 
 export interface EpubRenderResult {
@@ -56,7 +56,8 @@ export const renderEpubBook = async (
     })
   }
 
-  const displayTarget = explicitCfi || (await resolveEpubDisplayTarget(ePubBook, progressSnapshot || {}))
+  const displayTarget =
+    explicitCfi || (await resolveEpubDisplayTarget(ePubBook, progressSnapshot || {}))
   if (displayTarget) {
     await rendition.display(displayTarget)
   } else {

@@ -7,6 +7,7 @@ import {
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import {
   BookCachePayload,
+  hasRequiredBookCache,
   loadBookCache,
   primeBookCacheAfterImport,
 } from '@/services/book/bookCacheService'
@@ -18,8 +19,7 @@ import {
   saveBookFileIndex,
   setBookFileIndexEntry,
 } from '@/services/book/bookFileIndexRepository'
-import { parseEpubMeta } from '@/services/book/parsers/epubParser'
-import { parseTxtMeta } from '@/services/book/parsers/txtParser'
+import { parseBookMetaByFormat } from '@/services/book/bookImportService'
 import {
   buildBookName,
   buildBookTitle,
@@ -260,7 +260,12 @@ export const reconcileLibraryBookFileIndex = async (
 
     const bookData = await readLocalBookFile(fileName)
     const fileBuffer = toArrayBuffer(bookData)
-    const meta = format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(fileName)
+    const meta = await parseBookMetaByFormat({
+      sourcePath: fileName,
+      originalFileName: fileName,
+      format,
+      fileBuffer,
+    })
     const bookKey = buildBookName(meta.title, meta.author)
 
     if (!currentIndex.has(bookKey)) {
@@ -438,10 +443,7 @@ export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload
   })
   const currentCache = (await loadBookCache(bookKey)) || {}
   const resolved = await resolveBookFile(bookKey)
-  const hasRequiredCache =
-    resolved.format === 'epub'
-      ? Boolean(currentCache.locations && currentCache.title && currentCache.cover !== undefined)
-      : Boolean(currentCache.paragraphCount && currentCache.title)
+  const hasRequiredCache = hasRequiredBookCache(resolved.format, currentCache)
 
   if (hasRequiredCache) {
     finishLog({
@@ -566,7 +568,12 @@ export const getImportedBookName = async (
     throw new Error(`Unsupported file format: ${fileName}`)
   }
 
-  const meta = format === 'epub' ? await parseEpubMeta(fileBuffer) : parseTxtMeta(fileName)
+  const meta = await parseBookMetaByFormat({
+    sourcePath: fileName,
+    originalFileName: fileName,
+    format,
+    fileBuffer,
+  })
 
   const payload = {
     bookKey: buildBookName(meta.title, meta.author),
