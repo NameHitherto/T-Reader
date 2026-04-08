@@ -153,17 +153,15 @@ import { open } from '@tauri-apps/plugin-dialog'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from './ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
-import { BookConfig, ContextMenuData, ContextMenuItem } from '../js/map'
+import { BookConfig, BookFormat } from '@/types/book'
+import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
-import '../js/iconfont.js'
 import defaultCover from '@/assets/default-cover.png'
 import {
-  BookFormat,
   detectBookFormatFromPath,
-  getFileNameFromPath,
-} from '@/js/bookFormat'
+} from '@/services/book/bookFormatService'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
@@ -206,6 +204,7 @@ import {
   logInfo,
   logWarn,
 } from '@/utils/logger'
+import { getFileNameFromPath } from '@/utils/filePath'
 import { stringifyJson } from '@/utils/json'
 
 export default {

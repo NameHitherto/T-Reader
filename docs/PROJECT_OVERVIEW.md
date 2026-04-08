@@ -106,7 +106,8 @@ src/
 ├── constants/            # 事件名、字体排除等常量
 ├── css/                  # 全局样式
 ├── icons/                # 图标注册表
-├── js/                   # 轻量工具与桥接代码
+├── types/                # 共享类型定义
+├── utils/                # 通用工具与格式化函数
 ├── router/               # 主窗口路由
 ├── services/             # 业务服务层
 │   ├── book/             # 导入、解析、仓储、缓存、展示
@@ -238,7 +239,7 @@ src/
 
 #### `BookConfig`
 
-定义位置：`src/js/map.ts`
+定义位置：`src/types/book.ts`
 
 ```ts
 interface BookConfig {

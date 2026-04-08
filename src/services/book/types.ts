@@ -1,4 +1,4 @@
-import { BookFormat } from '@/js/bookFormat'
+import { BookFormat } from '@/types/book'
 
 export interface ParsedBookMeta {
   format: BookFormat

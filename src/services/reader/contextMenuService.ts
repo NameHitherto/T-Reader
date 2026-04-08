@@ -1,5 +1,5 @@
-import { ContextMenuData, ContextMenuItem } from '@/js/map'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
+import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 
 interface BuildContextMenuArgs {
   x: number

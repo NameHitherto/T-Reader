@@ -74,11 +74,11 @@ import { defineComponent } from 'vue'
 import BookMarkTag from './BookMark/bookMarkTag.vue'
 import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import { BookMark } from '@/store/bookMark'
-import { formatDateToNumber } from '@/js/utils'
 import { ElMessageBox } from 'element-plus'
 import 'element-plus/es/components/message-box/style/css'
 import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookMarksRepository'
 import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
+import { formatDateToNumber } from '@/utils/date'
 
 export default defineComponent({
   name: 'BookMark',

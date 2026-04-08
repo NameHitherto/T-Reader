@@ -1,11 +1,12 @@
-import { BookConfig } from '@/js/map'
-import { BookFormat } from '@/js/bookFormat'
+import { BookConfig, BookFormat } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
 import {
   calculateShelfProgress,
+} from '@/services/reader/progressSnapshotService'
+import {
   isUnreadProgressSnapshot,
   normalizeBookConfig,
-} from '@/services/reader/progressSnapshotService'
+} from '@/services/book/bookConfigService'
 
 const TXT_CHAPTER_PLACEHOLDER_PATTERN = /^paragraph-\d+$/i
 

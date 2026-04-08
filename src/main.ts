@@ -3,9 +3,9 @@ import App from "./App.vue";
 import router from './router';
 import { platform } from '@tauri-apps/plugin-os';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
-import { bindWindowTitlebarControls } from './js/init';
 import { WINDOW_EVENTS } from '@/constants/events';
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService';
+import { bindWindowTitlebarControls } from '@/services/window/windowTitlebarService';
 import { initAppLogger, logError } from '@/utils/logger';
 import './styles/index.scss';
 

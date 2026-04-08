@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import ePub from 'libs/epub.js'
-import { BookFormat } from '@/js/bookFormat'
+import { BookFormat } from '@/types/book'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
 import { parseTxtMeta } from '@/services/book/parsers/txtParser'

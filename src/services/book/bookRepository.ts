@@ -1,10 +1,9 @@
 import { invoke } from '@tauri-apps/api/core'
-import { BookConfig } from '@/js/map'
+import { BookConfig } from '@/types/book'
 import {
-  BookFormat,
   detectBookFormatFromFilename,
   detectBookFormatFromPath,
-} from '@/js/bookFormat'
+} from '@/services/book/bookFormatService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import {
   BookCachePayload,
@@ -27,13 +26,14 @@ import {
   getBookKeyFromConfigFilename,
   toBookConfigFilename,
 } from '@/services/book/bookIdentity'
-import { normalizeBookConfig } from '@/services/reader/progressSnapshotService'
+import { normalizeBookConfig } from '@/services/book/bookConfigService'
 import {
   createDurationLogger,
   logError,
   logWarn,
 } from '@/utils/logger'
 import { encodeJson, stringifyJson } from '@/utils/json'
+import { BookFormat } from '@/types/book'
 
 export interface ResolvedBookFile {
   fileName: string

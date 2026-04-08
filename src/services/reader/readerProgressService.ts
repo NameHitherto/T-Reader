@@ -1,6 +1,5 @@
-import { BookFormat } from '@/js/bookFormat'
 import { BookMark } from '@/store/bookMark'
-import { BookConfig } from '@/js/map'
+import { BookConfig, BookFormat } from '@/types/book'
 import { loadBookCache, saveBookCache } from '@/services/book/bookCacheService'
 import { loadBookConfig, saveBookConfig } from '@/services/book/bookRepository'
 import { replaceBookMarksForBook } from '@/services/book/bookMarksRepository'

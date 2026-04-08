@@ -1,5 +1,4 @@
-import { BookConfig } from '@/js/map'
-import { BookFormat } from '@/js/bookFormat'
+import { BookConfig, BookFormat } from '@/types/book'
 import {
   ensureBookCache,
   loadBookBinary,

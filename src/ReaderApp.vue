@@ -116,8 +116,8 @@ import HelpDialog from './components/HelpDialog/index.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
-import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
-import { BookFormat } from './js/bookFormat'
+import { BookConfig, BookFormat } from '@/types/book'
+import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import { READER_DOM_EVENTS } from '@/constants/events'
 import {
   calcTxtProgress,
@@ -150,7 +150,6 @@ import {
 } from '@/services/reader/interactionService'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
 import { useBookMarkStore, BookMark } from './store/bookMark'
-import { generateID, formatDate } from './js/utils'
 import { withReaderLoading } from '@/services/reader/readerLoadingService'
 import {
   applyReaderStyles,
@@ -180,6 +179,8 @@ import {
   dispatchBookshelfProgressSaved,
   notifyReaderWindowReady,
 } from '@/services/reader/readerWindowBridgeService'
+import { formatDate } from '@/utils/date'
+import { generateID } from '@/utils/id'
 
 export default {
   name: 'ReaderApp',

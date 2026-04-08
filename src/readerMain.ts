@@ -4,8 +4,8 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { createPinia } from 'pinia';
 import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events';
-import { bindWindowTitlebarControls } from './js/init';
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService';
+import { bindWindowTitlebarControls } from '@/services/window/windowTitlebarService';
 import { initAppLogger } from '@/utils/logger';
 import './styles/index.scss';
 

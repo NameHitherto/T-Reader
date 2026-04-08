@@ -1,5 +1,5 @@
 import ePub, { Rendition } from 'libs/epub.js'
-import { BookConfig } from '@/js/map'
+import { BookConfig } from '@/types/book'
 import { resolveEpubDisplayTarget } from '@/services/reader/epubProgressService'
 import { logWarn } from '@/utils/logger'
 

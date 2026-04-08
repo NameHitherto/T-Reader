@@ -1,5 +1,5 @@
 import ePub, { EpubCFI } from 'libs/epub.js'
-import { BookConfig } from '@/js/map'
+import { BookConfig } from '@/types/book'
 import { logWarn } from '@/utils/logger'
 
 export interface EpubProgressSnapshot {

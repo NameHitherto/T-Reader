@@ -1,6 +1,6 @@
 import ePub from 'libs/epub.js'
-import { convertBlobToBase64 } from '@/js/utils.js'
 import { ParsedBookMeta } from '@/services/book/types'
+import { convertBlobToBase64 } from '@/utils/blob'
 import { createDurationLogger, logWarn } from '@/utils/logger'
 
 interface ParseEpubMetaOptions {

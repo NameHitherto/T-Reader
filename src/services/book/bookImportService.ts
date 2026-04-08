@@ -1,9 +1,9 @@
-import { BookConfig } from '@/js/map'
+import { BookConfig } from '@/types/book'
 import { ImportBookParams } from '@/services/book/types'
 import { parseEpubMeta } from '@/services/book/parsers/epubParser'
 import { parseTxtMeta } from '@/services/book/parsers/txtParser'
 import { buildBookTitle } from '@/services/book/bookIdentity'
-import { buildTxtProgressSnapshot } from '@/services/reader/progressSnapshotService'
+import { buildTxtProgressSnapshot } from '@/services/book/bookConfigService'
 import { createDurationLogger } from '@/utils/logger'
 
 export const buildBookConfigFromImport = async (

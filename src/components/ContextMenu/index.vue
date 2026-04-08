@@ -31,10 +31,10 @@
   </Teleport>
 </template>
 <script lang="ts">
-import { ContextMenuData, ContextMenuItem } from '../../js/map'
 import { PropType } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { IconName } from '@/icons/registry'
+import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 export default {
   name: 'ContextMenu',
   components: {

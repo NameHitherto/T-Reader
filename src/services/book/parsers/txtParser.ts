@@ -1,5 +1,5 @@
 import { ParsedBookMeta } from '@/services/book/types'
-import { getFileNameWithoutExtension } from '@/js/bookFormat'
+import { getFileNameWithoutExtension } from '@/utils/filePath'
 import { createDurationLogger } from '@/utils/logger'
 
 export const parseTxtMeta = (path: string): ParsedBookMeta => {

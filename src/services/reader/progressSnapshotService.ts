@@ -1,18 +1,14 @@
-import { BookConfig } from '@/js/map'
-import { BookFormat } from '@/js/bookFormat'
+import { BookConfig, BookFormat, BookProgressSnapshot } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
+import {
+  buildTxtProgressSnapshot,
+  isUnreadProgressSnapshot,
+} from '@/services/book/bookConfigService'
 import {
   calculateEpubProgressFromSnapshot,
   resolveEpubDisplayTarget,
   serializeEpubProgress,
 } from '@/services/reader/epubProgressService'
-
-export interface ProgressSnapshot {
-  durChapterIndex: number
-  durChapterPos: number
-  durChapterTitle: string
-  durChapterTime: number
-}
 
 interface SerializeReaderProgressArgs {
   format: BookFormat
@@ -28,42 +24,9 @@ const normalizeIndex = (value: unknown): number => {
   return Math.max(0, Math.floor(parsed))
 }
 
-export const buildTxtProgressSnapshot = (
-  paragraphIndex: number,
-  timestamp = Date.now()
-): ProgressSnapshot => {
-  const safeIndex = normalizeIndex(paragraphIndex)
-  return {
-    durChapterIndex: safeIndex,
-    durChapterPos: 0,
-    durChapterTitle: `paragraph-${safeIndex}`,
-    durChapterTime: timestamp,
-  }
-}
-
-export const normalizeBookConfig = (raw: Partial<BookConfig>): BookConfig => {
-  return {
-    name: String(raw.name || ''),
-    author: String(raw.author || ''),
-    durChapterIndex: normalizeIndex(raw.durChapterIndex),
-    durChapterPos: normalizeIndex(raw.durChapterPos),
-    durChapterTitle:
-      typeof raw.durChapterTitle === 'string' ? raw.durChapterTitle : '',
-    durChapterTime: normalizeIndex(raw.durChapterTime),
-  }
-}
-
-export const isUnreadProgressSnapshot = (snapshot: ProgressSnapshot): boolean => {
-  return (
-    snapshot.durChapterIndex === 0 &&
-    snapshot.durChapterPos === 0 &&
-    snapshot.durChapterTitle === ''
-  )
-}
-
 export const serializeReaderProgress = async (
   args: SerializeReaderProgressArgs
-): Promise<ProgressSnapshot | null> => {
+): Promise<BookProgressSnapshot | null> => {
   const { format, rendition, txtCurrentParagraph } = args
 
   if (format === 'epub') {
@@ -76,7 +39,7 @@ export const serializeReaderProgress = async (
 export const resolveReaderDisplayTarget = async (
   format: BookFormat,
   source: any,
-  snapshot: ProgressSnapshot
+  snapshot: BookProgressSnapshot
 ): Promise<string | number | undefined> => {
   if (format === 'epub') {
     return resolveEpubDisplayTarget(source, snapshot)
@@ -88,7 +51,7 @@ export const resolveReaderDisplayTarget = async (
 export const calculateShelfProgress = async (
   format: BookFormat,
   bookData: Uint8Array | undefined,
-  snapshot: ProgressSnapshot,
+  snapshot: BookProgressSnapshot,
   cache: BookCachePayload
 ): Promise<number> => {
   if (isUnreadProgressSnapshot(snapshot)) {
@@ -111,7 +74,7 @@ export const calculateShelfProgress = async (
 
 export const isNormalizedProgressSnapshot = (
   value: Partial<BookConfig>
-): value is ProgressSnapshot => {
+): value is BookProgressSnapshot => {
   return (
     typeof value.durChapterIndex === 'number' &&
     typeof value.durChapterPos === 'number' &&

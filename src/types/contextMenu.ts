@@ -1,4 +1,4 @@
-type iconType =
+type ContextMenuIconType =
   | 'bookOpen'
   | 'upload'
   | 'delete'
@@ -7,27 +7,19 @@ type iconType =
   | 'bookmark'
   | 'delBookMark'
   | 'comment'
-type themeType = 'light' | 'dark'
+
+type ContextMenuThemeType = 'light' | 'dark'
 
 export interface ContextMenuData {
   x: number
   y: number
   width: number
-  theme: themeType
+  theme: ContextMenuThemeType
   items: ContextMenuItem[]
 }
 
 export interface ContextMenuItem {
   label: string
-  type?: iconType
+  type?: ContextMenuIconType
   onClick?: (e: MouseEvent | KeyboardEvent) => void
-}
-
-export interface BookConfig {
-  name: string
-  author: string
-  durChapterIndex: number
-  durChapterPos: number
-  durChapterTitle: string
-  durChapterTime: number
 }
