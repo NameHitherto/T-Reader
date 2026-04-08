@@ -4,15 +4,15 @@ use crate::{
 };
 
 #[cfg(not(debug_assertions))]
-use crate::repository::local_fs::dir_repository::get_local_cached_dir;
+use crate::repository::local_fs::dir_repository::get_local_logs_dir;
 
 pub fn check_local_dirs() -> Result<String, String> {
     Ok(ensure_local_dirs()?.to_string_lossy().to_string())
 }
 
 #[cfg(not(debug_assertions))]
-pub fn get_local_cached_dir_path() -> Result<std::path::PathBuf, String> {
-    get_local_cached_dir()
+pub fn get_local_logs_dir_path() -> Result<std::path::PathBuf, String> {
+    get_local_logs_dir()
 }
 
 pub fn local_dir_names() -> LocalDirNames {

@@ -9,6 +9,7 @@ use crate::{
 pub const LOCAL_BOOKS_DIR: &str = "books";
 pub const LOCAL_PROGRESS_DIR: &str = "bookProgress";
 pub const LOCAL_CACHED_DIR: &str = "cached";
+pub const LOCAL_LOGS_DIR: &str = "logs";
 pub const LOCAL_SYSTEM_DIR: &str = "system";
 
 pub const CLOUD_BOOKS_DIR: &str = "books";
@@ -53,6 +54,11 @@ pub fn get_local_cached_dir() -> Result<PathBuf, String> {
     Ok(get_local_root_dir()?.join(LOCAL_CACHED_DIR))
 }
 
+#[cfg(not(debug_assertions))]
+pub fn get_local_logs_dir() -> Result<PathBuf, String> {
+    Ok(get_local_cached_dir()?.join(LOCAL_LOGS_DIR))
+}
+
 pub fn ensure_local_dirs() -> Result<PathBuf, String> {
     let root_path = get_local_root_dir()?;
 
@@ -93,6 +99,25 @@ pub fn ensure_local_dirs() -> Result<PathBuf, String> {
                 error.to_string()
             })?;
         }
+    }
+
+    let logs_dir_path = root_path.join(LOCAL_CACHED_DIR).join(LOCAL_LOGS_DIR);
+    if !logs_dir_path.exists() {
+        log_info(
+            "dir",
+            &format!("creating-local-subdir path={}", logs_dir_path.display()),
+        );
+        fs::create_dir_all(&logs_dir_path).map_err(|error| {
+            log_error(
+                "dir",
+                &format!(
+                    "create-local-subdir failed path={} error={}",
+                    logs_dir_path.display(),
+                    error
+                ),
+            );
+            error.to_string()
+        })?;
     }
 
     Ok(root_path)

@@ -17,7 +17,7 @@ fn build_log_targets() -> Result<Vec<Target>, String> {
 
 #[cfg(not(debug_assertions))]
 fn build_log_targets() -> Result<Vec<Target>, String> {
-    let log_dir = service::filesystem::dir_service::get_local_cached_dir_path()?;
+    let log_dir = service::filesystem::dir_service::get_local_logs_dir_path()?;
     Ok(vec![build_log_target(TargetKind::Folder {
         path: log_dir,
         file_name: Some("t-reader".to_string()),
