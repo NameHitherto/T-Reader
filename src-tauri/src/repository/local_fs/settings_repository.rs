@@ -2,14 +2,8 @@ use std::path::PathBuf;
 
 use crate::{
     entities::Settings,
-    repository::local_fs::{
-        dir_repository::get_local_system_dir,
-        file_repository::read_text_file,
-    },
-    utils::{
-        json::from_json_str,
-        logging::log_error,
-    },
+    repository::local_fs::{dir_repository::get_local_system_dir, file_repository::read_text_file},
+    utils::{json::from_json_str, logging::log_error},
 };
 
 pub fn get_settings_path() -> Result<PathBuf, String> {

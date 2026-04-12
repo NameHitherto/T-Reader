@@ -22,13 +22,22 @@ pub fn read_text_file(file_path: &Path) -> Result<String, String> {
     Ok(contents)
 }
 
+pub fn read_binary_file(file_path: &Path) -> Result<Vec<u8>, String> {
+    let mut file = File::open(file_path).map_err(|error| error.to_string())?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)
+        .map_err(|error| error.to_string())?;
+    Ok(contents)
+}
+
 pub fn write_binary_file(file_path: &Path, contents: &[u8]) -> Result<(), String> {
     if let Some(parent) = file_path.parent() {
         ensure_dir(parent)?;
     }
 
     let mut file = File::create(file_path).map_err(|error| error.to_string())?;
-    file.write_all(contents).map_err(|error| error.to_string())?;
+    file.write_all(contents)
+        .map_err(|error| error.to_string())?;
     Ok(())
 }
 

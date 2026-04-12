@@ -12,6 +12,10 @@
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息弹窗 -->
     <BookInfoDialog v-model="bookInfoVisible" :bookKey="bookInfoKey" />
+    <CloudSyncDialog
+      v-model="cloudSyncVisible"
+      @synced="handleCloudSyncSynced"
+    />
     <header class="header">
       <div class="header-menu">
         <div class="header-menu-item" @click="addBook">
@@ -158,6 +162,7 @@ import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import emptyStateImage from '../assets/images/empty.png'
 import SettingDialog from './SettingDialog/index.vue'
 import BookInfoDialog from './BookInfoDialog/index.vue'
+import CloudSyncDialog from './CloudSyncDialog/index.vue'
 import defaultCover from '@/assets/default-cover.png'
 import {
   detectBookFormatFromPath,
@@ -214,6 +219,8 @@ import {
 } from '@/utils/logger'
 import { getFileNameFromPath } from '@/utils/filePath'
 import { stringifyJson } from '@/utils/json'
+import { formatCloudSyncResultMessage } from '@/services/sync/cloudSyncService'
+import type { CloudSyncApplyResult } from '@/types/sync'
 
 export default {
   name: 'MainContent',
@@ -223,6 +230,7 @@ export default {
     AppIcon,
     SettingDialog,
     BookInfoDialog,
+    CloudSyncDialog,
   },
   setup() {
     type ShelfViewMode = 'list' | 'grid'
@@ -264,6 +272,7 @@ export default {
     const activeLoadingTasks = ref(0)
     const settingVisible = ref(false)
     const bookInfoVisible = ref(false)
+    const cloudSyncVisible = ref(false)
     const bookInfoKey = ref<String>('')
     const showMenu = ref(false)
     const menuOptions = ref({} as ContextMenuData)
@@ -444,20 +453,21 @@ export default {
       }
     }
 
-    const syncFiles = async () => {
+    const handleCloudSyncSynced = async (result: CloudSyncApplyResult) => {
       const finishLog = createDurationLogger('bookshelf', 'sync-files')
       beginLoading(IMPORT_LOADING_TEXT.syncing)
       try {
-        await invoke('webdav_sync_files')
+        cloudSyncVisible.value = false
         invalidateBookFileIndex()
         await loadBooks()
         showMainTaskMessage({
           type: 'success',
           title: '云同步完成',
-          message: '书架数据已完成同步并刷新。',
+          message: formatCloudSyncResultMessage(result),
           taskKey: 'bookshelf-sync',
         })
         finishLog({
+          ...result,
           total: books.value.length,
         })
       } catch (error) {
@@ -471,6 +481,10 @@ export default {
       } finally {
         endLoading()
       }
+    }
+
+    const syncFiles = () => {
+      cloudSyncVisible.value = true
     }
 
     const addBook = async () => {
@@ -934,6 +948,7 @@ export default {
       deleteBook,
       openBook,
       onContextMenu,
+      handleCloudSyncSynced,
       syncFiles,
       isLoading,
       loadingText,
@@ -942,6 +957,7 @@ export default {
       booksLoading,
       openSetting,
       settingVisible,
+      cloudSyncVisible,
       bookInfoVisible,
       bookInfoKey,
       emptyStateImage,

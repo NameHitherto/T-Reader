@@ -1,8 +1,5 @@
 use serde::Serialize;
-use std::{
-    collections::HashMap,
-    sync::Mutex,
-};
+use std::{collections::HashMap, sync::Mutex};
 use tauri_plugin_updater::Update;
 
 #[derive(Debug, Clone, Serialize)]

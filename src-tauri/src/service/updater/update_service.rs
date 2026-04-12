@@ -1,6 +1,6 @@
 use std::{
-    time::{Duration, Instant},
     sync::atomic::{AtomicU64, Ordering},
+    time::{Duration, Instant},
 };
 
 use tauri::{ipc::Channel, AppHandle, State};
@@ -84,9 +84,7 @@ fn next_update_token() -> String {
     format!("update-{}-{}", now_millis(), counter)
 }
 
-fn purge_expired_pending_updates(
-    map: &mut std::collections::HashMap<String, PendingUpdate>,
-) {
+fn purge_expired_pending_updates(map: &mut std::collections::HashMap<String, PendingUpdate>) {
     let now = now_millis();
     map.retain(|_, pending| now.saturating_sub(pending.created_at) <= PENDING_UPDATE_EXPIRE_MS);
 }

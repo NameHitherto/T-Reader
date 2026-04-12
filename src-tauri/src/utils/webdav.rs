@@ -1,5 +1,6 @@
 use quick_xml::{events::Event, name::QName, Reader};
 use std::path::Path;
+use urlencoding::decode;
 
 pub fn is_supported_book_file(filename: &str) -> bool {
     filename.ends_with(".epub") || filename.ends_with(".txt")
@@ -45,7 +46,10 @@ pub fn parse_webdav_response(response: &str) -> Result<Vec<String>, String> {
                     if !href.ends_with('/') {
                         if let Some(file_name) = Path::new(href.as_ref()).file_name() {
                             if let Some(file_name_str) = file_name.to_str() {
-                                files.push(file_name_str.to_string());
+                                let decoded = decode(file_name_str).map_err(|error| {
+                                    format!("failed to decode WebDAV href: {:?}", error)
+                                })?;
+                                files.push(decoded.into_owned());
                             }
                         }
                     }

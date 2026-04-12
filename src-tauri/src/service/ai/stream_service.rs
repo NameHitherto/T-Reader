@@ -36,7 +36,10 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
     let response = client
         .post(settings.model_url)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", settings.model_api_key))
+        .header(
+            "Authorization",
+            format!("Bearer {}", settings.model_api_key),
+        )
         .header("Accept", "text/event-stream")
         .body(request_body)
         .send()
@@ -57,13 +60,14 @@ pub async fn start_stream(app: AppHandle, messages: String) -> Result<(), String
 
                     let json_str = data.trim_end_matches('\n');
                     app.emit_to("reader", EVENT_NAME, json!({ "chunk": json_str }))
-                        .map_err(|error| {
-                            format!("failed to emit stream chunk: {:?}", error)
-                        })?;
+                        .map_err(|error| format!("failed to emit stream chunk: {:?}", error))?;
                 }
             }
             Err(error) => {
-                log_error("ai-stream", &format!("stream-receive failed error={}", error));
+                log_error(
+                    "ai-stream",
+                    &format!("stream-receive failed error={}", error),
+                );
                 return Err(format!("failed to receive stream data: {:?}", error));
             }
         }

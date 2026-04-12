@@ -5,7 +5,9 @@ use crate::{
             delete_remote_file, download_remote_file, remote_file_exists, upload_remote_file,
         },
     },
-    service::{filesystem::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs},
+    service::{
+        filesystem::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs,
+    },
     utils::logging::{finish_timer, start_timer},
 };
 
