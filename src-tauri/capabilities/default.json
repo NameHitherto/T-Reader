@@ -31,16 +31,47 @@
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "shell:allow-open",
+    "fs:allow-read-dir",
     "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-remove",
     "fs:allow-exists",
+    "fs:allow-mkdir",
     "window-state:allow-restore-state",
     "window-state:allow-save-window-state",
     "log:default",
     {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader"
+        },
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
       "identifier": "fs:allow-read-file",
       "allow": [
         {
-          "path": "$DOCUMENT/T-Reader/books/*"
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader/**"
         }
       ]
     },
@@ -48,7 +79,21 @@
       "identifier": "fs:allow-exists",
       "allow": [
         {
-          "path": "$DOCUMENT/T-Reader/books/*"
+          "path": "$DOCUMENT/T-Reader"
+        },
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader"
+        },
+        {
+          "path": "$DOCUMENT/T-Reader/**"
         }
       ]
     },

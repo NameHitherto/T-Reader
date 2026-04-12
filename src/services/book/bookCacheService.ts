@@ -1,11 +1,14 @@
-import { invoke } from '@tauri-apps/api/core'
 import { BookFormat } from '@/types/book'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import { epubBookCacheHandler } from '@/services/book/epub/epubCacheService'
 import { txtBookCacheHandler } from '@/services/book/txt/txtCacheService'
 import { toBookCacheFilename } from '@/services/book/bookIdentity'
 import { createDurationLogger } from '@/utils/logger'
-import { stringifyJson } from '@/utils/json'
+import {
+  buildLocalFilePath,
+  LOCAL_DIRS,
+  readJsonFile,
+  writeJsonFile,
+} from '@/services/fileSystem/localStorageService'
 
 export interface BookCachePayload {
   title?: string
@@ -29,18 +32,6 @@ const normalizeBookCachePayload = (payload: Partial<BookCachePayload> & Record<s
   }
 }
 
-const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array => {
-  if (data instanceof Uint8Array) {
-    return data
-  }
-
-  if (Array.isArray(data)) {
-    return Uint8Array.from(data)
-  }
-
-  return new Uint8Array(data)
-}
-
 export const getBookCacheFilename = (bookKey: string): string => {
   return toBookCacheFilename(bookKey)
 }
@@ -50,18 +41,12 @@ export const loadBookCache = async (bookKey: string): Promise<BookCachePayload |
   const finishLog = createDurationLogger('book-cache-service', 'load-book-cache', {
     fileName: filename,
   })
-  const dirs = await getLocalDirNames()
 
   try {
-    const fileData = await invoke('read_file', {
-      subdir: dirs.cached,
-      filename,
-    })
-    const decoded = new TextDecoder().decode(
-      toUint8Array(fileData as ArrayBufferLike | Uint8Array | number[])
-    )
     const payload = normalizeBookCachePayload(
-      JSON.parse(decoded) as Partial<BookCachePayload> & Record<string, unknown>
+      await readJsonFile<Partial<BookCachePayload> & Record<string, unknown>>(
+        buildLocalFilePath(LOCAL_DIRS.cached, filename)
+      )
     )
     finishLog({
       fileName: filename,
@@ -85,18 +70,13 @@ export const saveBookCache = async (
   const finishLog = createDurationLogger('book-cache-service', 'save-book-cache', {
     fileName: filename,
   })
-  const dirs = await getLocalDirNames()
   const currentCache = (await loadBookCache(bookKey)) || {}
   const nextCache = normalizeBookCachePayload({
     ...currentCache,
     ...payload,
   })
 
-  await invoke('save_file', {
-    subdir: dirs.cached,
-    filename,
-    contents: stringifyJson(nextCache),
-  })
+  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.cached, filename), nextCache)
 
   finishLog({
     fileName: filename,

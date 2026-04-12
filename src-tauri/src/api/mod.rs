@@ -1,4 +1,3 @@
-pub mod dir;
 pub mod ai;
 pub mod webdav;
 pub mod file;

@@ -1,5 +1,10 @@
-import { invoke } from '@tauri-apps/api/core'
 import { logWarn } from '@/utils/logger'
+import {
+  buildLocalFilePath,
+  LOCAL_DIRS,
+  readJsonFile,
+  writeJsonFile,
+} from '@/services/fileSystem/localStorageService'
 
 export type AppThemeMode = 'light' | 'dark'
 
@@ -45,7 +50,9 @@ export const normalizeAppSettings = (
 
 export const loadAppSettings = async (): Promise<AppSettings> => {
   try {
-    const loadedSettings = await invoke<Partial<AppSettings>>('load_settings')
+    const loadedSettings = await readJsonFile<Partial<AppSettings>>(
+      buildLocalFilePath(LOCAL_DIRS.system, 'setting.json')
+    )
     return normalizeAppSettings(loadedSettings)
   } catch (error) {
     logWarn('appSettings', '加载应用设置失败，已回退到默认设置', error)
@@ -61,7 +68,21 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
     payload.themeMode = normalizeAppThemeMode(payload.themeMode)
   }
 
-  await invoke('save_settings', {
-    jsonStr: JSON.stringify(payload),
-  })
+  let currentSettings: Record<string, unknown> = {}
+
+  try {
+    currentSettings = await readJsonFile<Record<string, unknown>>(
+      buildLocalFilePath(LOCAL_DIRS.system, 'setting.json')
+    )
+  } catch (error) {
+    currentSettings = {}
+  }
+
+  await writeJsonFile(
+    buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'),
+    {
+      ...currentSettings,
+      ...payload,
+    }
+  )
 }

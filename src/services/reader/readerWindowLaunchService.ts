@@ -4,7 +4,7 @@ import {
   hasLocalBookFile,
   resolveBookFile,
 } from '@/services/book/bookRepository'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
+import { CLOUD_DIRS } from '@/services/fileSystem/localStorageService'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 import { openReaderWindow } from '@/services/reader/readerWindowBridgeService'
 
@@ -33,9 +33,8 @@ export const openReaderWindowWithPrecheck = async (bookKey: string, cfi = ''): P
       return
     }
 
-    const dirs = await getLocalDirNames()
     const existsInCloud = await invoke<boolean>('webdav_exists', {
-      subdir: dirs.books,
+      subdir: CLOUD_DIRS.books,
       filename: resolvedBookFile.fileName,
     })
 

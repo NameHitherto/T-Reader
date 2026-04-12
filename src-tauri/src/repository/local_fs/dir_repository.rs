@@ -2,7 +2,7 @@ use dirs::document_dir;
 use std::{fs, path::PathBuf};
 
 use crate::{
-    entities::{CloudDirNames, LocalDirNames, Settings},
+    entities::Settings,
     utils::logging::{log_error, log_info, log_warn},
 };
 
@@ -22,22 +22,6 @@ const LOCAL_SUBDIRS: [&str; 4] = [
     LOCAL_SYSTEM_DIR,
 ];
 const CLOUD_SUBDIRS: [&str; 2] = [CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR];
-
-pub fn get_local_dir_names() -> LocalDirNames {
-    LocalDirNames {
-        books: LOCAL_BOOKS_DIR.to_string(),
-        progress: LOCAL_PROGRESS_DIR.to_string(),
-        cached: LOCAL_CACHED_DIR.to_string(),
-        system: LOCAL_SYSTEM_DIR.to_string(),
-    }
-}
-
-pub fn get_cloud_dir_names() -> CloudDirNames {
-    CloudDirNames {
-        books: CLOUD_BOOKS_DIR.to_string(),
-        progress: CLOUD_PROGRESS_DIR.to_string(),
-    }
-}
 
 pub fn get_local_root_dir() -> Result<PathBuf, String> {
     let mut path = document_dir().ok_or("err finding document_dir")?;

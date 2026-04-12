@@ -1,7 +1,10 @@
-import { invoke } from '@tauri-apps/api/core'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import { BookMark } from '@/store/bookMark'
-import { encodeJson } from '@/utils/json'
+import {
+  buildLocalFilePath,
+  LOCAL_DIRS,
+  readJsonFile,
+  writeJsonFile,
+} from '@/services/fileSystem/localStorageService'
 
 export interface BookMarksFile {
   updatedAt: string
@@ -16,21 +19,13 @@ const buildPayload = (bookMarks: BookMark[]): BookMarksFile => ({
 })
 
 const readBookMarksFile = async (): Promise<BookMarksFile | null> => {
-  const dirs = await getLocalDirNames()
-  let fileData: ArrayBufferLike | number[] | Uint8Array
-
   try {
-    fileData = await invoke('read_file', {
-      subdir: dirs.system,
-      filename: BOOK_MARKS_FILENAME,
-    })
+    return await readJsonFile<BookMarksFile>(
+      buildLocalFilePath(LOCAL_DIRS.system, BOOK_MARKS_FILENAME)
+    )
   } catch (error) {
     return null
   }
-
-  return JSON.parse(
-    new TextDecoder().decode(new Uint8Array(fileData as ArrayBufferLike))
-  ) as BookMarksFile
 }
 
 export const loadAllBookMarks = async (): Promise<BookMark[]> => {
@@ -44,14 +39,9 @@ export const loadBookMarksByBookKey = async (bookKey: string): Promise<BookMark[
 }
 
 export const saveAllBookMarks = async (bookMarks: BookMark[]): Promise<void> => {
-  const dirs = await getLocalDirNames()
   const payload = buildPayload(bookMarks)
 
-  await invoke('write_file', {
-    subdir: dirs.system,
-    filename: BOOK_MARKS_FILENAME,
-    contents: Array.from(encodeJson(payload)),
-  })
+  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, BOOK_MARKS_FILENAME), payload)
 }
 
 export const replaceBookMarksForBook = async (

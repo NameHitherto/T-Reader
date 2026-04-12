@@ -191,6 +191,13 @@ import { setBookFileIndexEntry } from '@/services/book/bookFileIndexRepository'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
 import {
+  buildLocalFilePath,
+  CLOUD_DIRS,
+  LOCAL_DIRS,
+  removeLocalFile,
+  writeJsonFile,
+} from '@/services/fileSystem/localStorageService'
+import {
   createMainTaskBatchNotifier,
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
@@ -327,28 +334,18 @@ export default {
     }
 
     const cleanupImportedBookArtifacts = async (
-      dirs: LocalDirNames,
       originalFileName: string,
       bookKey: string | null,
       removeBookArtifacts: boolean
     ) => {
       const cleanupTasks: Promise<unknown>[] = [
-        invoke('delete_book', {
-          subdir: dirs.books,
-          filename: originalFileName,
-        }),
+        removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, originalFileName)),
       ]
 
       if (bookKey && removeBookArtifacts) {
         cleanupTasks.push(
-          invoke('delete_book', {
-            subdir: dirs.progress,
-            filename: toBookConfigFilename(bookKey),
-          }),
-          invoke('delete_book', {
-            subdir: dirs.cached,
-            filename: getBookCacheFilename(bookKey),
-          })
+          removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey))),
+          removeLocalFile(buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(bookKey)))
         )
       }
 
@@ -602,11 +599,10 @@ export default {
 
         updateLoadingText(IMPORT_LOADING_TEXT.saving)
 
-        await invoke('save_file', {
-          subdir: batchContext.dirs.progress,
-          filename: toBookConfigFilename(importedBook.bookKey),
-          contents: bookConfigJson,
-        })
+        await writeJsonFile(
+          buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(importedBook.bookKey)),
+          newBook
+        )
         createdBookArtifacts = true
 
         await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
@@ -673,7 +669,6 @@ export default {
         }
         if (localCopyCreated && !importSucceeded) {
           await cleanupImportedBookArtifacts(
-            batchContext.dirs,
             originalFileName,
             importedBookKey,
             createdBookArtifacts
@@ -688,29 +683,21 @@ export default {
         bookKey,
       })
       try {
-        const dirs = await getLocalDirNames()
         const targetBook = books.value.find((book) => book.bookKey === bookKey)
         const resolvedBookFile = targetBook
           ? await resolveBookFile(bookKey).catch(() => null)
           : null
 
-        await invoke('delete_book', {
-          subdir: dirs.progress,
-          filename: toBookConfigFilename(bookKey),
-        })
+        await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey)))
 
         if (resolvedBookFile) {
-          await invoke('delete_book', {
-            subdir: dirs.books,
-            filename: resolvedBookFile.fileName,
-          })
+          await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, resolvedBookFile.fileName))
         }
 
         if (targetBook) {
-          await invoke('delete_book', {
-            subdir: dirs.cached,
-            filename: getBookCacheFilename(targetBook.bookKey),
-          })
+          await removeLocalFile(
+            buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(targetBook.bookKey))
+          )
         }
 
         await removeBookMarksByBookKey(bookKey)
@@ -723,13 +710,13 @@ export default {
         queueMicrotask(() => {
           void Promise.allSettled([
             invoke('webdav_delete', {
-              subdir: dirs.progress,
+              subdir: CLOUD_DIRS.progress,
               filename: toBookConfigFilename(bookKey),
             }),
             ...(resolvedBookFile
               ? [
                   invoke('webdav_delete', {
-                    subdir: dirs.books,
+                    subdir: CLOUD_DIRS.books,
                     filename: resolvedBookFile.fileName,
                   }),
                 ]

@@ -1,22 +1,42 @@
-import { BaseDirectory } from '@tauri-apps/api/path'
-import { exists, readFile } from '@tauri-apps/plugin-fs'
-
-const DOCUMENT_BOOK_ROOT = 'T-Reader/books'
+import { detectBookFormatFromFilename } from '@/services/book/bookFormatService'
+import {
+  buildLocalDirPath,
+  buildLocalFilePath,
+  LOCAL_DIRS,
+  localPathExists,
+  readBinaryFile,
+  readLocalDirEntries,
+  removeLocalFile,
+  writeBinaryFile,
+} from '@/services/fileSystem/localStorageService'
 
 export const getLocalBookRelativePath = (fileName: string): string => {
-  return `${DOCUMENT_BOOK_ROOT}/${fileName}`
+  return buildLocalFilePath(LOCAL_DIRS.books, fileName)
 }
 
 export const localBookExists = async (fileName: string): Promise<boolean> => {
-  return await exists(getLocalBookRelativePath(fileName), {
-    baseDir: BaseDirectory.Document,
-  })
+  return await localPathExists(getLocalBookRelativePath(fileName))
 }
 
 export const readLocalBookFile = async (fileName: string): Promise<Uint8Array> => {
-  const payload = await readFile(getLocalBookRelativePath(fileName), {
-    baseDir: BaseDirectory.Document,
-  })
+  return await readBinaryFile(getLocalBookRelativePath(fileName))
+}
 
-  return payload instanceof Uint8Array ? payload : new Uint8Array(payload)
+export const writeLocalBookFile = async (
+  fileName: string,
+  contents: Uint8Array | number[]
+): Promise<void> => {
+  await writeBinaryFile(getLocalBookRelativePath(fileName), contents)
+}
+
+export const removeLocalBookFile = async (fileName: string): Promise<void> => {
+  await removeLocalFile(getLocalBookRelativePath(fileName))
+}
+
+export const listLocalBookFiles = async (): Promise<string[]> => {
+  const entries = await readLocalDirEntries(buildLocalDirPath(LOCAL_DIRS.books))
+
+  return entries
+    .filter((entry) => entry.isFile && detectBookFormatFromFilename(entry.name))
+    .map((entry) => entry.name)
 }
