@@ -4,9 +4,8 @@ use crate::{
     repository::local_fs::{
         dir_repository::{ensure_local_dirs, get_local_root_dir},
         file_repository::{
-            delete_file, join_subdir, list_files, log_binary_read, log_binary_write,
-            log_text_write, read_binary_file, read_file_by_path, write_binary_file,
-            write_text_file,
+            copy_file, delete_file, join_subdir, list_files, log_binary_read, log_binary_write,
+            log_file_copy, log_text_write, read_binary_file, write_binary_file, write_text_file,
         },
     },
     utils::logging::log_info,
@@ -62,11 +61,11 @@ pub fn list_files_in_subdir(subdir: &str) -> Result<Vec<String>, String> {
     Ok(filenames)
 }
 
-pub fn read_file_from_path(filepath: &str) -> Result<Vec<u8>, String> {
-    let contents = read_file_by_path(filepath)?;
-    log_info(
-        "file",
-        &format!("read-file-by-path path={} bytes={}", filepath, contents.len()),
-    );
-    Ok(contents)
+pub fn copy_file_to_subdir(filepath: &str, subdir: &str, filename: &str) -> Result<(), String> {
+    let dir_path = resolve_subdir_path(subdir)?;
+    let target_path = dir_path.join(filename);
+    let source_path = PathBuf::from(filepath);
+    let copied_bytes = copy_file(&source_path, &target_path)?;
+    log_file_copy("file", &source_path, &target_path, copied_bytes);
+    Ok(())
 }

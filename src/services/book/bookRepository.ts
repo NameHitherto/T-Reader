@@ -34,6 +34,10 @@ import {
 } from '@/utils/logger'
 import { encodeJson, stringifyJson } from '@/utils/json'
 import { BookFormat } from '@/types/book'
+import {
+  localBookExists,
+  readLocalBookFile as readLocalBookFileFromDisk,
+} from '@/services/book/bookFileAccessService'
 
 export interface ResolvedBookFile {
   fileName: string
@@ -128,12 +132,7 @@ const readLocalBookFile = async (filename: string): Promise<Uint8Array> => {
   const finishLog = createDurationLogger('book-repository', 'read-local-book-file', {
     fileName: filename,
   })
-  const dirs = await getLocalDirNames()
-  const localData = await invoke('read_file', {
-    subdir: dirs.books,
-    filename,
-  })
-  const payload = toUint8Array(localData as ArrayBufferLike | Uint8Array | number[])
+  const payload = await readLocalBookFileFromDisk(filename)
   finishLog({
     fileName: filename,
     bytes: payload.byteLength,
@@ -158,11 +157,13 @@ const readCloudBookFile = async (filename: string): Promise<Uint8Array> => {
     contents: Array.from(localBookData),
   })
 
+  const persistedLocalBookData = await readLocalBookFileFromDisk(filename)
+
   finishLog({
     fileName: filename,
-    bytes: localBookData.byteLength,
+    bytes: persistedLocalBookData.byteLength,
   })
-  return localBookData
+  return persistedLocalBookData
 }
 
 const listLocalBookFiles = async (): Promise<string[]> => {
@@ -296,8 +297,7 @@ export const reconcileLibraryBookFileIndex = async (
 }
 
 export const hasLocalBookFile = async (fileName: string): Promise<boolean> => {
-  const filenames = await listLocalBookFiles()
-  return filenames.includes(fileName)
+  return await localBookExists(fileName)
 }
 
 export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {

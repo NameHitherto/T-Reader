@@ -31,34 +31,24 @@
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "shell:allow-open",
-    "fs:default",
-    "fs:allow-app-write",
-    "fs:allow-app-read",
-    "fs:allow-open",
+    "fs:allow-read-file",
+    "fs:allow-exists",
     "window-state:allow-restore-state",
     "window-state:allow-save-window-state",
     "log:default",
     {
-      "identifier": "fs:allow-app-write",
+      "identifier": "fs:allow-read-file",
       "allow": [
         {
-          "path": "$DOCUMENT/T-Reader/*"
+          "path": "$DOCUMENT/T-Reader/books/*"
         }
       ]
     },
     {
-      "identifier": "fs:allow-app-read",
+      "identifier": "fs:allow-exists",
       "allow": [
         {
-          "path": "$DOCUMENT/T-Reader/*"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-open",
-      "allow": [
-        {
-          "path": "$DOCUMENT/T-Reader/*"
+          "path": "$DOCUMENT/T-Reader/books/*"
         }
       ]
     },

@@ -51,6 +51,14 @@ pub fn write_binary_file(file_path: &Path, contents: &[u8]) -> Result<(), String
     Ok(())
 }
 
+pub fn copy_file(source_path: &Path, target_path: &Path) -> Result<u64, String> {
+    if let Some(parent) = target_path.parent() {
+        ensure_dir(parent)?;
+    }
+
+    fs::copy(source_path, target_path).map_err(|error| error.to_string())
+}
+
 pub fn delete_file(file_path: &Path) -> Result<(), String> {
     if file_path.exists() {
         fs::remove_file(file_path).map_err(|error| error.to_string())?;
@@ -72,8 +80,16 @@ pub fn list_files(dir_path: &Path) -> Result<Vec<String>, String> {
     Ok(filenames)
 }
 
-pub fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
-    read_binary_file(Path::new(filepath))
+pub fn log_file_copy(scope: &str, source_path: &Path, target_path: &Path, bytes: u64) {
+    log_info(
+        scope,
+        &format!(
+            "copy-file source={} target={} bytes={}",
+            source_path.display(),
+            target_path.display(),
+            bytes
+        ),
+    );
 }
 
 pub fn log_text_write(scope: &str, file_path: &Path, bytes: usize) {

@@ -3,8 +3,9 @@ use crate::{
     service::filesystem::{
         book_progress_service::load_book_progresses,
         file_service::{
-            delete_file_from_subdir, list_files_in_subdir, read_binary_file_from_subdir,
-            read_file_from_path, save_text_file_to_subdir, write_binary_file_to_subdir,
+            copy_file_to_subdir as service_copy_file_to_subdir, delete_file_from_subdir,
+            list_files_in_subdir, read_binary_file_from_subdir, save_text_file_to_subdir,
+            write_binary_file_to_subdir,
         },
         settings_service::{load_settings_entity, save_settings_json},
     },
@@ -46,8 +47,8 @@ pub fn write_file(subdir: &str, filename: &str, contents: Vec<u8>) -> Result<(),
 }
 
 #[tauri::command]
-pub fn read_file_by_path(filepath: &str) -> Result<Vec<u8>, String> {
-    read_file_from_path(filepath)
+pub fn copy_file_to_subdir(filepath: &str, subdir: &str, filename: &str) -> Result<(), String> {
+    service_copy_file_to_subdir(filepath, subdir, filename)
 }
 
 #[tauri::command]

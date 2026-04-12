@@ -186,6 +186,7 @@ import {
   StoredBookConfig,
   uploadLocalBookFileToCloud,
 } from '@/services/book/bookRepository'
+import { readLocalBookFile } from '@/services/book/bookFileAccessService'
 import { setBookFileIndexEntry } from '@/services/book/bookFileIndexRepository'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
@@ -323,6 +324,55 @@ export default {
           }
         })
       )
+    }
+
+    const cleanupImportedBookArtifacts = async (
+      dirs: LocalDirNames,
+      originalFileName: string,
+      bookKey: string | null,
+      removeBookArtifacts: boolean
+    ) => {
+      const cleanupTasks: Promise<unknown>[] = [
+        invoke('delete_book', {
+          subdir: dirs.books,
+          filename: originalFileName,
+        }),
+      ]
+
+      if (bookKey && removeBookArtifacts) {
+        cleanupTasks.push(
+          invoke('delete_book', {
+            subdir: dirs.progress,
+            filename: toBookConfigFilename(bookKey),
+          }),
+          invoke('delete_book', {
+            subdir: dirs.cached,
+            filename: getBookCacheFilename(bookKey),
+          })
+        )
+      }
+
+      const cleanupResults = await Promise.allSettled(cleanupTasks)
+      const rejectedResults = cleanupResults.filter((result) => result.status === 'rejected')
+
+      if (bookKey && removeBookArtifacts) {
+        await removeBookFileIndexEntry(bookKey).catch((error) => {
+          logWarn('bookshelf', 'cleanup-import-artifacts remove-index-failed', {
+            bookKey,
+            fileName: originalFileName,
+            error,
+          })
+        })
+        invalidateBookFileIndex()
+      }
+
+      if (rejectedResults.length > 0) {
+        logWarn('bookshelf', 'cleanup-import-artifacts partial-failed', {
+          bookKey,
+          fileName: originalFileName,
+          failedCount: rejectedResults.length,
+        })
+      }
     }
 
     const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
@@ -500,6 +550,10 @@ export default {
       })
       batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
       let reservedBookKey: string | null = null
+      let importedBookKey: string | null = null
+      let localCopyCreated = false
+      let createdBookArtifacts = false
+      let importSucceeded = false
       beginLoading(IMPORT_LOADING_TEXT.parsing)
 
       try {
@@ -510,15 +564,20 @@ export default {
           return
         }
 
-        const u8File: Uint8Array = await invoke('read_file_by_path', {
+        await invoke('copy_file_to_subdir', {
           filepath: path,
+          subdir: batchContext.dirs.books,
+          filename: originalFileName,
         })
-        const fileBytes = u8File instanceof Uint8Array ? u8File : new Uint8Array(u8File)
+        localCopyCreated = true
+
+        const fileBytes = await readLocalBookFile(originalFileName)
         const bufferFile = fileBytes.buffer.slice(
           fileBytes.byteOffset,
           fileBytes.byteOffset + fileBytes.byteLength
         ) as ArrayBuffer
         const importedBook = await getImportedBookName(originalFileName, bufferFile)
+        importedBookKey = importedBook.bookKey
 
         if (
           batchContext.reservedBookKeys.has(importedBook.bookKey) ||
@@ -543,17 +602,12 @@ export default {
 
         updateLoadingText(IMPORT_LOADING_TEXT.saving)
 
-        await invoke('write_file', {
-          subdir: batchContext.dirs.books,
-          filename: originalFileName,
-          contents: Array.from(fileBytes),
-        })
-
         await invoke('save_file', {
           subdir: batchContext.dirs.progress,
           filename: toBookConfigFilename(importedBook.bookKey),
           contents: bookConfigJson,
         })
+        createdBookArtifacts = true
 
         await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
 
@@ -603,6 +657,7 @@ export default {
               batchContext.batchNotifier.recordSuccess(bookLabel)
             })
         })
+        importSucceeded = true
         finishLog({
           bookKey: importedBook.bookKey,
           total: books.value.length,
@@ -615,6 +670,14 @@ export default {
         batchContext.reservedOriginalFileNames.delete(normalizedOriginalFileName)
         if (reservedBookKey) {
           batchContext.reservedBookKeys.delete(reservedBookKey)
+        }
+        if (localCopyCreated && !importSucceeded) {
+          await cleanupImportedBookArtifacts(
+            batchContext.dirs,
+            originalFileName,
+            importedBookKey,
+            createdBookArtifacts
+          )
         }
         endLoading()
       }
