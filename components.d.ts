@@ -18,7 +18,6 @@ declare module 'vue' {
     CloudSyncDialog: typeof import('./src/components/CloudSyncDialog/index.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
-    ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']

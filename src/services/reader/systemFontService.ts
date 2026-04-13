@@ -29,6 +29,10 @@ export interface SystemFontFamilyGroup {
   entries: SystemFontEntry[]
 }
 
+const normalizeSearchText = (value: string | null | undefined) => {
+  return (value || '').trim().toLowerCase()
+}
+
 const toNullableString = (value: unknown) => {
   if (typeof value !== 'string') {
     return null
@@ -148,6 +152,47 @@ export const groupSystemFontsByFamily = (fonts: SystemFontEntry[]) => {
       entries: [...entries].sort(compareFontEntries),
     }))
     .sort((left, right) => left.family.localeCompare(right.family))
+}
+
+export const orderSystemFontFamilyGroups = (
+  groups: SystemFontFamilyGroup[],
+  enabledFamilies: Iterable<string>
+) => {
+  const enabledFamilySet = new Set(
+    Array.from(enabledFamilies, (family) => normalizeSearchText(family))
+  )
+  const enabledGroups: SystemFontFamilyGroup[] = []
+  const disabledGroups: SystemFontFamilyGroup[] = []
+
+  for (const group of groups) {
+    if (enabledFamilySet.has(normalizeSearchText(group.family))) {
+      enabledGroups.push(group)
+      continue
+    }
+    disabledGroups.push(group)
+  }
+
+  return [...enabledGroups, ...disabledGroups]
+}
+
+export const doesSystemFontGroupMatchKeyword = (
+  group: SystemFontFamilyGroup,
+  keyword: string
+) => {
+  const normalizedKeyword = normalizeSearchText(keyword)
+  if (!normalizedKeyword) {
+    return true
+  }
+
+  if (normalizeSearchText(group.family).includes(normalizedKeyword)) {
+    return true
+  }
+
+  return group.entries.some((entry) => {
+    return [entry.style, entry.postscriptName].some((value) =>
+      normalizeSearchText(value).includes(normalizedKeyword)
+    )
+  })
 }
 
 export const findSystemFontMatch = (

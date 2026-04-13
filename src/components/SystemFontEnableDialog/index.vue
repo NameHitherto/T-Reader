@@ -21,6 +21,13 @@
           <span class="stat-pill">系统字体家族 {{ fontFamilyGroups.length }}</span>
           <span class="stat-pill stat-pill--active">已启用 {{ selectedCount }}</span>
         </div>
+        <div class="dialog-search">
+          <el-input
+            v-model="searchKeyword"
+            clearable
+            placeholder="搜索字体家族、样式或 PostScript 名称"
+          />
+        </div>
       </div>
 
       <div v-if="loading" class="dialog-loading">
@@ -28,9 +35,9 @@
       </div>
 
       <el-scrollbar v-else>
-        <div v-if="orderedFontFamilyGroups.length > 0" class="font-grid">
+        <div v-if="visibleFontFamilyGroups.length > 0" class="font-grid">
           <section
-            v-for="group in orderedFontFamilyGroups"
+            v-for="group in visibleFontFamilyGroups"
             :key="group.family"
             class="font-card"
             :class="{ 'font-card--active': Boolean(draftSelections[group.family]) }"
@@ -102,10 +109,18 @@
         </div>
 
         <el-empty
-          v-else
+          v-else-if="fontFamilyGroups.length === 0"
           description="当前没有读取到系统字体"
           :image-size="120"
         />
+
+        <div v-else class="search-empty-state">
+          <el-empty
+            description="没有匹配的系统字体"
+            :image-size="120"
+          />
+          <el-button @click="clearSearch">清空搜索</el-button>
+        </div>
       </el-scrollbar>
     </div>
 
@@ -129,6 +144,7 @@ import { dispatchReaderStyleUpdate } from '@/services/reader/readerWindowBridgeS
 import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
 import { logError } from '@/utils/logger'
 import {
+  doesSystemFontGroupMatchKeyword,
   fetchSystemFonts,
   findSystemFontMatch,
   formatSystemFontLabel,
@@ -136,7 +152,9 @@ import {
   getReaderFontValue,
   getSystemFontEntryKey,
   groupSystemFontsByFamily,
+  orderSystemFontFamilyGroups,
   toEnabledSystemFont,
+  type SystemFontFamilyGroup,
 } from '@/services/reader/systemFontService'
 import {
   DEFAULT_READER_FONT,
@@ -161,18 +179,16 @@ export default defineComponent({
     const loading = ref(false)
     const saving = ref(false)
     const systemFonts = ref<SystemFontEntry[]>([])
+    const searchKeyword = ref('')
+    const baseOrderedFontFamilyGroups = ref<SystemFontFamilyGroup[]>([])
     const draftSelections = reactive<Record<string, string>>({})
 
     const fontFamilyGroups = computed(() => groupSystemFontsByFamily(systemFonts.value))
-    const orderedFontFamilyGroups = computed(() => {
-      const enabledGroups = fontFamilyGroups.value
-        .filter((group) => Boolean(draftSelections[group.family]))
-        .sort((left, right) => left.family.localeCompare(right.family))
-      const disabledGroups = fontFamilyGroups.value
-        .filter((group) => !draftSelections[group.family])
-        .sort((left, right) => left.family.localeCompare(right.family))
-      return [...enabledGroups, ...disabledGroups]
-    })
+    const visibleFontFamilyGroups = computed(() =>
+      baseOrderedFontFamilyGroups.value.filter((group) =>
+        doesSystemFontGroupMatchKeyword(group, searchKeyword.value)
+      )
+    )
     const previewText = SYSTEM_FONT_PREVIEW_TEXT
     const selectedCount = computed(() =>
       Object.values(draftSelections).filter((value) => Boolean(value)).length
@@ -211,6 +227,11 @@ export default defineComponent({
     const handleOpen = async () => {
       await ensureSystemFonts()
       resetDraftSelections()
+      baseOrderedFontFamilyGroups.value = orderSystemFontFamilyGroups(
+        fontFamilyGroups.value,
+        readerConfig.value.enabledSystemFonts.map((font) => font.family)
+      )
+      searchKeyword.value = ''
     }
 
     const handleVisibilityChange = (value: boolean) => {
@@ -219,6 +240,10 @@ export default defineComponent({
 
     const closeDialog = () => {
       emit('update:modelValue', false)
+    }
+
+    const clearSearch = () => {
+      searchKeyword.value = ''
     }
 
     const updateSelection = (family: string, value: string) => {
@@ -293,7 +318,7 @@ export default defineComponent({
       saving.value = true
 
       try {
-        const nextEnabledFonts: EnabledSystemFont[] = orderedFontFamilyGroups.value.flatMap((group) => {
+        const nextEnabledFonts: EnabledSystemFont[] = fontFamilyGroups.value.flatMap((group) => {
           const selectedValue = draftSelections[group.family]
           if (!selectedValue) {
             return []
@@ -338,10 +363,12 @@ export default defineComponent({
       loading,
       saving,
       previewText,
+      searchKeyword,
       draftSelections,
       fontFamilyGroups,
-      orderedFontFamilyGroups,
+      visibleFontFamilyGroups,
       selectedCount,
+      clearSearch,
       closeDialog,
       handleOpen,
       handleVisibilityChange,
@@ -394,6 +421,10 @@ export default defineComponent({
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 14px;
+  }
+
+  .dialog-search {
+    margin-top: 16px;
   }
 
   .stat-pill {
@@ -608,6 +639,14 @@ export default defineComponent({
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 600;
+  }
+
+  .search-empty-state {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 }
 
