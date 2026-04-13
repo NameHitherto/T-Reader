@@ -1,8 +1,8 @@
 import {createRouter, createWebHashHistory, RouteRecordRaw} from 'vue-router';
-import MainContent from '../components/MainContent.vue';
-import BookMark from '../components/BookMark.vue';
-import Experiment from '../components/Experiment.vue';
-import AboutView from '../components/AboutView.vue';
+import MainContent from '@/views/MainContent.vue';
+import BookMark from '@/views/BookMark.vue';
+import Experiment from '@/views/Experiment.vue';
+import AboutView from '@/views/AboutView.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {

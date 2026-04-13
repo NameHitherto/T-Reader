@@ -71,7 +71,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import BookMarkTag from './BookMark/bookMarkTag.vue'
+import BookMarkTag from '@/components/BookMark/bookMarkTag.vue'
 import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import { BookMark } from '@/store/bookMark'
 import { ElMessageBox } from 'element-plus'

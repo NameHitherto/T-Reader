@@ -101,7 +101,8 @@ T-Reader 是一个基于 `Tauri 2 + Vue 3 + Rust` 的桌面阅读器项目，当
 ```text
 src/
 ├── assets/               # 图片、SVG、鼠标样式等静态资源
-├── components/           # 页面组件、弹窗、通用组件
+├── views/                # App 主窗口路由视图组件
+├── components/           # 可复用组件、阅读器组件、弹窗
 ├── composables/          # 组合逻辑
 ├── constants/            # 事件名、字体排除等常量
 ├── css/                  # 全局样式

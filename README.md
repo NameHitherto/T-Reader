@@ -32,7 +32,8 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 ```text
 T-Reader/
 ├─ src/                  # Vue 前端
-│  ├─ components/        # 主窗口、阅读器与弹窗组件
+│  ├─ views/             # App 主窗口路由视图组件
+│  ├─ components/        # 可复用组件、阅读器组件与弹窗
 │  ├─ types/             # 共享类型定义
 │  ├─ utils/             # 通用工具
 │  ├─ services/          # book / reader / fileSystem / notification
