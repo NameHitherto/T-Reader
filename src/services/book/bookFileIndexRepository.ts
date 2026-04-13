@@ -1,6 +1,9 @@
-import { invoke } from '@tauri-apps/api/core'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
-import { encodeJson } from '@/utils/json'
+import {
+  buildLocalFilePath,
+  LOCAL_DIRS,
+  readJsonFile,
+  writeJsonFile,
+} from '@/services/fileSystem/localStorageService'
 
 export interface BookFileIndexEntry {
   bookKey: string
@@ -28,17 +31,10 @@ const readIndexFile = async (): Promise<BookFileIndexFile | null> => {
     return cachedBookFileIndex
   }
 
-  const dirs = await getLocalDirNames()
-
   try {
-    const fileData = await invoke('read_file', {
-      subdir: dirs.system,
-      filename: BOOK_FILE_INDEX_FILENAME,
-    })
-
-    const payload = JSON.parse(
-      new TextDecoder().decode(new Uint8Array(fileData as ArrayBufferLike))
-    ) as Partial<BookFileIndexFile>
+    const payload = await readJsonFile<Partial<BookFileIndexFile>>(
+      buildLocalFilePath(LOCAL_DIRS.system, BOOK_FILE_INDEX_FILENAME)
+    )
 
     const normalizedEntries = Array.isArray(payload.entries)
       ? payload.entries
@@ -74,14 +70,9 @@ export const loadBookFileIndex = async (): Promise<BookFileIndexFile | null> => 
 }
 
 export const saveBookFileIndex = async (payload: BookFileIndexFile): Promise<void> => {
-  const dirs = await getLocalDirNames()
   const normalizedPayload = buildPayload(payload.entries)
 
-  await invoke('write_file', {
-    subdir: dirs.system,
-    filename: BOOK_FILE_INDEX_FILENAME,
-    contents: Array.from(encodeJson(normalizedPayload)),
-  })
+  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, BOOK_FILE_INDEX_FILENAME), normalizedPayload)
 
   cachedBookFileIndex = normalizedPayload
 }

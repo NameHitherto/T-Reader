@@ -74,6 +74,7 @@ import {
   loadBookBinary,
   loadBookConfig,
 } from '@/services/book/bookRepository'
+import { logWarn } from '@/utils/logger'
 
 export default {
   name: 'BookInfoDialog',
@@ -154,7 +155,7 @@ export default {
         try {
           epub.destroy?.()
         } catch (error) {
-          console.warn('销毁 EPUB 详情实例失败:', error)
+          logWarn('bookInfo', '销毁 EPUB 实例失败', error)
         }
       }
     },
@@ -174,31 +175,40 @@ export default {
 </style>
 <style lang="scss">
 .info-dialog-wrapper {
-  max-height: 70%;
+  max-height: 70vh;
   width: auto;
   display: flex;
-  transition: all 0.3s ease-in;
+  transition: transform var(--duration-base) var(--easing-standard);
   padding: 0;
-  background-color: #0d0d0d;
-  box-shadow: var(--t-box-shadow-medium-light);
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
 
   .info-container {
     width: 100%;
     height: 100%;
     flex: 1;
     min-width: 0;
+    position: relative;
 
     .book-image {
-      display: inline-block;
+      display: inline-flex;
       width: 100%;
       height: 100%;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      background: var(--surface-card-soft);
 
       img {
         position: relative;
+        width: 100%;
+        object-fit: cover;
         max-height: 70vh;
-        transition: all 0.2s ease-out;
+        transition:
+          transform var(--duration-base) var(--easing-standard),
+          opacity var(--duration-base) var(--easing-standard);
         z-index: 1;
-        border-radius: 4px;
       }
     }
   }
@@ -215,20 +225,22 @@ export default {
     scale: 0.95;
     opacity: 0;
     letter-spacing: 1px;
-    transition: all 0.4s ease-in-out;
+    transition: all var(--duration-slow) var(--easing-standard);
     overflow: auto;
-    background: rgba(255, 255, 255, 0.15);
+    padding: 8px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(14px);
     z-index: 1;
 
     &::-webkit-scrollbar {
       width: 10px;
     }
     &::-webkit-scrollbar-thumb {
-      background-color: rgba(0, 0, 0, 0.2);
+      background-color: var(--scrollbar-thumb);
       border-radius: 5px;
     }
     &::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(0, 0, 0, 0.4);
+      background-color: var(--scrollbar-thumb-strong);
     }
     &::-webkit-scrollbar-track {
       background: transparent;
@@ -245,13 +257,23 @@ export default {
         .col {
           display: flex;
           flex-direction: column;
-          padding: 5px 10px;
-          border-radius: 16px;
-          background: #1d1e22;
-          box-shadow: 0 8px 16px -4px rgba(44, 45, 48, 0.047);
+          padding: 12px 14px;
+          border-radius: var(--radius-md);
+          background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+          box-shadow: var(--shadow-sm);
           position: relative;
-          color: rgba(255, 255, 255, 0.7);
-          opacity: 0.95;
+          color: var(--text-primary);
+          opacity: 0.98;
+          overflow: hidden;
+
+          &::before {
+            content: '';
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            border-radius: 999px;
+            background: var(--card-accent, var(--brand-primary));
+          }
 
           .book-title {
             font-size: 22px;
@@ -261,41 +283,44 @@ export default {
             opacity: 0.8;
             font-size: 12px;
             margin-bottom: 0.5rem;
+            color: var(--text-tertiary);
           }
           .col-text {
             font-size: 16px;
             line-height: 2;
+            color: var(--text-secondary);
           }
           .col-h {
             margin-bottom: 0.5rem;
             font-size: 20px;
             font-weight: 700;
             line-height: 1;
+            color: var(--text-primary);
           }
 
           &.title {
-            background: #3b82f6;
+            --card-accent: var(--brand-primary);
           }
           &.description {
-            background: #059669;
+            --card-accent: var(--success);
           }
           &.creator {
-            background: #f59e0b;
+            --card-accent: var(--brand-secondary);
           }
           &.publisher {
-            background: #c2410c;
+            --card-accent: var(--accent-orange);
           }
           &.pubdate {
-            background: #7c3aed;
+            --card-accent: var(--accent-violet);
           }
           &.language {
-            background: #e11d48;
+            --card-accent: var(--accent-pink);
           }
           &.rights {
-            background: #1e40af;
+            --card-accent: var(--brand-primary-strong);
           }
           &.identifier {
-            background: #d946ef;
+            --card-accent: var(--accent-magenta);
           }
         }
       }
@@ -306,7 +331,7 @@ export default {
   }
 
   &:hover {
-    transform: scale(1.05);
+    transform: scale(1.02);
     box-shadow: none;
 
     .book-details {
@@ -315,30 +340,9 @@ export default {
     }
 
     img {
-      opacity: 0.4;
-      animation: imgBlendIn 1.2s ease-in-out;
+      opacity: 0.2;
+      transform: scale(1.04);
     }
-  }
-}
-
-@keyframes imgBlendIn {
-  0% {
-    opacity: 1;
-    scale: 1;
-    backdrop-filter: none;
-  }
-  20% {
-    opacity: 0;
-    scale: 0.8;
-  }
-  25% {
-    opacity: 0;
-    scale: 1;
-  }
-  100% {
-    opacity: 0.4;
-    scale: 1;
-    backdrop-filter: blur(10px);
   }
 }
 </style>

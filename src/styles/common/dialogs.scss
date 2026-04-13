@@ -1,0 +1,40 @@
+:where(
+  .dialog-wrapper,
+  .cloud-sync-dialog-wrapper,
+  .assistant-dialog-wrapper,
+  .help-dialog-wrapper,
+  .system-font-enable-dialog-wrapper,
+  .info-dialog-wrapper,
+  .bookmark-dialog-wrapper
+) {
+  border: 1px solid var(--border-default);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+:where(
+  .dialog-wrapper,
+  .cloud-sync-dialog-wrapper,
+  .assistant-dialog-wrapper,
+  .help-dialog-wrapper,
+  .system-font-enable-dialog-wrapper,
+  .bookmark-dialog-wrapper
+) {
+  .el-dialog__header {
+    padding: 18px 22px 0;
+    color: var(--text-primary);
+  }
+
+  .el-dialog__body {
+    padding: 18px 22px 22px;
+  }
+
+  .el-dialog__footer {
+    padding: 0 22px 22px;
+  }
+}
+
+.system-font-enable-dialog-overlay {
+  backdrop-filter: var(--overlay-blur);
+  background: var(--surface-overlay);
+}

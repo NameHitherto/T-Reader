@@ -1,0 +1,60 @@
+import ePub from 'libs/epub.js'
+import { parseEpubMeta } from '@/services/book/epub/epubParser'
+import { BookCachePrimeHandler } from '@/services/book/types'
+import { createDurationLogger, logWarn } from '@/utils/logger'
+
+const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> => {
+  const finishLog = createDurationLogger('book-cache-service', 'extract-epub-locations')
+  const book = ePub(fileBuffer)
+
+  try {
+    await book.ready
+    await book.locations.generate(1000)
+    const locations = book.locations.save()
+    finishLog({
+      locationLength: locations.length,
+    })
+    return locations
+  } finally {
+    try {
+      book.destroy?.()
+    } catch (error) {
+      logWarn('book-cache-service', 'release-epub-locations-instance failed', {
+        error,
+      })
+    }
+  }
+}
+
+export const epubBookCacheHandler: BookCachePrimeHandler = {
+  hasRequiredCache(cache) {
+    return Boolean(cache.locations && cache.title && cache.cover !== undefined)
+  },
+  async buildCachePayload({ fileBuffer, originalFileName, currentCache }) {
+    const progress = currentCache.progress ?? 0
+
+    try {
+      const [meta, locations] = await Promise.all([
+        parseEpubMeta(fileBuffer, { includeCover: true }),
+        extractEpubLocations(fileBuffer),
+      ])
+
+      return {
+        title: meta.title,
+        cover: meta.cover || '',
+        locations,
+        progress,
+      }
+    } catch (error) {
+      logWarn('book-cache-service', 'prime-book-cache-after-import fallback', {
+        fileName: originalFileName,
+        format: 'epub',
+        error,
+      })
+
+      return {
+        progress,
+      }
+    }
+  },
+}

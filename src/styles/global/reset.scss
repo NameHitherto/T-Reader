@@ -1,0 +1,55 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  background: var(--app-bg);
+}
+
+body {
+  font-family: var(--font-family-base);
+  background: var(--app-bg-accent);
+  color: var(--text-primary);
+  overflow: hidden;
+  cursor: var(--t-mouse-cursor-pointer), default;
+  transition:
+    background-color var(--duration-base) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--reader-selection-bg);
+  color: var(--reader-selection-text);
+}
+
+a,
+button,
+[role='button'] {
+  cursor: var(--t-mouse-cursor-link), pointer;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+textarea {
+  cursor: var(--t-mouse-cursor-handwriting), text;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-family-mono);
+}

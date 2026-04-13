@@ -25,7 +25,7 @@
                     placement="right-start"
                 >
                     <span class="tag-option first" @click="jumpToRead">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16"><g fill="#999999" fill-rule="evenodd"><path d="M1.711 15.919a1.707 1.707 0 0 1-.529-3.332l.32-.107l-.096-.321c-.281-.949-.081-1.882.534-2.494l.63-.627l.912.906l-.425.422c-.714.711-.655 1.583.159 2.396q.653.646 1.31.648c.389 0 .743-.165 1.086-.504l3.889-3.872l.914.909l-4.098 4.076c-.422.42-.989.642-1.645.642q-.443 0-.894-.138l-.324-.099l-.11.319q-.136.396-.408.669a1.72 1.72 0 0 1-1.225.507m10.836-9.892l.195-.195c.24-.237.429-.66.481-1.078c.071-.562-.099-1.078-.479-1.457c-.333-.334-.777-.51-1.279-.51s-1.043.189-1.315.463L6.485 6.895l-.93-.925l4.076-4.055c.428-.424 1.004-.648 1.665-.648q.454 0 .915.142l.328.101l.107-.323q.133-.4.412-.678a1.73 1.73 0 0 1 2.438-.008a1.71 1.71 0 0 1-.008 2.426a1.7 1.7 0 0 1-.674.407l-.324.108l.102.327c.315.991.125 1.956-.502 2.582l-.609.605z"/><path d="M1.93 6.23c-.607-.605-.815-1.521-.554-2.452l.087-.313l-.308-.108A1.696 1.696 0 0 1 .529.537A1.727 1.727 0 0 1 2.967.529q.261.26.393.626l.111.31l.316-.091q.426-.125.85-.126c.655 0 1.227.224 1.652.646l.689.688l-.903.9l-.381-.381c-.161-.159-.6-.53-1.222-.53c-.467 0-.911.208-1.322.618c-.605.602-.652 1.169-.584 1.538c.08.431.334.758.533.956l3.803 3.783l-.86.854zm12.318 9.683c-.459 0-.889-.178-1.213-.498a1.7 1.7 0 0 1-.414-.698l-.102-.325l-.328.094a3 3 0 0 1-.801.113c-.66 0-1.266-.241-1.705-.678l-.58-.579l.857-.852l.216.216c.249.247.76.412 1.269.412c.494 0 .928-.158 1.217-.447c.305-.303.473-.765.473-1.302c0-.509-.152-.988-.389-1.221l-3.667-3.65l.901-.897l4.035 4.013c.617.615.816 1.56.53 2.523l-.097.33l.33.103a1.68 1.68 0 0 1 1.203 1.617c0 .461-.184.894-.511 1.221a1.73 1.73 0 0 1-1.224.505"/></g></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16"><g fill="currentColor" fill-rule="evenodd"><path d="M1.711 15.919a1.707 1.707 0 0 1-.529-3.332l.32-.107l-.096-.321c-.281-.949-.081-1.882.534-2.494l.63-.627l.912.906l-.425.422c-.714.711-.655 1.583.159 2.396q.653.646 1.31.648c.389 0 .743-.165 1.086-.504l3.889-3.872l.914.909l-4.098 4.076c-.422.42-.989.642-1.645.642q-.443 0-.894-.138l-.324-.099l-.11.319q-.136.396-.408.669a1.72 1.72 0 0 1-1.225.507m10.836-9.892l.195-.195c.24-.237.429-.66.481-1.078c.071-.562-.099-1.078-.479-1.457c-.333-.334-.777-.51-1.279-.51s-1.043.189-1.315.463L6.485 6.895l-.93-.925l4.076-4.055c.428-.424 1.004-.648 1.665-.648q.454 0 .915.142l.328.101l.107-.323q.133-.4.412-.678a1.73 1.73 0 0 1 2.438-.008a1.71 1.71 0 0 1-.008 2.426a1.7 1.7 0 0 1-.674.407l-.324.108l.102.327c.315.991.125 1.956-.502 2.582l-.609.605z"/><path d="M1.93 6.23c-.607-.605-.815-1.521-.554-2.452l.087-.313l-.308-.108A1.696 1.696 0 0 1 .529.537A1.727 1.727 0 0 1 2.967.529q.261.26.393.626l.111.31l.316-.091q.426-.125.85-.126c.655 0 1.227.224 1.652.646l.689.688l-.903.9l-.381-.381c-.161-.159-.6-.53-1.222-.53c-.467 0-.911.208-1.322.618c-.605.602-.652 1.169-.584 1.538c.08.431.334.758.533.956l3.803 3.783l-.86.854zm12.318 9.683c-.459 0-.889-.178-1.213-.498a1.7 1.7 0 0 1-.414-.698l-.102-.325l-.328.094a3 3 0 0 1-.801.113c-.66 0-1.266-.241-1.705-.678l-.58-.579l.857-.852l.216.216c.249.247.76.412 1.269.412c.494 0 .928-.158 1.217-.447c.305-.303.473-.765.473-1.302c0-.509-.152-.988-.389-1.221l-3.667-3.65l.901-.897l4.035 4.013c.617.615.816 1.56.53 2.523l-.097.33l.33.103a1.68 1.68 0 0 1 1.203 1.617c0 .461-.184.894-.511 1.221a1.73 1.73 0 0 1-1.224.505"/></g></svg>
                     </span> 
                 </el-tooltip>
                 <el-tooltip
@@ -35,7 +35,7 @@
                     placement="right-start"
                 >
                     <span class="tag-option second" @click="deleteBookMark">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="#999999" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14m-6-8h6m-6 4h6m4.506-1.494L15.012 12m0 0l1.506-1.506M15.012 12l1.506 1.506M15.012 12l-1.506-1.506M20 19H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14m-6-8h6m-6 4h6m4.506-1.494L15.012 12m0 0l1.506-1.506M15.012 12l1.506 1.506M15.012 12l-1.506-1.506M20 19H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1"/></svg>
                     </span>
                 </el-tooltip>
                 <el-tooltip
@@ -45,7 +45,7 @@
                     placement="right-start"
                 >
                     <span class="tag-option third">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="#999999" stroke-dasharray="36" stroke-dashoffset="36" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l-2.35 5.76l-6.21 0.46l4.76 4.02l-1.49 6.04l5.29 -3.28M12 3l2.35 5.76l6.21 0.46l-4.76 4.02l1.49 6.04l-5.29 -3.28"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="36;0"/></path></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-dasharray="36" stroke-dashoffset="36" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l-2.35 5.76l-6.21 0.46l4.76 4.02l-1.49 6.04l5.29 -3.28M12 3l2.35 5.76l6.21 0.46l-4.76 4.02l1.49 6.04l-5.29 -3.28"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="36;0"/></path></svg>
                     </span>
                 </el-tooltip>
             </div>
@@ -147,27 +147,27 @@ export default defineComponent({
         width: 50%;
         top: 8px;
         left: 0;
-        border-top: 2px dashed #ffe7ce;
+        border-top: 2px dashed var(--bookmark-paper-node-border);
     }
     &-tail-right {
         position: absolute;
         width: 50%;
         top: 8px;
         left: 50%;
-        border-top: 2px dashed #ffe7ce;
+        border-top: 2px dashed var(--bookmark-paper-node-border);
     }
     &-node {
         width: 16px;
         height: 16px;
-        background: linear-gradient(120deg, bisque 60%, rgb(255, 231, 222) 88%, rgb(255, 211, 195) 40%, rgba(255, 127, 80, 0.603) 48%);
+        background: var(--bookmark-paper-front);
         border-radius: 50%;
-        border: 2px solid rgba(255, 211, 195, 0.8);
+        border: 2px solid var(--bookmark-paper-ring);
         z-index: 1;
     }
     &-link {
         width: 3px;
         height: 20px;
-        background-color: #ffd8a8;
+        background-color: var(--bookmark-paper-line);
     }
     &-body {
         width: 100px;
@@ -204,16 +204,16 @@ export default defineComponent({
                     width: 20px;
                     height: 20px;
                     border-radius: 50%;
-                    background-color: #fff;
-                    box-shadow: inset 0 0 3px bisque;
+                    background-color: var(--bookmark-paper-hole);
+                    box-shadow: var(--bookmark-hole-shadow);
                     position: absolute;
                     top: 12px;
                 }
             }
             .front {
                 border-radius: 10px;
-                background: linear-gradient(120deg, bisque 60%, rgb(255, 231, 222) 88%, rgb(255, 211, 195) 40%, rgba(255, 127, 80, 0.603) 48%);
-                color: coral;
+                background: var(--bookmark-paper-front);
+                color: var(--brand-secondary-strong);
 
                 .tag-content {
                     display: -webkit-box;
@@ -231,7 +231,7 @@ export default defineComponent({
             .back {
                 transform: rotateY(180deg);
                 border-radius: 10px;
-                background: linear-gradient(120deg, rgb(255, 174, 145) 30%, coral 88%, bisque 40%, rgb(255, 185, 160) 78%);
+                background: var(--bookmark-paper-back);
 
                 .tag-comment {
                     display: -webkit-box;
@@ -245,11 +245,11 @@ export default defineComponent({
                     user-select: none;
 
                     &.primary {
-                        color: #fff;
+                        color: var(--text-on-brand);
                     }
 
                     &.info {
-                        color: var(--t-color-dark-grey);
+                        color: var(--text-secondary);
                     }
                 }
             }
@@ -271,9 +271,10 @@ export default defineComponent({
                 align-items: center;
                 justify-content: center;;
                 border-radius: 50%;
-                background: #ececec;
+                background: var(--surface-card-soft);
                 transition: all .3s ease-in-out;
                 opacity: 0;
+                color: var(--text-tertiary);
 
                 &:hover {
                     background: var(--t-color-light-yellow);
@@ -281,6 +282,12 @@ export default defineComponent({
                     &::before {
                         border-color: var(--t-color-light-yellow);
                     }
+                }
+
+                svg path,
+                svg g {
+                    fill: currentColor;
+                    stroke: currentColor;
                 }
 
                 &::before {
@@ -291,7 +298,7 @@ export default defineComponent({
                     width: 42px; 
                     height: 42px; 
                     border-radius: 50%; 
-                    border: 3px solid #ececec;
+                    border: 3px solid var(--surface-card-soft);
                     background: transparent;
                     transform: translate(-50%, -50%); 
                 }
@@ -306,7 +313,7 @@ export default defineComponent({
 
                     &:hover {
                         svg g{
-                            fill: #fff;
+                            fill: var(--text-on-brand);
                         }
                     }
                 }
@@ -323,7 +330,7 @@ export default defineComponent({
 
                     &:hover {
                         svg path {
-                            stroke: #fff;
+                            stroke: var(--text-on-brand);
                         }
                     }
                 }
@@ -340,7 +347,7 @@ export default defineComponent({
 
                     &:hover {
                         svg path {
-                            stroke: #fff;
+                            stroke: var(--text-on-brand);
                         }
                     }
                 }
@@ -353,7 +360,7 @@ export default defineComponent({
 
         .tag-time {
             font-size: 14px;
-            color: #ff8d00;
+            color: var(--brand-secondary-strong);
             line-height: 1em;
         }
     }

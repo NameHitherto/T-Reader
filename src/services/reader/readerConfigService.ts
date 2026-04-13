@@ -1,21 +1,18 @@
-import { invoke } from '@tauri-apps/api/core'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
-import { encodeJson } from '@/utils/json'
+import {
+  buildLocalFilePath,
+  LOCAL_DIRS,
+  readJsonFile,
+  writeJsonFile,
+} from '@/services/fileSystem/localStorageService'
+
+const READER_CONFIG_FILENAME = 'ReaderConfig.json'
 
 export const loadReaderConfigFromDisk = async () => {
-  const dirs = await getLocalDirNames()
-  const configData = await invoke('read_file', {
-    subdir: dirs.system,
-    filename: 'ReaderConfig.json',
-  })
-  return JSON.parse(new TextDecoder().decode(new Uint8Array(configData as ArrayBufferLike)))
+  return await readJsonFile<Record<string, unknown>>(
+    buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME)
+  )
 }
 
 export const saveReaderConfigToDisk = async (config: Record<string, any>) => {
-  const dirs = await getLocalDirNames()
-  await invoke('write_file', {
-    subdir: dirs.system,
-    filename: 'ReaderConfig.json',
-    contents: Array.from(encodeJson(config)),
-  })
+  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME), config)
 }

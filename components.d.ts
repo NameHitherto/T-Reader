@@ -14,8 +14,9 @@ declare module 'vue' {
     BookMark: typeof import('./src/components/BookMark.vue')['default']
     BookMarkDialog: typeof import('./src/components/BookMark/bookMarkDialog.vue')['default']
     BookMarkTag: typeof import('./src/components/BookMark/bookMarkTag.vue')['default']
+    BubbleToggle: typeof import('./src/components/common/BubbleToggle/index.vue')['default']
+    CloudSyncDialog: typeof import('./src/components/CloudSyncDialog/index.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
-    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElDialog: typeof import('element-plus/es')['ElDialog']
@@ -24,6 +25,8 @@ declare module 'vue' {
     ElInput: typeof import('element-plus/es')['ElInput']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElProgress: typeof import('element-plus/es')['ElProgress']
+    ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
+    ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -40,6 +43,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingDialog: typeof import('./src/components/SettingDialog/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
+    SystemFontEnableDialog: typeof import('./src/components/SystemFontEnableDialog/index.vue')['default']
     TocMenu: typeof import('./src/components/TocMenu/index.vue')['default']
   }
 }

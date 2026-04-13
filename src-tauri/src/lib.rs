@@ -1,17 +1,43 @@
+mod api;
 mod command;
-mod logging;
-mod model;
+mod entities;
+mod repository;
+mod service;
+mod utils;
 
-use command::{
-    check_cloud_dirs_command, check_local_dirs_command, delete_book, get_cloud_dir_names_command,
-    get_local_dir_names_command, get_system_fonts, list_files, load_books, load_settings,
-    prepare_updater_proxy, read_file, read_file_by_path, save_file, save_settings, start_stream,
-    webdav_delete, webdav_exists, webdav_get, webdav_sync_files, webdav_upload, write_file,
-};
+use entities::{AppUpdateState, ReaderWindowState};
+use log::LevelFilter;
+use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
+use utils::logging::build_log_target;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg(debug_assertions)]
+fn build_log_targets() -> Result<Vec<Target>, String> {
+    Ok(vec![build_log_target(TargetKind::Stdout)])
+}
+
+#[cfg(not(debug_assertions))]
+fn build_log_targets() -> Result<Vec<Target>, String> {
+    let log_dir = service::filesystem::dir_service::get_local_logs_dir_path()?;
+    Ok(vec![build_log_target(TargetKind::Folder {
+        path: log_dir,
+        file_name: Some("t-reader".to_string()),
+    })])
+}
+
 pub fn run() {
+    let log_targets = build_log_targets().expect("failed to configure log targets");
+
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(LevelFilter::Info)
+                .timezone_strategy(TimezoneStrategy::UseLocal)
+                .clear_format()
+                .targets(log_targets)
+                .max_file_size(1024 * 1024)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_window_state::Builder::new().build())
@@ -20,29 +46,9 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![
-            save_file,
-            load_books,
-            delete_book,
-            read_file_by_path,
-            read_file,
-            write_file,
-            list_files,
-            webdav_upload,
-            webdav_get,
-            webdav_exists,
-            webdav_delete,
-            webdav_sync_files,
-            save_settings,
-            load_settings,
-            start_stream,
-            get_system_fonts,
-            prepare_updater_proxy,
-            check_local_dirs_command,
-            check_cloud_dirs_command,
-            get_local_dir_names_command,
-            get_cloud_dir_names_command
-        ])
+        .manage(AppUpdateState::default())
+        .manage(ReaderWindowState::default())
+        .invoke_handler(command::invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

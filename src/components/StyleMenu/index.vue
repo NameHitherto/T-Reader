@@ -1,41 +1,74 @@
 <template>
-  <div class="menu fade-in">
-    <div class="color-section section">
-      <span class="section-title">背景</span>
-      <div id="color-box-selector">
-        <span
-          v-for="color in colors"
-          :key="color"
-          :style="{ backgroundColor: color }"
-          class="color-box"
-          @click="selectColor(color)"
-        >
-        </span>
+  <div
+    ref="menuElement"
+    class="menu"
+    :style="menuStyle"
+  >
+    <div class="menu-hero">
+      <div class="menu-title">阅读样式</div>
+      <div class="menu-theme">
+        <span class="summary-pill">当前主题 · {{ themeModeLabel }}</span>
       </div>
     </div>
+
+    <div class="background-section section">
+      <div class="section-head">
+        <span class="section-title">背景</span>
+      </div>
+
+      <div class="background-grid">
+        <button
+          v-for="option in backgroundPresetOptions"
+          :key="option.value"
+          type="button"
+          class="background-card"
+          :class="{ 'is-active': option.value === activeBackgroundPreset }"
+          @click="selectBackgroundPreset(option.value)"
+        >
+          <span class="background-card-preview" :style="{ background: option.preview }">
+            <span v-if="option.value === activeBackgroundPreset" class="background-card-check">
+              ✓
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+
     <div class="font-section section">
-      <span class="section-title">字体</span>
+      <div class="section-head">
+        <span class="section-title">字体</span>
+        <div class="font-summary">
+          <span class="summary-pill">已启用 {{ enabledFontCount }} 款系统字体</span>
+        </div>
+      </div>
+
       <div class="font-option">
         <el-select
           v-model="selectedFont"
-          placeholder="默认"
-          style="width: 200px;"
-          @change="selectFont(selectedFont)"
+          placeholder="系统默认字体"
+          class="font-select"
+          popper-class="style-menu-select-popper"
+          @change="selectFont"
         >
           <el-option
-            v-for="font in systemFonts"
-            :key="font.postscript_name || font.family"
-            :label="font.postscript_name || font.family"
-            :value="font.postscript_name || font.family"
+            v-for="font in fontOptions"
+            :key="font.value"
+            :label="font.label"
+            :value="font.value"
           />
         </el-select>
       </div>
+
+      <button class="font-manage-button app-secondary-button" @click="openFontDialog">
+        选择系统字体
+      </button>
     </div>
+
     <div class="basic-section section">
       <div
-        class="adjust-option"
         v-for="(setting, index) in settings"
         :key="index"
+        class="adjust-option"
       >
         <label>{{ setting.label }}</label>
         <el-input-number
@@ -50,41 +83,48 @@
         />
       </div>
     </div>
+
     <div class="extra-section section">
       <span class="section-title">其他</span>
       <div class="flow-option">
         <label>翻页模式</label>
-        <el-tooltip :content="flowMode" placement="top">
-          <el-switch
-            v-model="flow"
-            style="--el-switch-on-color: #f2b94b; --el-switch-off-color: #13ce66"
-            active-value="scrolled"
-            inactive-value="paginated"
-            @change="switchFlow"
-          >
-          </el-switch>
-        </el-tooltip>
+        <BubbleToggle
+          v-model="flow"
+          class="style-menu-flow-toggle"
+          :options="flowOptions"
+          aria-label="翻页模式切换"
+          @change="switchFlow"
+        />
       </div>
     </div>
-    <div id="reset-button" @click="resetStyle">
-      <span class="circle" aria-hidden="true">
-        <span class="icon arrow"></span>
-      </span>
-      <span class="button-text">恢复默认样式</span>
-    </div>
+
+    <button class="menu-reset-button app-secondary-button" @click="resetStyle">
+      恢复默认样式
+    </button>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed } from 'vue'
-import { useReaderConfigStore } from '@/store/readerConfigStore'
+import { computed, defineComponent, ref, watch, type PropType } from 'vue'
 import { storeToRefs } from 'pinia'
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import '@/css/ResetButton.css'
-import { invoke } from '@tauri-apps/api/core'
-import { fontExclusion } from '@/constants/fontExclusion'
-import { WINDOW_EVENTS } from '@/constants/events'
+import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
+import { useReaderConfigStore } from '@/store/readerConfigStore'
+import { buildReaderFontOptions } from '@/services/reader/systemFontService'
+import { dispatchReaderStyleUpdate } from '@/services/reader/readerWindowBridgeService'
+import { DEFAULT_READER_FONT } from '@/types/readerFonts'
+import {
+  getAppliedAppThemeMode,
+  getReaderBackgroundPresetOptions,
+  syncReaderConfigThemeColors,
+} from '@/services/theme/themeService'
+import type { AppThemeMode } from '@/services/settings/appSettingsService'
+import type {
+  ReaderBackgroundPreset,
+  ReaderBackgroundPresets,
+  ReaderDarkBackgroundPreset,
+  ReaderLightBackgroundPreset,
+} from '@/types/readerBackground'
 
 type NumericSettingKey =
   | 'indent'
@@ -108,22 +148,29 @@ interface ReaderNumericSetting {
   precision: number
 }
 
-interface FontNameEntry {
-  family: string
-  postscript_name: string | null
-  style: string | null
-  weight: number | null
-  path: string | null
-}
-
 export default defineComponent({
-  setup() {
-    // 正式全局变量
+  name: 'StyleMenu',
+  components: {
+    BubbleToggle,
+  },
+  props: {
+    maxHeight: {
+      type: Number,
+      default: null,
+    },
+    themeMode: {
+      type: String as PropType<AppThemeMode>,
+      default: 'light',
+    },
+  },
+  emits: ['open-font-dialog'],
+  setup(props, { emit }) {
+    type ReaderFlowToggleValue = 'paginated' | 'scrolled'
+
     const readerConfigStore = useReaderConfigStore()
-    // 全局状态变量，但只能访问不能修改
     const { readerConfig } = storeToRefs(readerConfigStore)
 
-    const colors = ['#FFFFFF', '#faebd7', '#000000']
+    const menuElement = ref<HTMLElement | null>(null)
     const selectedFont = ref(readerConfig.value.font)
     const settings = ref<ReaderNumericSetting[]>([
       {
@@ -218,205 +265,325 @@ export default defineComponent({
       },
     ])
 
-    // 系统字体
-    const systemFonts = ref<FontNameEntry[]>([])
-    invoke<FontNameEntry[]>('get_system_fonts').then((fonts) => {
-      // 以family值去除不常用字体
-      const filteredFonts = fonts.filter(font => !fontExclusion.includes(font.family))
-      systemFonts.value = filteredFonts
-      const family = []
-      for (const font of filteredFonts) {
-        family.push(font.family)
+    const normalizeFlowToggleValue = (value: string): ReaderFlowToggleValue => {
+      return value === 'paginated' ? 'paginated' : 'scrolled'
+    }
+
+    const flowOptions = [
+      { label: '分页翻页', value: 'paginated' },
+      { label: '滚动翻页', value: 'scrolled' },
+    ] as { label: string; value: ReaderFlowToggleValue }[]
+
+    const currentThemeMode = computed<AppThemeMode>(() => {
+      return props.themeMode || getAppliedAppThemeMode()
+    })
+    const flow = ref<ReaderFlowToggleValue>(normalizeFlowToggleValue(readerConfig.value.flow))
+    const fontOptions = computed(() => buildReaderFontOptions(readerConfig.value.enabledSystemFonts))
+    const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
+    const themeModeLabel = computed(() => {
+      return currentThemeMode.value === 'dark' ? '黑夜模式' : '白天模式'
+    })
+    const backgroundPresetOptions = computed(() => {
+      return getReaderBackgroundPresetOptions(currentThemeMode.value)
+    })
+    const activeBackgroundPreset = computed(() => {
+      return readerConfig.value.backgroundPresets[currentThemeMode.value]
+    })
+    const menuStyle = computed(() => {
+      if (!props.maxHeight) {
+        return undefined
       }
-      console.log(family)
+
+      return {
+        maxHeight: `${props.maxHeight}px`,
+      }
     })
 
-    // 翻页模式
-    const flow = ref(readerConfig.value.flow)
-    const flowMode = computed(() => {
-      return flow.value === 'scrolled' ? '滚动翻页' : '分页翻页' 
-    })
-
-    // 样式视觉化更新
     const updateVisual = () => {
       settings.value = settings.value.map((setting) => {
         setting.value = readerConfig.value[setting.key] as number
         return setting
       })
+      selectedFont.value = readerConfig.value.font
+      flow.value = normalizeFlowToggleValue(readerConfig.value.flow)
     }
 
-    // 通知阅读器更新样式
     const emitStyleApplication = () => {
-      getCurrentWebviewWindow().emitTo('reader', WINDOW_EVENTS.UPDATE_READER_STYLE)
+      void dispatchReaderStyleUpdate()
     }
 
-    // 样式恢复默认
+    const buildBackgroundPresetsForCurrentTheme = (
+      preset: ReaderBackgroundPreset
+    ): ReaderBackgroundPresets => {
+      if (currentThemeMode.value === 'dark') {
+        return {
+          ...readerConfig.value.backgroundPresets,
+          dark: preset as ReaderDarkBackgroundPreset,
+        }
+      }
+
+      return {
+        ...readerConfig.value.backgroundPresets,
+        light: preset as ReaderLightBackgroundPreset,
+      }
+    }
+
+    const syncCurrentThemeCompatColors = () => {
+      readerConfigStore.setReaderConfig(
+        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value)
+      )
+    }
+
     const resetStyle = async () => {
-      const confirmation = await confirm('确定要恢复默认样式吗？', {
+      const confirmation = await confirm('确定要恢复当前主题的默认阅读样式吗？', {
         title: '恢复默认样式',
         kind: 'warning',
       })
       if (confirmation) {
-        // 重置状态变量
+        const nextBackgroundPresets = buildBackgroundPresetsForCurrentTheme('default')
         readerConfigStore.setDefaultConfig()
-        // 阅读器样式更新
+        readerConfigStore.changeState('backgroundPresets', nextBackgroundPresets)
+        selectedFont.value = DEFAULT_READER_FONT
+        syncCurrentThemeCompatColors()
         emitStyleApplication()
-        // 更新可视化
         updateVisual()
       }
     }
 
-    // 选择背景颜色
-    const selectColor = (color: string) => {
-      if (color === '#000000') {
-        readerConfigStore.changeState('fontColor', '#FFFFFF')
-        readerConfigStore.changeState('color', color)
-      } else {
-        readerConfigStore.changeState('fontColor', '#000000')
-        readerConfigStore.changeState('color', color)
-      }
+    const selectBackgroundPreset = (preset: ReaderBackgroundPreset) => {
+      readerConfigStore.changeState(
+        'backgroundPresets',
+        buildBackgroundPresetsForCurrentTheme(preset)
+      )
+      syncCurrentThemeCompatColors()
       emitStyleApplication()
     }
 
-    // 选择字体
     const selectFont = (font: string) => {
-      readerConfigStore.changeState('font', font)
+      const fontExists = fontOptions.value.some((option) => option.value === font)
+      const nextFont = fontExists ? font : DEFAULT_READER_FONT
+      selectedFont.value = nextFont
+      readerConfigStore.changeState('font', nextFont)
       emitStyleApplication()
       updateVisual()
     }
 
-    // 切换翻页模式
-    const switchFlow = () => {
-      readerConfigStore.changeState('flow', flow.value)
-      emitStyleApplication()
-    }
- 
-    // 调整样式设置
-    const adjustSetting = (key: NumericSettingKey, value: number) => {
-      // 更新状态全局变量
-      readerConfigStore.changeState(key, value)
-      // 通知阅读器更新样式
+    const switchFlow = (value?: ReaderFlowToggleValue) => {
+      const nextFlow = normalizeFlowToggleValue(value || flow.value)
+      flow.value = nextFlow
+      readerConfigStore.changeState('flow', nextFlow)
       emitStyleApplication()
     }
 
-    onMounted(() => {
-      const menuElement = document.querySelector('.menu') as HTMLElement
-      if (menuElement) {
-        const windowHeight = window.innerHeight
-        const menuHeight = menuElement.offsetHeight
-        menuElement.style.height = `${Math.min(
-          windowHeight - 100,
-          menuHeight
-        )}px`
+    const adjustSetting = (key: NumericSettingKey, value: number) => {
+      readerConfigStore.changeState(key, value)
+      emitStyleApplication()
+    }
+
+    const openFontDialog = () => {
+      selectedFont.value = readerConfig.value.font
+      emit('open-font-dialog')
+    }
+
+    watch(
+      () => readerConfig.value.font,
+      (font) => {
+        selectedFont.value = font
       }
-    })
+    )
 
     return {
-      colors,
+      activeBackgroundPreset,
+      adjustSetting,
+      backgroundPresetOptions,
+      enabledFontCount,
+      flow,
+      flowOptions,
+      fontOptions,
+      menuElement,
+      menuStyle,
+      openFontDialog,
+      readerConfig,
+      resetStyle,
+      selectBackgroundPreset,
+      selectFont,
       selectedFont,
       settings,
-      systemFonts,
-      selectColor,
-      adjustSetting,
-      resetStyle,
-      selectFont,
-      flow,
-      flowMode,
       switchFlow,
+      themeModeLabel,
     }
   },
 })
 </script>
 
 <style lang="scss" scoped>
-/* 组件浮现动画 */
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(-100px) scale(0.8);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.15s ease-in-out;
-}
-
 label {
   font-size: 14px;
 }
+
 .menu {
-  background-color: white;
-  padding: 10px;
-  width: 200px;
-  border-radius: 10px;
-  box-shadow: var(--t-box-shadow-light);
+  width: 290px;
+  padding: 16px;
+  box-sizing: content-box;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
   overflow: auto;
+  backdrop-filter: blur(14px);
 
-  &::-webkit-scrollbar {
-    width: var(--t-scrollbar-width-thin);
+  .menu-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-strong);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm), var(--shadow-inset-light);
   }
 
-  &::-webkit-scrollbar-track {
-    background: transparent;
+  .menu-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
   }
 
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--t-color-grey);
-    /* 浅色背景 */
-    border-radius: 6px;
-    background-clip: content-box;
-    display: none;
-  }
-
-  &:hover::-webkit-scrollbar-thumb {
-    display: unset;
-  }
-
-  .section {
-    padding-bottom: 10px;
-    border-bottom: var(--t-border-thin-light);
-
-    .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 5px;
+  .menu-theme {
+    .summary-pill {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-brand-soft);
+      color: var(--brand-primary);
+      font-size: 12px;
+      font-weight: 700;
     }
   }
 
-  .color-section {
+  .section {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+  }
+
+  .section-head {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
 
-    #color-box-selector {
+  .background-section {
+    .background-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .background-card {
       display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
+      background: var(--surface-strong);
+      color: inherit;
+      text-align: left;
+      box-shadow: var(--shadow-xs);
+      transition:
+        transform var(--duration-fast) var(--easing-standard),
+        box-shadow var(--duration-fast) var(--easing-standard),
+        border-color var(--duration-fast) var(--easing-standard);
 
-      .color-box {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 2px solid #ccc;
-        margin-right: 8px;
-        cursor: var(--t-mouse-cursor-link), pointer;
-        transition: border 0.3s;
-
-        &:hover {
-          border-color: #999;
-        }
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--border-emphasis);
       }
+
+      &.is-active {
+        border-color: var(--border-brand);
+        box-shadow:
+          var(--shadow-md),
+          0 0 0 2px var(--ring-brand-subtle);
+      }
+    }
+
+    .background-card-preview {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 72px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-emphasis);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .background-card-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      box-shadow: var(--shadow-sm);
     }
   }
 
   .font-section {
-    margin-top: 5px;
-
     .font-option {
+      margin-top: 12px;
+    }
+
+    .font-select {
+      width: 100%;
+    }
+
+    .font-summary {
       display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-pill {
+      width: fit-content;
+      display: inline-flex;
       align-items: center;
-      margin-top: 0.225rem;
+      padding: 5px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-brand-soft);
+      color: var(--brand-primary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .font-manage-button {
+      margin-top: 14px;
     }
   }
 
@@ -424,17 +591,22 @@ label {
     .adjust-option {
       display: flex;
       align-items: center;
-      margin-top: 10px;
       justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+
+      &:first-child {
+        margin-top: 0;
+      }
 
       label {
-        margin-right: 10px;
-        font-size: 15px;
-        font-weight: bold;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 700;
       }
 
       .input-number {
-        width: 100px;
+        width: 112px;
       }
     }
   }
@@ -444,12 +616,34 @@ label {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 10px;
 
       label {
-        font-size: 15px;
-        font-weight: bold;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .style-menu-flow-toggle {
+        --bubble-toggle-shell-padding: 5px 10px;
+        --bubble-toggle-shell-bg: var(--surface-brand-gradient);
+        --bubble-toggle-shell-border: var(--border-brand);
+        --bubble-toggle-shell-shadow: var(--shadow-xs);
+        --bubble-toggle-focus-ring: var(--ring-brand-soft);
+        --bubble-toggle-font-size: 12px;
+        --bubble-toggle-font-weight: 700;
+        --bubble-toggle-text: var(--text-secondary);
+        --bubble-toggle-active-text: var(--brand-primary);
       }
     }
   }
+
+  .menu-reset-button {
+    margin-top: 14px;
+  }
+}
+
+:global(.style-menu-select-popper) {
+  z-index: 4800 !important;
 }
 </style>

@@ -1,0 +1,23 @@
+pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![
+        crate::api::file::copy_file_to_subdir,
+        crate::api::webdav::webdav_upload,
+        crate::api::webdav::webdav_get,
+        crate::api::webdav::webdav_exists,
+        crate::api::webdav::webdav_delete,
+        crate::api::webdav::webdav_sync_files,
+        crate::api::webdav::webdav_get_sync_preview,
+        crate::api::webdav::webdav_apply_sync_plan,
+        crate::api::ai::start_stream,
+        crate::api::font::get_system_fonts,
+        crate::api::updater::prepare_updater_proxy,
+        crate::api::updater::check_app_update,
+        crate::api::updater::install_app_update,
+        crate::api::window::open_reader_window,
+        crate::api::window::reader_window_ready,
+        crate::api::window::ack_reader_load,
+        crate::api::window::close_reader_window,
+        crate::api::window::dispatch_main_event,
+        crate::api::window::dispatch_reader_event
+    ]
+}

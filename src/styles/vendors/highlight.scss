@@ -1,0 +1,61 @@
+code.hljs,
+pre.hljs,
+.hljs {
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-code);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+}
+
+code.hljs {
+  padding: 1em 1.1em;
+}
+
+:not(pre) > code.hljs {
+  padding: 0.24em 0.46em;
+  border-radius: 8px;
+  background: var(--surface-code-inline);
+  display: inline;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--text-muted);
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-title,
+.hljs-section,
+.hljs-type {
+  color: var(--brand-primary);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta .hljs-string {
+  color: var(--success);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-template-variable,
+.hljs-meta,
+.hljs-link {
+  color: var(--brand-secondary-strong);
+}
+
+.hljs-variable,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--danger);
+}

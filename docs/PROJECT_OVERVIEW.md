@@ -106,7 +106,8 @@ src/
 ├── constants/            # 事件名、字体排除等常量
 ├── css/                  # 全局样式
 ├── icons/                # 图标注册表
-├── js/                   # 轻量工具与桥接代码
+├── types/                # 共享类型定义
+├── utils/                # 通用工具与格式化函数
 ├── router/               # 主窗口路由
 ├── services/             # 业务服务层
 │   ├── book/             # 导入、解析、仓储、缓存、展示
@@ -238,7 +239,7 @@ src/
 
 #### `BookConfig`
 
-定义位置：`src/js/map.ts`
+定义位置：`src/types/book.ts`
 
 ```ts
 interface BookConfig {
@@ -311,7 +312,7 @@ interface BookMark {
 Document/T-Reader/
 ├── books/         # 原始书籍文件
 ├── bookProgress/  # <bookKey>.json
-├── cached/        # <bookKey>.json
+├── cached/        # <bookKey>.json + t-reader.log
 └── system/
     ├── setting.json
     ├── ReaderConfig.json
@@ -328,6 +329,8 @@ WebDAV/T-Reader/
 
 说明：
 
+- 开发态日志只打印到 `tauri dev` 终端
+- 打包后的日志写入 `Document/T-Reader/cached/t-reader.log`
 - 当前云端不保存 `cached/`
 - 当前云端不保存 `system/BookMarks.json`
 - 同步阶段会比较本地与云端进度文件中的 `durChapterTime`
@@ -458,6 +461,8 @@ npm run tauri build
 npm run preview
 npm run release -- v1.0.1
 ```
+
+`npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
 
 ### 10.2 建议回归项
 

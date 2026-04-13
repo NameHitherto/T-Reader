@@ -1,4 +1,10 @@
-import { invoke } from '@tauri-apps/api/core'
+import {
+  buildLocalDirPath,
+  CLOUD_DIRS,
+  ensureLocalStorageDirs,
+  LOCAL_DIRS,
+  LOCAL_STORAGE_ROOT,
+} from '@/services/fileSystem/localStorageService'
 
 /**
  * 本地目录结构：
@@ -17,49 +23,28 @@ import { invoke } from '@tauri-apps/api/core'
  */
 
 /**
- * 本地目录名称（从后端获取）
+ * 本地目录名称（前端常量）
  */
-export interface LocalDirNames {
-  books: string
-  progress: string
-  cached: string
-  system: string
-}
+export type LocalDirNames = typeof LOCAL_DIRS
 
 /**
- * 云端目录名称（从后端获取）
+ * 云端目录名称（前端常量）
  */
-export interface CloudDirNames {
-  books: string
-  progress: string
-}
-
-/**
- * 缓存的目录名称
- */
-let cachedLocalDirs: LocalDirNames | null = null
-let cachedCloudDirs: CloudDirNames | null = null
+export type CloudDirNames = typeof CLOUD_DIRS
 
 /**
  * 获取本地目录名称（带缓存）
  */
 export const getLocalDirNames = async (): Promise<LocalDirNames> => {
-  if (cachedLocalDirs) {
-    return cachedLocalDirs
-  }
-  cachedLocalDirs = await invoke<LocalDirNames>('get_local_dir_names_command')
-  return cachedLocalDirs
+  await ensureLocalStorageDirs()
+  return { ...LOCAL_DIRS }
 }
 
 /**
  * 获取云端目录名称（带缓存）
  */
 export const getCloudDirNames = async (): Promise<CloudDirNames> => {
-  if (cachedCloudDirs) {
-    return cachedCloudDirs
-  }
-  cachedCloudDirs = await invoke<CloudDirNames>('get_cloud_dir_names_command')
-  return cachedCloudDirs
+  return { ...CLOUD_DIRS }
 }
 
 /**
@@ -67,48 +52,38 @@ export const getCloudDirNames = async (): Promise<CloudDirNames> => {
  * @returns 本地根目录路径
  */
 export const checkLocalDirs = async (): Promise<string> => {
-  return await invoke<string>('check_local_dirs_command')
-}
-
-/**
- * 检查并确保云端目录结构完整
- */
-export const checkCloudDirs = async (): Promise<void> => {
-  return await invoke('check_cloud_dirs_command')
+  await ensureLocalStorageDirs()
+  return LOCAL_STORAGE_ROOT
 }
 
 /**
  * 获取本地书籍文件路径
  */
 export const getLocalBooksDir = async (): Promise<string> => {
-  const root = await checkLocalDirs()
-  const dirs = await getLocalDirNames()
-  return `${root}/${dirs.books}`
+  await ensureLocalStorageDirs()
+  return buildLocalDirPath(LOCAL_DIRS.books)
 }
 
 /**
  * 获取本地进度配置文件路径
  */
 export const getLocalProgressDir = async (): Promise<string> => {
-  const root = await checkLocalDirs()
-  const dirs = await getLocalDirNames()
-  return `${root}/${dirs.progress}`
+  await ensureLocalStorageDirs()
+  return buildLocalDirPath(LOCAL_DIRS.progress)
 }
 
 /**
  * 获取本地缓存目录路径
  */
 export const getLocalCachedDir = async (): Promise<string> => {
-  const root = await checkLocalDirs()
-  const dirs = await getLocalDirNames()
-  return `${root}/${dirs.cached}`
+  await ensureLocalStorageDirs()
+  return buildLocalDirPath(LOCAL_DIRS.cached)
 }
 
 /**
  * 获取本地系统目录路径
  */
 export const getLocalSystemDir = async (): Promise<string> => {
-  const root = await checkLocalDirs()
-  const dirs = await getLocalDirNames()
-  return `${root}/${dirs.system}`
+  await ensureLocalStorageDirs()
+  return buildLocalDirPath(LOCAL_DIRS.system)
 }

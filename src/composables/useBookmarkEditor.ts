@@ -1,5 +1,5 @@
 import { ref, watch, Ref } from 'vue'
-import { applyBookmarkHighlight } from '@/services/reader/bookmarkService'
+import { applyBookmarkHighlight } from '@/services/reader/epub/bookmarkService'
 
 interface UseBookmarkEditorArgs {
   bookMarkStore: any

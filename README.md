@@ -33,6 +33,8 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 T-Reader/
 ├─ src/                  # Vue 前端
 │  ├─ components/        # 主窗口、阅读器与弹窗组件
+│  ├─ types/             # 共享类型定义
+│  ├─ utils/             # 通用工具
 │  ├─ services/          # book / reader / fileSystem / notification
 │  ├─ store/             # Pinia 状态
 │  └─ router/            # 主窗口路由
@@ -50,7 +52,7 @@ T-Reader/
 T-Reader/
 ├─ books/         # 原始书籍文件（epub / txt）
 ├─ bookProgress/  # 书籍进度配置
-├─ cached/        # 封面、locations、段落统计等缓存
+├─ cached/        # 封面、locations、段落统计缓存，以及生产日志 t-reader.log
 └─ system/        # setting.json / ReaderConfig.json / BookMarks.json
 ```
 
@@ -64,6 +66,8 @@ T-Reader/
 
 说明：
 
+- 开发态日志仅打印到 `npm run tauri dev` 的终端，不写入 DevTools 或本地日志文件
+- 打包后的日志写入 `Document/T-Reader/cached/t-reader.log`
 - `cached/` 与 `system/BookMarks.json` 当前不参与 WebDAV 同步
 - 云端与本地进度冲突时，优先使用 `durChapterTime` 更新较新的配置
 
@@ -118,6 +122,8 @@ npm run tauri build
 npm run release -- v1.0.1
 ```
 
+`npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
+
 ## 开发说明
 
 - 主窗口入口：`index.html` + `src/main.ts`
@@ -128,6 +134,7 @@ npm run release -- v1.0.1
   - `/about` 关于 / 更新
   - `/experiment` 实验页占位
 - 阅读器窗口事件统一定义在 `src/constants/events.ts`
+- 窗口标题栏初始化位于 `src/services/window/windowTitlebarService.ts`
 
 ## 常见问题
 

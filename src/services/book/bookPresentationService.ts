@@ -1,11 +1,14 @@
-import { BookConfig } from '@/js/map'
-import { BookFormat } from '@/js/bookFormat'
+import { BookConfig, BookFormat } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
 import {
   calculateShelfProgress,
+} from '@/services/reader/progressSnapshotService'
+import {
   isUnreadProgressSnapshot,
   normalizeBookConfig,
-} from '@/services/reader/progressSnapshotService'
+} from '@/services/book/bookConfigService'
+
+const TXT_CHAPTER_PLACEHOLDER_PATTERN = /^paragraph-\d+$/i
 
 const clampProgress = (value: number): number => {
   if (Number.isNaN(value)) {
@@ -13,6 +16,19 @@ const clampProgress = (value: number): number => {
   }
 
   return Math.min(100, Math.max(0, value))
+}
+
+export const normalizeDisplayedChapterTitle = (
+  title?: string | null,
+  fallback = '暂无章节标题'
+) => {
+  const normalizedTitle = typeof title === 'string' ? title.trim() : ''
+
+  if (!normalizedTitle || TXT_CHAPTER_PLACEHOLDER_PATTERN.test(normalizedTitle)) {
+    return fallback
+  }
+
+  return normalizedTitle
 }
 
 export const buildLastReadLabel = (

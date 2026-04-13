@@ -23,7 +23,7 @@
           height="18"
           viewBox="0 0 20 20"
         >
-          <path fill="#000000" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z" />
+          <path fill="currentColor" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z" />
         </svg>
       </button>
       <button class="next-page button" @click="nextPage">
@@ -33,14 +33,14 @@
           height="18"
           viewBox="0 0 20 20"
         >
-          <path fill="#000000" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z" />
+          <path fill="currentColor" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z" />
         </svg>
       </button>
     </div>
   </div>
   <el-drawer v-model="tocDrawer" direction="ltr" :show-close="false" @open="handleTocOpen">
     <template #header>
-      <span style="font-size: large; text-align: center">目录</span>
+      <span class="drawer-title">目录</span>
     </template>
     <el-menu
       ref="tocMenuRef"
@@ -72,38 +72,62 @@
   <AssistantDialog v-model="assistantVisible" :bookKey="currentBookKey" />
   <!-- 功能帮助 -->
   <HelpDialog v-model="helpVisible" />
+  <SystemFontEnableDialog v-model="systemFontDialogVisible" />
+  <Teleport to="body">
+    <Transition
+      name="style-menu"
+      @enter="handleStyleMenuEnter"
+      @after-enter="handleStyleMenuAfterEnter"
+    >
+      <div
+        v-if="styleMenuVisible"
+        id="customer-menu"
+        ref="styleMenuPanelRef"
+        class="style-menu-panel"
+        :style="styleMenuPanelStyle"
+      >
+        <StyleMenu
+          :max-height="styleMenuPosition.maxHeight"
+          :theme-mode="appThemeMode"
+          @open-font-dialog="handleOpenSystemFontDialog"
+        />
+      </div>
+    </Transition>
+  </Teleport>
   <!-- 阅读进度 -->
-  <div v-if="readingPercentage" class="reading-percentage">
-    {{ readingPercentage }}%
+  <div v-if="readingStatusText" class="reading-status" :title="readingStatusText">
+    {{ readingStatusText }}
   </div>
 </template>
 
 <script lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { UnlistenFn } from '@tauri-apps/api/event'
 import { Rendition } from 'libs/epub.js'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
 import { storeToRefs } from 'pinia'
+import { logInfo, logWarn, logError } from '@/utils/logger'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import AssistantDialog from './components/AssistantDialog/index.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
+import StyleMenu from './components/StyleMenu/index.vue'
+import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
-import { BookConfig, ContextMenuData, ContextMenuItem } from './js/map'
-import { BookFormat } from './js/bookFormat'
-import { WINDOW_EVENTS } from '@/constants/events'
+import { BookConfig, BookFormat } from '@/types/book'
+import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+import { READER_DOM_EVENTS } from '@/constants/events'
 import {
   calcTxtProgress,
   findParagraphIndexByScroll,
-} from '@/services/reader/txtReaderService'
+} from '@/services/reader/txt/txtReaderService'
 import {
   destroyEpubRendition,
   renderEpubBook,
-} from '@/services/reader/adapters/epubAdapter'
-import { renderTxtBook } from '@/services/reader/adapters/txtAdapter'
+} from '@/services/reader/epub/epubAdapter'
+import { renderTxtBook } from '@/services/reader/txt/txtAdapter'
 import { resolveReaderDisplayTarget } from '@/services/reader/progressSnapshotService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
@@ -112,21 +136,20 @@ import {
   addBookmarkHighlight,
   initBookMarksForBook,
   removeBookmarkHighlight,
-} from '@/services/reader/bookmarkService'
-import { bindRenditionEvents } from '@/services/reader/renditionEventsService'
+} from '@/services/reader/epub/bookmarkService'
+import { bindRenditionEvents } from '@/services/reader/epub/renditionEventsService'
 import {
   collectParentChapterIndexes,
   scrollDrawerToActiveChapter,
-} from '@/services/reader/tocService'
+} from '@/services/reader/epub/tocService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
-import { scrollTxtByPage } from '@/services/reader/navigationService'
+import { scrollTxtByPage } from '@/services/reader/txt/navigationService'
 import {
   dispatchReaderKeydown,
   resetReaderTransientUi,
 } from '@/services/reader/interactionService'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
 import { useBookMarkStore, BookMark } from './store/bookMark'
-import { generateID, formatDate } from './js/utils'
 import { withReaderLoading } from '@/services/reader/readerLoadingService'
 import {
   applyReaderStyles,
@@ -136,8 +159,29 @@ import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
+import {
+  fetchSystemFonts,
+  normalizeReaderConfig,
+} from '@/services/reader/systemFontService'
+import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
+import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
+import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
+import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
+import {
+  getAppliedAppThemeMode,
+  getReaderRuntimePalette,
+  syncReaderConfigThemeColors,
+} from '@/services/theme/themeService'
+import type { AppThemeMode } from '@/services/settings/appSettingsService'
+import {
+  ackReaderLoadMessage,
+  dispatchBookshelfProgressSaved,
+  notifyReaderWindowReady,
+} from '@/services/reader/readerWindowBridgeService'
+import { formatDate } from '@/utils/date'
+import { generateID } from '@/utils/id'
 
 export default {
   name: 'ReaderApp',
@@ -148,8 +192,15 @@ export default {
     AssistantDialog,
     TocMenu,
     HelpDialog,
+    StyleMenu,
+    SystemFontEnableDialog,
   },
   setup() {
+    const STYLE_MENU_ESTIMATED_WIDTH = 324
+    const STYLE_MENU_LEFT_OFFSET = 12
+    const STYLE_MENU_SAFE_TOP = 56
+    const STYLE_MENU_SAFE_BOTTOM = 64
+
     // 当前正在阅读的书籍内部 key
     const currentBookKey = ref<string | null>(null)
     // 待加载书籍的内部 key
@@ -170,6 +221,7 @@ export default {
     const unlistenBook = ref<UnlistenFn | null>(null)
     const unlistenClosed = ref<UnlistenFn | null>(null)
     const unlistenStyle = ref<UnlistenFn | null>(null)
+    const unlistenTheme = ref<UnlistenFn | null>(null)
     // 其他窗口事件监听
     const unlistenShowBookInfo = ref<UnlistenFn | null>(null)
     const unlistenShowAssistant = ref<UnlistenFn | null>(null)
@@ -198,12 +250,13 @@ export default {
     const selectedRange = ref<string | null>(null)
     // 阅读进度百分比
     const readingPercentage = ref('')
+    const readingChapterTitle = ref('')
     // 当前书籍书签 store
     const bookMarkStore = useBookMarkStore()
     // 响应式书签引用
     const { bookMarks } = storeToRefs(bookMarkStore)
     // 默认高亮颜色
-    const defaultHighlightColor = '#6b7280'
+    const defaultHighlightColor = DEFAULT_BOOKMARK_HIGHLIGHT_COLOR
     const {
       bookMarkEditionVisible,
       bookMarkEditionContent,
@@ -218,6 +271,33 @@ export default {
     const assistantVisible = ref(false)
     // 帮助弹窗状态
     const helpVisible = ref(false)
+    // 系统字体弹窗状态
+    const systemFontDialogVisible = ref(false)
+    // 样式菜单状态
+    const styleMenuVisible = ref(false)
+    const styleMenuPosition = ref({
+      left: STYLE_MENU_LEFT_OFFSET,
+      top: STYLE_MENU_SAFE_TOP,
+      maxHeight: 320,
+    })
+    const styleMenuPanelRef = ref<HTMLElement | null>(null)
+    const appThemeMode = ref<AppThemeMode>(getAppliedAppThemeMode())
+    const readingStatusText = computed(() => {
+      if (!readingPercentage.value) {
+        return ''
+      }
+
+      return `${normalizeDisplayedChapterTitle(readingChapterTitle.value)} · ${readingPercentage.value}%`
+    })
+    const readerPalette = computed(() => {
+      return getReaderRuntimePalette(readerConfig.value, appThemeMode.value)
+    })
+    const readerFontApplication = computed(() =>
+      buildReaderFontApplication(
+        readerConfig.value.font,
+        readerConfig.value.enabledSystemFonts
+      )
+    )
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -229,56 +309,71 @@ export default {
           'column-count': `${readerConfig.value.columnCount}`,
         })
       }
-      const themeReturned = {
+      const themeReturned: Record<string, any> = {
         body: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
+          color: readerPalette.value.text,
+          background: readerPalette.value.contentBackground,
+          'background-color': readerPalette.value.contentBackground,
           'padding-top': `${readerConfig.value.boxPaddingTop}px !important`,
           'padding-bottom': `${readerConfig.value.boxPaddingBottom}px !important`,
           'padding-left': `${readerConfig.value.boxPaddingHorizontal}px !important`,
           'padding-right': `${readerConfig.value.boxPaddingHorizontal}px !important`,
+          'min-height': '100%',
           ...columnStyle,
         },
         h1: {
-          'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
+          color: readerPalette.value.text,
         },
         h2: {
-          'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
+          color: readerPalette.value.text,
         },
         h3: {
-          'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
+          color: readerPalette.value.text,
         },
         p: {
-          'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
+          color: readerPalette.value.text,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
           'text-indent': `${readerConfig.value.indent}em`,
           'letter-spacing': `${readerConfig.value.letterSpacing}px`,
         },
         font: {
-          'font-family': `${readerConfig.value.font}`,
-          color: `${readerConfig.value.fontColor}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
+          color: readerPalette.value.text,
+        },
+        a: {
+          color: readerPalette.value.link,
+        },
+        blockquote: {
+          color: readerPalette.value.mutedText,
+          'border-left': `3px solid ${readerPalette.value.selectionBackground}`,
         },
         '::selection': {
-          background: 'rgb(0 0 0 / 25%)',
-          color: 'rgb(0 0 0 / 75%)',
+          background: readerPalette.value.selectionBackground,
+          color: readerPalette.value.selectionColor,
         },
         html: {
+          background: readerPalette.value.contentBackground,
+          'background-color': readerPalette.value.contentBackground,
           cursor: `url('/src/assets/cursor/pointer.cur'), default`,
         },
         img: {
           width: '100%',
-        },
-        '@font-face': {
-          'font-family': `${readerConfig.value.font}`,
-          src: `local("${readerConfig.value.font}")`,
+          filter: readerPalette.value.imageFilter,
         },
       }
+
+      if (readerFontApplication.value.fontFaceThemeBlock) {
+        themeReturned['@font-face'] = readerFontApplication.value.fontFaceThemeBlock
+      }
+
       return themeReturned
     })
 
@@ -287,8 +382,103 @@ export default {
       applyReaderStyles(
         readerConfig.value as ReaderStyleConfig,
         readerDefaultTheme.value,
-        rendition.value
+        rendition.value,
+        appThemeMode.value
       )
+    }
+
+    const getStyleMenuButton = () => {
+      return document.getElementById('titlebar-customer') as HTMLElement | null
+    }
+
+    const setStyleMenuButtonActive = (active: boolean) => {
+      getStyleMenuButton()?.classList.toggle('active', active)
+    }
+
+    const isStyleMenuRelatedTarget = (target: HTMLElement | null) => {
+      if (!target) {
+        return false
+      }
+
+      if (
+        target.closest('#customer-menu') ||
+        target.closest('#titlebar-customer') ||
+        target.closest('.system-font-enable-dialog-wrapper') ||
+        target.closest('.system-font-enable-dialog-overlay') ||
+        target.closest('.el-popper')
+      ) {
+        return true
+      }
+
+      return false
+    }
+
+    const computeStyleMenuPosition = (
+      _width = STYLE_MENU_ESTIMATED_WIDTH,
+      height?: number
+    ) => {
+      const viewportHeight = window.innerHeight
+      const safeMaxHeight = Math.max(
+        220,
+        viewportHeight - STYLE_MENU_SAFE_TOP - STYLE_MENU_SAFE_BOTTOM
+      )
+      const measuredHeight = height ?? safeMaxHeight
+      const visibleHeight = Math.min(measuredHeight, safeMaxHeight)
+
+      const top = Math.max(
+        STYLE_MENU_SAFE_TOP,
+        Math.round((viewportHeight - visibleHeight) / 2)
+      )
+
+      styleMenuPosition.value = {
+        left: STYLE_MENU_LEFT_OFFSET,
+        top,
+        maxHeight: safeMaxHeight,
+      }
+    }
+
+    const syncStyleMenuLayout = async () => {
+      if (!styleMenuVisible.value) {
+        return
+      }
+
+      await nextTick()
+      window.requestAnimationFrame(() => {
+        const panel = styleMenuPanelRef.value
+        if (!panel) {
+          computeStyleMenuPosition()
+          return
+        }
+
+        computeStyleMenuPosition(panel.offsetWidth, panel.offsetHeight)
+      })
+    }
+
+    const openStyleMenu = async () => {
+      styleMenuVisible.value = true
+      computeStyleMenuPosition()
+      await syncStyleMenuLayout()
+    }
+
+    const closeStyleMenu = () => {
+      styleMenuVisible.value = false
+    }
+
+    const toggleStyleMenu = async () => {
+      if (styleMenuVisible.value) {
+        closeStyleMenu()
+        return
+      }
+
+      await openStyleMenu()
+    }
+
+    const handleStyleMenuEnter = () => {
+      void syncStyleMenuLayout()
+    }
+
+    const handleStyleMenuAfterEnter = () => {
+      void syncStyleMenuLayout()
     }
 
     const onTxtScroll = () => {
@@ -316,18 +506,39 @@ export default {
     // 读取阅读配置
     const loadReaderConfig = async () => {
       try {
-        const configTemp = await loadReaderConfigFromDisk()
-        readerConfigStore.setReaderConfig(configTemp)
+        const [configTemp, systemFonts] = await Promise.all([
+          loadReaderConfigFromDisk(),
+          fetchSystemFonts().catch((error) => {
+            logWarn('reader', '加载系统字体失败，将跳过阅读器字体迁移', error)
+            return []
+          }),
+        ])
+
+        const normalizedConfig = normalizeReaderConfig(configTemp, systemFonts)
+        const themedConfig = syncReaderConfigThemeColors(
+          normalizedConfig,
+          appThemeMode.value
+        )
+        readerConfigStore.setReaderConfig(themedConfig)
+
+        if (JSON.stringify(configTemp) !== JSON.stringify(themedConfig)) {
+          await saveReaderConfigToDisk(themedConfig)
+        }
       } catch (e) {
         // 首次打开阅读器或配置文件不存在时回退默认配置
         readerConfigStore.setDefaultConfig()
-        console.log('ReaderConfig.json文件不存在，已加载默认配置')
+        readerConfigStore.setReaderConfig(
+          syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+        )
+        logWarn('reader', 'ReaderConfig.json文件不存在，已加载默认配置')
       }
     }
 
     // 保存阅读配置
     const saveReaderConfig = async () => {
-      await saveReaderConfigToDisk(readerConfig.value)
+      await saveReaderConfigToDisk(
+        syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+      )
     }
 
     const restoreTxtLocation = async (paragraphIndex = 0) => {
@@ -353,7 +564,7 @@ export default {
         return
       }
 
-      const savedConfig = await saveReaderProgress({
+      const savedProgress = await saveReaderProgress({
         bookKey: currentBookKey.value,
         format: currentBookFormat.value,
         rendition: rendition.value,
@@ -361,8 +572,19 @@ export default {
         bookMarks: bookMarks.value,
       })
 
-      if (savedConfig) {
-        currentBookConfig.value = savedConfig
+      if (savedProgress) {
+        currentBookConfig.value = savedProgress.bookConfig
+
+        await dispatchBookshelfProgressSaved({
+          bookKey: currentBookKey.value,
+          progress: savedProgress.progress,
+          durChapterIndex: savedProgress.bookConfig.durChapterIndex,
+          durChapterPos: savedProgress.bookConfig.durChapterPos,
+          durChapterTitle: savedProgress.bookConfig.durChapterTitle,
+          durChapterTime: savedProgress.bookConfig.durChapterTime,
+        }).catch((error) => {
+          logWarn('reader', '通知主窗口刷新书架失败', error)
+        })
       }
     }
 
@@ -417,10 +639,22 @@ export default {
 
     registerReaderWindowEvents({
       onLoadBookKey: async (event) => {
+        const payload = event.payload || {}
+        if (!payload.bookKey) {
+          logWarn('ReaderApp', '收到无效的load-book消息', payload)
+          return
+        }
+
+        if (payload.messageId) {
+          await ackReaderLoadMessage(payload.messageId).catch((error) => {
+            logWarn('ReaderApp', 'load-book ACK失败', error)
+          })
+        }
+
         await saveReaderRendition()
-        pendingBookKey.value = event.payload.bookKey
-        if (event.payload.cfi !== '') {
-          await loadBook(event.payload.cfi)
+        pendingBookKey.value = payload.bookKey
+        if (payload.cfi) {
+          await loadBook(payload.cfi)
         } else {
           await loadBook()
         }
@@ -434,28 +668,40 @@ export default {
       onShowHelp: () => {
         helpVisible.value = true
       },
+      onUpdateAppTheme: async (mode) => {
+        appThemeMode.value = mode
+        readerConfigStore.setReaderConfig(
+          syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+        )
+        await applyReaderStyle()
+      },
       onUpdateReaderStyle: async () => {
+        readerConfigStore.setReaderConfig(
+          syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+        )
         await applyReaderStyle()
       },
       onCloseRequested: async () => {
         await saveReaderRendition().catch(() => {
-          console.error('窗口关闭异常: 阅读进度保存失败')
+          logError('reader', '窗口关闭异常: 阅读进度保存失败')
         })
         await saveReaderConfig().catch(() => {
-          console.error('窗口关闭异常: 全局配置保存失败')
+          logError('reader', '窗口关闭异常: 全局配置保存失败')
         })
       },
     }).then((unlisteners) => {
       unlistenBook.value = unlisteners.unlistenBook
       unlistenStyle.value = unlisteners.unlistenStyle
+      unlistenTheme.value = unlisteners.unlistenTheme
       unlistenClosed.value = unlisteners.unlistenClose
       unlistenShowBookInfo.value = unlisteners.unlistenShowBookInfo
       unlistenShowAssistant.value = unlisteners.unlistenShowAssistant
       unlistenShowHelp.value = unlisteners.unlistenShowHelp
     })
 
-    // 通知主窗口阅读器已准备好接收书籍 name
-    getCurrentWebviewWindow().emitTo('main', WINDOW_EVENTS.READY_TO_RECEIVE_BOOK_KEY)
+    void notifyReaderWindowReady().catch((error) => {
+      logWarn('ReaderApp', '通知后端reader就绪失败', error)
+    })
 
     // 绑定 Rendition 事件
     const handleRenditionEvents = () => {
@@ -464,6 +710,9 @@ export default {
           onRelocated: (location) => {
             if (location.start) {
               activeChapter.value = location.start.href
+              readingChapterTitle.value =
+                resolveEpubTocLabel(rendition.value?.book?.navigation?.toc, location.start.href) ||
+                normalizeDisplayedChapterTitle(currentBookConfig.value?.durChapterTitle)
             }
             const percentage = location.start.percentage
             if (percentage !== undefined && percentage !== null) {
@@ -484,8 +733,10 @@ export default {
             switchFullscreen()
           },
           onReaderClick: () => {
-            resetReaderTransientUi(() => {
-              showContextMenu.value = false
+            resetReaderTransientUi({
+              hideContextMenu: () => {
+                showContextMenu.value = false
+              },
             })
           },
           onMarkClicked: (markId: string) => {
@@ -530,6 +781,7 @@ export default {
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
         readingPercentage.value = ''
+        readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
         bookMarkStore.clearBookMarks()
         txtParagraphs.value = []
         txtCurrentParagraph.value = 0
@@ -538,7 +790,7 @@ export default {
           try {
             destroyEpubRendition(rendition.value)
           } catch (e) {
-            console.log('销毁旧的 Rendition 失败', e)
+            logWarn('ReaderApp', '销毁旧的 Rendition 失败', e)
           }
           rendition.value = null
         }
@@ -546,6 +798,7 @@ export default {
         if (currentBookFormat.value === 'txt') {
           toc.value = []
           activeChapter.value = ''
+          readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
           const displayTarget = await resolveReaderDisplayTarget('txt', bookData, bookConfig)
           const paragraphIndex =
             typeof displayTarget === 'number' ? displayTarget : 0
@@ -587,7 +840,7 @@ export default {
               format,
               fileName
             ).catch((error) => {
-              console.warn('补全 EPUB locations 缓存失败:', error)
+              logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
             })
           })
         }
@@ -598,9 +851,9 @@ export default {
           void initAllBookMarks()
         }
 
-        console.log('EPUB 解析完成:', currentBookKey.value, bookCache?.title || bookConfig.name)
+        logInfo('ReaderApp', 'loadBook', { bookKey: currentBookKey.value, title: bookCache?.title || bookConfig.name })
       }).catch((e) => {
-        console.log('书籍加载失败', e)
+        logError('ReaderApp', '书籍加载失败', e)
       })
     }
 
@@ -696,7 +949,7 @@ export default {
         width: 160,
         itemHeight: 35,
         precision: 20,
-        theme: 'light',
+        theme: appThemeMode.value,
       })
       // 显示菜单
       showContextMenu.value = true
@@ -721,24 +974,79 @@ export default {
       }
     }
 
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      if (!styleMenuVisible.value) {
+        return
+      }
+
+      const target = event.target as HTMLElement | null
+      if (isStyleMenuRelatedTarget(target)) {
+        return
+      }
+
+      closeStyleMenu()
+    }
+
+    const handleReaderDomToggleStyleMenu = () => {
+      void toggleStyleMenu()
+    }
+
+    const handleReaderDomCloseStyleMenu = () => {
+      closeStyleMenu()
+    }
+
+    const handleOpenSystemFontDialog = () => {
+      closeStyleMenu()
+      systemFontDialogVisible.value = true
+    }
+
+    const handleWindowResize = () => {
+      if (!styleMenuVisible.value) {
+        return
+      }
+
+      void syncStyleMenuLayout()
+    }
+
+    watch(styleMenuVisible, (visible) => {
+      setStyleMenuButtonActive(visible)
+    })
+
     onMounted(async () => {
       // 加载阅读器配置
       await loadReaderConfig()
 
       // 监听键盘事件
       document.addEventListener('keydown', keydownHandler)
+      document.addEventListener('pointerdown', handleDocumentPointerDown)
+      window.addEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
+      window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
+      window.addEventListener('resize', handleWindowResize)
     })
 
     onUnmounted(() => {
       document.removeEventListener('keydown', keydownHandler)
+      document.removeEventListener('pointerdown', handleDocumentPointerDown)
+      window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
+      window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
+      window.removeEventListener('resize', handleWindowResize)
       unlistenBook.value?.()
       unlistenStyle.value?.()
+      unlistenTheme.value?.()
       unlistenClosed.value?.()
       unlistenShowBookInfo.value?.()
       unlistenShowAssistant.value?.()
       unlistenShowHelp.value?.()
       detachTocButtonListener?.()
       detachTocButtonListener = null
+      setStyleMenuButtonActive(false)
+    })
+
+    const styleMenuPanelStyle = computed(() => {
+      return {
+        top: `${styleMenuPosition.value.top}px`,
+        left: `${styleMenuPosition.value.left}px`,
+      }
     })
 
     return {
@@ -760,11 +1068,21 @@ export default {
       showContextMenu,
       contextMenuOptions,
       readingPercentage,
+      readingStatusText,
       bookMarkEditionVisible,
       bookMarkEditionContent,
       assistantVisible,
       helpVisible,
+      systemFontDialogVisible,
+      appThemeMode,
       delBookMark,
+      styleMenuVisible,
+      styleMenuPosition,
+      styleMenuPanelRef,
+      styleMenuPanelStyle,
+      handleStyleMenuEnter,
+      handleStyleMenuAfterEnter,
+      handleOpenSystemFontDialog,
     }
   },
 }
@@ -785,7 +1103,7 @@ export default {
   background: transparent;
 }
 :global(.el-drawer__body::-webkit-scrollbar-thumb) {
-  background-color: var(--t-color-grey); /* 滚动条颜色 */
+  background-color: var(--scrollbar-thumb);
   border-radius: 6px;
   background-clip: content-box;
 }
@@ -800,15 +1118,48 @@ export default {
   ry: 5;
 }
 
+:global(.style-menu-panel) {
+  position: fixed;
+  z-index: 4700;
+  transform-origin: left center;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  max-height: calc(100vh - 120px);
+  max-width: calc(100vw - 24px);
+}
+
+:global(.style-menu-enter-active),
+:global(.style-menu-leave-active) {
+  transition:
+    opacity var(--duration-slow) var(--easing-standard),
+    transform var(--duration-slow) var(--easing-standard),
+    filter var(--duration-slow) var(--easing-standard);
+}
+
+:global(.style-menu-enter-from) {
+  opacity: 0;
+  transform: translate3d(-20px, 0, 0) scale(0.8);
+  filter: blur(4px);
+}
+
+:global(.style-menu-leave-to) {
+  opacity: 0;
+  transform: translate3d(-16px, 0, 0) scale(0.86);
+  filter: blur(4px);
+}
+
 .reader {
   width: 100%;
   height: 100%;
+  color: var(--reader-text);
+  background: var(--reader-background);
 
   #epub-reader {
     position: absolute;
-    padding: 30px 0px 30px 0px;
+    padding: 30px 0px 40px 0px;
     width: 100%;
-    height: calc(100vh - 60px);
+    height: 100%;
+    background: var(--reader-background);
   }
 
   #txt-reader {
@@ -817,11 +1168,23 @@ export default {
     width: 100%;
     height: calc(100vh - 60px);
     overflow-y: auto;
+    background: var(--reader-background);
+    color: var(--reader-text);
 
     #txt-reader-content {
       max-width: 860px;
       margin: 0 auto;
       padding: 0 28px 40px 28px;
+      background: var(--reader-content-background);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      backdrop-filter: none;
+      transition:
+        background var(--duration-base) var(--easing-standard),
+        border-color var(--duration-fast) var(--easing-standard),
+        box-shadow var(--duration-fast) var(--easing-standard),
+        backdrop-filter var(--duration-fast) var(--easing-standard);
 
       .txt-paragraph {
         margin: 0 0 1.1em 0;
@@ -836,6 +1199,9 @@ export default {
   #epub-reader :deep(.epub-container) {
     overflow-x: hidden !important;
   }
+  #epub-reader :deep(iframe) {
+    background: transparent !important;
+  }
   #epub-reader :deep(.epub-container)::-webkit-scrollbar {
     width: 12px;
   }
@@ -843,7 +1209,7 @@ export default {
     background: transparent;
   }
   #epub-reader :deep(.epub-container)::-webkit-scrollbar-thumb {
-    background-color: var(--t-color-grey); /* 滚动条颜色 */
+    background-color: var(--scrollbar-thumb);
     border-radius: 6px;
     background-clip: content-box;
   }
@@ -861,17 +1227,25 @@ export default {
 
     .button {
       height: 100px;
-      background-color: rgba(0, 0, 0, 0.1); /* 按钮背景色 */
-      color: #585858;
-      border: none;
-      border-radius: 6px;
+      background: var(--reader-surface);
+      color: var(--reader-text-muted);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
       padding: 15px;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition:
+        opacity var(--duration-base) var(--easing-standard),
+        transform var(--duration-fast) var(--easing-standard),
+        background-color var(--duration-fast) var(--easing-standard),
+        color var(--duration-fast) var(--easing-standard);
       pointer-events: auto;
+      box-shadow: var(--shadow-sm);
 
       &:hover {
         opacity: 1;
+        transform: translateY(-1px);
+        background: var(--reader-surface-strong);
+        color: var(--reader-text);
       }
     }
 
@@ -884,23 +1258,27 @@ export default {
       position: absolute;
       right: 10px;
     }
-
-    .button.dark {
-      background: #e8e8e8;
-
-      &:hover {
-        opacity: 0.5;
-      }
-    }
   }
 }
 
-.reading-percentage {
+.drawer-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reading-status {
   position: fixed;
   bottom: 15px;
-  line-height: 15px;
   left: 50px;
-  color: var(--t-color-dark-grey);
+  max-width: min(54vw, calc(100vw - 88px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.45;
+  color: var(--reader-text-muted);
+  font-size: 13px;
   font-weight: bold;
+  text-shadow: var(--text-shadow-soft);
 }
 </style>

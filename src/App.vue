@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" class="app-shell">
     <div class="sidebar">
       <div class="logo">
         <div class="logo-icon">
@@ -71,13 +71,16 @@ export default {
 #app {
   display: flex;
   height: 100vh;
-  overflow: hidden; /* 隐藏全局滚动条 */
+  overflow: hidden;
+  color: var(--text-primary);
 
   .sidebar {
     flex: 0 0 120px;
     user-select: none;
-    background-color: #ffffff;
+    background: var(--surface-strong);
+    border-right: 1px solid var(--border-soft);
     overflow: hidden;
+    backdrop-filter: blur(12px);
 
     .logo {
       display: flex;
@@ -86,25 +89,28 @@ export default {
       font-weight: bold;
       margin: 20px 0;
       align-items: center;
+      color: var(--text-primary);
 
       .logo-icon {
         width: 64px;
         height: 64px;
-        border: 2px solid #e8e8e8;
-        background: antiquewhite;
+        border: 1px solid var(--border-default);
+        background: var(--surface-logo-gradient);
         border-radius: 15px;
+        padding: 4px;
+        box-shadow: var(--shadow-sm);
 
         img {
           width: 100%;
           height: 100%;
-          border-radius: 50%;
+          border-radius: 14px;
         }
       }
 
       span {
         text-align: center;
         font-size: 22px;
-        color: var(--t-color-grey);
+        color: var(--text-tertiary);
       }
     }
 
@@ -120,13 +126,17 @@ export default {
         gap: 10px;
         margin-bottom: 8px;
         font-size: 18px;
-        color: #515154;
+        color: var(--text-secondary);
         align-items: center;
         padding: 8px;
-        border-radius: 8px;
-        border: transparent 1.5px solid;
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
         cursor: var(--t-mouse-cursor-link), pointer;
-        transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        transition:
+          color var(--duration-fast) var(--easing-standard),
+          border-color var(--duration-fast) var(--easing-standard),
+          background-color var(--duration-fast) var(--easing-standard),
+          transform var(--duration-fast) var(--easing-standard);
 
         .menu-label {
           flex: 1;
@@ -134,15 +144,17 @@ export default {
         }
 
         &:hover {
-          border-color: var(--t-color-light-yellow);
-          border-style: dashed;
-          color: #007aff;
+          transform: translateX(2px);
+          border-color: var(--border-brand);
+          background: var(--surface-brand-soft);
+          color: var(--brand-primary);
         }
       }
 
       .active {
-        background: var(--t-color-slight-blue);
-        color: #007aff;
+        background: var(--surface-brand-soft);
+        color: var(--brand-primary);
+        box-shadow: inset 0 0 0 1px var(--ring-brand-subtle);
 
         .menu-label {
           font-weight: bold;

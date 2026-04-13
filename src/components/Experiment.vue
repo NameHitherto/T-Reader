@@ -29,15 +29,20 @@ export default defineComponent({
 <style scoped>
 .exp {
   width: 100%;
-  padding: 200px;
+  padding: 120px 48px;
+  background: var(--app-bg-accent);
 
   .placeholder {
     width: 100%;
-    height: 100%;
+    min-height: 260px;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #6b7280;
+    border: 1px dashed var(--border-default);
+    border-radius: var(--radius-xl);
+    background: var(--surface-card);
+    color: var(--text-tertiary);
+    box-shadow: var(--shadow-sm);
   }
 }
 </style>

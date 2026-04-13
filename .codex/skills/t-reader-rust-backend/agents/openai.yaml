@@ -1,0 +1,4 @@
+interface:
+  display_name: "T-Reader Rust Backend"
+  short_description: "Layered backend rules for T-Reader Rust work"
+  default_prompt: "Use $t-reader-rust-backend to implement or review Rust backend changes in this repository."

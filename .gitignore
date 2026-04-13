@@ -29,3 +29,10 @@ dist-ssr
 
 # .claude
 .claude
+
+# agent plan
+plan
+
+# exe
+*.exe
+*.lnk

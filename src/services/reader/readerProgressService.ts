@@ -1,10 +1,12 @@
-import { BookFormat } from '@/js/bookFormat'
 import { BookMark } from '@/store/bookMark'
-import { BookConfig } from '@/js/map'
+import { BookConfig, BookFormat } from '@/types/book'
 import { loadBookCache, saveBookCache } from '@/services/book/bookCacheService'
 import { loadBookConfig, saveBookConfig } from '@/services/book/bookRepository'
 import { replaceBookMarksForBook } from '@/services/book/bookMarksRepository'
-import { serializeReaderProgress } from '@/services/reader/progressSnapshotService'
+import {
+  getReaderProgressHandler,
+  serializeReaderProgress,
+} from '@/services/reader/progressSnapshotService'
 
 interface SaveReaderProgressArgs {
   bookKey: string
@@ -14,21 +16,9 @@ interface SaveReaderProgressArgs {
   bookMarks: BookMark[]
 }
 
-const clampProgress = (value: number): number => {
-  if (!Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.min(100, Math.max(0, value))
-}
-
-const normalizeIndex = (value: unknown): number => {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return 0
-  }
-
-  return Math.max(0, Math.floor(parsed))
+export interface SavedReaderProgress {
+  bookConfig: BookConfig
+  progress: number
 }
 
 const resolveReaderProgressPercent = async (
@@ -37,28 +27,18 @@ const resolveReaderProgressPercent = async (
   txtCurrentParagraph: number
 ): Promise<number> => {
   const { bookKey, format, rendition } = args
-
-  if (format === 'epub') {
-    const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
-    const percentage = currentLocation?.start?.percentage
-    return typeof percentage === 'number' ? clampProgress(percentage * 100) : 0
-  }
-
   const bookCache = await loadBookCache(bookKey)
-  const paragraphCount = bookCache?.paragraphCount
-  if (!paragraphCount || paragraphCount <= 1) {
-    return 0
-  }
-
-  const paragraphIndex = normalizeIndex(
-    typeof bookConfig.durChapterIndex === 'number' ? bookConfig.durChapterIndex : txtCurrentParagraph
-  )
-  return clampProgress((paragraphIndex / Math.max(1, paragraphCount - 1)) * 100)
+  return await getReaderProgressHandler(format).calculateProgress({
+    rendition,
+    bookConfig,
+    txtCurrentParagraph,
+    bookCache,
+  })
 }
 
 export const saveReaderProgress = async (
   args: SaveReaderProgressArgs
-): Promise<BookConfig | null> => {
+): Promise<SavedReaderProgress | null> => {
   const { bookKey, format, rendition, txtCurrentParagraph, bookMarks } = args
 
   const bookConfig = await loadBookConfig(bookKey)
@@ -94,5 +74,9 @@ export const saveReaderProgress = async (
   await saveBookCache(bookKey, {
     progress,
   })
-  return bookConfig
+
+  return {
+    bookConfig,
+    progress,
+  }
 }
