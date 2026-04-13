@@ -60,10 +60,10 @@
                 :key="getSystemFontEntryKey(font)"
                 class="font-card"
               >
-                <div class="font-card-name">{{ font.family }}</div>
+                <div class="font-card-name">{{ font.displayFamily }}</div>
                 <div class="font-card-meta">
-                  {{ font.style || 'Regular' }}
-                  <template v-if="font.weight"> / {{ font.weight }}</template>
+                  {{ font.fullName || font.subfamily || 'Regular' }}
+                  <template v-if="!font.fullName && font.weight"> / {{ font.weight }}</template>
                 </div>
               </div>
             </div>

@@ -4,6 +4,7 @@ import {
 } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import type { ReaderBackgroundPresets } from '@/types/readerBackground'
+import type { EnabledSystemFont } from '@/types/readerFonts'
 import { applyEpubReaderStyles } from '@/services/reader/epub/epubStyleService'
 import { applyTxtReaderStyles } from '@/services/reader/txt/txtStyleService'
 
@@ -23,6 +24,7 @@ export interface ReaderStyleConfig {
   fontColor: string
   backgroundPresets: ReaderBackgroundPresets
   flow: string
+  enabledSystemFonts: EnabledSystemFont[]
 }
 
 export interface ReaderRenditionLike {

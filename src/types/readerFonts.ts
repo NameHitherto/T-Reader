@@ -4,15 +4,24 @@ export const SYSTEM_FONT_PREVIEW_TEXT = 'Roxy ㄙㄞˋ ㄍㄠ！'
 
 export interface SystemFontEntry {
   family: string
+  displayFamily: string
+  subfamily: string | null
+  fullName: string | null
   postscriptName: string | null
-  style: string | null
   weight: number | null
   path: string | null
+  faceIndex: number
+  familyAliases: string[]
 }
 
 export interface EnabledSystemFont {
   family: string
+  displayFamily: string
+  subfamily: string | null
+  fullName: string | null
   postscriptName: string | null
-  style: string | null
   weight: number | null
+  path: string | null
+  faceIndex: number
+  familyAliases?: string[]
 }

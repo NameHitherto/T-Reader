@@ -25,7 +25,7 @@
           <el-input
             v-model="searchKeyword"
             clearable
-            placeholder="搜索字体家族、样式或 PostScript 名称"
+            placeholder="搜索字体中文名、家族名、子家族或 PostScript 名称"
           />
         </div>
       </div>
@@ -44,7 +44,7 @@
           >
             <div class="font-card-header">
               <div>
-                <div class="font-card-title">{{ group.family }}</div>
+                <div class="font-card-title">{{ group.displayFamily }}</div>
                 <div class="font-card-meta">
                   {{ group.entries.length }} 个样式可选
                 </div>
@@ -295,6 +295,10 @@ export default defineComponent({
 
     const formatStyleLabel = (font: SystemFontEntry) => {
       const label = formatSystemFontLabel(font)
+      if (font.fullName || font.subfamily) {
+        return label
+      }
+
       if (font.weight) {
         return `${label} / ${font.weight}`
       }

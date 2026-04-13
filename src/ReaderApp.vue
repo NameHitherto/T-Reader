@@ -163,6 +163,7 @@ import {
   fetchSystemFonts,
   normalizeReaderConfig,
 } from '@/services/reader/systemFontService'
+import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
@@ -291,6 +292,12 @@ export default {
     const readerPalette = computed(() => {
       return getReaderRuntimePalette(readerConfig.value, appThemeMode.value)
     })
+    const readerFontApplication = computed(() =>
+      buildReaderFontApplication(
+        readerConfig.value.font,
+        readerConfig.value.enabledSystemFonts
+      )
+    )
 
     // 阅读器动态样式
     const readerDefaultTheme = computed(() => {
@@ -302,9 +309,9 @@ export default {
           'column-count': `${readerConfig.value.columnCount}`,
         })
       }
-      const themeReturned = {
+      const themeReturned: Record<string, any> = {
         body: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           'font-size': `${readerConfig.value.fontSize}px`,
           'font-weight': readerConfig.value.fontWeight,
           color: readerPalette.value.text,
@@ -318,19 +325,19 @@ export default {
           ...columnStyle,
         },
         h1: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           color: readerPalette.value.text,
         },
         h2: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           color: readerPalette.value.text,
         },
         h3: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           color: readerPalette.value.text,
         },
         p: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           color: readerPalette.value.text,
           'line-height': `${readerConfig.value.lineSpacing}em`,
           'margin-bottom': `${readerConfig.value.paragraphSpacing}em`,
@@ -338,7 +345,7 @@ export default {
           'letter-spacing': `${readerConfig.value.letterSpacing}px`,
         },
         font: {
-          'font-family': `${readerConfig.value.font}`,
+          'font-family': readerFontApplication.value.fontFamilyCss,
           color: readerPalette.value.text,
         },
         a: {
@@ -362,6 +369,11 @@ export default {
           filter: readerPalette.value.imageFilter,
         },
       }
+
+      if (readerFontApplication.value.fontFaceThemeBlock) {
+        themeReturned['@font-face'] = readerFontApplication.value.fontFaceThemeBlock
+      }
+
       return themeReturned
     })
 

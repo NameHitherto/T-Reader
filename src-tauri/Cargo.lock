@@ -27,6 +27,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "time",
+ "ttf-parser",
  "urlencoding",
  "winreg 0.52.0",
 ]
