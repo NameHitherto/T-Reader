@@ -49,7 +49,7 @@
               </div>
 
               <div class="sync-file-main">
-                <div class="sync-file-name" :title="item.fileName">
+                <div class="sync-file-name">
                   <span class="sync-file-name-base">{{ splitFileName(item.fileName).base }}</span>
                   <span class="sync-file-name-ext">{{ splitFileName(item.fileName).ext }}</span>
                 </div>
@@ -400,13 +400,13 @@ export default defineComponent({
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-default);
     background: linear-gradient(180deg, var(--surface-strong), var(--surface-card-soft));
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
     transition:
       box-shadow var(--duration-fast) var(--easing-standard),
       border-color var(--duration-fast) var(--easing-standard);
 
     &:hover {
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-sm);
       border-color: var(--border-emphasis);
     }
   }
@@ -451,8 +451,12 @@ export default defineComponent({
 
   .sync-file-name-ext {
     font-size: 14px;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     margin-left: 2px;
+    background: var(--surface-brand-soft);
+    border-radius: var(--radius-xs);
+    margin-left: 6px;
+    padding: 0 8px;
   }
 
   .sync-file-meta {
@@ -523,7 +527,7 @@ export default defineComponent({
     font-weight: 600;
     cursor: pointer;
     outline: none;
-    transition: all var(--duration-fast) var(--easing-standard);
+    transition: all var(--duration-base) var(--easing-standard);
 
     svg {
       width: 14px;
