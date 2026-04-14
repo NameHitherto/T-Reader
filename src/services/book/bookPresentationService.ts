@@ -1,5 +1,6 @@
 import { BookConfig, BookFormat } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
+import { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
 import {
   calculateShelfProgress,
 } from '@/services/reader/progressSnapshotService'
@@ -82,7 +83,16 @@ export const deriveShelfProgress = async (
   bookConfig: BookConfig,
   format: BookFormat,
   cache: BookCachePayload,
+  locationsCache?: BookLocationsCachePayload | null,
   bookData?: Uint8Array
 ): Promise<number> => {
-  return clampProgress(await calculateShelfProgress(format, bookData, bookConfig, cache))
+  return clampProgress(
+    await calculateShelfProgress(
+      format,
+      bookData,
+      bookConfig,
+      cache,
+      locationsCache
+    )
+  )
 }

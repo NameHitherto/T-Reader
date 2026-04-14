@@ -1,10 +1,12 @@
 import type { BookConfig, BookFormat, BookProgressSnapshot } from '@/types/book'
 import type { BookCachePayload } from '@/services/book/bookCacheService'
+import type { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
 
 export interface ReaderFormatLoadResult {
   format: BookFormat
   bookConfig: BookConfig
   bookCache: BookCachePayload
+  bookLocationsCache: BookLocationsCachePayload | null
   fileName: string
   bookData: Uint8Array
   bookArrayBuffer?: ArrayBuffer
@@ -29,5 +31,6 @@ export interface ReaderProgressHandler {
     bookData: Uint8Array | undefined
     snapshot: BookProgressSnapshot
     cache: BookCachePayload
+    locationsCache?: BookLocationsCachePayload | null
   }) => Promise<number>
 }

@@ -165,6 +165,7 @@ import {
 } from '@/services/reader/systemFontService'
 import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
+import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
@@ -776,7 +777,15 @@ export default {
 
       await withReaderLoading(async () => {
         const loadedBook = await loadReaderBookData(currentBookKey.value as string)
-        const { bookConfig, bookCache, format, fileName, bookData, bookArrayBuffer } = loadedBook
+        const {
+          bookConfig,
+          bookCache,
+          bookLocationsCache,
+          format,
+          fileName,
+          bookData,
+          bookArrayBuffer,
+        } = loadedBook
 
         currentBookConfig.value = bookConfig
         currentBookFormat.value = format
@@ -824,7 +833,7 @@ export default {
           readerConfig.value.flow,
           cfi,
           bookConfig,
-          bookCache?.locations
+          getReadyBookLocations(bookLocationsCache)
         )
         rendition.value = epubBook.rendition
         handleRenditionEvents()
@@ -832,7 +841,7 @@ export default {
         await applyReaderStyle()
         bindTocButtonClick()
 
-        if (!bookCache?.locations) {
+        if (bookLocationsCache?.status !== 'ready') {
           queueMicrotask(() => {
             void primeBookCacheAfterImport(
               currentBookKey.value as string,

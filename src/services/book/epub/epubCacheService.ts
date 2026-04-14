@@ -3,7 +3,9 @@ import { parseEpubMeta } from '@/services/book/epub/epubParser'
 import { BookCachePrimeHandler } from '@/services/book/types'
 import { createDurationLogger, logWarn } from '@/utils/logger'
 
-const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> => {
+export const extractEpubLocations = async (
+  fileBuffer: ArrayBuffer
+): Promise<string> => {
   const finishLog = createDurationLogger('book-cache-service', 'extract-epub-locations')
   const book = ePub(fileBuffer)
 
@@ -28,21 +30,17 @@ const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> =>
 
 export const epubBookCacheHandler: BookCachePrimeHandler = {
   hasRequiredCache(cache) {
-    return Boolean(cache.locations && cache.title && cache.cover !== undefined)
+    return Boolean(cache.title && cache.cover !== undefined)
   },
   async buildCachePayload({ fileBuffer, originalFileName, currentCache }) {
     const progress = currentCache.progress ?? 0
 
     try {
-      const [meta, locations] = await Promise.all([
-        parseEpubMeta(fileBuffer, { includeCover: true }),
-        extractEpubLocations(fileBuffer),
-      ])
+      const meta = await parseEpubMeta(fileBuffer, { includeCover: true })
 
       return {
         title: meta.title,
         cover: meta.cover || '',
-        locations,
         progress,
       }
     } catch (error) {

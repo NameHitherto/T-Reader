@@ -276,11 +276,14 @@ export const epubReaderProgressHandler: ReaderProgressHandler = {
     const percentage = currentLocation?.start?.percentage
     return typeof percentage === 'number' ? clampProgress(percentage * 100) : 0
   },
-  async calculateShelfProgress({ bookData, snapshot, cache }) {
+  async calculateShelfProgress({ bookData, snapshot, locationsCache }) {
     if (!bookData) {
       return 0
     }
 
-    return await calculateEpubProgressFromSnapshot(bookData, snapshot, cache.locations)
+    const cachedLocations =
+      locationsCache?.status === 'ready' ? locationsCache.locations : undefined
+
+    return await calculateEpubProgressFromSnapshot(bookData, snapshot, cachedLocations)
   },
 }

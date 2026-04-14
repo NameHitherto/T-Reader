@@ -16,6 +16,7 @@ export const LOCAL_DIRS = {
   books: 'books',
   progress: 'bookProgress',
   cached: 'cached',
+  cachedLocations: 'cached/locations',
   system: 'system',
 } as const
 

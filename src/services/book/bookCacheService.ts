@@ -1,8 +1,15 @@
 import { BookFormat } from '@/types/book'
-import { epubBookCacheHandler } from '@/services/book/epub/epubCacheService'
+import {
+  epubBookCacheHandler,
+  extractEpubLocations,
+} from '@/services/book/epub/epubCacheService'
 import { txtBookCacheHandler } from '@/services/book/txt/txtCacheService'
 import { toBookCacheFilename } from '@/services/book/bookIdentity'
-import { createDurationLogger } from '@/utils/logger'
+import {
+  removeBookLocationsCache,
+  saveBookLocationsCache,
+} from '@/services/book/bookLocationsCacheService'
+import { createDurationLogger, logWarn } from '@/utils/logger'
 import {
   buildLocalFilePath,
   LOCAL_DIRS,
@@ -13,7 +20,6 @@ import {
 export interface BookCachePayload {
   title?: string
   cover?: string
-  locations?: string
   paragraphCount?: number
   progress?: number
 }
@@ -22,7 +28,6 @@ const normalizeBookCachePayload = (payload: Partial<BookCachePayload> & Record<s
   return {
     title: typeof payload.title === 'string' ? payload.title : undefined,
     cover: typeof payload.cover === 'string' ? payload.cover : undefined,
-    locations: typeof payload.locations === 'string' ? payload.locations : undefined,
     paragraphCount:
       typeof payload.paragraphCount === 'number' ? payload.paragraphCount : undefined,
     progress:
@@ -114,14 +119,54 @@ export const primeBookCacheAfterImport = async (
     currentCache: currentCache || {},
   })
   const payload = await saveBookCache(bookKey, nextPayload)
+  let locationsStatus: 'ready' | 'building' | 'failed' | 'n/a' = 'n/a'
+
+  if (format === 'epub') {
+    try {
+      locationsStatus = 'building'
+      await saveBookLocationsCache(bookKey, {
+        status: locationsStatus,
+      })
+
+      const locations = await extractEpubLocations(fileBuffer)
+      const locationsPayload = await saveBookLocationsCache(bookKey, {
+        status: 'ready',
+        locations,
+      })
+      locationsStatus = locationsPayload.status
+    } catch (error) {
+      logWarn('book-cache-service', 'prime-epub-locations-cache failed', {
+        fileName: originalFileName,
+        error,
+      })
+      try {
+        const failedPayload = await saveBookLocationsCache(bookKey, {
+          status: 'failed',
+        })
+        locationsStatus = failedPayload.status
+      } catch (saveError) {
+        logWarn('book-cache-service', 'mark-epub-locations-cache failed-status failed', {
+          fileName: originalFileName,
+          error: saveError,
+        })
+      }
+    }
+  } else {
+    await removeBookLocationsCache(bookKey).catch((error) => {
+      logWarn('book-cache-service', 'remove-txt-locations-cache failed', {
+        fileName: originalFileName,
+        error,
+      })
+    })
+  }
 
   finishLog({
     fileName: originalFileName,
     format,
     hasCover: Boolean(payload.cover),
-    hasLocations: Boolean(payload.locations),
     paragraphCount: payload.paragraphCount,
     progress: payload.progress,
+    locationsStatus,
   })
   return payload
 }

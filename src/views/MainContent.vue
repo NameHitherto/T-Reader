@@ -175,6 +175,7 @@ import {
   getBookCacheFilename,
   primeBookCacheAfterImport,
 } from '@/services/book/bookCacheService'
+import { getBookLocationsCacheFilename } from '@/services/book/bookLocationsCacheService'
 import {
   buildLastReadLabel,
   normalizeDisplayedChapterTitle,
@@ -354,7 +355,10 @@ export default {
       if (bookKey && removeBookArtifacts) {
         cleanupTasks.push(
           removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey))),
-          removeLocalFile(buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(bookKey)))
+          removeLocalFile(buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(bookKey))),
+          removeLocalFile(
+            buildLocalFilePath(LOCAL_DIRS.cachedLocations, getBookLocationsCacheFilename(bookKey))
+          )
         )
       }
 
@@ -711,6 +715,12 @@ export default {
         if (targetBook) {
           await removeLocalFile(
             buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(targetBook.bookKey))
+          )
+          await removeLocalFile(
+            buildLocalFilePath(
+              LOCAL_DIRS.cachedLocations,
+              getBookLocationsCacheFilename(targetBook.bookKey)
+            )
           )
         }
 
