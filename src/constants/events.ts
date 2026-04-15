@@ -6,6 +6,7 @@ export const WINDOW_EVENTS = {
   SHOW_HELP: 'show-help',
   UPDATE_APP_THEME: 'update-app-theme',
   UPDATE_READER_STYLE: 'update-reader-style',
+  CLOUD_SYNC_FAILED: 'cloud-sync-failed',
 } as const
 
 export const READER_DOM_EVENTS = {

@@ -279,6 +279,7 @@ export default {
     const menuOptions = ref({} as ContextMenuData)
     const isBooksEmpty = computed(() => books.value.length === 0)
     let unlistenBookshelfProgressSaved: UnlistenFn | null = null
+    let unlistenCloudSyncFailed: UnlistenFn | null = null
     const shelfViewMode = ref<ShelfViewMode>(
       localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list'
     )
@@ -839,6 +840,21 @@ export default {
       )
     }
 
+    const registerCloudSyncFailedListener = async () => {
+      unlistenCloudSyncFailed?.()
+      unlistenCloudSyncFailed = await listen<{ bookKey?: string; fileName?: string }>(
+        WINDOW_EVENTS.CLOUD_SYNC_FAILED,
+        () => {
+          showMainTaskMessage({
+            type: 'warning',
+            title: '云同步失败',
+            message: '阅读进度已保存至本地，但云端同步失败，请检查网络连接。',
+            taskKey: 'bookshelf-cloud-sync-failed',
+          })
+        }
+      )
+    }
+
     const uploadBookToCloud = async (bookKey: string) => {
       try {
         await uploadLocalBookFileToCloud(bookKey)
@@ -945,11 +961,16 @@ export default {
       void registerBookshelfProgressSavedListener().catch((error) => {
         logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
       })
+      void registerCloudSyncFailedListener().catch((error) => {
+        logWarn('bookshelf', 'register cloud-sync-failed listener failed', error)
+      })
     })
 
     onUnmounted(() => {
       unlistenBookshelfProgressSaved?.()
       unlistenBookshelfProgressSaved = null
+      unlistenCloudSyncFailed?.()
+      unlistenCloudSyncFailed = null
     })
 
     return {

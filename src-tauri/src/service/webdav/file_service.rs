@@ -8,8 +8,22 @@ use crate::{
     service::{
         filesystem::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs,
     },
-    utils::logging::{finish_timer, start_timer},
+    utils::logging::{finish_timer, log_warn, start_timer},
 };
+
+async fn retry_once<T, F, Fut>(label: &str, operation: F) -> Result<T, String>
+where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = Result<T, String>>,
+{
+    match operation().await {
+        Ok(value) => Ok(value),
+        Err(first_error) => {
+            log_warn("webdav", &format!("{} failed, retrying once: {}", label, first_error));
+            operation().await
+        }
+    }
+}
 
 pub async fn webdav_upload_file(
     subdir: &str,
@@ -20,7 +34,9 @@ pub async fn webdav_upload_file(
     let settings = load_settings_entity()?;
     ensure_cloud_dirs(&settings).await?;
     let client = build_webdav_client();
-    let result = upload_remote_file(&client, &settings, subdir, filename, contents).await;
+    let result = retry_once("webdav-upload", || async {
+        upload_remote_file(&client, &settings, subdir, filename, contents.clone()).await
+    }).await;
     if result.is_ok() {
         finish_timer("webdav", "webdav-upload", started_at);
     }
@@ -31,7 +47,9 @@ pub async fn webdav_get_file(subdir: &str, filename: &str) -> Result<Vec<u8>, St
     let started_at = start_timer("webdav", "webdav-get");
     let settings = load_settings_entity()?;
     let client = build_webdav_client();
-    let result = download_remote_file(&client, &settings, subdir, filename).await;
+    let result = retry_once("webdav-get", || async {
+        download_remote_file(&client, &settings, subdir, filename).await
+    }).await;
     if result.is_ok() {
         finish_timer("webdav", "webdav-get", started_at);
     }

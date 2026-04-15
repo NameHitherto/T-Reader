@@ -33,6 +33,8 @@ import {
 } from '@/utils/logger'
 import { encodeJson } from '@/utils/json'
 import { BookFormat } from '@/types/book'
+import { dispatchMainEvent } from '@/services/reader/readerWindowBridgeService'
+import { WINDOW_EVENTS } from '@/constants/events'
 import {
   localBookExists,
   listLocalBookFiles,
@@ -391,7 +393,25 @@ export const saveBookConfig = async (bookKey: string, config: BookConfig): Promi
   const jsonBytes = encodeJson(persisted)
 
   await persistBookConfigToLocal(filename, persisted)
-  await persistBookConfigToCloud(filename, persisted)
+
+  try {
+    await persistBookConfigToCloud(filename, persisted)
+  } catch (error) {
+    logWarn('book-repository', 'save-book-config cloud-sync-failed', {
+      bookKey,
+      fileName: filename,
+      error,
+    })
+    void dispatchMainEvent(WINDOW_EVENTS.CLOUD_SYNC_FAILED, {
+      bookKey,
+      fileName: filename,
+    }).catch((dispatchError) => {
+      logWarn('book-repository', 'dispatch-cloud-sync-failed-event failed', {
+        bookKey,
+        error: dispatchError,
+      })
+    })
+  }
 
   finishLog({
     bookKey,
