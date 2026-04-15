@@ -27,8 +27,12 @@ dist-ssr
 # .trae
 .trae
 
+# .codex
+.codex
+
 # .claude
 .claude
+CLAUDE.md
 
 # agent plan
 plan

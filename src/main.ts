@@ -7,11 +7,13 @@ import { WINDOW_EVENTS } from '@/constants/events';
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService';
 import { bindWindowTitlebarControls } from '@/services/window/windowTitlebarService';
 import { initAppLogger, logError } from '@/utils/logger';
+import { disableBrowserNativeBehaviors } from '@/utils/disableBrowserNativeBehaviors';
 import './styles/index.scss';
 
 const bootstrap = async () => {
   await initializeAppTheme();
   await initAppLogger('main');
+  disableBrowserNativeBehaviors();
 
   // 根据当前平台创建不同实例
   const currentPlatform = platform();
@@ -22,9 +24,6 @@ const bootstrap = async () => {
     app.mount("#app");
 
     const disposeTitlebarControls = bindWindowTitlebarControls();
-    const onContextMenu = (event: MouseEvent) => {
-      event.preventDefault();
-    };
     const unlistenTheme: UnlistenFn = await listen<{ mode?: string }>(
       WINDOW_EVENTS.UPDATE_APP_THEME,
       (event) => {
@@ -32,10 +31,8 @@ const bootstrap = async () => {
       }
     );
 
-    document.addEventListener('contextmenu', onContextMenu);
     window.addEventListener('beforeunload', () => {
       disposeTitlebarControls();
-      document.removeEventListener('contextmenu', onContextMenu);
       unlistenTheme();
     });
   }else if(currentPlatform === 'android'){

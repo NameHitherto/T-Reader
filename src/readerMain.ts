@@ -7,11 +7,13 @@ import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events';
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService';
 import { bindWindowTitlebarControls } from '@/services/window/windowTitlebarService';
 import { initAppLogger } from '@/utils/logger';
+import { disableBrowserNativeBehaviors } from '@/utils/disableBrowserNativeBehaviors';
 import './styles/index.scss';
 
 const bootstrap = async () => {
   await initializeAppTheme();
   await initAppLogger('reader');
+  disableBrowserNativeBehaviors();
 
   const app = createApp(ReaderApp);
 
@@ -42,9 +44,6 @@ const bootstrap = async () => {
   const onShowHelpClick = () => {
     webviewWindow.emit(WINDOW_EVENTS.SHOW_HELP);
   };
-  const onContextMenu = (event: MouseEvent) => {
-    event.preventDefault();
-  };
 
   // 样式调整菜单
   document
@@ -62,14 +61,12 @@ const bootstrap = async () => {
   document
     .getElementById('titlebar-help')
     ?.addEventListener('click', onShowHelpClick);
-  document.addEventListener('contextmenu', onContextMenu);
 
   window.addEventListener('beforeunload', () => {
     document.getElementById('titlebar-customer')?.removeEventListener('click', onStyleMenuClick);
     document.getElementById('titlebar-about')?.removeEventListener('click', onShowBookInfoClick);
     document.getElementById('titlebar-assistant')?.removeEventListener('click', onShowAssistantClick);
     document.getElementById('titlebar-help')?.removeEventListener('click', onShowHelpClick);
-    document.removeEventListener('contextmenu', onContextMenu);
     unlistenTheme();
     disposeTitlebarControls();
   });
