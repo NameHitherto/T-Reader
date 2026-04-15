@@ -122,35 +122,36 @@ export const primeBookCacheAfterImport = async (
   let locationsStatus: 'ready' | 'building' | 'failed' | 'n/a' = 'n/a'
 
   if (format === 'epub') {
-    try {
-      locationsStatus = 'building'
-      await saveBookLocationsCache(bookKey, {
-        status: locationsStatus,
-      })
+    locationsStatus = 'building'
+    await saveBookLocationsCache(bookKey, {
+      status: locationsStatus,
+    })
 
-      const locations = await extractEpubLocations(fileBuffer)
-      const locationsPayload = await saveBookLocationsCache(bookKey, {
-        status: 'ready',
-        locations,
-      })
-      locationsStatus = locationsPayload.status
-    } catch (error) {
-      logWarn('book-cache-service', 'prime-epub-locations-cache failed', {
-        fileName: originalFileName,
-        error,
-      })
+    // 在后台异步生成 locations，避免阻塞导入流程
+    void (async () => {
       try {
-        const failedPayload = await saveBookLocationsCache(bookKey, {
-          status: 'failed',
+        const locations = await extractEpubLocations(fileBuffer)
+        await saveBookLocationsCache(bookKey, {
+          status: 'ready',
+          locations,
         })
-        locationsStatus = failedPayload.status
-      } catch (saveError) {
-        logWarn('book-cache-service', 'mark-epub-locations-cache failed-status failed', {
+      } catch (error) {
+        logWarn('book-cache-service', 'prime-epub-locations-cache failed', {
           fileName: originalFileName,
-          error: saveError,
+          error,
         })
+        try {
+          await saveBookLocationsCache(bookKey, {
+            status: 'failed',
+          })
+        } catch (saveError) {
+          logWarn('book-cache-service', 'mark-epub-locations-cache failed-status failed', {
+            fileName: originalFileName,
+            error: saveError,
+          })
+        }
       }
-    }
+    })()
   } else {
     await removeBookLocationsCache(bookKey).catch((error) => {
       logWarn('book-cache-service', 'remove-txt-locations-cache failed', {
