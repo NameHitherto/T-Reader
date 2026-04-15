@@ -2,7 +2,7 @@
 
 T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、AI 阅读助手与应用内更新能力。
 
-![version](https://img.shields.io/badge/version-1.0.0-blue)
+![version](https://img.shields.io/badge/version-1.2.1-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 ## 核心能力
@@ -18,6 +18,24 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 支持应用内检查更新、下载更新并重启安装
 - 主流程带通知反馈与前后端日志，便于排查问题
 
+## 界面预览
+
+### 书架网格视图
+
+![书架网格视图](./docs/images/bookshelf.jpg)
+
+### 书架列表视图
+
+![书架列表视图](./docs/images/listview.jpg)
+
+### 书籍导入
+
+![书籍导入](./docs/images/import.jpg)
+
+### 阅读器与样式设置
+
+![阅读器与样式设置](./docs/images/reader.jpg)
+
 ## 技术栈
 
 - 前端：`Vue 3` + `TypeScript` + `Vite 5`
@@ -25,7 +43,7 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 后端：`Rust`
 - 状态管理：`Pinia`
 - UI：`Element Plus`
-- 阅读引擎：二次开发的 [`libs/epub.js`](./libs/epub.js)
+- 阅读引擎：二次开发的 [`libs/epub.js`](https://github.com/NameHitherto/epub.js)
 
 ## 项目结构
 
@@ -162,13 +180,6 @@ $env:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
 $env:PHANTOMJS_CDNURL='https://npmmirror.com/mirrors/phantomjs'
 npm install
 ```
-
-## 相关文档
-
-- [项目全景摘要](./docs/PROJECT_OVERVIEW.md)
-- [模块架构规范](./docs/module-architecture-spec.md)
-- [图标管理规范](./docs/icon-management-spec.md)
-- [发布说明](./RELEASE_NOTES.md)
 
 ## 相关仓库
 
