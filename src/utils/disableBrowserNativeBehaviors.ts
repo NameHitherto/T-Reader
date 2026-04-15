@@ -1,8 +1,4 @@
 export const disableBrowserNativeBehaviors = () => {
-  if (!import.meta.env.PROD) {
-    return;
-  }
-
   const onKeyDown = (event: KeyboardEvent) => {
     if (
       event.key === "F5" ||
