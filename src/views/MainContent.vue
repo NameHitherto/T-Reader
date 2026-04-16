@@ -196,6 +196,7 @@ import { readLocalBookFile } from '@/services/book/bookFileAccessService'
 import { setBookFileIndexEntry } from '@/services/book/bookFileIndexRepository'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
+import { normalizeBookConfig } from '@/services/book/bookConfigService'
 import {
   buildLocalFilePath,
   CLOUD_DIRS,
@@ -607,19 +608,49 @@ export default {
         }
         batchContext.reservedBookKeys.add(importedBook.bookKey)
         reservedBookKey = importedBook.bookKey
-        const newBook = await buildBookConfigFromImport({
+        let newBook = await buildBookConfigFromImport({
           sourcePath: path,
           originalFileName,
           format,
           fileBuffer: bufferFile,
         })
+        const configFilename = toBookConfigFilename(importedBook.bookKey)
+        let usedCloudConfig = false
+
+        try {
+          const existsOnCloud = await invoke('webdav_exists', {
+            subdir: CLOUD_DIRS.progress,
+            filename: configFilename,
+          })
+          if (existsOnCloud) {
+            const cloudData = await invoke('webdav_get', {
+              subdir: CLOUD_DIRS.progress,
+              filename: configFilename,
+            })
+            const cloudConfig = normalizeBookConfig(
+              JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[])))
+            )
+            newBook = cloudConfig
+            usedCloudConfig = true
+            logInfo('bookshelf', 'import-book use-cloud-config', {
+              bookKey: importedBook.bookKey,
+              fileName: configFilename,
+            })
+          }
+        } catch (error) {
+          logWarn('bookshelf', 'import-book check-cloud-config-failed', {
+            bookKey: importedBook.bookKey,
+            error,
+          })
+        }
+
         const bookConfigJson = stringifyJson(newBook)
         const encodedBookConfig = new TextEncoder().encode(bookConfigJson)
 
         updateLoadingText(IMPORT_LOADING_TEXT.saving)
 
         await writeJsonFile(
-          buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(importedBook.bookKey)),
+          buildLocalFilePath(LOCAL_DIRS.progress, configFilename),
           newBook
         )
         createdBookArtifacts = true
@@ -648,30 +679,34 @@ export default {
 
         const bookLabel = cachedPayload.title || newBook.name || importedBook.name
         batchContext.batchNotifier.registerTask(bookLabel)
-        queueMicrotask(() => {
-          void Promise.allSettled([
-            invoke('webdav_upload', {
-              subdir: batchContext.dirs.progress,
-              filename: toBookConfigFilename(importedBook.bookKey),
-              contents: Array.from(encodedBookConfig),
-            }),
-          ])
-            .then((results) => {
-              const rejected = results.find((result) => result.status === 'rejected')
-              if (rejected) {
-                const reason = toTaskErrorMessage(rejected.reason)
-                logWarn('bookshelf', 'import-book remote-sync-failed', {
-                  bookKey: importedBook.bookKey,
-                  fileName: originalFileName,
-                  reason,
-                })
-                batchContext.batchNotifier.recordFailure(bookLabel, reason)
-                return
-              }
+        if (!usedCloudConfig) {
+          queueMicrotask(() => {
+            void Promise.allSettled([
+              invoke('webdav_upload', {
+                subdir: batchContext.dirs.progress,
+                filename: configFilename,
+                contents: Array.from(encodedBookConfig),
+              }),
+            ])
+              .then((results) => {
+                const rejected = results.find((result) => result.status === 'rejected')
+                if (rejected) {
+                  const reason = toTaskErrorMessage(rejected.reason)
+                  logWarn('bookshelf', 'import-book remote-sync-failed', {
+                    bookKey: importedBook.bookKey,
+                    fileName: originalFileName,
+                    reason,
+                  })
+                  batchContext.batchNotifier.recordFailure(bookLabel, reason)
+                  return
+                }
 
-              batchContext.batchNotifier.recordSuccess(bookLabel)
-            })
-        })
+                batchContext.batchNotifier.recordSuccess(bookLabel)
+              })
+          })
+        } else {
+          batchContext.batchNotifier.recordSuccess(bookLabel)
+        }
         importSucceeded = true
         finishLog({
           bookKey: importedBook.bookKey,
