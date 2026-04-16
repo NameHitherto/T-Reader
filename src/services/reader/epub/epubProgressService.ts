@@ -1,7 +1,11 @@
 import ePub, { EpubCFI } from 'libs/epub.js'
 import { BookConfig } from '@/types/book'
 import { ReaderProgressHandler } from '@/services/reader/formatTypes'
-import { logWarn } from '@/utils/logger'
+import { logInfo, logWarn } from '@/utils/logger'
+import {
+  calculateLegadoOffset,
+  createRangeFromLegadoOffset,
+} from '@/services/reader/epub/legadoHtmlFormatter'
 
 export interface EpubProgressSnapshot {
   durChapterIndex: number
@@ -36,62 +40,6 @@ const resolveTocHref = (tocItems: any[] = [], title?: string): string | undefine
 
   const item = flattenToc(tocItems).find((entry) => entry.label === title)
   return item?.href
-}
-
-const getSectionRoot = (section: any): Element | null => {
-  return section?.document?.body || section?.contents || section?.document?.documentElement || null
-}
-
-const getPrefixTextLength = (section: any, targetRange: Range): number => {
-  const doc = section?.document as Document | undefined
-  const root = getSectionRoot(section)
-  if (!doc || !root) {
-    return 0
-  }
-
-  const range = doc.createRange()
-  range.selectNodeContents(root)
-  range.setEnd(targetRange.startContainer, targetRange.startOffset)
-  return range.toString().length
-}
-
-const createRangeFromChapterOffset = (section: any, chapterOffset: number): Range | null => {
-  const doc = section?.document as Document | undefined
-  const root = getSectionRoot(section)
-  if (!doc || !root) {
-    return null
-  }
-
-  const safeOffset = Math.max(0, Math.floor(chapterOffset))
-  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  let remaining = safeOffset
-  let lastTextNode: Node | null = null
-  let currentNode = walker.nextNode()
-
-  while (currentNode) {
-    const textLength = currentNode.textContent?.length || 0
-    lastTextNode = currentNode
-
-    if (remaining <= textLength) {
-      const range = doc.createRange()
-      range.setStart(currentNode, remaining)
-      range.collapse(true)
-      return range
-    }
-
-    remaining -= textLength
-    currentNode = walker.nextNode()
-  }
-
-  const range = doc.createRange()
-  if (lastTextNode) {
-    const endOffset = lastTextNode.textContent?.length || 0
-    range.setStart(lastTextNode, endOffset)
-  } else {
-    range.setStart(root, 0)
-  }
-  range.collapse(true)
-  return range
 }
 
 const loadSection = async (book: any, target: string | number) => {
@@ -184,11 +132,21 @@ export const serializeEpubProgress = async (rendition: any): Promise<EpubProgres
   }
 
   const href = section.href || currentLocation?.start?.href || ''
+  const durChapterIndex = parsedCfi.spinePos
+  const durChapterPos = calculateLegadoOffset(section, range)
+  const durChapterTitle = resolveEpubTocLabel(book.navigation?.toc, href) || href
+
+  logInfo('epubProgress', '保存 EPUB 进度', {
+    sourceCfi: cfi,
+    durChapterIndex,
+    durChapterPos,
+    durChapterTitle,
+  })
 
   return {
-    durChapterIndex: parsedCfi.spinePos,
-    durChapterPos: getPrefixTextLength(section, range),
-    durChapterTitle: resolveEpubTocLabel(book.navigation?.toc, href) || href,
+    durChapterIndex,
+    durChapterPos,
+    durChapterTitle,
     durChapterTime: Date.now(),
   }
 }
@@ -207,15 +165,24 @@ export const resolveEpubDisplayTarget = async (
     return undefined
   }
 
-  const range = createRangeFromChapterOffset(section, snapshot.durChapterPos || 0)
+  const range = createRangeFromLegadoOffset(section, snapshot.durChapterPos || 0)
   if (!range) {
     return section.href
   }
 
   try {
-    return section.cfiFromRange(range)
+    const target = section.cfiFromRange(range)
+    logInfo('epubProgress', '恢复 EPUB 进度', {
+      snapshot,
+      target,
+    })
+    return target
   } catch (error) {
     logWarn('epubProgress', '根据 EPUB 进度快照恢复 CFI 失败', error)
+    logInfo('epubProgress', '恢复 EPUB 进度（回退到 href）', {
+      snapshot,
+      target: section.href,
+    })
     return section.href
   }
 }
