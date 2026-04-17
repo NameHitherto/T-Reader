@@ -1,4 +1,0 @@
-interface:
-  display_name: "T-Reader Frontend Architecture"
-  short_description: "Frontend business architecture rules for T-Reader"
-  default_prompt: "Use $t-reader-frontend-architecture to implement or review frontend business changes in this repository."

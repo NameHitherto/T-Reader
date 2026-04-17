@@ -33,6 +33,7 @@ dist-ssr
 # .claude
 .claude
 CLAUDE.md
+docs/superpowers
 
 # agent plan
 plan
