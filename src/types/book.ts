@@ -1,4 +1,4 @@
-export type BookFormat = 'epub' | 'txt'
+export type BookFormat = 'epub'
 
 export interface BookProgressSnapshot {
   durChapterIndex: number

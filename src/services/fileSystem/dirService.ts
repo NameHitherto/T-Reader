@@ -9,7 +9,7 @@ import {
 /**
  * 本地目录结构：
  * T-Reader/
- *   ├── books/         # 书籍文件 (epub/txt)
+ *   ├── books/         # 书籍文件 (epub)
  *   ├── bookProgress/  # 阅读进度配置 (json)
  *   ├── cached/        # 缓存文件
  *   └── system/        # 系统文件 (设置等)
@@ -18,7 +18,7 @@ import {
 /**
  * 云端目录结构：
  * /T-Reader/
- *   ├── books/         # 书籍文件 (epub/txt)
+ *   ├── books/         # 书籍文件 (epub)
  *   └── bookProgress/  # 阅读进度配置 (json)
  */
 

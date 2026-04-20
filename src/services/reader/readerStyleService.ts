@@ -6,7 +6,6 @@ import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import type { ReaderBackgroundPresets } from '@/types/readerBackground'
 import type { EnabledSystemFont } from '@/types/readerFonts'
 import { applyEpubReaderStyles } from '@/services/reader/epub/epubStyleService'
-import { applyTxtReaderStyles } from '@/services/reader/txt/txtStyleService'
 
 export interface ReaderStyleConfig {
   font: string
@@ -74,5 +73,4 @@ export const applyReaderStyles = (
   }
 
   applyEpubReaderStyles(readerConfig, readerDefaultTheme, rendition, palette)
-  applyTxtReaderStyles(readerConfig, palette)
 }

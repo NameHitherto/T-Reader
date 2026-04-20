@@ -500,7 +500,7 @@ export default {
         filters: [
           {
             name: 'Book files',
-            extensions: ['epub', 'txt'],
+            extensions: ['epub'],
           },
         ],
       })
@@ -661,7 +661,6 @@ export default {
         const cachedPayload = await primeBookCacheAfterImport(
           importedBook.bookKey,
           bufferFile,
-          format,
           originalFileName
         )
 
@@ -963,7 +962,7 @@ export default {
         return '--'
       }
 
-      return book.format === 'txt' ? 'TXT' : 'EPUB'
+      return book.format === 'unknown' ? '--' : 'EPUB'
     }
 
     const getProgressValue = (book: ShelfBook): number => {

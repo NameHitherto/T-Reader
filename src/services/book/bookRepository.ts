@@ -18,7 +18,7 @@ import {
   saveBookFileIndex,
   setBookFileIndexEntry,
 } from '@/services/book/bookFileIndexRepository'
-import { parseBookMetaByFormat } from '@/services/book/bookImportService'
+import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import {
   buildBookName,
   buildBookTitle,
@@ -250,13 +250,13 @@ export const reconcileLibraryBookFileIndex = async (
 
     const bookData = await readLocalBookFile(fileName)
     const fileBuffer = toArrayBuffer(bookData)
-    const meta = await parseBookMetaByFormat({
+    const meta = await buildBookConfigFromImport({
       sourcePath: fileName,
       originalFileName: fileName,
       format,
       fileBuffer,
     })
-    const bookKey = buildBookName(meta.title, meta.author)
+    const bookKey = buildBookName(meta.name, meta.author)
 
     if (!currentIndex.has(bookKey)) {
       const resolved = {
@@ -468,7 +468,7 @@ export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload
   })
   const currentCache = (await loadBookCache(bookKey)) || {}
   const resolved = await resolveBookFile(bookKey)
-  const hasRequiredCache = hasRequiredBookCache(resolved.format, currentCache)
+  const hasRequiredCache = hasRequiredBookCache(currentCache)
 
   if (hasRequiredCache) {
     finishLog({
@@ -483,7 +483,6 @@ export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload
   const payload = await primeBookCacheAfterImport(
     bookKey,
     toArrayBuffer(bookData.bookData),
-    bookData.format,
     bookData.fileName
   )
   finishLog({
@@ -592,7 +591,7 @@ export const getImportedBookName = async (
     throw new Error(`Unsupported file format: ${fileName}`)
   }
 
-  const meta = await parseBookMetaByFormat({
+  const meta = await buildBookConfigFromImport({
     sourcePath: fileName,
     originalFileName: fileName,
     format,
@@ -600,8 +599,8 @@ export const getImportedBookName = async (
   })
 
   const payload = {
-    bookKey: buildBookName(meta.title, meta.author),
-    name: buildBookTitle(meta.title),
+    bookKey: buildBookName(meta.name, meta.author),
+    name: buildBookTitle(meta.name),
     format,
   }
   finishLog({

@@ -1,19 +1,7 @@
 <template>
   <div class="reader">
     <!-- EPUB 阅读器内容 -->
-    <div v-show="currentBookFormat === 'epub'" id="epub-reader"></div>
-    <div v-show="currentBookFormat === 'txt'" id="txt-reader" @scroll="onTxtScroll">
-      <div id="txt-reader-content">
-        <p
-          v-for="(paragraph, index) in txtParagraphs"
-          :key="index"
-          class="txt-paragraph"
-          :data-idx="index"
-        >
-          {{ paragraph }}
-        </p>
-      </div>
-    </div>
+    <div id="epub-reader"></div>
     <!-- 翻页按钮 -->
     <div class="pagination">
       <button class="prev-page button" @click="prevPage">
@@ -116,18 +104,13 @@ import HelpDialog from './components/HelpDialog/index.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
-import { BookConfig, BookFormat } from '@/types/book'
+import { BookConfig } from '@/types/book'
 import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import { READER_DOM_EVENTS } from '@/constants/events'
-import {
-  calcTxtProgress,
-  findParagraphIndexByScroll,
-} from '@/services/reader/txt/txtReaderService'
 import {
   destroyEpubRendition,
   renderEpubBook,
 } from '@/services/reader/epub/epubAdapter'
-import { renderTxtBook } from '@/services/reader/txt/txtAdapter'
 import { resolveReaderDisplayTarget } from '@/services/reader/progressSnapshotService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
@@ -143,7 +126,6 @@ import {
   scrollDrawerToActiveChapter,
 } from '@/services/reader/epub/tocService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
-import { scrollTxtByPage } from '@/services/reader/txt/navigationService'
 import {
   dispatchReaderKeydown,
   resetReaderTransientUi,
@@ -210,14 +192,8 @@ export default {
     const bookInfoVisible = ref(false)
     // EPUB 渲染对象
     const rendition = ref<Rendition | null>(null)
-    // 当前书籍格式
-    const currentBookFormat = ref<BookFormat>('epub')
     // 当前书籍配置
     const currentBookConfig = ref<BookConfig | null>(null)
-    // TXT 段落内容
-    const txtParagraphs = ref<string[]>([])
-    // TXT 阅读位置（段落索引）
-    const txtCurrentParagraph = ref(0)
     // 事件解绑函数
     const unlistenBook = ref<UnlistenFn | null>(null)
     const unlistenClosed = ref<UnlistenFn | null>(null)
@@ -482,28 +458,6 @@ export default {
       void syncStyleMenuLayout()
     }
 
-    const onTxtScroll = () => {
-      if (currentBookFormat.value !== 'txt') {
-        return
-      }
-      const txtReader = document.getElementById('txt-reader')
-      if (!txtReader) {
-        return
-      }
-
-      const paragraphs = Array.from(
-        txtReader.querySelectorAll('.txt-paragraph')
-      ) as HTMLElement[]
-
-      txtCurrentParagraph.value = findParagraphIndexByScroll(paragraphs, txtReader.scrollTop)
-
-      readingPercentage.value = calcTxtProgress(
-        txtReader.scrollTop,
-        txtReader.scrollHeight,
-        txtReader.clientHeight
-      ).toFixed(1)
-    }
-
     // 读取阅读配置
     const loadReaderConfig = async () => {
       try {
@@ -542,23 +496,6 @@ export default {
       )
     }
 
-    const restoreTxtLocation = async (paragraphIndex = 0) => {
-      await nextTick()
-      const txtReader = document.getElementById('txt-reader')
-      if (!txtReader) {
-        return
-      }
-      txtCurrentParagraph.value = paragraphIndex
-      const paragraphElement = txtReader.querySelector(
-        `[data-idx="${paragraphIndex}"]`
-      ) as HTMLElement | null
-      if (paragraphElement) {
-        txtReader.scrollTop = paragraphElement.offsetTop
-      } else {
-        txtReader.scrollTop = 0
-      }
-    }
-
     // 保存阅读进度
     const saveReaderRendition = async () => {
       if (!currentBookKey.value) {
@@ -567,9 +504,7 @@ export default {
 
       const savedProgress = await saveReaderProgress({
         bookKey: currentBookKey.value,
-        format: currentBookFormat.value,
         rendition: rendition.value,
-        txtCurrentParagraph: txtCurrentParagraph.value,
         bookMarks: bookMarks.value,
       })
 
@@ -788,12 +723,9 @@ export default {
         } = loadedBook
 
         currentBookConfig.value = bookConfig
-        currentBookFormat.value = format
         readingPercentage.value = ''
         readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
         bookMarkStore.clearBookMarks()
-        txtParagraphs.value = []
-        txtCurrentParagraph.value = 0
 
         if (rendition.value) {
           try {
@@ -802,30 +734,6 @@ export default {
             logWarn('ReaderApp', '销毁旧的 Rendition 失败', e)
           }
           rendition.value = null
-        }
-
-        if (currentBookFormat.value === 'txt') {
-          toc.value = []
-          activeChapter.value = ''
-          readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
-          const displayTarget = await resolveReaderDisplayTarget('txt', bookData, bookConfig)
-          const paragraphIndex =
-            typeof displayTarget === 'number' ? displayTarget : 0
-
-          const txtBook = renderTxtBook(bookData, paragraphIndex)
-          txtParagraphs.value = txtBook.paragraphs
-
-          await applyReaderStyle()
-          await restoreTxtLocation(txtBook.paragraphIndex)
-          const txtReader = document.getElementById('txt-reader')
-          if (txtReader) {
-            readingPercentage.value = calcTxtProgress(
-              txtReader.scrollTop,
-              txtReader.scrollHeight,
-              txtReader.clientHeight
-            ).toFixed(1)
-          }
-          return
         }
 
         const epubBook = await renderEpubBook(
@@ -846,7 +754,6 @@ export default {
             void primeBookCacheAfterImport(
               currentBookKey.value as string,
               bookArrayBuffer as ArrayBuffer,
-              format,
               fileName
             ).catch((error) => {
               logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
@@ -900,11 +807,6 @@ export default {
     const prevPage = () => {
       if (rendition.value && readerConfig.value.flow === 'paginated') {
         rendition.value.prev()
-        return
-      }
-
-      if (currentBookFormat.value === 'txt') {
-        scrollTxtByPage(document.getElementById('txt-reader'), 'prev', 0.85)
       }
     }
 
@@ -912,11 +814,6 @@ export default {
     const nextPage = () => {
       if (rendition.value && readerConfig.value.flow === 'paginated') {
         rendition.value.next()
-        return
-      }
-
-      if (currentBookFormat.value === 'txt') {
-        scrollTxtByPage(document.getElementById('txt-reader'), 'next', 0.85)
       }
     }
 
@@ -924,12 +821,8 @@ export default {
     const goToChapter = (href: string) => {
       if (rendition.value) {
         rendition.value.display(href)
-        tocDrawer.value = false
         activeChapter.value = href
-        return
       }
-
-      // TXT 当前暂不支持目录跳转
       tocDrawer.value = false
     }
 
@@ -1062,9 +955,6 @@ export default {
       pendingBookKey,
       nextPage,
       prevPage,
-      currentBookFormat,
-      txtParagraphs,
-      onTxtScroll,
       currentBookKey,
       readerConfig,
       tocDrawer,
@@ -1169,39 +1059,6 @@ export default {
     width: 100%;
     height: 100%;
     background: var(--reader-background);
-  }
-
-  #txt-reader {
-    position: absolute;
-    padding: 30px 0;
-    width: 100%;
-    height: calc(100vh - 60px);
-    overflow-y: auto;
-    background: var(--reader-background);
-    color: var(--reader-text);
-
-    #txt-reader-content {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 28px 40px 28px;
-      background: var(--reader-content-background);
-      border: none;
-      border-radius: 0;
-      box-shadow: none;
-      backdrop-filter: none;
-      transition:
-        background var(--duration-base) var(--easing-standard),
-        border-color var(--duration-fast) var(--easing-standard),
-        box-shadow var(--duration-fast) var(--easing-standard),
-        backdrop-filter var(--duration-fast) var(--easing-standard);
-
-      .txt-paragraph {
-        margin: 0 0 1.1em 0;
-        text-indent: 2em;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-    }
   }
 
   /* 阅读容器滚动条样式 */

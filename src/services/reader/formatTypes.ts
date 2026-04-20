@@ -15,7 +15,6 @@ export interface ReaderFormatLoadResult {
 export interface ReaderProgressHandler {
   serializeProgress: (args: {
     rendition: any
-    txtCurrentParagraph: number
   }) => Promise<BookProgressSnapshot | null>
   resolveDisplayTarget: (
     source: any,
@@ -24,7 +23,6 @@ export interface ReaderProgressHandler {
   calculateProgress: (args: {
     rendition: any
     bookConfig: Pick<BookConfig, 'durChapterIndex'>
-    txtCurrentParagraph: number
     bookCache: BookCachePayload | null
   }) => Promise<number>
   calculateShelfProgress: (args: {

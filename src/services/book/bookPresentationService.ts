@@ -1,4 +1,4 @@
-import { BookConfig, BookFormat } from '@/types/book'
+import { BookConfig } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
 import { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
 import {
@@ -8,8 +8,6 @@ import {
   isUnreadProgressSnapshot,
   normalizeBookConfig,
 } from '@/services/book/bookConfigService'
-
-const TXT_CHAPTER_PLACEHOLDER_PATTERN = /^paragraph-\d+$/i
 
 const clampProgress = (value: number): number => {
   if (Number.isNaN(value)) {
@@ -25,7 +23,7 @@ export const normalizeDisplayedChapterTitle = (
 ) => {
   const normalizedTitle = typeof title === 'string' ? title.trim() : ''
 
-  if (!normalizedTitle || TXT_CHAPTER_PLACEHOLDER_PATTERN.test(normalizedTitle)) {
+  if (!normalizedTitle) {
     return fallback
   }
 
@@ -81,14 +79,12 @@ export const buildLastReadLabel = (
 
 export const deriveShelfProgress = async (
   bookConfig: BookConfig,
-  format: BookFormat,
   cache: BookCachePayload,
   locationsCache?: BookLocationsCachePayload | null,
   bookData?: Uint8Array
 ): Promise<number> => {
   return clampProgress(
     await calculateShelfProgress(
-      format,
       bookData,
       bookConfig,
       cache,
