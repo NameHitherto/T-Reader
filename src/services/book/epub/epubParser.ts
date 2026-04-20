@@ -28,8 +28,8 @@ export const parseEpubMeta = async (
 
     const payload = {
       format: 'epub' as const,
-      title: metadata.title || '未知书名',
-      author: metadata.creator || '未知作者',
+      title: metadata.title || '',
+      author: metadata.creator || '',
       cover,
     }
     finishLog({

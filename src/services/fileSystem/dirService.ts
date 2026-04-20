@@ -18,7 +18,7 @@ import {
 /**
  * 云端目录结构：
  * /T-Reader/
- *   ├── books/         # 书籍文件 (epub)
+ *   ├── books/         # 书籍文件 (epub/txt，TXT 下载后本地转为 epub)
  *   └── bookProgress/  # 阅读进度配置 (json)
  */
 

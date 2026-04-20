@@ -1,6 +1,7 @@
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         crate::api::file::copy_file_to_subdir,
+        crate::api::file::convert_txt_to_epub,
         crate::api::webdav::webdav_upload,
         crate::api::webdav::webdav_get,
         crate::api::webdav::webdav_exists,

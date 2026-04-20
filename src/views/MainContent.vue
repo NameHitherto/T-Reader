@@ -236,6 +236,7 @@ export default {
   },
   setup() {
     type ShelfViewMode = 'list' | 'grid'
+    type ImportSourceFormat = BookFormat | 'txt'
     type ShelfBookFormat = BookFormat | 'unknown'
     type ShelfBook = BookConfig & {
       bookKey: string
@@ -320,6 +321,21 @@ export default {
     }
 
     const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
+
+    const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
+      const ext = path.split('.').pop()?.toLowerCase()
+      if (ext === 'txt') {
+        return 'txt'
+      }
+
+      return detectBookFormatFromPath(path)
+    }
+
+    const toEpubFileName = (fileName: string): string => {
+      const lastDotIndex = fileName.lastIndexOf('.')
+      const stem = lastDotIndex >= 0 ? fileName.slice(0, lastDotIndex) : fileName
+      return `${stem || fileName}.epub`
+    }
 
     const runWithConcurrencyLimit = async <T>(
       items: readonly T[],
@@ -500,7 +516,7 @@ export default {
         filters: [
           {
             name: 'Book files',
-            extensions: ['epub'],
+            extensions: ['epub', 'txt'],
           },
         ],
       })
@@ -543,26 +559,30 @@ export default {
     }
 
     const addBookByPath = async (path: string, batchContext: BatchImportContext) => {
-      const originalFileName = getFileNameFromPath(path)
-      const normalizedOriginalFileName = normalizeOriginalFileName(originalFileName)
-      const format = detectBookFormatFromPath(path)
-      if (!format) {
+      const sourceFileName = getFileNameFromPath(path)
+      const sourceFormat = detectImportSourceFormat(path)
+      if (!sourceFormat) {
         logWarn('bookshelf', 'unsupported-book-format', {
           path,
         })
         return
       }
 
+      let originalFileName = sourceFormat === 'txt' ? toEpubFileName(sourceFileName) : sourceFileName
+      const normalizedOriginalFileName = normalizeOriginalFileName(originalFileName)
+      const format: BookFormat = 'epub'
+
       if (batchContext.reservedOriginalFileNames.has(normalizedOriginalFileName)) {
         logWarn('bookshelf', 'duplicate-batch-file-name-detected', {
-          fileName: originalFileName,
+          fileName: sourceFileName,
           path,
         })
         return
       }
 
       const finishLog = createDurationLogger('bookshelf', 'import-book', {
-        fileName: originalFileName,
+        fileName: sourceFileName,
+        sourceFormat,
         format,
       })
       batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
@@ -581,11 +601,19 @@ export default {
           return
         }
 
-        await invoke('copy_file_to_subdir', {
-          filepath: path,
-          subdir: batchContext.dirs.books,
-          filename: originalFileName,
-        })
+        if (sourceFormat === 'txt') {
+          originalFileName = await invoke<string>('convert_txt_to_epub', {
+            filepath: path,
+            subdir: batchContext.dirs.books,
+            filename: sourceFileName,
+          })
+        } else {
+          await invoke('copy_file_to_subdir', {
+            filepath: path,
+            subdir: batchContext.dirs.books,
+            filename: originalFileName,
+          })
+        }
         localCopyCreated = true
 
         const fileBytes = await readLocalBookFile(originalFileName)

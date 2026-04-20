@@ -16,11 +16,17 @@ use crate::{
         },
     },
     service::{
-        filesystem::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs,
+        filesystem::{
+            settings_service::load_settings_entity,
+            txt_to_epub_service::{convert_txt_bytes_to_epub, to_epub_file_name},
+        },
+        webdav::dir_service::ensure_cloud_dirs,
     },
     utils::{
         logging::{finish_timer, log_info, start_timer},
-        webdav::{is_config_file, is_supported_book_file, should_upload_local_config},
+        webdav::{
+            is_config_file, is_supported_book_file, is_txt_book_file, should_upload_local_config,
+        },
     },
 };
 
@@ -108,6 +114,19 @@ fn resolve_book_status(local_exists: bool, cloud_exists: bool) -> CloudSyncBookS
     }
 }
 
+fn resolve_local_book_exists(snapshot: &SyncSnapshot, file_name: &str, cloud_exists: bool) -> bool {
+    if snapshot.local_books.contains(file_name) {
+        return true;
+    }
+
+    if cloud_exists && is_txt_book_file(file_name) {
+        let epub_name = to_epub_file_name(file_name);
+        return snapshot.local_books.contains(&epub_name);
+    }
+
+    false
+}
+
 fn build_preview_result(snapshot: &SyncSnapshot) -> CloudSyncPreviewResult {
     let mut normal_count = 0;
     let mut upload_count = 0;
@@ -115,8 +134,8 @@ fn build_preview_result(snapshot: &SyncSnapshot) -> CloudSyncPreviewResult {
     let mut book_items = Vec::new();
 
     for file_name in snapshot.local_books.union(&snapshot.cloud_books) {
-        let local_exists = snapshot.local_books.contains(file_name);
         let cloud_exists = snapshot.cloud_books.contains(file_name);
+        let local_exists = resolve_local_book_exists(snapshot, file_name, cloud_exists);
         let status = resolve_book_status(local_exists, cloud_exists);
 
         match status {
@@ -181,8 +200,8 @@ async fn sync_book_files(
     result: &mut CloudSyncApplyResult,
 ) -> Result<(), String> {
     for selection in dedupe_book_selections(selections) {
-        let local_exists = snapshot.local_books.contains(&selection.file_name);
         let cloud_exists = snapshot.cloud_books.contains(&selection.file_name);
+        let local_exists = resolve_local_book_exists(snapshot, &selection.file_name, cloud_exists);
         let status = resolve_book_status(local_exists, cloud_exists);
 
         if !book_action_matches_status(&selection.action, &status) {
@@ -212,7 +231,22 @@ async fn sync_book_files(
                     &selection.file_name,
                 )
                 .await?;
-                write_binary_file(&snapshot.books_path.join(&selection.file_name), &contents)?;
+                if is_txt_book_file(&selection.file_name) {
+                    let target_file = convert_txt_bytes_to_epub(
+                        &selection.file_name,
+                        &contents,
+                        &snapshot.books_path,
+                    )?;
+                    log_info(
+                        "webdav",
+                        &format!(
+                            "sync-book-files converted-txt source={} target={}",
+                            selection.file_name, target_file
+                        ),
+                    );
+                } else {
+                    write_binary_file(&snapshot.books_path.join(&selection.file_name), &contents)?;
+                }
                 result.downloaded_book_count += 1;
             }
         }
@@ -301,18 +335,22 @@ async fn apply_sync_plan_with_snapshot(
 fn build_legacy_request(snapshot: &SyncSnapshot) -> CloudSyncApplyRequest {
     let mut book_selections = Vec::new();
 
-    for file_name in snapshot.local_books.difference(&snapshot.cloud_books) {
-        book_selections.push(CloudSyncBookSelection {
-            file_name: file_name.clone(),
-            action: CloudSyncBookAction::Upload,
-        });
-    }
+    for file_name in snapshot.local_books.union(&snapshot.cloud_books) {
+        let cloud_exists = snapshot.cloud_books.contains(file_name);
+        let local_exists = resolve_local_book_exists(snapshot, file_name, cloud_exists);
+        let status = resolve_book_status(local_exists, cloud_exists);
 
-    for file_name in snapshot.cloud_books.difference(&snapshot.local_books) {
-        book_selections.push(CloudSyncBookSelection {
-            file_name: file_name.clone(),
-            action: CloudSyncBookAction::Download,
-        });
+        match status {
+            CloudSyncBookStatus::Upload => book_selections.push(CloudSyncBookSelection {
+                file_name: file_name.clone(),
+                action: CloudSyncBookAction::Upload,
+            }),
+            CloudSyncBookStatus::Download => book_selections.push(CloudSyncBookSelection {
+                file_name: file_name.clone(),
+                action: CloudSyncBookAction::Download,
+            }),
+            CloudSyncBookStatus::Normal => {}
+        }
     }
 
     CloudSyncApplyRequest { book_selections }

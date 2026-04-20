@@ -3,7 +3,15 @@ use std::path::Path;
 use urlencoding::decode;
 
 pub fn is_supported_book_file(filename: &str) -> bool {
-    filename.ends_with(".epub")
+    is_epub_book_file(filename) || is_txt_book_file(filename)
+}
+
+pub fn is_epub_book_file(filename: &str) -> bool {
+    filename.to_ascii_lowercase().ends_with(".epub")
+}
+
+pub fn is_txt_book_file(filename: &str) -> bool {
+    filename.to_ascii_lowercase().ends_with(".txt")
 }
 
 pub fn is_config_file(filename: &str) -> bool {
