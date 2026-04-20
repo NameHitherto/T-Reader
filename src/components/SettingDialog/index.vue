@@ -105,6 +105,56 @@
           />
         </div>
       </section>
+
+      <section class="section">
+        <el-divider class="divider" content-position="left">TXT分章规则</el-divider>
+        <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">
+          暂无可展示规则
+        </div>
+        <div v-else class="txt-toc-rule-list">
+          <article
+            v-for="(rule, index) in txtTocRules"
+            :key="rule.id"
+            class="txt-toc-rule-card"
+          >
+            <div class="txt-toc-rule-priority-actions">
+              <button
+                type="button"
+                class="txt-toc-rule-order-btn"
+                title="上移优先级"
+                :disabled="index === 0"
+                @click="moveRule(index, -1)"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                class="txt-toc-rule-order-btn"
+                title="下移优先级"
+                :disabled="index === txtTocRules.length - 1"
+                @click="moveRule(index, 1)"
+              >
+                ↓
+              </button>
+            </div>
+
+            <div class="txt-toc-rule-content">
+              <div class="txt-toc-rule-header">
+                <span class="txt-toc-rule-name">{{ rule.name }}</span>
+                <el-switch v-model="rule.enable" />
+              </div>
+              <div class="txt-toc-rule-field">
+                <span class="txt-toc-rule-label">样例</span>
+                <p class="txt-toc-rule-example">{{ rule.example }}</p>
+              </div>
+              <div class="txt-toc-rule-field">
+                <span class="txt-toc-rule-label">规则</span>
+                <pre class="txt-toc-rule-regex">{{ rule.rule }}</pre>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </div>
 
     <template #footer>
@@ -121,6 +171,11 @@ import {
   loadAppSettings,
   saveAppSettings,
 } from '@/services/settings/appSettingsService'
+import {
+  loadTxtTocRules,
+  resequenceTxtTocRules,
+  saveTxtTocRules,
+} from '@/services/settings/txtTocRulesService'
 import { emitAppThemeUpdate } from '@/services/theme/themeService'
 
 export default {
@@ -143,7 +198,8 @@ export default {
         { value: 'glm-4-flash', label: '智谱清言' },
         { value: 'deepseek-v3', label: 'DeepSeek-V3(阿里云百炼)' }
       ],
-      modelAPIKey: ''
+      modelAPIKey: '',
+      txtTocRules: [],
     };
   },
   computed: {
@@ -180,6 +236,7 @@ export default {
       this.isAiAssistantEnabled = loadedSettings.isAiEnabled === 'true'
       this.modelValue = loadedSettings.modelName
       this.modelAPIKey = loadedSettings.modelApiKey
+      this.txtTocRules = await loadTxtTocRules()
     },
     async saveSetting() {
       const nextSettings = {
@@ -197,9 +254,22 @@ export default {
 
       this.settings = nextSettings
       await saveAppSettings(nextSettings)
+      await saveTxtTocRules(this.txtTocRules)
       await emitAppThemeUpdate(this.themeMode)
       this.$emit('close-dialog')
-    }
+    },
+    moveRule(currentIndex, offset) {
+      const targetIndex = currentIndex + offset
+      if (targetIndex < 0 || targetIndex >= this.txtTocRules.length) {
+        return
+      }
+
+      const nextRules = [...this.txtTocRules]
+      const currentRule = nextRules[currentIndex]
+      nextRules[currentIndex] = nextRules[targetIndex]
+      nextRules[targetIndex] = currentRule
+      this.txtTocRules = resequenceTxtTocRules(nextRules)
+    },
   },
 };
 </script>
@@ -310,6 +380,115 @@ export default {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+  }
+
+  .txt-toc-rule-empty {
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  .txt-toc-rule-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .txt-toc-rule-card {
+    display: flex;
+    gap: 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-strong);
+    padding: 10px;
+    transition:
+      border-color var(--duration-fast) var(--easing-standard),
+      box-shadow var(--duration-fast) var(--easing-standard);
+  }
+
+  .txt-toc-rule-priority-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-self: center;
+  }
+
+  .txt-toc-rule-order-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition:
+      border-color var(--duration-fast) var(--easing-standard),
+      background-color var(--duration-fast) var(--easing-standard);
+
+    &:hover:not(:disabled) {
+      border-color: var(--border-brand);
+      background: var(--surface-brand-soft);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  .txt-toc-rule-content {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .txt-toc-rule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .txt-toc-rule-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .txt-toc-rule-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .txt-toc-rule-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .txt-toc-rule-example {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    word-break: break-word;
+  }
+
+  .txt-toc-rule-regex {
+    margin: 0;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
 

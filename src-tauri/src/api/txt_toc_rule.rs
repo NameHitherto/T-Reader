@@ -4,3 +4,8 @@ use crate::{entities::TxtTocRuleItem, service::filesystem::txt_toc_rule_service}
 pub fn get_txt_toc_rules() -> Result<Vec<TxtTocRuleItem>, String> {
     txt_toc_rule_service::get_enabled_txt_toc_rules()
 }
+
+#[tauri::command]
+pub fn ensure_txt_toc_rules_file() -> Result<(), String> {
+    txt_toc_rule_service::ensure_txt_toc_rules_file_exists()
+}
