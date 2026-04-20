@@ -18,6 +18,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::window::ack_reader_load,
         crate::api::window::close_reader_window,
         crate::api::window::dispatch_main_event,
-        crate::api::window::dispatch_reader_event
+        crate::api::window::dispatch_reader_event,
+        crate::api::txt_toc_rule::get_txt_toc_rules
     ]
 }

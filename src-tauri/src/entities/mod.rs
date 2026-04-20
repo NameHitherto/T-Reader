@@ -3,6 +3,7 @@ pub mod cloud_sync;
 pub mod font;
 pub mod reader_window;
 pub mod settings;
+pub mod txt_toc_rule;
 
 pub use app_update::{
     AppUpdateAttempt, AppUpdateCheckResult, AppUpdateProgressEvent, AppUpdateProxyInfo,
@@ -18,3 +19,4 @@ pub use reader_window::{
     ReaderWindowState,
 };
 pub use settings::Settings;
+pub use txt_toc_rule::TxtTocRuleItem;
