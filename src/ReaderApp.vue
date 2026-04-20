@@ -111,7 +111,6 @@ import {
   destroyEpubRendition,
   renderEpubBook,
 } from '@/services/reader/epub/epubAdapter'
-import { resolveReaderDisplayTarget } from '@/services/reader/progressSnapshotService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
 import { registerReaderWindowEvents } from '@/services/reader/readerWindowEventsService'
@@ -716,9 +715,7 @@ export default {
           bookConfig,
           bookCache,
           bookLocationsCache,
-          format,
           fileName,
-          bookData,
           bookArrayBuffer,
         } = loadedBook
 

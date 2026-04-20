@@ -962,7 +962,7 @@ export default {
         return '--'
       }
 
-      return book.format === 'unknown' ? '--' : 'EPUB'
+      return 'EPUB'
     }
 
     const getProgressValue = (book: ShelfBook): number => {
