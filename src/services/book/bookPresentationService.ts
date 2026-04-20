@@ -1,21 +1,8 @@
 import { BookConfig } from '@/types/book'
-import { BookCachePayload } from '@/services/book/bookCacheService'
-import { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
-import {
-  calculateShelfProgress,
-} from '@/services/reader/progressSnapshotService'
 import {
   isUnreadProgressSnapshot,
   normalizeBookConfig,
 } from '@/services/book/bookConfigService'
-
-const clampProgress = (value: number): number => {
-  if (Number.isNaN(value)) {
-    return 0
-  }
-
-  return Math.min(100, Math.max(0, value))
-}
 
 export const normalizeDisplayedChapterTitle = (
   title?: string | null,
@@ -75,20 +62,4 @@ export const buildLastReadLabel = (
   return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(
     target.getDate()
   ).padStart(2, '0')}`
-}
-
-export const deriveShelfProgress = async (
-  bookConfig: BookConfig,
-  cache: BookCachePayload,
-  locationsCache?: BookLocationsCachePayload | null,
-  bookData?: Uint8Array
-): Promise<number> => {
-  return clampProgress(
-    await calculateShelfProgress(
-      bookData,
-      bookConfig,
-      cache,
-      locationsCache
-    )
-  )
 }

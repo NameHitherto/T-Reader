@@ -380,10 +380,6 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   return config
 }
 
-export const loadBookCacheByKey = async (bookKey: string) => {
-  return loadBookCache(bookKey)
-}
-
 export const saveBookConfig = async (bookKey: string, config: BookConfig): Promise<void> => {
   const finishLog = createDurationLogger('book-repository', 'save-book-config', {
     bookKey,

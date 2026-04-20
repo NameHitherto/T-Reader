@@ -1,4 +1,4 @@
-import { BookConfig, BookProgressSnapshot } from '@/types/book'
+import { BookProgressSnapshot } from '@/types/book'
 import { BookCachePayload } from '@/services/book/bookCacheService'
 import { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
 import { isUnreadProgressSnapshot } from '@/services/book/bookConfigService'
@@ -35,15 +35,4 @@ export const calculateShelfProgress = async (
     cache,
     locationsCache,
   })
-}
-
-export const isNormalizedProgressSnapshot = (
-  value: Partial<BookConfig>
-): value is BookProgressSnapshot => {
-  return (
-    typeof value.durChapterIndex === 'number' &&
-    typeof value.durChapterPos === 'number' &&
-    typeof value.durChapterTitle === 'string' &&
-    typeof value.durChapterTime === 'number'
-  )
 }
