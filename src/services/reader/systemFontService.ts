@@ -428,6 +428,7 @@ export const normalizeReaderConfig = (
     backgroundPresets: createDefaultReaderBackgroundPresets(),
     flow: 'paginated',
     enabledSystemFonts: [],
+    loadEpubBuiltInStylesheet: false,
   }
 
   const mergedConfig = {

@@ -2,10 +2,15 @@ import ePub, { Rendition } from 'libs/epub.js'
 import { BookConfig } from '@/types/book'
 import { resolveEpubDisplayTarget } from '@/services/reader/epub/epubProgressService'
 import { logWarn } from '@/utils/logger'
+import {
+  createEpubBuiltInStylesheetIsolationController,
+  type EpubBuiltInStylesheetIsolationController,
+} from '@/services/reader/epub/epubBuiltinStylesheetIsolationService'
 
 export interface EpubRenderResult {
   rendition: Rendition
   toc: any[]
+  stylesheetIsolation: EpubBuiltInStylesheetIsolationController
 }
 
 export const destroyEpubRendition = (rendition: any) => {
@@ -23,12 +28,19 @@ export const destroyEpubRendition = (rendition: any) => {
 export const renderEpubBook = async (
   bookArrayBuffer: ArrayBuffer,
   flow: string,
+  loadEpubBuiltInStylesheet: boolean,
   explicitCfi?: string,
   progressSnapshot?: Partial<BookConfig>,
   cachedLocations?: string
 ): Promise<EpubRenderResult> => {
   const ePubBook = ePub(bookArrayBuffer)
   await ePubBook.ready
+  const stylesheetIsolation = createEpubBuiltInStylesheetIsolationController(ePubBook)
+  if (loadEpubBuiltInStylesheet) {
+    stylesheetIsolation.enableBuiltInStylesheet()
+  } else {
+    stylesheetIsolation.disableBuiltInStylesheet()
+  }
 
   const epubReader = document.getElementById('epub-reader')
   if (epubReader) {
@@ -69,5 +81,6 @@ export const renderEpubBook = async (
   return {
     rendition,
     toc: tocData.toc,
+    stylesheetIsolation,
   }
 }

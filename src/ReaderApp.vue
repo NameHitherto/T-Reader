@@ -111,6 +111,7 @@ import {
   destroyEpubRendition,
   renderEpubBook,
 } from '@/services/reader/epub/epubAdapter'
+import type { EpubBuiltInStylesheetIsolationController } from '@/services/reader/epub/epubBuiltinStylesheetIsolationService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
 import { registerReaderWindowEvents } from '@/services/reader/readerWindowEventsService'
@@ -204,6 +205,7 @@ export default {
     const unlistenShowHelp = ref<UnlistenFn | null>(null)
     // 目录按钮解绑函数，避免重复绑定
     let detachTocButtonListener: (() => void) | null = null
+    let stylesheetIsolationController: EpubBuiltInStylesheetIsolationController | null = null
     // 阅读配置 store
     const readerConfigStore = useReaderConfigStore()
     // 响应式配置引用
@@ -725,6 +727,8 @@ export default {
         bookMarkStore.clearBookMarks()
 
         if (rendition.value) {
+          stylesheetIsolationController?.destroy()
+          stylesheetIsolationController = null
           try {
             destroyEpubRendition(rendition.value)
           } catch (e) {
@@ -736,11 +740,13 @@ export default {
         const epubBook = await renderEpubBook(
           bookArrayBuffer as ArrayBuffer,
           readerConfig.value.flow,
+          readerConfig.value.loadEpubBuiltInStylesheet,
           cfi,
           bookConfig,
           getReadyBookLocations(bookLocationsCache)
         )
         rendition.value = epubBook.rendition
+        stylesheetIsolationController = epubBook.stylesheetIsolation
         handleRenditionEvents()
         toc.value = epubBook.toc
         await applyReaderStyle()
@@ -938,6 +944,8 @@ export default {
       unlistenShowHelp.value?.()
       detachTocButtonListener?.()
       detachTocButtonListener = null
+      stylesheetIsolationController?.destroy()
+      stylesheetIsolationController = null
       setStyleMenuButtonActive(false)
     })
 
