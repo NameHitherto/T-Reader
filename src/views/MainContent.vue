@@ -99,9 +99,16 @@
               v-if="shelfViewMode === 'list'"
               class="shelf-list-content"
             >
+              <span
+                v-if="isBookMissing(book)"
+                class="shelf-list-missing-badge app-status-pill app-status-pill--danger"
+              >
+                书籍缺失
+              </span>
               <div
                 v-if="book.author"
                 class="shelf-list-author"
+                :class="{ 'shelf-list-author--missing': isBookMissing(book) }"
                 :title="book.author"
               >
                 {{ book.author }}
@@ -993,6 +1000,10 @@ export default {
       return 'EPUB'
     }
 
+    const isBookMissing = (book: ShelfBook): boolean => {
+      return book.format === 'unknown'
+    }
+
     const getProgressValue = (book: ShelfBook): number => {
       const value = Number(book.progressValue ?? 0)
       if (Number.isNaN(value)) {
@@ -1059,6 +1070,7 @@ export default {
       shelfViewMode,
       toggleShelfViewMode,
       getBookFormatBadge,
+      isBookMissing,
       getProgressValue,
       getProgressPercent,
       getGridProgressText,
@@ -1393,6 +1405,12 @@ export default {
         padding: 4px 6px;
       }
 
+      .shelf-list-missing-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+      }
+
       .shelf-list-content {
         flex: 1;
         min-width: 0;
@@ -1427,6 +1445,10 @@ export default {
           max-width 0.28s ease,
           padding 0.28s ease,
           font-size 0.28s ease;
+      }
+
+      .shelf-list-author--missing {
+        top: 38px;
       }
 
       .shelf-list-author:hover {
@@ -1708,6 +1730,15 @@ export default {
           padding: 2px 8px;
           font-size: 12px;
         }
+
+        .bookcase-body--list .shelf-list-missing-badge {
+          top: 16px;
+          right: 16px;
+        }
+
+        .bookcase-body--list .shelf-list-author--missing {
+          top: 42px;
+        }
       }
 
       @media (min-width: 1720px) {
@@ -1747,6 +1778,15 @@ export default {
           max-width: 92px;
           padding: 4px 12px;
           font-size: 14px;
+        }
+
+        .bookcase-body--list .shelf-list-missing-badge {
+          top: 18px;
+          right: 18px;
+        }
+
+        .bookcase-body--list .shelf-list-author--missing {
+          top: 46px;
         }
 
         .bookcase-body--list .shelf-progress-track,
