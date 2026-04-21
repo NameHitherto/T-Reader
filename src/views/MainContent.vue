@@ -446,7 +446,7 @@ export default {
           cover: cache.cover,
           format: 'unknown' as ShelfBookFormat,
           progressValue: 0,
-          lastReadLabel: '文件缺失',
+          lastReadLabel: '',
         }
 
         finishLog({
