@@ -48,11 +48,19 @@ export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArg
     args.onMarkClicked(data.markId)
   })
 
-  rendition.hooks.content.register((contents: any) => {
-    contents.document.addEventListener('contextmenu', (event: PointerEvent) => {
+  const boundDocuments = new WeakSet<Document>()
+
+  const bindContextMenuForContents = (contents: any) => {
+    const contentDocument = contents?.document as Document | undefined
+    if (!contentDocument || boundDocuments.has(contentDocument)) {
+      return
+    }
+
+    boundDocuments.add(contentDocument)
+    contentDocument.addEventListener('contextmenu', (event: MouseEvent) => {
       event.preventDefault()
       const selection = contents.window.getSelection()
-      if (!selection.toString()) {
+      if (!selection || selection.rangeCount === 0 || !selection.toString()) {
         return
       }
 
@@ -89,7 +97,16 @@ export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArg
 
       args.openContextMenu(absoluteX, absoluteY, args.buildContextMenuItems())
     })
+  }
+
+  rendition.hooks.content.register((contents: any) => {
+    bindContextMenuForContents(contents)
 
     return contents
   })
+
+  const renderedContents = typeof rendition.getContents === 'function' ? rendition.getContents() : []
+  for (const contents of renderedContents) {
+    bindContextMenuForContents(contents)
+  }
 }
