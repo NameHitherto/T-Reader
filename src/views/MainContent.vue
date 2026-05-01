@@ -157,14 +157,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from '@/components/ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
-import type { BookConfig, BookFormat } from '@/types/book'
+import type { BookFormat } from '@/types/book'
 import type { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import emptyStateImage from '@/assets/images/empty.png'
 import SettingDialog from '@/components/SettingDialog/index.vue'
@@ -187,6 +187,11 @@ import {
   buildLastReadLabel,
   normalizeDisplayedChapterTitle,
 } from '@/services/book/bookPresentationService'
+import {
+  useShelfBooksService,
+  type ShelfBook,
+  type ShelfBookFormat,
+} from '@/services/book/shelfBooksService'
 import {
   getImportedBookName,
   hasOriginalFilenameConflict,
@@ -240,15 +245,6 @@ defineOptions({
 // ============================================================
 type ShelfViewMode = 'list' | 'grid'
 type ImportSourceFormat = BookFormat | 'txt'
-type ShelfBookFormat = BookFormat | 'unknown'
-type ShelfBook = BookConfig & {
-  bookKey: string
-  displayTitle: string
-  cover?: string
-  format: ShelfBookFormat
-  progressValue: number
-  lastReadLabel: string
-}
 
 // ============================================================
 // 接口声明
@@ -278,9 +274,9 @@ const IMPORT_LOADING_TEXT = {
 // ============================================================
 // 核心数据状态
 // ============================================================
-const books = ref<ShelfBook[]>([])
+const shelfBooks = useShelfBooksService()
+const { books, isBooksEmpty } = shelfBooks
 const booksLoading = ref(true)
-const isBooksEmpty = computed(() => books.value.length === 0)
 
 // ============================================================
 // 全局加载状态
@@ -515,7 +511,7 @@ const loadBooks = async () => {
     booksLoading.value = true
     const loadedBooks = await loadBookConfigs()
     await reconcileLibraryBookFileIndex(loadedBooks.map((book) => book.bookKey))
-    books.value = await Promise.all(loadedBooks.map((book) => buildShelfBook(book)))
+    shelfBooks.setShelfBooks(await Promise.all(loadedBooks.map((book) => buildShelfBook(book))))
     finishLog({
       total: books.value.length,
     })
@@ -683,7 +679,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
 
     if (
       batchContext.reservedBookKeys.has(importedBook.bookKey) ||
-      books.value.find((book) => book.bookKey === importedBook.bookKey)
+      shelfBooks.hasShelfBook(importedBook.bookKey)
     ) {
       logWarn('bookshelf', 'duplicate-book-detected', {
         bookKey: importedBook.bookKey,
@@ -749,7 +745,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       originalFileName
     )
 
-    books.value.push({
+    shelfBooks.upsertShelfBook({
       ...newBook,
       bookKey: importedBook.bookKey,
       displayTitle: cachedPayload.title || newBook.name,
@@ -824,7 +820,7 @@ const deleteBook = async (bookKey: string) => {
     bookKey,
   })
   try {
-    const targetBook = books.value.find((book) => book.bookKey === bookKey)
+    const targetBook = shelfBooks.getShelfBook(bookKey)
     const resolvedBookFile = targetBook
       ? await resolveBookFile(bookKey).catch(() => null)
       : null
@@ -851,7 +847,7 @@ const deleteBook = async (bookKey: string) => {
     await removeBookFileIndexEntry(bookKey)
 
     invalidateBookFileIndex()
-    books.value = books.value.filter((book) => book.bookKey !== bookKey)
+    shelfBooks.removeShelfBook(bookKey)
     showMenu.value = false
 
     queueMicrotask(() => {
@@ -931,15 +927,14 @@ const applyBookshelfProgressSaved = (payload: BookshelfProgressSavedPayload) => 
     return
   }
 
-  const currentIndex = books.value.findIndex((book) => book.bookKey === payload.bookKey)
-  if (currentIndex < 0) {
+  const currentBook = shelfBooks.getShelfBook(payload.bookKey)
+  if (!currentBook) {
     void loadBooks()
     return
   }
 
   const progressValue = clampProgressValue(payload.progress)
-  const currentBook = books.value[currentIndex]
-  books.value.splice(currentIndex, 1, {
+  shelfBooks.upsertShelfBook({
     ...currentBook,
     durChapterIndex: payload.durChapterIndex,
     durChapterPos: payload.durChapterPos,
