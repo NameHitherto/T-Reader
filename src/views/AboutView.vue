@@ -46,6 +46,7 @@ const formatBytes = (bytes: number | null | undefined): string => {
     index += 1
   }
   const rounded = value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)
+
   return `${rounded} ${units[index]}`
 }
 
@@ -65,6 +66,7 @@ const stageToLabel = (stage: string | undefined): string => {
 
 const canStartInstall = computed(() => {
   const result = checkResult.value
+
   return Boolean(result?.hasUpdate && result.updateToken && !checking.value && !installing.value)
 })
 
@@ -74,6 +76,7 @@ const showProgressTimeline = computed(() => {
 
 const showReleaseNotes = computed(() => {
   const hasUpdate = Boolean(checkResult.value?.hasUpdate)
+
   return hasUpdate && !showProgressTimeline.value
 })
 
@@ -92,6 +95,7 @@ const transferText = computed(() => {
   }
   const downloaded = formatBytes(event.downloadedBytes)
   const total = event.totalBytes ? formatBytes(event.totalBytes) : '总大小未知'
+
   return `${downloaded} / ${total}`
 })
 

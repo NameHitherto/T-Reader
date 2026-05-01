@@ -6,6 +6,13 @@ import {
   calculateLegadoOffset,
   createRangeFromLegadoOffset,
 } from '@/services/reader/epub/legadoHtmlFormatter'
+import type {
+  EpubBookLike,
+  EpubLocationLike,
+  EpubSectionLike,
+  EpubTocItem,
+  EpubRenditionLike,
+} from '@/types/epub'
 
 export interface EpubProgressSnapshot {
   durChapterIndex: number
@@ -20,31 +27,45 @@ const normalizeChapterKey = (value?: string): string => {
   return (value || '').split('#')[0]
 }
 
-const flattenToc = (items: any[] = []): any[] => {
+const flattenToc = (items: EpubTocItem[] = []): EpubTocItem[] => {
   return items.flatMap((item) => [item, ...flattenToc(item.subitems || [])])
 }
 
-export const resolveEpubTocLabel = (tocItems: any[] = [], href?: string): string | undefined => {
+export const resolveEpubTocLabel = (
+  tocItems: EpubTocItem[] = [],
+  href?: string
+): string | undefined => {
   if (!href) {
     return undefined
   }
 
   const normalizedHref = normalizeChapterKey(href)
+
   return flattenToc(tocItems).find((item) => normalizeChapterKey(item.href) === normalizedHref)?.label
 }
 
-const resolveTocHref = (tocItems: any[] = [], title?: string): string | undefined => {
+const resolveTocHref = (tocItems: EpubTocItem[] = [], title?: string): string | undefined => {
   if (!title) {
     return undefined
   }
 
   const item = flattenToc(tocItems).find((entry) => entry.label === title)
+
   return item?.href
 }
 
-const loadSection = async (book: any, target: string | number) => {
-  const section = book?.section?.(target)
+const loadSection = async (
+  book: EpubBookLike,
+  target: string | number
+): Promise<EpubSectionLike | null> => {
+  const section = typeof target === 'number'
+    ? book?.section?.(target)
+    : book?.section?.(target)
   if (!section) {
+    return null
+  }
+
+  if (!book.load) {
     return null
   }
 
@@ -53,9 +74,9 @@ const loadSection = async (book: any, target: string | number) => {
 }
 
 const resolveSectionFromSnapshot = async (
-  book: any,
+  book: EpubBookLike,
   snapshot: EpubProgressLike
-): Promise<any | null> => {
+): Promise<EpubSectionLike | null> => {
   const tocItems = book?.navigation?.toc || []
   let section = Number.isInteger(snapshot.durChapterIndex)
     ? await loadSection(book, snapshot.durChapterIndex as number)
@@ -110,8 +131,12 @@ export const toEpubProgressSnapshot = (
   }
 }
 
-export const serializeEpubProgress = async (rendition: any): Promise<EpubProgressSnapshot | null> => {
-  const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
+export const serializeEpubProgress = async (
+  rendition: EpubRenditionLike | null
+): Promise<EpubProgressSnapshot | null> => {
+  const currentLocation = await Promise.resolve<EpubLocationLike | undefined>(
+    rendition?.currentLocation?.()
+  )
   const cfi = currentLocation?.start?.cfi
   const book = rendition?.book
 
@@ -152,7 +177,7 @@ export const serializeEpubProgress = async (rendition: any): Promise<EpubProgres
 }
 
 export const resolveEpubDisplayTarget = async (
-  book: any,
+  book: EpubBookLike,
   snapshot: EpubProgressLike
 ): Promise<string | undefined> => {
   if (!isEpubProgressSnapshot(snapshot)) {
@@ -241,6 +266,7 @@ export const epubReaderProgressHandler: ReaderProgressHandler = {
   async calculateProgress({ rendition }) {
     const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
     const percentage = currentLocation?.start?.percentage
+
     return typeof percentage === 'number' ? clampProgress(percentage * 100) : 0
   },
   async calculateShelfProgress({ bookData, snapshot, locationsCache }) {

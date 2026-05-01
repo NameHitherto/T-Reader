@@ -13,6 +13,6 @@ export const loadReaderConfigFromDisk = async () => {
   )
 }
 
-export const saveReaderConfigToDisk = async (config: Record<string, any>) => {
+export const saveReaderConfigToDisk = async (config: object) => {
   await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME), config)
 }

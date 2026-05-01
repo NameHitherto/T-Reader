@@ -68,6 +68,7 @@ export const localPathExists = async (relativePath: string): Promise<boolean> =>
 export const readBinaryFile = async (relativePath: string): Promise<Uint8Array> => {
   await ensureLocalStorageDirs()
   const payload = await readFile(relativePath, DOCUMENT_OPTIONS)
+
   return payload instanceof Uint8Array ? payload : new Uint8Array(payload)
 }
 
@@ -82,6 +83,7 @@ export const writeBinaryFile = async (
 
 export const readJsonFile = async <T>(relativePath: string): Promise<T> => {
   const payload = await readBinaryFile(relativePath)
+
   return JSON.parse(new TextDecoder().decode(payload)) as T
 }
 

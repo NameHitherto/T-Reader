@@ -1,4 +1,5 @@
-const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\u0000-\u001f]/g
+const CONTROL_CHAR_RANGE = '\\u0000-\\u001f'
+const INVALID_FILENAME_CHARS = new RegExp(`[<>:"/\\\\|?*${CONTROL_CHAR_RANGE}]`, 'g')
 const MULTIPLE_SPACES = /\s+/g
 
 export const normalizeBookIdentityPart = (
@@ -20,6 +21,7 @@ export const buildBookTitle = (title?: string): string => {
 export const buildBookName = (title?: string, author?: string): string => {
   const safeTitle = normalizeBookIdentityPart(title, 'untitled')
   const safeAuthor = normalizeBookIdentityPart(author, 'unknown')
+
   return `${safeTitle}_${safeAuthor}`
 }
 

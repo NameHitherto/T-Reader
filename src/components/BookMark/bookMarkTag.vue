@@ -61,6 +61,8 @@ import { BookMark } from '@/store/bookMark';
 
 export default defineComponent({
   name: 'BookMarkTag',
+  components: {
+  },
   props: {
     isFirst: {
         type: Boolean,
@@ -75,8 +77,7 @@ export default defineComponent({
         required: true
     }
   },
-  components: {
-  },
+  emits: ['jump', 'delete'],
   data() {
     return {
         
@@ -85,6 +86,14 @@ export default defineComponent({
   computed: {
   },
   watch: {
+  },
+  mounted() {
+    // 添加过渡动画
+    this.$el.classList.add('tag-fade-in')
+    // 定时删除过渡动画
+    setTimeout(() => {
+        this.$el.classList.remove('tag-fade-in')
+    }, 500)
   },
   methods: {
     handleOptions(event: MouseEvent) {
@@ -122,14 +131,6 @@ export default defineComponent({
         // 删除此笔记
         this.$emit('delete')
     }
-  },
-  mounted() {
-    // 添加过渡动画
-    this.$el.classList.add('tag-fade-in')
-    // 定时删除过渡动画
-    setTimeout(() => {
-        this.$el.classList.remove('tag-fade-in')
-    }, 500)
   }
 })
 </script>

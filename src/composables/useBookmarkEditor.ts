@@ -1,9 +1,11 @@
 import { ref, watch, Ref } from 'vue'
 import { applyBookmarkHighlight } from '@/services/reader/epub/bookmarkService'
+import type { BookMark, useBookMarkStore } from '@/store/bookMark'
+import type { EpubRenditionLike } from '@/types/epub'
 
 interface UseBookmarkEditorArgs {
-  bookMarkStore: any
-  rendition: Ref<any>
+  bookMarkStore: ReturnType<typeof useBookMarkStore>
+  rendition: Ref<EpubRenditionLike | null>
   defaultHighlightColor: string
 }
 
@@ -31,7 +33,7 @@ export const useBookmarkEditor = (args: UseBookmarkEditorArgs) => {
       return
     }
 
-    const updated = JSON.parse(newVal)
+    const updated = JSON.parse(newVal) as BookMark
     bookMarkStore.updateBookMark(updated)
 
     if (rendition.value) {

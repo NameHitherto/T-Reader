@@ -9,10 +9,17 @@
  * 2. 将 div/p/br/hr/h1-h6/article/dd/dl 替换为 \n
  * 3. 剥离其他 HTML 标签（保留 img）
  * 4. 替换 HTML 实体（&nbsp; 等）
- * 5. 规范化空白和段落缩进（段首加 　　）
+ * 5. 规范化空白和段落缩进
  */
 
-const getSectionRoot = (section: any): Element | null => {
+const LEGADO_PARAGRAPH_INDENT = '\u3000\u3000'
+const ZERO_WIDTH_CHARS = new RegExp(
+  // eslint-disable-next-line no-misleading-character-class
+  `[${['\\u2009', '\\u200B', '\\u200C', '\\u200D', '\\uFEFF'].join('')}]`,
+  'g'
+)
+
+const getSectionRoot = (section: EpubSectionLike): Element | null => {
   return section?.document?.body || section?.contents || section?.document?.documentElement || null
 }
 
@@ -126,7 +133,7 @@ const processTextContent = (text: string): string => {
   return text
     .replace(/\u00A0/g, ' ') // &nbsp;
     .replace(/[\u2003\u2002]/g, ' ') // &emsp; &ensp;
-    .replace(/[\u2009\u200C\u200D\u200B\uFEFF]/g, '') // thinsp, zwnj, zwj, zwsp, BOM
+    .replace(ZERO_WIDTH_CHARS, '') // thinsp, zwnj, zwj, zwsp, BOM
 }
 
 /**
@@ -137,9 +144,9 @@ const processTextContent = (text: string): string => {
  */
 const normalizeLegadoText = (text: string): string => {
   return text
-    .replace(/\s*\n+\s*/g, '\n　　')
-    .replace(/^[\n\s]+/, '　　')
-    .replace(/[\n\s]+$/, '')
+    .replace(/\s*\n+\s*/g, `\n${LEGADO_PARAGRAPH_INDENT}`)
+    .replace(/^\s+/, LEGADO_PARAGRAPH_INDENT)
+    .replace(/\s+$/, '')
 }
 
 /**
@@ -160,6 +167,7 @@ export const domToLegadoText = (root: Node): string => {
       acceptNode: (node) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
           const tag = (node as Element).tagName.toLowerCase()
+
           return tag === 'img' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
         }
         return NodeFilter.FILTER_ACCEPT
@@ -184,7 +192,7 @@ export const domToLegadoText = (root: Node): string => {
 /**
  * 计算 targetRange 起点在 Legado 格式化文本中的字符偏移量
  */
-export const calculateLegadoOffset = (section: any, targetRange: Range): number => {
+export const calculateLegadoOffset = (section: EpubSectionLike, targetRange: Range): number => {
   const doc = section?.document as Document | undefined
   const root = getSectionRoot(section)
   if (!doc || !root) {
@@ -196,6 +204,7 @@ export const calculateLegadoOffset = (section: any, targetRange: Range): number 
   prefixRange.setEnd(targetRange.startContainer, targetRange.startOffset)
 
   const fragment = prefixRange.cloneContents()
+
   return domToLegadoText(fragment).length
 }
 
@@ -231,7 +240,10 @@ const collectTextNodes = (root: Element): Text[] => {
 /**
  * 根据 Legado 格式的字符偏移量在 DOM 中重建 Range
  */
-export const createRangeFromLegadoOffset = (section: any, chapterOffset: number): Range | null => {
+export const createRangeFromLegadoOffset = (
+  section: EpubSectionLike,
+  chapterOffset: number
+): Range | null => {
   const doc = section?.document as Document | undefined
   const root = getSectionRoot(section)
   if (!doc || !root) {
@@ -254,7 +266,6 @@ export const createRangeFromLegadoOffset = (section: any, chapterOffset: number)
   // 二分搜索定位到目标 text 节点
   let left = 0
   let right = textNodes.length - 1
-  let targetNodeIndex = 0
 
   while (left <= right) {
     const mid = Math.floor((left + right) / 2)
@@ -269,7 +280,7 @@ export const createRangeFromLegadoOffset = (section: any, chapterOffset: number)
     }
   }
 
-  targetNodeIndex = Math.min(left, textNodes.length - 1)
+  const targetNodeIndex = Math.min(left, textNodes.length - 1)
   const targetNode = textNodes[targetNodeIndex]
 
   // 计算目标节点之前的精确长度
@@ -320,3 +331,4 @@ export const createRangeFromLegadoOffset = (section: any, chapterOffset: number)
   range.collapse(true)
   return range
 }
+import type { EpubSectionLike } from '@/types/epub'

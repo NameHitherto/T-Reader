@@ -10,8 +10,8 @@
         @contextmenu="($event) => $event.preventDefault()"
       >
         <div class="menu-body">
-          <div class="menu-list" v-for="(item, idx) in menuData.items" :key="idx">
-            <div class="separator" v-if="item.type === 'delete'"></div>
+          <div v-for="(item, idx) in menuData.items" :key="idx" class="menu-list">
+            <div v-if="item.type === 'delete'" class="separator"></div>
             <div
               class="menu-item"
               :class="{ 'menu-item--danger': item.type === 'delete' }"
@@ -47,6 +47,7 @@ export default {
       required: true
     },
   },
+  emits: ['update:show'],
   data() {
     return {
       menuActive: true
@@ -62,6 +63,12 @@ export default {
       },
       deep: true
     }
+  },
+  mounted() {
+    document.addEventListener('click', this.handleBackDropClick)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleBackDropClick)
   },
   methods: {
     resolveIconName(type?: ContextMenuItem['type']): IconName {
@@ -80,12 +87,6 @@ export default {
       }
       this.$emit('update:show', false)
     }
-  },
-  mounted() {
-    document.addEventListener('click', this.handleBackDropClick)
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleBackDropClick)
   }
 }
 </script>

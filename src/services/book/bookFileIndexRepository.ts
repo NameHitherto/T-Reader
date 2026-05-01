@@ -56,7 +56,7 @@ const readIndexFile = async (): Promise<BookFileIndexFile | null> => {
     }
 
     return cachedBookFileIndex
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -93,6 +93,7 @@ export const getBookKeyByFilename = async (fileName: string): Promise<string | n
   }
 
   const normalizedFileName = normalizeFileName(fileName)
+
   return payload.entries.find((entry) => entry.fileName === normalizedFileName)?.bookKey || null
 }
 

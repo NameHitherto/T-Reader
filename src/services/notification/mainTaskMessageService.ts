@@ -118,6 +118,7 @@ const buildBatchMessage = (
 
   const firstFailureReason = failureEntries[0]?.reason
   const failureSummary = firstFailureReason ? ` 首个失败原因：${firstFailureReason}` : ''
+
   return {
     type: 'warning',
     title: options.partialFailureTitle,

@@ -23,18 +23,20 @@ const readBookMarksFile = async (): Promise<BookMarksFile | null> => {
     return await readJsonFile<BookMarksFile>(
       buildLocalFilePath(LOCAL_DIRS.system, BOOK_MARKS_FILENAME)
     )
-  } catch (error) {
+  } catch {
     return null
   }
 }
 
 export const loadAllBookMarks = async (): Promise<BookMark[]> => {
   const payload = await readBookMarksFile()
+
   return Array.isArray(payload?.bookMarks) ? payload.bookMarks : []
 }
 
 export const loadBookMarksByBookKey = async (bookKey: string): Promise<BookMark[]> => {
   const bookMarks = await loadAllBookMarks()
+
   return bookMarks.filter((bookMark) => bookMark.bookName === bookKey)
 }
 

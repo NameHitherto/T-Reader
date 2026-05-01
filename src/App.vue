@@ -46,6 +46,14 @@ export default {
       currentView: '',
     }
   },
+  watch: {
+    $route(to) {
+      this.currentView = to.name
+    }
+  },
+  mounted() {
+    this.currentView = this.$route.name as string
+  },
   methods: {
     changeView(view: string) {
       this.currentView = view
@@ -56,14 +64,6 @@ export default {
         this.$router.push(path)
       }
     }
-  },
-  watch: {
-    $route(to) {
-      this.currentView = to.name
-    }
-  },
-  mounted() {
-    this.currentView = this.$route.name as string
   }
 }
 </script>

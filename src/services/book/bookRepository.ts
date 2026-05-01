@@ -93,6 +93,7 @@ const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
 const parseBookConfigData = (data: Uint8Array): BookConfig => {
   const decoded = new TextDecoder().decode(data)
   const parsed = JSON.parse(decoded) as Partial<BookConfig> & Record<string, unknown>
+
   return normalizeBookConfig(parsed)
 }
 
@@ -455,6 +456,7 @@ export const resolveBookFile = async (bookKey: string): Promise<ResolvedBookFile
 
 export const resolveBookFormat = async (bookKey: string): Promise<BookFormat> => {
   const resolved = await resolveBookFile(bookKey)
+
   return resolved.format
 }
 
@@ -523,7 +525,7 @@ export const loadBookBinary = async (bookKey: string): Promise<LoadedBookBinary>
       fileName: resolved.fileName,
     })
     return payload
-  } catch (localError) {
+  } catch {
     logWarn('book-repository', 'load-book-binary fallback-to-cloud', {
       bookKey,
       fileName: resolved.fileName,

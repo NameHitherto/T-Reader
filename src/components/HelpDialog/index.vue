@@ -15,7 +15,7 @@
               <div class="col col-desc">功能</div>
               <div class="col col-keys">快捷键</div>
             </div>
-            <div class="row" v-for="item in groupedShortcuts" :key="item.description">
+            <div v-for="item in groupedShortcuts" :key="item.description" class="row">
               <div class="col col-desc">{{ item.description }}</div>
               <div class="col col-keys">
                 <template v-for="(variant, vi) in item.variants" :key="vi">

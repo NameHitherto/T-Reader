@@ -16,12 +16,13 @@ const buildFallbackConsolePrefix = (level: 'ERROR' | 'WARN'): string => {
     String(now.getDate()).padStart(2, '0'),
   ].join('-')
   const time = now.toTimeString().slice(0, 8)
+
   return `[${date}][${time}][frontend][${level}]`
 }
 
 const emitFrontendLog = (logTask: Promise<void>) => {
   void logTask.catch((error) => {
-    console.error(
+    globalThis.console.error(
       `${buildFallbackConsolePrefix('ERROR')}[${windowLabel}][logger] failed-to-dispatch-tauri-log`,
       error
     )
@@ -44,6 +45,7 @@ const buildLogMessage = (
 ): string => {
   const payloadStr = formatPayload(payload)
   const event = payloadStr ? `${message} ${payloadStr}` : message
+
   return `[${windowLabel}][${scope}] ${event}`
 }
 

@@ -51,7 +51,7 @@
               resize="none"
               placeholder="有关此书的问题，可以在这里提问"
               :autosize="{ minRows: 2, maxRows: 6 }"
-              @keydown.native.enter="handleInputEnter"
+              @keydown.enter="handleInputEnter"
             />
           </div>
           <div class="input-operation">
@@ -205,7 +205,7 @@ export default defineComponent({
     },
     scrollToBottom() {
       nextTick(() => {
-        const scrollbar = this.$refs.scrollbar as any
+        const scrollbar = this.$refs.scrollbar as { setScrollTop: (top: number) => void } | undefined
         scrollbar?.setScrollTop(999999)
       })
     },
@@ -230,6 +230,7 @@ export default defineComponent({
           return `<pre><code class="hljs">${md.utils.escapeHtml(str)}</code></pre>`
         },
       })
+
       return md.render(originMsg)
     },
   },

@@ -52,7 +52,7 @@ export const loadBookCache = async (bookKey: string): Promise<BookCachePayload |
       hit: true,
     })
     return payload
-  } catch (error) {
+  } catch {
     finishLog({
       fileName: filename,
       hit: false,
@@ -105,9 +105,7 @@ export const primeBookCacheAfterImport = async (
     currentCache: currentCache || {},
   })
   const payload = await saveBookCache(bookKey, nextPayload)
-  let locationsStatus: 'ready' | 'building' | 'failed' | 'n/a' = 'n/a'
-
-  locationsStatus = 'building'
+  const locationsStatus = 'building' as const
   await saveBookLocationsCache(bookKey, {
     status: locationsStatus,
   })

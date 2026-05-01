@@ -1,8 +1,9 @@
 import { BookMark } from '@/store/bookMark'
 import { getAppThemePalette, getAppliedAppThemeMode } from '@/services/theme/themeService'
+import type { EpubRenditionLike } from '@/types/epub'
 
 export const applyBookmarkHighlight = (
-  rendition: any,
+  rendition: EpubRenditionLike | null,
   bookMark: BookMark,
   defaultHighlightColor: string
 ) => {
@@ -27,7 +28,7 @@ export const applyBookmarkHighlight = (
 }
 
 export const addBookmarkHighlight = (
-  rendition: any,
+  rendition: EpubRenditionLike | null,
   cfiRange: string,
   markId: string,
   defaultHighlightColor: string
@@ -48,7 +49,7 @@ export const addBookmarkHighlight = (
   )
 }
 
-export const removeBookmarkHighlight = (rendition: any, cfiRange: string) => {
+export const removeBookmarkHighlight = (rendition: EpubRenditionLike | null, cfiRange: string) => {
   if (!rendition) {
     return
   }
@@ -57,7 +58,7 @@ export const removeBookmarkHighlight = (rendition: any, cfiRange: string) => {
 }
 
 export const initBookMarksForBook = (
-  rendition: any,
+  rendition: EpubRenditionLike | null,
   bookMarks: BookMark[],
   bookKey: string,
   defaultHighlightColor: string

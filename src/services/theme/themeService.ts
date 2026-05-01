@@ -191,6 +191,7 @@ export const applyAppThemeMode = (mode: unknown): AppThemeMode => {
 
 export const initializeAppTheme = async () => {
   const settings = await loadAppSettings()
+
   return applyAppThemeMode(settings.themeMode)
 }
 
@@ -236,6 +237,7 @@ export const getActiveReaderBackgroundPreset = (
   mode: AppThemeMode = getAppliedAppThemeMode()
 ) => {
   const normalizedMode = normalizeAppThemeMode(mode)
+
   return resolveReaderBackgroundPresets(configOrPresets)[normalizedMode]
 }
 
@@ -277,6 +279,7 @@ export const getReaderThemeCompatColors = (
   mode: AppThemeMode = getAppliedAppThemeMode()
 ) => {
   const palette = getReaderRuntimePalette(configOrPresets, mode)
+
   return {
     color: palette.contentBackground,
     fontColor: palette.text,

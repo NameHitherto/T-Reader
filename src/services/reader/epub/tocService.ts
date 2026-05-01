@@ -1,11 +1,16 @@
-export const collectParentChapterIndexes = (book: any, activeChapter: string): string[] => {
+import type { EpubBookLike, EpubNavigationItem } from '@/types/epub'
+
+export const collectParentChapterIndexes = (
+  book: EpubBookLike | undefined,
+  activeChapter: string
+): string[] => {
   if (!book || !activeChapter) {
     return []
   }
 
   const indexGroup: string[] = []
 
-  const parseParentNavItem = (nav: any) => {
+  const parseParentNavItem = (nav: EpubNavigationItem) => {
     if (!nav || !nav.parent) {
       return
     }

@@ -56,6 +56,7 @@ export const resequenceTxtTocRules = (rules: TxtTocRule[]): TxtTocRule[] => {
 export const loadTxtTocRules = async (): Promise<TxtTocRule[]> => {
   await ensureTxtTocRulesFile()
   const rules = await readJsonFile<Partial<TxtTocRule>[]>(getTxtTocRulesPath())
+
   return sortTxtTocRules(rules.map(normalizeTxtTocRule))
 }
 

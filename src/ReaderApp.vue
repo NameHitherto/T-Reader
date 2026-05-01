@@ -35,10 +35,10 @@
       :default-active="activeChapter"
       @select="goToChapter"
     >
-      <template v-for="item in toc">
+      <template v-for="item in toc" :key="item.id || item.href">
         <toc-menu
-          v-if="item.subitems.length > 0"
-          :subToc="item"
+          v-if="item.subitems?.length"
+          :sub-toc="item"
         />
         <el-menu-item v-else :key="item.id" :index="item.href">
           {{ item.label }}
@@ -47,7 +47,7 @@
     </el-menu>
   </el-drawer>
   <!-- 书籍详情信息 -->
-  <book-info-dialog v-model="bookInfoVisible" :bookKey="currentBookKey" />
+  <book-info-dialog v-model="bookInfoVisible" :book-key="currentBookKey" />
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
   <!-- 笔记编辑框 -->
@@ -57,7 +57,7 @@
     @delete="(markId: string) => delBookMark(markId)"
   />
   <!-- AI 助手 -->
-  <AssistantDialog v-model="assistantVisible" :bookKey="currentBookKey" />
+  <AssistantDialog v-model="assistantVisible" :book-key="currentBookKey" />
   <!-- 功能帮助 -->
   <HelpDialog v-model="helpVisible" />
   <SystemFontEnableDialog v-model="systemFontDialogVisible" />
@@ -91,7 +91,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { UnlistenFn } from '@tauri-apps/api/event'
-import { Rendition } from 'libs/epub.js'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
 import { storeToRefs } from 'pinia'
@@ -158,6 +157,7 @@ import {
   syncReaderConfigThemeColors,
 } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
+import type { EpubRenditionLike, EpubTocItem } from '@/types/epub'
 import {
   ackReaderLoadMessage,
   dispatchBookshelfProgressSaved,
@@ -185,7 +185,7 @@ const STYLE_MENU_SAFE_BOTTOM = 64
 const currentBookKey = ref<string | null>(null)
 const pendingBookKey = ref<string | null>(null)
 const bookInfoVisible = ref(false)
-const rendition = ref<Rendition | null>(null)
+const rendition = ref<EpubRenditionLike | null>(null)
 const currentBookConfig = ref<BookConfig | null>(null)
 let stylesheetIsolationController: EpubBuiltInStylesheetIsolationController | null = null
 
@@ -219,7 +219,7 @@ const readerDefaultTheme = computed(() => {
     })
   }
 
-  const themeReturned: Record<string, any> = {
+  const themeReturned: Record<string, Record<string, string | number>> = {
     body: {
       'font-family': readerFontApplication.value.fontFamilyCss,
       'font-size': `${readerConfig.value.fontSize}px`,
@@ -316,7 +316,7 @@ async function loadReaderConfig() {
     if (JSON.stringify(configTemp) !== JSON.stringify(themedConfig)) {
       await saveReaderConfigToDisk(themedConfig)
     }
-  } catch (e) {
+  } catch {
     readerConfigStore.setDefaultConfig()
     readerConfigStore.setReaderConfig(
       syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
@@ -372,13 +372,13 @@ async function saveReaderRendition() {
 // ============================================================
 function prevPage() {
   if (rendition.value && readerConfig.value.flow === 'paginated') {
-    rendition.value.prev()
+    rendition.value.prev?.()
   }
 }
 
 function nextPage() {
   if (rendition.value && readerConfig.value.flow === 'paginated') {
-    rendition.value.next()
+    rendition.value.next?.()
   }
 }
 
@@ -411,8 +411,8 @@ function keydownHandler(e: KeyboardEvent) {
 // 目录抽屉
 // ============================================================
 const tocDrawer = ref(false)
-const tocMenuRef = ref<any>(null)
-const toc = ref<any[]>([])
+const tocMenuRef = ref<{ open: (index: string) => void } | null>(null)
+const toc = ref<EpubTocItem[]>([])
 const activeChapter = ref<string>('')
 
 let detachTocButtonListener: (() => void) | null = null
@@ -548,13 +548,14 @@ function handleRenditionEvents() {
 
   bindRenditionEvents(rendition.value, {
     onRelocated: (location) => {
-      if (location.start) {
-        activeChapter.value = location.start.href
+      const locationStart = location.start
+      if (locationStart?.href) {
+        activeChapter.value = locationStart.href
         readingChapterTitle.value =
-          resolveEpubTocLabel(rendition.value?.book?.navigation?.toc, location.start.href) ||
+          resolveEpubTocLabel(rendition.value?.book?.navigation?.toc, locationStart.href) ||
           normalizeDisplayedChapterTitle(currentBookConfig.value?.durChapterTitle)
       }
-      const percentage = location.start.percentage
+      const percentage = locationStart?.percentage
       if (percentage !== undefined && percentage !== null) {
         readingPercentage.value = (percentage * 100).toFixed(1)
       }

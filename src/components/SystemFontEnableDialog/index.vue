@@ -290,6 +290,7 @@ export default defineComponent({
       }
 
       const matchedFont = findSystemFontMatch(family, systemFonts.value)
+
       return matchedFont ? getReaderFontValue(matchedFont) : family
     }
 

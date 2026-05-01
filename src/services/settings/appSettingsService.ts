@@ -53,6 +53,7 @@ export const loadAppSettings = async (): Promise<AppSettings> => {
     const loadedSettings = await readJsonFile<Partial<AppSettings>>(
       buildLocalFilePath(LOCAL_DIRS.system, 'setting.json')
     )
+
     return normalizeAppSettings(loadedSettings)
   } catch (error) {
     logWarn('appSettings', '加载应用设置失败，已回退到默认设置', error)
@@ -74,8 +75,8 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
     currentSettings = await readJsonFile<Record<string, unknown>>(
       buildLocalFilePath(LOCAL_DIRS.system, 'setting.json')
     )
-  } catch (error) {
-    currentSettings = {}
+  } catch {
+    // Use defaults when the settings file has not been created yet.
   }
 
   await writeJsonFile(

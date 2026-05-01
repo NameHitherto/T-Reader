@@ -87,7 +87,7 @@ export const loadBookLocationsCache = async (
       ready: payload.status === 'ready',
     })
     return payload
-  } catch (error) {
+  } catch {
     finishLog({
       fileName: filename,
       hit: false,

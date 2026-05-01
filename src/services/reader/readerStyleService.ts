@@ -6,6 +6,7 @@ import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import type { ReaderBackgroundPresets } from '@/types/readerBackground'
 import type { EnabledSystemFont } from '@/types/readerFonts'
 import { applyEpubReaderStyles } from '@/services/reader/epub/epubStyleService'
+import type { EpubRenditionLike } from '@/types/epub'
 
 export interface ReaderStyleConfig {
   font: string
@@ -28,16 +29,16 @@ export interface ReaderStyleConfig {
 
 export interface ReaderRenditionLike {
   themes: {
-    default: (theme: Record<string, any>) => void
+    default: (theme: Record<string, unknown>) => void
   }
   flow: (flowMode: string) => void
-  layout: (layout: any) => void
+  layout: (layout: unknown) => void
 }
 
 export const applyReaderStyles = (
   readerConfig: ReaderStyleConfig,
-  readerDefaultTheme: Record<string, any>,
-  rendition: ReaderRenditionLike | null,
+  readerDefaultTheme: Record<string, unknown>,
+  rendition: EpubRenditionLike | null,
   themeMode: AppThemeMode = getAppliedAppThemeMode()
 ) => {
   const palette = getReaderRuntimePalette(readerConfig, themeMode)

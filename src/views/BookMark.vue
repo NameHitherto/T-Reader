@@ -15,16 +15,16 @@
         v-if="viewType === 'tag'"
         ref="scrollbar"
         class="tag-scrollbar"
-        @wheel.native="handleWheel"
+        @wheel="handleWheel"
         @scroll="handleScroll"
       >
         <div class="tag-wrapper">
           <BookMarkTag
             v-for="(bookmark, idx) in rankedBooksMarks"
             :key="bookmark.id"
-            :bookMark="bookmark"
-            :isFirst="idx === 0"
-            :isLast="idx === booksMarks.length - 1"
+            :book-mark="bookmark"
+            :is-first="idx === 0"
+            :is-last="idx === booksMarks.length - 1"
             @delete="deleteBookMark(bookmark)"
             @jump="jumpToRead(bookmark)"
           />
@@ -101,6 +101,7 @@ export default defineComponent({
   computed: {
     groupedBooksMarks() {
       const temp = [...this.booksMarks]
+
       return temp.reduce((acc, bookMark) => {
         if (!acc[bookMark.bookName]) {
           acc[bookMark.bookName] = []
@@ -110,7 +111,7 @@ export default defineComponent({
       }, {} as Record<string, BookMark[]>)
     },
     rankedBooksMarks() {
-      return this.booksMarks.sort(
+      return [...this.booksMarks].sort(
         (a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime)
       )
     },
@@ -122,6 +123,20 @@ export default defineComponent({
       }
       return contentWidth - wrapperWidth
     },
+  },
+  async mounted() {
+    const storedViewType = localStorage.getItem('bookMarkViewType')
+    if (storedViewType) {
+      this.viewType = storedViewType as 'tag' | 'table'
+    } else {
+      this.viewType = 'tag'
+    }
+    this.updateTableMaxHeight()
+    window.addEventListener('resize', this.updateTableMaxHeight)
+    await this.loadBookMarks()
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.updateTableMaxHeight)
   },
   methods: {
     async loadBookMarks() {
@@ -148,12 +163,12 @@ export default defineComponent({
     },
     handleWheel(e: WheelEvent) {
       e.preventDefault()
-      const scrollbarRef = this.$refs.scrollbar as any
+      const scrollbarRef = this.$refs.scrollbar as { setScrollLeft: (left: number) => void } | undefined
       this.scrollLeft = this.scrollLeft + e.deltaY >= 0 ? this.scrollLeft + e.deltaY : 0
       this.scrollLeft = this.scrollLeft > this.scrollLeftMax ? this.scrollLeftMax : this.scrollLeft
       scrollbarRef?.setScrollLeft(this.scrollLeft)
     },
-    handleScroll(amount: any) {
+    handleScroll(amount: { scrollLeft: number }) {
       this.scrollLeft = amount.scrollLeft
     },
     handleViewTypeChange(value: 'tag' | 'table') {
@@ -181,20 +196,6 @@ export default defineComponent({
     async openBook(bookKey: string, cfi: string) {
       await openReaderWindowWithPrecheck(bookKey, cfi)
     },
-  },
-  async mounted() {
-    const storedViewType = localStorage.getItem('bookMarkViewType')
-    if (storedViewType) {
-      this.viewType = storedViewType as 'tag' | 'table'
-    } else {
-      this.viewType = 'tag'
-    }
-    this.updateTableMaxHeight()
-    window.addEventListener('resize', this.updateTableMaxHeight)
-    await this.loadBookMarks()
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.updateTableMaxHeight)
   },
 })
 </script>

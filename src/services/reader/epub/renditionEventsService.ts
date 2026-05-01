@@ -1,3 +1,5 @@
+import type { EpubContentsLike, EpubLocationLike, EpubRenditionLike } from '@/types/epub'
+
 interface ReaderContextMenuItem {
   label: string
   type?: string
@@ -5,7 +7,7 @@ interface ReaderContextMenuItem {
 }
 
 interface BindRenditionEventsArgs {
-  onRelocated: (location: any) => void
+  onRelocated: (location: EpubLocationLike) => void
   onSelected: (cfiRange: string, selectedText: string) => void
   onKeyNavigatePrev: () => void
   onKeyNavigateNext: () => void
@@ -16,21 +18,29 @@ interface BindRenditionEventsArgs {
   buildContextMenuItems: () => ReaderContextMenuItem[]
 }
 
-export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArgs) => {
+export const bindRenditionEvents = (
+  rendition: EpubRenditionLike | null,
+  args: BindRenditionEventsArgs
+) => {
   if (!rendition) {
     return
   }
 
-  rendition.on('relocated', (location: any) => {
-    args.onRelocated(location)
+  rendition.on('relocated', (location: unknown) => {
+    args.onRelocated(location as EpubLocationLike)
   })
 
-  rendition.on('selected', (cfiRange: string, contents: any) => {
-    const selectedText = contents.window.getSelection().toString()
-    args.onSelected(cfiRange, selectedText)
+  rendition.on('selected', (cfiRange: unknown, contents: unknown) => {
+    const cfi = typeof cfiRange === 'string' ? cfiRange : ''
+    const readerContents = contents as EpubContentsLike
+    const selectedText = readerContents.window.getSelection()?.toString() || ''
+    args.onSelected(cfi, selectedText)
   })
 
-  rendition.on('keydown', (event: KeyboardEvent) => {
+  rendition.on('keydown', (event: unknown) => {
+    if (!(event instanceof KeyboardEvent)) {
+      return
+    }
     if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
       args.onKeyNavigatePrev()
     } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
@@ -44,13 +54,16 @@ export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArg
     args.onReaderClick()
   })
 
-  rendition.on('markClicked', (_cfiRange: string, data: any) => {
-    args.onMarkClicked(data.markId)
+  rendition.on('markClicked', (_cfiRange: unknown, data: unknown) => {
+    const markId = (data as { markId?: string })?.markId
+    if (markId) {
+      args.onMarkClicked(markId)
+    }
   })
 
   const boundDocuments = new WeakSet<Document>()
 
-  const bindContextMenuForContents = (contents: any) => {
+  const bindContextMenuForContents = (contents: EpubContentsLike) => {
     const contentDocument = contents?.document as Document | undefined
     if (!contentDocument || boundDocuments.has(contentDocument)) {
       return
@@ -99,7 +112,7 @@ export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArg
     })
   }
 
-  rendition.hooks.content.register((contents: any) => {
+  rendition.hooks.content.register((contents: EpubContentsLike) => {
     bindContextMenuForContents(contents)
 
     return contents

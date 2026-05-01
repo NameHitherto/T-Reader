@@ -7,10 +7,11 @@ import {
   serializeReaderProgress,
 } from '@/services/reader/progressSnapshotService'
 import { epubReaderProgressHandler } from '@/services/reader/epub/epubProgressService'
+import type { EpubRenditionLike } from '@/types/epub'
 
 interface SaveReaderProgressArgs {
   bookKey: string
-  rendition: any
+  rendition: EpubRenditionLike | null
   bookMarks: BookMark[]
 }
 
@@ -21,10 +22,11 @@ export interface SavedReaderProgress {
 
 const resolveReaderProgressPercent = async (
   bookKey: string,
-  rendition: any,
+  rendition: EpubRenditionLike | null,
   bookConfig: Pick<BookConfig, 'durChapterIndex'>
 ): Promise<number> => {
   const bookCache = await loadBookCache(bookKey)
+
   return await epubReaderProgressHandler.calculateProgress({
     rendition,
     bookConfig,

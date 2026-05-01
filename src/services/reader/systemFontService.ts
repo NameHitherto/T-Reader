@@ -43,6 +43,7 @@ const toNullableString = (value: unknown) => {
     return null
   }
   const trimmed = value.trim()
+
   return trimmed.length > 0 ? trimmed : null
 }
 
@@ -404,6 +405,7 @@ export const getEnabledFontByValue = (
   fontValue: string
 ) => {
   const normalizedValue = normalizeSearchText(fontValue)
+
   return enabledFonts.find((font) => entryMatchesValue(font, normalizedValue)) || null
 }
 

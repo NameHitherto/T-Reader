@@ -62,6 +62,7 @@
 import { ref, defineComponent } from 'vue';
 import { BOOKMARK_COLOR_CHOICES } from '@/constants/bookmark';
 import { logWarn } from '@/utils/logger';
+import type { BookMark } from '@/store/bookMark';
 export default defineComponent({
     name: 'BookMarkDialog',
     props: {
@@ -69,10 +70,11 @@ export default defineComponent({
             type: String
         }
     },
+    emits: ['update:bookMarkList', 'delete'],
     data() {
         return {
             comments: ref(''),
-            bookMarkJSON: ref<any>({}),
+            bookMarkJSON: ref<Partial<BookMark>>({}),
             colorChoices: [...BOOKMARK_COLOR_CHOICES]
         };
     },
@@ -81,7 +83,7 @@ export default defineComponent({
             // 将string转为json
             if (this.bookMarkList) {
                 this.bookMarkJSON = JSON.parse(this.bookMarkList)
-                this.comments = this.bookMarkJSON.comments
+                this.comments = this.bookMarkJSON.comments || ''
             }else {
                 logWarn('bookmark', '打开了一个空的笔记')
             }

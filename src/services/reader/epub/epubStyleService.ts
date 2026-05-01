@@ -8,7 +8,7 @@ type ReaderPalette = ReturnType<typeof getReaderRuntimePalette>
 
 export const applyEpubReaderStyles = (
   readerConfig: ReaderStyleConfig,
-  readerDefaultTheme: Record<string, any>,
+  readerDefaultTheme: Record<string, unknown>,
   rendition: ReaderRenditionLike | null,
   palette: ReaderPalette
 ) => {

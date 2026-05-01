@@ -11,7 +11,7 @@
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息弹窗 -->
-    <BookInfoDialog v-model="bookInfoVisible" :bookKey="bookInfoKey" />
+    <BookInfoDialog v-model="bookInfoVisible" :book-key="bookInfoKey" />
     <CloudSyncDialog
       v-model="cloudSyncVisible"
       @synced="handleCloudSyncSynced"
@@ -402,6 +402,7 @@ const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
 const toEpubFileName = (fileName: string): string => {
   const lastDotIndex = fileName.lastIndexOf('.')
   const stem = lastDotIndex >= 0 ? fileName.slice(0, lastDotIndex) : fileName
+
   return `${stem || fileName}.epub`
 }
 
@@ -1094,6 +1095,7 @@ const getProgressPercent = (book: ShelfBook): string => {
 
 const getGridProgressText = (book: ShelfBook): string => {
   const progress = getProgressValue(book)
+
   return progress > 0 ? `阅读进度：${progress.toFixed(1)}%` : '未读'
 }
 
