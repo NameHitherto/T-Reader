@@ -156,7 +156,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -164,8 +164,8 @@ import { open } from '@tauri-apps/plugin-dialog'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from '@/components/ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
-import { BookConfig, BookFormat } from '@/types/book'
-import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+import type { BookConfig, BookFormat } from '@/types/book'
+import type { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import emptyStateImage from '@/assets/images/empty.png'
 import SettingDialog from '@/components/SettingDialog/index.vue'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
@@ -196,9 +196,9 @@ import {
   removeBookFileIndexEntry,
   resolveBookFile,
   resolveBookFormat,
-  StoredBookConfig,
   uploadLocalBookFileToCloud,
 } from '@/services/book/bookRepository'
+import type { StoredBookConfig } from '@/services/book/bookRepository'
 import { readLocalBookFile } from '@/services/book/bookFileAccessService'
 import { setBookFileIndexEntry } from '@/services/book/bookFileIndexRepository'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
@@ -231,854 +231,899 @@ import { stringifyJson } from '@/utils/json'
 import { formatCloudSyncResultMessage } from '@/services/sync/cloudSyncService'
 import type { CloudSyncApplyResult } from '@/types/sync'
 
-export default {
+defineOptions({
   name: 'MainContent',
-  components: {
-    loadingBlockade,
-    ContextMenu,
-    AppIcon,
-    SettingDialog,
-    BookInfoDialog,
-    CloudSyncDialog,
-  },
-  setup() {
-    type ShelfViewMode = 'list' | 'grid'
-    type ImportSourceFormat = BookFormat | 'txt'
-    type ShelfBookFormat = BookFormat | 'unknown'
-    type ShelfBook = BookConfig & {
-      bookKey: string
-      displayTitle: string
-      cover?: string
-      format: ShelfBookFormat
-      progressValue: number
-      lastReadLabel: string
-    }
+})
 
-    interface BatchImportContext {
-      batchNotifier: ReturnType<typeof createMainTaskBatchNotifier>
-      dirs: LocalDirNames
-      reservedBookKeys: Set<string>
-      reservedOriginalFileNames: Set<string>
-    }
+// ============================================================
+// 类型声明
+// ============================================================
+type ShelfViewMode = 'list' | 'grid'
+type ImportSourceFormat = BookFormat | 'txt'
+type ShelfBookFormat = BookFormat | 'unknown'
+type ShelfBook = BookConfig & {
+  bookKey: string
+  displayTitle: string
+  cover?: string
+  format: ShelfBookFormat
+  progressValue: number
+  lastReadLabel: string
+}
 
-    const MAX_PARALLEL_IMPORTS = 3
-    const IMPORT_LOADING_TEXT = {
-      parsing:
-        'Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files',
-      saving:
-        'Saving book files - Saving book files - Saving book files - Saving book files - Saving book files - Saving book files',
-      uploading:
-        'Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server',
-      syncing:
-        'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server',
-    } as const
+// ============================================================
+// 接口声明
+// ============================================================
+interface BatchImportContext {
+  batchNotifier: ReturnType<typeof createMainTaskBatchNotifier>
+  dirs: LocalDirNames
+  reservedBookKeys: Set<string>
+  reservedOriginalFileNames: Set<string>
+}
 
-    const books = ref<ShelfBook[]>([])
-    const isLoading = ref(false)
-    const booksLoading = ref(true)
-    const loadingText = ref(
-      'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
+// ============================================================
+// 常量
+// ============================================================
+const MAX_PARALLEL_IMPORTS = 3
+const IMPORT_LOADING_TEXT = {
+  parsing:
+    'Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files',
+  saving:
+    'Saving book files - Saving book files - Saving book files - Saving book files - Saving book files - Saving book files',
+  uploading:
+    'Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server',
+  syncing:
+    'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server',
+} as const
+
+// ============================================================
+// 核心数据状态
+// ============================================================
+const books = ref<ShelfBook[]>([])
+const booksLoading = ref(true)
+const isBooksEmpty = computed(() => books.value.length === 0)
+
+// ============================================================
+// 全局加载状态
+// ============================================================
+const isLoading = ref(false)
+const loadingText = ref(
+  'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
+)
+const activeLoadingTasks = ref(0)
+
+// ============================================================
+// 弹窗状态
+// ============================================================
+const settingVisible = ref(false)
+const bookInfoVisible = ref(false)
+const cloudSyncVisible = ref(false)
+const bookInfoKey = ref<string>('')
+
+// ============================================================
+// 右键菜单状态
+// ============================================================
+const showMenu = ref(false)
+const menuOptions = ref({} as ContextMenuData)
+
+// ============================================================
+// 书架视图状态
+// ============================================================
+const shelfViewMode = ref<ShelfViewMode>(
+  localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list'
+)
+
+// ============================================================
+// 事件解绑句柄
+// ============================================================
+let unlistenBookshelfProgressSaved: UnlistenFn | null = null
+let unlistenCloudSyncFailed: UnlistenFn | null = null
+
+// ============================================================
+// 通用工具函数
+// ============================================================
+const toTaskErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  return '发生未知异常'
+}
+
+const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
+
+const runWithConcurrencyLimit = async <T>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>
+) => {
+  let nextIndex = 0
+  const workerCount = Math.min(limit, items.length)
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const currentIndex = nextIndex
+        nextIndex += 1
+
+        if (currentIndex >= items.length) {
+          return
+        }
+
+        await worker(items[currentIndex], currentIndex)
+      }
+    })
+  )
+}
+
+// ============================================================
+// 加载状态控制
+// ============================================================
+const beginLoading = (text: string) => {
+  activeLoadingTasks.value += 1
+  loadingText.value = text
+  isLoading.value = true
+}
+
+const updateLoadingText = (text: string) => {
+  if (activeLoadingTasks.value > 0) {
+    loadingText.value = text
+  }
+}
+
+const endLoading = () => {
+  activeLoadingTasks.value = Math.max(0, activeLoadingTasks.value - 1)
+  isLoading.value = activeLoadingTasks.value > 0
+}
+
+// ============================================================
+// 书架视图控制
+// ============================================================
+const toggleShelfViewMode = () => {
+  shelfViewMode.value = shelfViewMode.value === 'list' ? 'grid' : 'list'
+  localStorage.setItem('shelfViewMode', shelfViewMode.value)
+}
+
+// ============================================================
+// 导入格式处理
+// ============================================================
+const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
+  const ext = path.split('.').pop()?.toLowerCase()
+  if (ext === 'txt') {
+    return 'txt'
+  }
+
+  return detectBookFormatFromPath(path)
+}
+
+const toEpubFileName = (fileName: string): string => {
+  const lastDotIndex = fileName.lastIndexOf('.')
+  const stem = lastDotIndex >= 0 ? fileName.slice(0, lastDotIndex) : fileName
+  return `${stem || fileName}.epub`
+}
+
+// ============================================================
+// 导入失败清理
+// ============================================================
+const cleanupImportedBookArtifacts = async (
+  originalFileName: string,
+  bookKey: string | null,
+  removeBookArtifacts: boolean
+) => {
+  const cleanupTasks: Promise<unknown>[] = [
+    removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, originalFileName)),
+  ]
+
+  if (bookKey && removeBookArtifacts) {
+    cleanupTasks.push(
+      removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey))),
+      removeLocalFile(buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(bookKey))),
+      removeLocalFile(
+        buildLocalFilePath(LOCAL_DIRS.cachedLocations, getBookLocationsCacheFilename(bookKey))
+      )
     )
-    const activeLoadingTasks = ref(0)
-    const settingVisible = ref(false)
-    const bookInfoVisible = ref(false)
-    const cloudSyncVisible = ref(false)
-    const bookInfoKey = ref<String>('')
-    const showMenu = ref(false)
-    const menuOptions = ref({} as ContextMenuData)
-    const isBooksEmpty = computed(() => books.value.length === 0)
-    let unlistenBookshelfProgressSaved: UnlistenFn | null = null
-    let unlistenCloudSyncFailed: UnlistenFn | null = null
-    const shelfViewMode = ref<ShelfViewMode>(
-      localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list'
+  }
+
+  const cleanupResults = await Promise.allSettled(cleanupTasks)
+  const rejectedResults = cleanupResults.filter((result) => result.status === 'rejected')
+
+  if (bookKey && removeBookArtifacts) {
+    await removeBookFileIndexEntry(bookKey).catch((error) => {
+      logWarn('bookshelf', 'cleanup-import-artifacts remove-index-failed', {
+        bookKey,
+        fileName: originalFileName,
+        error,
+      })
+    })
+    invalidateBookFileIndex()
+  }
+
+  if (rejectedResults.length > 0) {
+    logWarn('bookshelf', 'cleanup-import-artifacts partial-failed', {
+      bookKey,
+      fileName: originalFileName,
+      failedCount: rejectedResults.length,
+    })
+  }
+}
+
+// ============================================================
+// 书架数据加载
+// ============================================================
+const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
+  const { bookKey, config: book } = storedBook
+  const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
+    bookKey,
+  })
+  try {
+    const format = await resolveBookFormat(bookKey)
+    const cache = (await loadBookCache(bookKey)) || {}
+    const progressValue =
+      typeof cache.progress === 'number' && Number.isFinite(cache.progress)
+        ? Math.min(100, Math.max(0, cache.progress))
+        : 0
+
+    const shelfBook = {
+      ...book,
+      bookKey,
+      displayTitle: cache.title || book.name,
+      cover: cache.cover,
+      format,
+      progressValue,
+      lastReadLabel: buildLastReadLabel(book, progressValue),
+    }
+
+    finishLog({
+      bookKey,
+      format,
+      progressValue,
+    })
+    return shelfBook
+  } catch (error) {
+    logWarn('bookshelf', 'build-shelf-book unresolved-file', {
+      bookKey,
+      error,
+    })
+
+    const cache = (await loadBookCache(bookKey)) || {}
+    const shelfBook = {
+      ...book,
+      bookKey,
+      displayTitle: cache.title || book.name,
+      cover: cache.cover,
+      format: 'unknown' as ShelfBookFormat,
+      progressValue: 0,
+      lastReadLabel: '',
+    }
+
+    finishLog({
+      bookKey,
+      format: 'unknown',
+      progressValue: 0,
+    })
+    return shelfBook
+  }
+}
+
+const loadBooks = async () => {
+  const finishLog = createDurationLogger('bookshelf', 'load-books')
+  try {
+    booksLoading.value = true
+    const loadedBooks = await loadBookConfigs()
+    await reconcileLibraryBookFileIndex(loadedBooks.map((book) => book.bookKey))
+    books.value = await Promise.all(loadedBooks.map((book) => buildShelfBook(book)))
+    finishLog({
+      total: books.value.length,
+    })
+  } catch (error) {
+    logError('bookshelf', 'load-books failed', error)
+  } finally {
+    booksLoading.value = false
+  }
+}
+
+// ============================================================
+// 云同步业务
+// ============================================================
+const handleCloudSyncSynced = async (result: CloudSyncApplyResult) => {
+  const finishLog = createDurationLogger('bookshelf', 'sync-files')
+  beginLoading(IMPORT_LOADING_TEXT.syncing)
+  try {
+    cloudSyncVisible.value = false
+    invalidateBookFileIndex()
+    await loadBooks()
+    showMainTaskMessage({
+      type: 'success',
+      title: '云同步完成',
+      message: formatCloudSyncResultMessage(result),
+      taskKey: 'bookshelf-sync',
+    })
+    finishLog({
+      ...result,
+      total: books.value.length,
+    })
+  } catch (error) {
+    logError('bookshelf', 'sync-files failed', error)
+    showMainTaskMessage({
+      type: 'error',
+      title: '云同步失败',
+      message: toTaskErrorMessage(error),
+      taskKey: 'bookshelf-sync',
+    })
+  } finally {
+    endLoading()
+  }
+}
+
+const syncFiles = () => {
+  cloudSyncVisible.value = true
+}
+
+// ============================================================
+// 书籍导入业务
+// ============================================================
+const addBook = async () => {
+  const selectedFilePath = await open({
+    multiple: true,
+    directory: false,
+    filters: [
+      {
+        name: 'Book files',
+        extensions: ['epub', 'txt'],
+      },
+    ],
+  })
+
+  if (selectedFilePath === null) {
+    return
+  }
+
+  const selectedPaths = Array.isArray(selectedFilePath) ? selectedFilePath : [selectedFilePath]
+  const parallelImports = Math.min(MAX_PARALLEL_IMPORTS, selectedPaths.length)
+
+  logInfo('bookshelf', 'select-book-files', {
+    count: selectedPaths.length,
+    parallelImports,
+  })
+
+  const batchNotifier = createMainTaskBatchNotifier({
+    taskKey: 'bookshelf-import-cloud-sync',
+    successTitle: '云端同步完成',
+    partialFailureTitle: '云端同步部分完成',
+    errorTitle: '云端同步失败',
+    actionLabel: '云端同步',
+  })
+
+  const dirs = await getLocalDirNames()
+  const batchContext: BatchImportContext = {
+    batchNotifier,
+    dirs,
+    reservedBookKeys: new Set<string>(),
+    reservedOriginalFileNames: new Set<string>(),
+  }
+
+  try {
+    await runWithConcurrencyLimit(selectedPaths, parallelImports, (path) =>
+      addBookByPath(path, batchContext)
+    )
+  } finally {
+    batchNotifier.flushWhenComplete()
+  }
+}
+
+const addBookByPath = async (path: string, batchContext: BatchImportContext) => {
+  const sourceFileName = getFileNameFromPath(path)
+  const sourceFormat = detectImportSourceFormat(path)
+  if (!sourceFormat) {
+    logWarn('bookshelf', 'unsupported-book-format', {
+      path,
+    })
+    return
+  }
+
+  let originalFileName = sourceFormat === 'txt' ? toEpubFileName(sourceFileName) : sourceFileName
+  const normalizedOriginalFileName = normalizeOriginalFileName(originalFileName)
+  const format: BookFormat = 'epub'
+
+  if (batchContext.reservedOriginalFileNames.has(normalizedOriginalFileName)) {
+    logWarn('bookshelf', 'duplicate-batch-file-name-detected', {
+      fileName: sourceFileName,
+      path,
+    })
+    return
+  }
+
+  const finishLog = createDurationLogger('bookshelf', 'import-book', {
+    fileName: sourceFileName,
+    sourceFormat,
+    format,
+  })
+  batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
+  let reservedBookKey: string | null = null
+  let importedBookKey: string | null = null
+  let localCopyCreated = false
+  let createdBookArtifacts = false
+  let importSucceeded = false
+  beginLoading(IMPORT_LOADING_TEXT.parsing)
+
+  try {
+    if (await hasOriginalFilenameConflict(originalFileName)) {
+      logWarn('bookshelf', 'duplicate-file-name-detected', {
+        fileName: originalFileName,
+      })
+      return
+    }
+
+    if (sourceFormat === 'txt') {
+      originalFileName = await invoke<string>('convert_txt_to_epub', {
+        filepath: path,
+        subdir: batchContext.dirs.books,
+        filename: sourceFileName,
+      })
+    } else {
+      await invoke('copy_file_to_subdir', {
+        filepath: path,
+        subdir: batchContext.dirs.books,
+        filename: originalFileName,
+      })
+    }
+    localCopyCreated = true
+
+    const fileBytes = await readLocalBookFile(originalFileName)
+    const bufferFile = fileBytes.buffer.slice(
+      fileBytes.byteOffset,
+      fileBytes.byteOffset + fileBytes.byteLength
+    ) as ArrayBuffer
+    const importedBook = await getImportedBookName(originalFileName, bufferFile)
+    importedBookKey = importedBook.bookKey
+
+    if (
+      batchContext.reservedBookKeys.has(importedBook.bookKey) ||
+      books.value.find((book) => book.bookKey === importedBook.bookKey)
+    ) {
+      logWarn('bookshelf', 'duplicate-book-detected', {
+        bookKey: importedBook.bookKey,
+        fileName: originalFileName,
+      })
+      return
+    }
+    batchContext.reservedBookKeys.add(importedBook.bookKey)
+    reservedBookKey = importedBook.bookKey
+    let newBook = await buildBookConfigFromImport({
+      sourcePath: path,
+      originalFileName,
+      format,
+      fileBuffer: bufferFile,
+    })
+    const configFilename = toBookConfigFilename(importedBook.bookKey)
+    let usedCloudConfig = false
+
+    try {
+      const existsOnCloud = await invoke('webdav_exists', {
+        subdir: CLOUD_DIRS.progress,
+        filename: configFilename,
+      })
+      if (existsOnCloud) {
+        const cloudData = await invoke('webdav_get', {
+          subdir: CLOUD_DIRS.progress,
+          filename: configFilename,
+        })
+        const cloudConfig = normalizeBookConfig(
+          JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[])))
+        )
+        newBook = cloudConfig
+        usedCloudConfig = true
+        logInfo('bookshelf', 'import-book use-cloud-config', {
+          bookKey: importedBook.bookKey,
+          fileName: configFilename,
+        })
+      }
+    } catch (error) {
+      logWarn('bookshelf', 'import-book check-cloud-config-failed', {
+        bookKey: importedBook.bookKey,
+        error,
+      })
+    }
+
+    const bookConfigJson = stringifyJson(newBook)
+    const encodedBookConfig = new TextEncoder().encode(bookConfigJson)
+
+    updateLoadingText(IMPORT_LOADING_TEXT.saving)
+
+    await writeJsonFile(
+      buildLocalFilePath(LOCAL_DIRS.progress, configFilename),
+      newBook
+    )
+    createdBookArtifacts = true
+
+    await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
+
+    invalidateBookFileIndex()
+    const cachedPayload = await primeBookCacheAfterImport(
+      importedBook.bookKey,
+      bufferFile,
+      originalFileName
     )
 
-    const toggleShelfViewMode = () => {
-      shelfViewMode.value = shelfViewMode.value === 'list' ? 'grid' : 'list'
-      localStorage.setItem('shelfViewMode', shelfViewMode.value)
-    }
+    books.value.push({
+      ...newBook,
+      bookKey: importedBook.bookKey,
+      displayTitle: cachedPayload.title || newBook.name,
+      cover: cachedPayload.cover,
+      format,
+      progressValue: 0,
+      lastReadLabel: '未读',
+    })
 
-    const toTaskErrorMessage = (error: unknown): string => {
-      if (error instanceof Error) {
-        return error.message
-      }
+    updateLoadingText(IMPORT_LOADING_TEXT.uploading)
 
-      if (typeof error === 'string') {
-        return error
-      }
-
-      return '发生未知异常'
-    }
-
-    const beginLoading = (text: string) => {
-      activeLoadingTasks.value += 1
-      loadingText.value = text
-      isLoading.value = true
-    }
-
-    const updateLoadingText = (text: string) => {
-      if (activeLoadingTasks.value > 0) {
-        loadingText.value = text
-      }
-    }
-
-    const endLoading = () => {
-      activeLoadingTasks.value = Math.max(0, activeLoadingTasks.value - 1)
-      isLoading.value = activeLoadingTasks.value > 0
-    }
-
-    const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
-
-    const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
-      const ext = path.split('.').pop()?.toLowerCase()
-      if (ext === 'txt') {
-        return 'txt'
-      }
-
-      return detectBookFormatFromPath(path)
-    }
-
-    const toEpubFileName = (fileName: string): string => {
-      const lastDotIndex = fileName.lastIndexOf('.')
-      const stem = lastDotIndex >= 0 ? fileName.slice(0, lastDotIndex) : fileName
-      return `${stem || fileName}.epub`
-    }
-
-    const runWithConcurrencyLimit = async <T>(
-      items: readonly T[],
-      limit: number,
-      worker: (item: T, index: number) => Promise<void>
-    ) => {
-      let nextIndex = 0
-      const workerCount = Math.min(limit, items.length)
-
-      await Promise.all(
-        Array.from({ length: workerCount }, async () => {
-          while (true) {
-            const currentIndex = nextIndex
-            nextIndex += 1
-
-            if (currentIndex >= items.length) {
+    const bookLabel = cachedPayload.title || newBook.name || importedBook.name
+    batchContext.batchNotifier.registerTask(bookLabel)
+    if (!usedCloudConfig) {
+      queueMicrotask(() => {
+        void Promise.allSettled([
+          invoke('webdav_upload', {
+            subdir: batchContext.dirs.progress,
+            filename: configFilename,
+            contents: Array.from(encodedBookConfig),
+          }),
+        ])
+          .then((results) => {
+            const rejected = results.find((result) => result.status === 'rejected')
+            if (rejected) {
+              const reason = toTaskErrorMessage(rejected.reason)
+              logWarn('bookshelf', 'import-book remote-sync-failed', {
+                bookKey: importedBook.bookKey,
+                fileName: originalFileName,
+                reason,
+              })
+              batchContext.batchNotifier.recordFailure(bookLabel, reason)
               return
             }
 
-            await worker(items[currentIndex], currentIndex)
-          }
-        })
+            batchContext.batchNotifier.recordSuccess(bookLabel)
+          })
+      })
+    } else {
+      batchContext.batchNotifier.recordSuccess(bookLabel)
+    }
+    importSucceeded = true
+    finishLog({
+      bookKey: importedBook.bookKey,
+      total: books.value.length,
+    })
+  } catch (error) {
+    logError('bookshelf', 'import-book failed', error, {
+      fileName: originalFileName,
+    })
+  } finally {
+    batchContext.reservedOriginalFileNames.delete(normalizedOriginalFileName)
+    if (reservedBookKey) {
+      batchContext.reservedBookKeys.delete(reservedBookKey)
+    }
+    if (localCopyCreated && !importSucceeded) {
+      await cleanupImportedBookArtifacts(
+        originalFileName,
+        importedBookKey,
+        createdBookArtifacts
+      )
+    }
+    endLoading()
+  }
+}
+
+// ============================================================
+// 书籍删除业务
+// ============================================================
+const deleteBook = async (bookKey: string) => {
+  const finishLog = createDurationLogger('bookshelf', 'delete-book', {
+    bookKey,
+  })
+  try {
+    const targetBook = books.value.find((book) => book.bookKey === bookKey)
+    const resolvedBookFile = targetBook
+      ? await resolveBookFile(bookKey).catch(() => null)
+      : null
+
+    await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey)))
+
+    if (resolvedBookFile) {
+      await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, resolvedBookFile.fileName))
+    }
+
+    if (targetBook) {
+      await removeLocalFile(
+        buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(targetBook.bookKey))
+      )
+      await removeLocalFile(
+        buildLocalFilePath(
+          LOCAL_DIRS.cachedLocations,
+          getBookLocationsCacheFilename(targetBook.bookKey)
+        )
       )
     }
 
-    const cleanupImportedBookArtifacts = async (
-      originalFileName: string,
-      bookKey: string | null,
-      removeBookArtifacts: boolean
-    ) => {
-      const cleanupTasks: Promise<unknown>[] = [
-        removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, originalFileName)),
-      ]
+    await removeBookMarksByBookKey(bookKey)
+    await removeBookFileIndexEntry(bookKey)
 
-      if (bookKey && removeBookArtifacts) {
-        cleanupTasks.push(
-          removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey))),
-          removeLocalFile(buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(bookKey))),
-          removeLocalFile(
-            buildLocalFilePath(LOCAL_DIRS.cachedLocations, getBookLocationsCacheFilename(bookKey))
-          )
-        )
-      }
+    invalidateBookFileIndex()
+    books.value = books.value.filter((book) => book.bookKey !== bookKey)
+    showMenu.value = false
 
-      const cleanupResults = await Promise.allSettled(cleanupTasks)
-      const rejectedResults = cleanupResults.filter((result) => result.status === 'rejected')
-
-      if (bookKey && removeBookArtifacts) {
-        await removeBookFileIndexEntry(bookKey).catch((error) => {
-          logWarn('bookshelf', 'cleanup-import-artifacts remove-index-failed', {
+    queueMicrotask(() => {
+      void Promise.allSettled([
+        invoke('webdav_delete', {
+          subdir: CLOUD_DIRS.progress,
+          filename: toBookConfigFilename(bookKey),
+        }),
+        ...(resolvedBookFile
+          ? [
+              invoke('webdav_delete', {
+                subdir: CLOUD_DIRS.books,
+                filename: resolvedBookFile.fileName,
+              }),
+            ]
+          : []),
+      ]).then((results) => {
+        const rejected = results.find((result) => result.status === 'rejected')
+        if (rejected) {
+          logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
             bookKey,
-            fileName: originalFileName,
-            error,
           })
-        })
-        invalidateBookFileIndex()
-      }
-
-      if (rejectedResults.length > 0) {
-        logWarn('bookshelf', 'cleanup-import-artifacts partial-failed', {
-          bookKey,
-          fileName: originalFileName,
-          failedCount: rejectedResults.length,
-        })
-      }
-    }
-
-    const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
-      const { bookKey, config: book } = storedBook
-      const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
-        bookKey,
-      })
-      try {
-        const format = await resolveBookFormat(bookKey)
-        const cache = (await loadBookCache(bookKey)) || {}
-        const progressValue =
-          typeof cache.progress === 'number' && Number.isFinite(cache.progress)
-            ? Math.min(100, Math.max(0, cache.progress))
-            : 0
-
-        const shelfBook = {
-          ...book,
-          bookKey,
-          displayTitle: cache.title || book.name,
-          cover: cache.cover,
-          format,
-          progressValue,
-          lastReadLabel: buildLastReadLabel(book, progressValue),
+          showMainTaskMessage({
+            type: 'warning',
+            title: '云端清理失败',
+            message: `本地已删除书籍，但云端清理失败：${toTaskErrorMessage(rejected.reason)}`,
+            taskKey: `bookshelf-delete:${bookKey}`,
+          })
+          return
         }
 
-        finishLog({
-          bookKey,
-          format,
-          progressValue,
-        })
-        return shelfBook
-      } catch (error) {
-        logWarn('bookshelf', 'build-shelf-book unresolved-file', {
-          bookKey,
-          error,
-        })
-
-        const cache = (await loadBookCache(bookKey)) || {}
-        const shelfBook = {
-          ...book,
-          bookKey,
-          displayTitle: cache.title || book.name,
-          cover: cache.cover,
-          format: 'unknown' as ShelfBookFormat,
-          progressValue: 0,
-          lastReadLabel: '',
-        }
-
-        finishLog({
-          bookKey,
-          format: 'unknown',
-          progressValue: 0,
-        })
-        return shelfBook
-      }
-    }
-
-    const loadBooks = async () => {
-      const finishLog = createDurationLogger('bookshelf', 'load-books')
-      try {
-        booksLoading.value = true
-        const loadedBooks = await loadBookConfigs()
-        await reconcileLibraryBookFileIndex(loadedBooks.map((book) => book.bookKey))
-        books.value = await Promise.all(loadedBooks.map((book) => buildShelfBook(book)))
-        finishLog({
-          total: books.value.length,
-        })
-      } catch (error) {
-        logError('bookshelf', 'load-books failed', error)
-      } finally {
-        booksLoading.value = false
-      }
-    }
-
-    const handleCloudSyncSynced = async (result: CloudSyncApplyResult) => {
-      const finishLog = createDurationLogger('bookshelf', 'sync-files')
-      beginLoading(IMPORT_LOADING_TEXT.syncing)
-      try {
-        cloudSyncVisible.value = false
-        invalidateBookFileIndex()
-        await loadBooks()
         showMainTaskMessage({
           type: 'success',
-          title: '云同步完成',
-          message: formatCloudSyncResultMessage(result),
-          taskKey: 'bookshelf-sync',
-        })
-        finishLog({
-          ...result,
-          total: books.value.length,
-        })
-      } catch (error) {
-        logError('bookshelf', 'sync-files failed', error)
-        showMainTaskMessage({
-          type: 'error',
-          title: '云同步失败',
-          message: toTaskErrorMessage(error),
-          taskKey: 'bookshelf-sync',
-        })
-      } finally {
-        endLoading()
-      }
-    }
-
-    const syncFiles = () => {
-      cloudSyncVisible.value = true
-    }
-
-    const addBook = async () => {
-      const selectedFilePath = await open({
-        multiple: true,
-        directory: false,
-        filters: [
-          {
-            name: 'Book files',
-            extensions: ['epub', 'txt'],
-          },
-        ],
-      })
-
-      if (selectedFilePath === null) {
-        return
-      }
-
-      const selectedPaths = Array.isArray(selectedFilePath) ? selectedFilePath : [selectedFilePath]
-      const parallelImports = Math.min(MAX_PARALLEL_IMPORTS, selectedPaths.length)
-
-      logInfo('bookshelf', 'select-book-files', {
-        count: selectedPaths.length,
-        parallelImports,
-      })
-
-      const batchNotifier = createMainTaskBatchNotifier({
-        taskKey: 'bookshelf-import-cloud-sync',
-        successTitle: '云端同步完成',
-        partialFailureTitle: '云端同步部分完成',
-        errorTitle: '云端同步失败',
-        actionLabel: '云端同步',
-      })
-
-      const dirs = await getLocalDirNames()
-      const batchContext: BatchImportContext = {
-        batchNotifier,
-        dirs,
-        reservedBookKeys: new Set<string>(),
-        reservedOriginalFileNames: new Set<string>(),
-      }
-
-      try {
-        await runWithConcurrencyLimit(selectedPaths, parallelImports, (path) =>
-          addBookByPath(path, batchContext)
-        )
-      } finally {
-        batchNotifier.flushWhenComplete()
-      }
-    }
-
-    const addBookByPath = async (path: string, batchContext: BatchImportContext) => {
-      const sourceFileName = getFileNameFromPath(path)
-      const sourceFormat = detectImportSourceFormat(path)
-      if (!sourceFormat) {
-        logWarn('bookshelf', 'unsupported-book-format', {
-          path,
-        })
-        return
-      }
-
-      let originalFileName = sourceFormat === 'txt' ? toEpubFileName(sourceFileName) : sourceFileName
-      const normalizedOriginalFileName = normalizeOriginalFileName(originalFileName)
-      const format: BookFormat = 'epub'
-
-      if (batchContext.reservedOriginalFileNames.has(normalizedOriginalFileName)) {
-        logWarn('bookshelf', 'duplicate-batch-file-name-detected', {
-          fileName: sourceFileName,
-          path,
-        })
-        return
-      }
-
-      const finishLog = createDurationLogger('bookshelf', 'import-book', {
-        fileName: sourceFileName,
-        sourceFormat,
-        format,
-      })
-      batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
-      let reservedBookKey: string | null = null
-      let importedBookKey: string | null = null
-      let localCopyCreated = false
-      let createdBookArtifacts = false
-      let importSucceeded = false
-      beginLoading(IMPORT_LOADING_TEXT.parsing)
-
-      try {
-        if (await hasOriginalFilenameConflict(originalFileName)) {
-          logWarn('bookshelf', 'duplicate-file-name-detected', {
-            fileName: originalFileName,
-          })
-          return
-        }
-
-        if (sourceFormat === 'txt') {
-          originalFileName = await invoke<string>('convert_txt_to_epub', {
-            filepath: path,
-            subdir: batchContext.dirs.books,
-            filename: sourceFileName,
-          })
-        } else {
-          await invoke('copy_file_to_subdir', {
-            filepath: path,
-            subdir: batchContext.dirs.books,
-            filename: originalFileName,
-          })
-        }
-        localCopyCreated = true
-
-        const fileBytes = await readLocalBookFile(originalFileName)
-        const bufferFile = fileBytes.buffer.slice(
-          fileBytes.byteOffset,
-          fileBytes.byteOffset + fileBytes.byteLength
-        ) as ArrayBuffer
-        const importedBook = await getImportedBookName(originalFileName, bufferFile)
-        importedBookKey = importedBook.bookKey
-
-        if (
-          batchContext.reservedBookKeys.has(importedBook.bookKey) ||
-          books.value.find((book) => book.bookKey === importedBook.bookKey)
-        ) {
-          logWarn('bookshelf', 'duplicate-book-detected', {
-            bookKey: importedBook.bookKey,
-            fileName: originalFileName,
-          })
-          return
-        }
-        batchContext.reservedBookKeys.add(importedBook.bookKey)
-        reservedBookKey = importedBook.bookKey
-        let newBook = await buildBookConfigFromImport({
-          sourcePath: path,
-          originalFileName,
-          format,
-          fileBuffer: bufferFile,
-        })
-        const configFilename = toBookConfigFilename(importedBook.bookKey)
-        let usedCloudConfig = false
-
-        try {
-          const existsOnCloud = await invoke('webdav_exists', {
-            subdir: CLOUD_DIRS.progress,
-            filename: configFilename,
-          })
-          if (existsOnCloud) {
-            const cloudData = await invoke('webdav_get', {
-              subdir: CLOUD_DIRS.progress,
-              filename: configFilename,
-            })
-            const cloudConfig = normalizeBookConfig(
-              JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[])))
-            )
-            newBook = cloudConfig
-            usedCloudConfig = true
-            logInfo('bookshelf', 'import-book use-cloud-config', {
-              bookKey: importedBook.bookKey,
-              fileName: configFilename,
-            })
-          }
-        } catch (error) {
-          logWarn('bookshelf', 'import-book check-cloud-config-failed', {
-            bookKey: importedBook.bookKey,
-            error,
-          })
-        }
-
-        const bookConfigJson = stringifyJson(newBook)
-        const encodedBookConfig = new TextEncoder().encode(bookConfigJson)
-
-        updateLoadingText(IMPORT_LOADING_TEXT.saving)
-
-        await writeJsonFile(
-          buildLocalFilePath(LOCAL_DIRS.progress, configFilename),
-          newBook
-        )
-        createdBookArtifacts = true
-
-        await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
-
-        invalidateBookFileIndex()
-        const cachedPayload = await primeBookCacheAfterImport(
-          importedBook.bookKey,
-          bufferFile,
-          originalFileName
-        )
-
-        books.value.push({
-          ...newBook,
-          bookKey: importedBook.bookKey,
-          displayTitle: cachedPayload.title || newBook.name,
-          cover: cachedPayload.cover,
-          format,
-          progressValue: 0,
-          lastReadLabel: '未读',
-        })
-
-        updateLoadingText(IMPORT_LOADING_TEXT.uploading)
-
-        const bookLabel = cachedPayload.title || newBook.name || importedBook.name
-        batchContext.batchNotifier.registerTask(bookLabel)
-        if (!usedCloudConfig) {
-          queueMicrotask(() => {
-            void Promise.allSettled([
-              invoke('webdav_upload', {
-                subdir: batchContext.dirs.progress,
-                filename: configFilename,
-                contents: Array.from(encodedBookConfig),
-              }),
-            ])
-              .then((results) => {
-                const rejected = results.find((result) => result.status === 'rejected')
-                if (rejected) {
-                  const reason = toTaskErrorMessage(rejected.reason)
-                  logWarn('bookshelf', 'import-book remote-sync-failed', {
-                    bookKey: importedBook.bookKey,
-                    fileName: originalFileName,
-                    reason,
-                  })
-                  batchContext.batchNotifier.recordFailure(bookLabel, reason)
-                  return
-                }
-
-                batchContext.batchNotifier.recordSuccess(bookLabel)
-              })
-          })
-        } else {
-          batchContext.batchNotifier.recordSuccess(bookLabel)
-        }
-        importSucceeded = true
-        finishLog({
-          bookKey: importedBook.bookKey,
-          total: books.value.length,
-        })
-      } catch (error) {
-        logError('bookshelf', 'import-book failed', error, {
-          fileName: originalFileName,
-        })
-      } finally {
-        batchContext.reservedOriginalFileNames.delete(normalizedOriginalFileName)
-        if (reservedBookKey) {
-          batchContext.reservedBookKeys.delete(reservedBookKey)
-        }
-        if (localCopyCreated && !importSucceeded) {
-          await cleanupImportedBookArtifacts(
-            originalFileName,
-            importedBookKey,
-            createdBookArtifacts
-          )
-        }
-        endLoading()
-      }
-    }
-
-    const deleteBook = async (bookKey: string) => {
-      const finishLog = createDurationLogger('bookshelf', 'delete-book', {
-        bookKey,
-      })
-      try {
-        const targetBook = books.value.find((book) => book.bookKey === bookKey)
-        const resolvedBookFile = targetBook
-          ? await resolveBookFile(bookKey).catch(() => null)
-          : null
-
-        await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey)))
-
-        if (resolvedBookFile) {
-          await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, resolvedBookFile.fileName))
-        }
-
-        if (targetBook) {
-          await removeLocalFile(
-            buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(targetBook.bookKey))
-          )
-          await removeLocalFile(
-            buildLocalFilePath(
-              LOCAL_DIRS.cachedLocations,
-              getBookLocationsCacheFilename(targetBook.bookKey)
-            )
-          )
-        }
-
-        await removeBookMarksByBookKey(bookKey)
-        await removeBookFileIndexEntry(bookKey)
-
-        invalidateBookFileIndex()
-        books.value = books.value.filter((book) => book.bookKey !== bookKey)
-        showMenu.value = false
-
-        queueMicrotask(() => {
-          void Promise.allSettled([
-            invoke('webdav_delete', {
-              subdir: CLOUD_DIRS.progress,
-              filename: toBookConfigFilename(bookKey),
-            }),
-            ...(resolvedBookFile
-              ? [
-                  invoke('webdav_delete', {
-                    subdir: CLOUD_DIRS.books,
-                    filename: resolvedBookFile.fileName,
-                  }),
-                ]
-              : []),
-          ]).then((results) => {
-            const rejected = results.find((result) => result.status === 'rejected')
-            if (rejected) {
-              logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
-                bookKey,
-              })
-              showMainTaskMessage({
-                type: 'warning',
-                title: '云端清理失败',
-                message: `本地已删除书籍，但云端清理失败：${toTaskErrorMessage(rejected.reason)}`,
-                taskKey: `bookshelf-delete:${bookKey}`,
-              })
-              return
-            }
-
-            showMainTaskMessage({
-              type: 'success',
-              title: '删除完成',
-              message: '书籍已从本地与云端同步清理。',
-              taskKey: `bookshelf-delete:${bookKey}`,
-            })
-          })
-        })
-
-        finishLog({
-          total: books.value.length,
-        })
-      } catch (error) {
-        logError('bookshelf', 'delete-book failed', error, {
-          bookKey,
-        })
-        showMainTaskMessage({
-          type: 'error',
-          title: '删除失败',
-          message: toTaskErrorMessage(error),
+          title: '删除完成',
+          message: '书籍已从本地与云端同步清理。',
           taskKey: `bookshelf-delete:${bookKey}`,
         })
-      }
-    }
+      })
+    })
 
-    const openBook = async (bookKey: string) => {
-      await openReaderWindowWithPrecheck(bookKey.toString())
-    }
+    finishLog({
+      total: books.value.length,
+    })
+  } catch (error) {
+    logError('bookshelf', 'delete-book failed', error, {
+      bookKey,
+    })
+    showMainTaskMessage({
+      type: 'error',
+      title: '删除失败',
+      message: toTaskErrorMessage(error),
+      taskKey: `bookshelf-delete:${bookKey}`,
+    })
+  }
+}
 
-    const clampProgressValue = (value: number) => {
-      if (!Number.isFinite(value)) {
-        return 0
-      }
+// ============================================================
+// 阅读窗口业务
+// ============================================================
+const openBook = async (bookKey: string) => {
+  await openReaderWindowWithPrecheck(bookKey.toString())
+}
 
-      return Math.min(100, Math.max(0, value))
-    }
+// ============================================================
+// 阅读进度同步
+// ============================================================
+const clampProgressValue = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
 
-    const applyBookshelfProgressSaved = (payload: BookshelfProgressSavedPayload) => {
-      if (!payload.bookKey) {
-        return
-      }
+  return Math.min(100, Math.max(0, value))
+}
 
-      const currentIndex = books.value.findIndex((book) => book.bookKey === payload.bookKey)
-      if (currentIndex < 0) {
-        void loadBooks()
-        return
-      }
+const applyBookshelfProgressSaved = (payload: BookshelfProgressSavedPayload) => {
+  if (!payload.bookKey) {
+    return
+  }
 
-      const progressValue = clampProgressValue(payload.progress)
-      const currentBook = books.value[currentIndex]
-      books.value.splice(currentIndex, 1, {
-        ...currentBook,
+  const currentIndex = books.value.findIndex((book) => book.bookKey === payload.bookKey)
+  if (currentIndex < 0) {
+    void loadBooks()
+    return
+  }
+
+  const progressValue = clampProgressValue(payload.progress)
+  const currentBook = books.value[currentIndex]
+  books.value.splice(currentIndex, 1, {
+    ...currentBook,
+    durChapterIndex: payload.durChapterIndex,
+    durChapterPos: payload.durChapterPos,
+    durChapterTitle: payload.durChapterTitle,
+    durChapterTime: payload.durChapterTime,
+    progressValue,
+    lastReadLabel: buildLastReadLabel(
+      {
         durChapterIndex: payload.durChapterIndex,
         durChapterPos: payload.durChapterPos,
         durChapterTitle: payload.durChapterTitle,
         durChapterTime: payload.durChapterTime,
-        progressValue,
-        lastReadLabel: buildLastReadLabel(
-          {
-            durChapterIndex: payload.durChapterIndex,
-            durChapterPos: payload.durChapterPos,
-            durChapterTitle: payload.durChapterTitle,
-            durChapterTime: payload.durChapterTime,
-          },
-          progressValue
-        ),
-      })
-    }
-
-    const registerBookshelfProgressSavedListener = async () => {
-      unlistenBookshelfProgressSaved?.()
-      unlistenBookshelfProgressSaved = await listen<BookshelfProgressSavedPayload>(
-        WINDOW_EVENTS.BOOKSHELF_PROGRESS_SAVED,
-        (event) => {
-          applyBookshelfProgressSaved(event.payload)
-        }
-      )
-    }
-
-    const registerCloudSyncFailedListener = async () => {
-      unlistenCloudSyncFailed?.()
-      unlistenCloudSyncFailed = await listen<{ bookKey?: string; fileName?: string }>(
-        WINDOW_EVENTS.CLOUD_SYNC_FAILED,
-        () => {
-          showMainTaskMessage({
-            type: 'warning',
-            title: '云同步失败',
-            message: '阅读进度已保存至本地，但云端同步失败，请检查网络连接。',
-            taskKey: 'bookshelf-cloud-sync-failed',
-          })
-        }
-      )
-    }
-
-    const uploadBookToCloud = async (bookKey: string) => {
-      try {
-        await uploadLocalBookFileToCloud(bookKey)
-        showMainTaskMessage({
-          type: 'success',
-          title: '上传完成',
-          message: '书籍文件已上传至云端。',
-          taskKey: `bookshelf-upload:${bookKey}`,
-        })
-      } catch (error) {
-        showMainTaskMessage({
-          type: 'error',
-          title: '上传失败',
-          message: toTaskErrorMessage(error),
-          taskKey: `bookshelf-upload:${bookKey}`,
-        })
-      }
-    }
-
-    const showBookInfo = (bookKey: string) => {
-      bookInfoKey.value = bookKey.toString()
-      bookInfoVisible.value = true
-    }
-
-    const onContextMenu = (e: MouseEvent, bookKey: string) => {
-      const menuItems: ContextMenuItem[] = [
-        {
-          label: '打开 | 开始阅读',
-          type: 'bookOpen',
-          onClick: () => void openBook(bookKey),
-        },
-        {
-          label: '上传 | 上传到云端',
-          type: 'upload',
-          onClick: () => void uploadBookToCloud(bookKey),
-        },
-        {
-          label: '信息 | 详细信息',
-          type: 'info',
-          onClick: () => showBookInfo(bookKey),
-        },
-        {
-          label: '删除 | 更新云同步',
-          type: 'delete',
-          onClick: () => deleteBook(bookKey),
-        },
-      ]
-      menuOptions.value = buildContextMenuData({
-        x: e.x,
-        y: e.y,
-        menuItems,
-        width: 170,
-        itemHeight: 35,
-        precision: 20,
-        theme: getAppliedAppThemeMode(),
-      })
-      showMenu.value = true
-    }
-
-    const openSetting = () => {
-      settingVisible.value = true
-    }
-
-    const getBookCover = (cover?: string) => {
-      if (cover && cover.startsWith('data:image')) return cover
-      return defaultCover
-    }
-
-    const getBookFormatBadge = (book: ShelfBook): string => {
-      if (book.format === 'unknown') {
-        return '--'
-      }
-
-      return 'EPUB'
-    }
-
-    const isBookMissing = (book: ShelfBook): boolean => {
-      return book.format === 'unknown'
-    }
-
-    const getProgressValue = (book: ShelfBook): number => {
-      const value = Number(book.progressValue ?? 0)
-      if (Number.isNaN(value)) {
-        return 0
-      }
-      return Math.min(100, Math.max(0, value))
-    }
-
-    const getProgressPercent = (book: ShelfBook): string => {
-      return `${getProgressValue(book).toFixed(1)}%`
-    }
-
-    const getGridProgressText = (book: ShelfBook): string => {
-      const progress = getProgressValue(book)
-      return progress > 0 ? `阅读进度：${progress.toFixed(1)}%` : '未读'
-    }
-
-    const getListSubtitle = (book: ShelfBook): string => {
-      return normalizeDisplayedChapterTitle(book.durChapterTitle)
-    }
-
-    const getListMeta = (book: ShelfBook): string => {
-      return `最近阅读：${book.lastReadLabel}`
-    }
-
-    onMounted(() => {
-      void loadBooks()
-      void registerBookshelfProgressSavedListener().catch((error) => {
-        logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
-      })
-      void registerCloudSyncFailedListener().catch((error) => {
-        logWarn('bookshelf', 'register cloud-sync-failed listener failed', error)
-      })
-    })
-
-    onUnmounted(() => {
-      unlistenBookshelfProgressSaved?.()
-      unlistenBookshelfProgressSaved = null
-      unlistenCloudSyncFailed?.()
-      unlistenCloudSyncFailed = null
-    })
-
-    return {
-      books,
-      addBook,
-      deleteBook,
-      openBook,
-      onContextMenu,
-      handleCloudSyncSynced,
-      syncFiles,
-      isLoading,
-      loadingText,
-      showMenu,
-      menuOptions,
-      booksLoading,
-      openSetting,
-      settingVisible,
-      cloudSyncVisible,
-      bookInfoVisible,
-      bookInfoKey,
-      emptyStateImage,
-      isBooksEmpty,
-      getBookCover,
-      shelfViewMode,
-      toggleShelfViewMode,
-      getBookFormatBadge,
-      isBookMissing,
-      getProgressValue,
-      getProgressPercent,
-      getGridProgressText,
-      getListSubtitle,
-      getListMeta,
-    }
-  },
+      },
+      progressValue
+    ),
+  })
 }
+
+// ============================================================
+// 事件绑定
+// ============================================================
+const registerBookshelfProgressSavedListener = async () => {
+  unlistenBookshelfProgressSaved?.()
+  unlistenBookshelfProgressSaved = await listen<BookshelfProgressSavedPayload>(
+    WINDOW_EVENTS.BOOKSHELF_PROGRESS_SAVED,
+    (event) => {
+      applyBookshelfProgressSaved(event.payload)
+    }
+  )
+}
+
+const registerCloudSyncFailedListener = async () => {
+  unlistenCloudSyncFailed?.()
+  unlistenCloudSyncFailed = await listen<{ bookKey?: string; fileName?: string }>(
+    WINDOW_EVENTS.CLOUD_SYNC_FAILED,
+    () => {
+      showMainTaskMessage({
+        type: 'warning',
+        title: '云同步失败',
+        message: '阅读进度已保存至本地，但云端同步失败，请检查网络连接。',
+        taskKey: 'bookshelf-cloud-sync-failed',
+      })
+    }
+  )
+}
+
+// ============================================================
+// 云端上传业务
+// ============================================================
+const uploadBookToCloud = async (bookKey: string) => {
+  try {
+    await uploadLocalBookFileToCloud(bookKey)
+    showMainTaskMessage({
+      type: 'success',
+      title: '上传完成',
+      message: '书籍文件已上传至云端。',
+      taskKey: `bookshelf-upload:${bookKey}`,
+    })
+  } catch (error) {
+    showMainTaskMessage({
+      type: 'error',
+      title: '上传失败',
+      message: toTaskErrorMessage(error),
+      taskKey: `bookshelf-upload:${bookKey}`,
+    })
+  }
+}
+
+// ============================================================
+// 书籍信息弹窗
+// ============================================================
+const showBookInfo = (bookKey: string) => {
+  bookInfoKey.value = bookKey.toString()
+  bookInfoVisible.value = true
+}
+
+// ============================================================
+// 右键菜单业务
+// ============================================================
+const onContextMenu = (e: MouseEvent, bookKey: string) => {
+  const menuItems: ContextMenuItem[] = [
+    {
+      label: '打开 | 开始阅读',
+      type: 'bookOpen',
+      onClick: () => void openBook(bookKey),
+    },
+    {
+      label: '上传 | 上传到云端',
+      type: 'upload',
+      onClick: () => void uploadBookToCloud(bookKey),
+    },
+    {
+      label: '信息 | 详细信息',
+      type: 'info',
+      onClick: () => showBookInfo(bookKey),
+    },
+    {
+      label: '删除 | 更新云同步',
+      type: 'delete',
+      onClick: () => deleteBook(bookKey),
+    },
+  ]
+  menuOptions.value = buildContextMenuData({
+    x: e.x,
+    y: e.y,
+    menuItems,
+    width: 170,
+    itemHeight: 35,
+    precision: 20,
+    theme: getAppliedAppThemeMode(),
+  })
+  showMenu.value = true
+}
+
+// ============================================================
+// 设置弹窗
+// ============================================================
+const openSetting = () => {
+  settingVisible.value = true
+}
+
+// ============================================================
+// 书架展示格式化
+// ============================================================
+const getBookCover = (cover?: string) => {
+  if (cover && cover.startsWith('data:image')) return cover
+  return defaultCover
+}
+
+const getBookFormatBadge = (book: ShelfBook): string => {
+  if (book.format === 'unknown') {
+    return '--'
+  }
+
+  return 'EPUB'
+}
+
+const isBookMissing = (book: ShelfBook): boolean => {
+  return book.format === 'unknown'
+}
+
+const getProgressValue = (book: ShelfBook): number => {
+  const value = Number(book.progressValue ?? 0)
+  if (Number.isNaN(value)) {
+    return 0
+  }
+  return Math.min(100, Math.max(0, value))
+}
+
+const getProgressPercent = (book: ShelfBook): string => {
+  return `${getProgressValue(book).toFixed(1)}%`
+}
+
+const getGridProgressText = (book: ShelfBook): string => {
+  const progress = getProgressValue(book)
+  return progress > 0 ? `阅读进度：${progress.toFixed(1)}%` : '未读'
+}
+
+const getListSubtitle = (book: ShelfBook): string => {
+  return normalizeDisplayedChapterTitle(book.durChapterTitle)
+}
+
+const getListMeta = (book: ShelfBook): string => {
+  return `最近阅读：${book.lastReadLabel}`
+}
+
+// ============================================================
+// 生命周期
+// ============================================================
+onMounted(() => {
+  void loadBooks()
+  void registerBookshelfProgressSavedListener().catch((error) => {
+    logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
+  })
+  void registerCloudSyncFailedListener().catch((error) => {
+    logWarn('bookshelf', 'register cloud-sync-failed listener failed', error)
+  })
+})
+
+onUnmounted(() => {
+  unlistenBookshelfProgressSaved?.()
+  unlistenBookshelfProgressSaved = null
+  unlistenCloudSyncFailed?.()
+  unlistenCloudSyncFailed = null
+})
 </script>
 
 <style lang="scss" scoped>
