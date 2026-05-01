@@ -1,0 +1,7 @@
+dist
+node_modules
+src-tauri
+libs/epub.js
+package-lock.json
+auto-imports.d.ts
+components.d.ts

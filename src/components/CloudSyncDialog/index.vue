@@ -452,7 +452,6 @@ export default defineComponent({
   .sync-file-name-ext {
     font-size: 14px;
     color: var(--text-secondary);
-    margin-left: 2px;
     background: var(--surface-brand-soft);
     border-radius: var(--radius-xs);
     margin-left: 6px;
