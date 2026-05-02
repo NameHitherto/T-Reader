@@ -34,10 +34,14 @@
         正在读取系统字体...
       </div>
 
-      <el-scrollbar v-else>
+      <el-scrollbar
+        v-else
+        :distance="240"
+        @end-reached="loadMoreFontGroups"
+      >
         <div v-if="visibleFontFamilyGroups.length > 0" class="font-grid">
           <section
-            v-for="group in visibleFontFamilyGroups"
+            v-for="group in renderedFontFamilyGroups"
             :key="group.family"
             class="font-card"
             :class="{ 'font-card--active': Boolean(draftSelections[group.family]) }"
@@ -108,6 +112,15 @@
           </section>
         </div>
 
+        <div
+          v-if="visibleFontFamilyGroups.length > 0"
+          class="font-list-status"
+        >
+          <span>
+            已经到底啦~
+          </span>
+        </div>
+
         <el-empty
           v-else-if="fontFamilyGroups.length === 0"
           description="当前没有读取到系统字体"
@@ -136,7 +149,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, reactive, ref } from 'vue'
+import { defineComponent, computed, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { saveReaderConfigToDisk } from '@/services/reader/readerConfigService'
@@ -176,11 +189,14 @@ export default defineComponent({
     const readerConfigStore = useReaderConfigStore()
     const { readerConfig } = storeToRefs(readerConfigStore)
 
+    const FONT_GROUP_BATCH_SIZE = 24
+
     const loading = ref(false)
     const saving = ref(false)
     const systemFonts = ref<SystemFontEntry[]>([])
     const searchKeyword = ref('')
     const baseOrderedFontFamilyGroups = ref<SystemFontFamilyGroup[]>([])
+    const renderedFontGroupCount = ref(FONT_GROUP_BATCH_SIZE)
     const draftSelections = reactive<Record<string, string>>({})
 
     const fontFamilyGroups = computed(() => groupSystemFontsByFamily(systemFonts.value))
@@ -189,10 +205,33 @@ export default defineComponent({
         doesSystemFontGroupMatchKeyword(group, searchKeyword.value)
       )
     )
+    const renderedFontFamilyGroups = computed(() =>
+      visibleFontFamilyGroups.value.slice(0, renderedFontGroupCount.value)
+    )
+    const hasMoreFontFamilyGroups = computed(() =>
+      renderedFontGroupCount.value < visibleFontFamilyGroups.value.length
+    )
     const previewText = SYSTEM_FONT_PREVIEW_TEXT
     const selectedCount = computed(() =>
       Object.values(draftSelections).filter((value) => Boolean(value)).length
     )
+
+    const resetRenderedFontGroupCount = () => {
+      renderedFontGroupCount.value = FONT_GROUP_BATCH_SIZE
+    }
+
+    const loadMoreFontGroups = (direction: string) => {
+      if (direction !== 'bottom' || !hasMoreFontFamilyGroups.value) {
+        return
+      }
+
+      renderedFontGroupCount.value = Math.min(
+        renderedFontGroupCount.value + FONT_GROUP_BATCH_SIZE,
+        visibleFontFamilyGroups.value.length
+      )
+    }
+
+    watch(searchKeyword, resetRenderedFontGroupCount)
 
     const resetDraftSelections = () => {
       const nextSelections: Record<string, string> = {}
@@ -232,6 +271,7 @@ export default defineComponent({
         readerConfig.value.enabledSystemFonts.map((font) => font.family)
       )
       searchKeyword.value = ''
+      resetRenderedFontGroupCount()
     }
 
     const handleVisibilityChange = (value: boolean) => {
@@ -244,6 +284,7 @@ export default defineComponent({
 
     const clearSearch = () => {
       searchKeyword.value = ''
+      resetRenderedFontGroupCount()
     }
 
     const updateSelection = (family: string, value: string) => {
@@ -372,11 +413,13 @@ export default defineComponent({
       draftSelections,
       fontFamilyGroups,
       visibleFontFamilyGroups,
+      renderedFontFamilyGroups,
       selectedCount,
       clearSearch,
       closeDialog,
       handleOpen,
       handleVisibilityChange,
+      loadMoreFontGroups,
       updateSelection,
       getFamilyMode,
       changeFamilyMode,
@@ -493,6 +536,14 @@ export default defineComponent({
     box-shadow:
       var(--shadow-md),
       0 0 0 2px var(--ring-brand-subtle);
+  }
+
+  .font-list-status {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0 4px;
+    color: var(--text-muted);
+    font-size: 12px;
   }
 
   .font-card-header {
