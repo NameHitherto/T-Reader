@@ -63,7 +63,7 @@
 
             <div
               class="font-preview"
-              :style="{ fontFamily: getPreviewFontValue(group.family) }"
+              :style="{ fontFamily: getPreviewFontFamilyCss(group) }"
             >
               <div class="font-preview-caption">字体预览</div>
               <div class="font-preview-title">洛琪希 赛高！</div>
@@ -149,17 +149,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, reactive, ref, watch } from 'vue'
+import { defineComponent, computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
 import { saveReaderConfigToDisk } from '@/services/reader/readerConfigService'
+import {
+  buildLocalSrcValue,
+  escapeCssString,
+  getReaderLocalFontCandidates,
+} from '@/services/reader/readerFontApplicationService'
 import { dispatchReaderStyleUpdate } from '@/services/reader/readerWindowBridgeService'
 import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
 import { logError } from '@/utils/logger'
 import {
   doesSystemFontGroupMatchKeyword,
   fetchSystemFonts,
-  findSystemFontMatch,
   formatSystemFontLabel,
   getEnabledFontByValue,
   getReaderFontValue,
@@ -190,6 +194,8 @@ export default defineComponent({
     const { readerConfig } = storeToRefs(readerConfigStore)
 
     const FONT_GROUP_BATCH_SIZE = 24
+    const PREVIEW_FONT_STYLE_ID = 'system-font-enable-dialog-preview-font-style'
+    const PREVIEW_FONT_FAMILY_PREFIX = 'TReaderFontPreview'
 
     const loading = ref(false)
     const saving = ref(false)
@@ -215,6 +221,82 @@ export default defineComponent({
     const selectedCount = computed(() =>
       Object.values(draftSelections).filter((value) => Boolean(value)).length
     )
+    const previewFontFamilyByGroup = computed(() => {
+      const fontFamilyMap = new Map<string, string>()
+
+      renderedFontFamilyGroups.value.forEach((group, index) => {
+        fontFamilyMap.set(group.family, `${PREVIEW_FONT_FAMILY_PREFIX}-${index}`)
+      })
+
+      return fontFamilyMap
+    })
+
+    const getPreviewEntry = (group: { family: string; entries: SystemFontEntry[] }) => {
+      const selectedValue = draftSelections[group.family]
+      const selectedEntry = group.entries.find(
+        (entry) => getReaderFontValue(entry) === selectedValue
+      )
+
+      return selectedEntry || group.entries[0] || null
+    }
+
+    const previewFontFaceRules = computed(() => {
+      return renderedFontFamilyGroups.value.flatMap((group) => {
+        const previewFontFamily = previewFontFamilyByGroup.value.get(group.family)
+        const previewEntry = getPreviewEntry(group)
+
+        if (!previewFontFamily || !previewEntry) {
+          return []
+        }
+
+        const localSources = getReaderLocalFontCandidates(
+          previewEntry,
+          getReaderFontValue(previewEntry)
+        )
+
+        if (localSources.length === 0) {
+          return []
+        }
+
+        return [
+          `@font-face { font-family: "${escapeCssString(previewFontFamily)}"; src: ${buildLocalSrcValue(localSources)}; font-display: swap; }`,
+        ]
+      }).join('\n')
+    })
+
+    const syncPreviewFontStyle = (fontFaceRules: string) => {
+      const existingStyle = document.getElementById(
+        PREVIEW_FONT_STYLE_ID
+      ) as HTMLStyleElement | null
+
+      if (!fontFaceRules) {
+        existingStyle?.remove()
+        return
+      }
+
+      const styleElement = existingStyle || document.createElement('style')
+      styleElement.id = PREVIEW_FONT_STYLE_ID
+
+      if (styleElement.textContent !== fontFaceRules) {
+        styleElement.textContent = fontFaceRules
+      }
+
+      if (!styleElement.isConnected) {
+        document.head.appendChild(styleElement)
+      }
+    }
+
+    const removePreviewFontStyle = () => {
+      document.getElementById(PREVIEW_FONT_STYLE_ID)?.remove()
+    }
+
+    const getPreviewFontFamilyCss = (group: { family: string }) => {
+      const previewFontFamily = previewFontFamilyByGroup.value.get(group.family)
+
+      return previewFontFamily
+        ? `"${escapeCssString(previewFontFamily)}", ${DEFAULT_READER_FONT}`
+        : DEFAULT_READER_FONT
+    }
 
     const resetRenderedFontGroupCount = () => {
       renderedFontGroupCount.value = FONT_GROUP_BATCH_SIZE
@@ -232,6 +314,8 @@ export default defineComponent({
     }
 
     watch(searchKeyword, resetRenderedFontGroupCount)
+    watch(previewFontFaceRules, syncPreviewFontStyle, { immediate: true })
+    onBeforeUnmount(removePreviewFontStyle)
 
     const resetDraftSelections = () => {
       const nextSelections: Record<string, string> = {}
@@ -324,17 +408,6 @@ export default defineComponent({
       }
     }
 
-    const getPreviewFontValue = (family: string) => {
-      const selectedValue = draftSelections[family]
-      if (selectedValue) {
-        return selectedValue
-      }
-
-      const matchedFont = findSystemFontMatch(family, systemFonts.value)
-
-      return matchedFont ? getReaderFontValue(matchedFont) : family
-    }
-
     const formatStyleLabel = (font: SystemFontEntry) => {
       const label = formatSystemFontLabel(font)
       if (font.fullName || font.subfamily) {
@@ -424,7 +497,7 @@ export default defineComponent({
       getFamilyMode,
       changeFamilyMode,
       selectFamilyEntry,
-      getPreviewFontValue,
+      getPreviewFontFamilyCss,
       formatStyleLabel,
       getSelectedEntryLabel,
       saveSelection,

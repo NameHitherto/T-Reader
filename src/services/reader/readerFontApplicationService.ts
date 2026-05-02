@@ -12,7 +12,7 @@ export interface ReaderFontApplication {
   localSources: string[]
 }
 
-const escapeCssString = (value: string) => {
+export const escapeCssString = (value: string) => {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
@@ -34,7 +34,7 @@ const dedupeNames = (...values: Array<string | null | undefined>) => {
   return result
 }
 
-const buildLocalSrcValue = (fontNames: string[]) => {
+export const buildLocalSrcValue = (fontNames: string[]) => {
   return fontNames.map((name) => `local("${escapeCssString(name)}")`).join(', ')
 }
 
