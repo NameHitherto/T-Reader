@@ -19,7 +19,10 @@ where
     match operation().await {
         Ok(value) => Ok(value),
         Err(first_error) => {
-            log_warn("webdav", &format!("{} failed, retrying once: {}", label, first_error));
+            log_warn(
+                "webdav",
+                &format!("{} failed, retrying once: {}", label, first_error),
+            );
             operation().await
         }
     }
@@ -36,7 +39,8 @@ pub async fn webdav_upload_file(
     let client = build_webdav_client();
     let result = retry_once("webdav-upload", || async {
         upload_remote_file(&client, &settings, subdir, filename, contents.clone()).await
-    }).await;
+    })
+    .await;
     if result.is_ok() {
         finish_timer("webdav", "webdav-upload", started_at);
     }
@@ -49,7 +53,8 @@ pub async fn webdav_get_file(subdir: &str, filename: &str) -> Result<Vec<u8>, St
     let client = build_webdav_client();
     let result = retry_once("webdav-get", || async {
         download_remote_file(&client, &settings, subdir, filename).await
-    }).await;
+    })
+    .await;
     if result.is_ok() {
         finish_timer("webdav", "webdav-get", started_at);
     }

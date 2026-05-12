@@ -31,11 +31,11 @@ pub fn ack_reader_load(
 }
 
 #[tauri::command]
-pub fn close_reader_window(
+pub fn hide_reader_window(
     app: AppHandle,
     state: State<'_, ReaderWindowState>,
 ) -> Result<(), String> {
-    reader_window_service::close_reader_window(app, state)
+    reader_window_service::hide_reader_window(app, state)
 }
 
 #[tauri::command]
@@ -130,7 +130,7 @@ pub fn window_toggle_fullscreen(app: AppHandle, label: String) -> Result<(), Str
     let is_maximized = window
         .is_maximized()
         .map_err(|e| format!("检查最大化状态失败: {:?}", e))?;
-    
+
     if is_maximized {
         window
             .unmaximize()
@@ -146,10 +146,43 @@ pub fn window_toggle_fullscreen(app: AppHandle, label: String) -> Result<(), Str
 }
 
 #[tauri::command]
-pub fn window_close(app: AppHandle, label: String) -> Result<(), String> {
+pub fn window_show(app: AppHandle, label: String) -> Result<(), String> {
     let window = app
         .get_webview_window(&label)
         .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
-    info!("[{}][window] 窗口关闭命令已执行", label);
-    window.close().map_err(|e| format!("窗口关闭失败: {:?}", e))
+    window
+        .show()
+        .map_err(|e| format!("窗口显示失败: {:?}", e))?;
+    info!("[{}][window] 窗口显示", label);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn window_hide(app: AppHandle, label: String) -> Result<(), String> {
+    let window = app
+        .get_webview_window(&label)
+        .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
+    window
+        .hide()
+        .map_err(|e| format!("窗口隐藏失败: {:?}", e))?;
+    info!("[{}][window] 窗口隐藏", label);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn app_close(app: AppHandle) -> Result<(), String> {
+    if let Some(reader) = app.get_webview_window("reader") {
+        reader
+            .close()
+            .map_err(|e| format!("关闭 reader 窗口失败: {:?}", e))?;
+        info!("[reader][window] 阅读器窗口关闭命令已执行（应用退出）");
+    }
+
+    if let Some(main) = app.get_webview_window("main") {
+        main.close()
+            .map_err(|e| format!("关闭 main 窗口失败: {:?}", e))?;
+        info!("[main][window] 主窗口关闭命令已执行（应用退出）");
+    }
+
+    Ok(())
 }

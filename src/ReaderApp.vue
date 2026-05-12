@@ -769,9 +769,19 @@ const unlistenBook = ref<UnlistenFn | null>(null)
 const unlistenClosed = ref<UnlistenFn | null>(null)
 const unlistenStyle = ref<UnlistenFn | null>(null)
 const unlistenTheme = ref<UnlistenFn | null>(null)
+const unlistenWindowHide = ref<UnlistenFn | null>(null)
 const unlistenShowBookInfo = ref<UnlistenFn | null>(null)
 const unlistenShowAssistant = ref<UnlistenFn | null>(null)
 const unlistenShowHelp = ref<UnlistenFn | null>(null)
+
+const saveReaderSession = async () => {
+  await saveReaderRendition().catch(() => {
+    logError('reader', '窗口关闭异常: 阅读进度保存失败')
+  })
+  await saveReaderConfig().catch(() => {
+    logError('reader', '窗口关闭异常: 全局配置保存失败')
+  })
+}
 
 registerReaderWindowEvents({
   onLoadBookKey: async (event) => {
@@ -811,18 +821,17 @@ registerReaderWindowEvents({
     )
     await applyReaderStyle()
   },
+  onWindowHide: async () => {
+    await saveReaderSession()
+  },
   onCloseRequested: async () => {
-    await saveReaderRendition().catch(() => {
-      logError('reader', '窗口关闭异常: 阅读进度保存失败')
-    })
-    await saveReaderConfig().catch(() => {
-      logError('reader', '窗口关闭异常: 全局配置保存失败')
-    })
+    await saveReaderSession()
   },
 }).then((unlisteners) => {
   unlistenBook.value = unlisteners.unlistenBook
   unlistenStyle.value = unlisteners.unlistenStyle
   unlistenTheme.value = unlisteners.unlistenTheme
+  unlistenWindowHide.value = unlisteners.unlistenWindowHide
   unlistenClosed.value = unlisteners.unlistenClose
   unlistenShowBookInfo.value = unlisteners.unlistenShowBookInfo
   unlistenShowAssistant.value = unlisteners.unlistenShowAssistant
@@ -855,6 +864,7 @@ onUnmounted(() => {
   unlistenBook.value?.()
   unlistenStyle.value?.()
   unlistenTheme.value?.()
+  unlistenWindowHide.value?.()
   unlistenClosed.value?.()
   unlistenShowBookInfo.value?.()
   unlistenShowAssistant.value?.()

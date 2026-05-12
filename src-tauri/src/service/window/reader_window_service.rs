@@ -18,6 +18,7 @@ use crate::{
 const READER_LABEL: &str = "reader";
 const MAIN_LABEL: &str = "main";
 const LOAD_BOOK_EVENT: &str = "load-book-key";
+const READER_WINDOW_HIDE_EVENT: &str = "reader-window-hide";
 const OPEN_TIMEOUT_MS: u64 = 7000;
 const ACK_RETRY_WAIT_MS: u64 = 1800;
 const ACK_RETRY_LIMIT: u8 = 1;
@@ -27,6 +28,33 @@ static READER_MESSAGE_COUNTER: AtomicU64 = AtomicU64::new(1);
 fn next_reader_message_id() -> String {
     let sequence = READER_MESSAGE_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("reader-message-{}-{}", now_millis(), sequence)
+}
+
+/// 启动时预创建 reader 窗口（隐藏状态），生命周期贯穿整个应用会话。
+pub fn precreate_reader_window(app: &AppHandle) -> Result<(), String> {
+    info!("[reader][window] 预创建阅读器窗口（隐藏）");
+
+    let window =
+        WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
+            .title("阅读")
+            .decorations(false)
+            .min_inner_size(880.0, 660.0)
+            .focused(false)
+            .visible(false)
+            .build()
+            .map_err(|error| format!("failed to pre-create reader window: {:?}", error))?;
+    window
+        .hide()
+        .map_err(|error| format!("failed to hide pre-created reader window: {:?}", error))?;
+
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Destroyed = event {
+            info!("[reader][window] 阅读器窗口已销毁");
+        }
+    });
+
+    info!("[reader][window] 阅读器窗口预创建完成（隐藏状态）");
+    Ok(())
 }
 
 fn reset_runtime(runtime: &mut ReaderWindowRuntime) {
@@ -54,10 +82,23 @@ fn ensure_reader_window_exists(
     state: &State<'_, ReaderWindowState>,
 ) -> Result<bool, String> {
     if app.get_webview_window(READER_LABEL).is_some() {
+        // 窗口已存在，确保可见
+        if let Some(window) = app.get_webview_window(READER_LABEL) {
+            let visible = window
+                .is_visible()
+                .map_err(|e| format!("检查窗口可见性失败: {:?}", e))?;
+            if !visible {
+                window
+                    .show()
+                    .map_err(|e| format!("显示阅读器窗口失败: {:?}", e))?;
+                info!("[reader][window] 阅读器窗口已显示");
+            }
+        }
         return Ok(false);
     }
 
-    info!("[reader][window] 阅读器窗口创建中");
+    // 兜底：窗口被意外销毁后重新创建
+    info!("[reader][window] 阅读器窗口不存在，重新创建中");
 
     let app_handle = app.clone();
     let window =
@@ -230,22 +271,28 @@ pub fn ack_reader_load(
     Ok(())
 }
 
-pub fn close_reader_window(
+pub fn hide_reader_window(
     app: AppHandle,
     state: State<'_, ReaderWindowState>,
 ) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(READER_LABEL) {
+        app.emit_to(READER_LABEL, READER_WINDOW_HIDE_EVENT, json!({}))
+            .map_err(|error| format!("发送阅读器隐藏事件失败: {:?}", error))?;
         window
-            .close()
-            .map_err(|error| format!("failed to close reader window: {:?}", error))?;
+            .hide()
+            .map_err(|error| format!("隐藏阅读器窗口失败: {:?}", error))?;
     }
-    info!("[reader][window] 阅读器窗口关闭命令已执行");
+    info!("[reader][window] 阅读器窗口已隐藏");
 
     let mut runtime = state
         .inner
         .lock()
         .map_err(|_| "failed to lock reader window state".to_string())?;
-    reset_runtime(&mut runtime);
+    // 隐藏时不重置 runtime，前端仍在运行，保留 ready 状态
+    runtime.pending_load = None;
+    runtime.awaiting_message_id = None;
+    runtime.last_acked_message_id = None;
+    runtime.last_seen_at = now_millis();
 
     Ok(())
 }

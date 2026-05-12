@@ -8,6 +8,7 @@ mod utils;
 use entities::{AppUpdateState, ReaderWindowState};
 use log::LevelFilter;
 use service::window::main_window_service;
+use service::window::reader_window_service;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use utils::logging::build_log_target;
 
@@ -52,6 +53,8 @@ pub fn run() {
         .setup(|app| {
             main_window_service::create_main_window(app.handle())
                 .expect("failed to create main window");
+            reader_window_service::precreate_reader_window(app.handle())
+                .expect("failed to pre-create reader window");
             Ok(())
         })
         .invoke_handler(command::invoke_handler())

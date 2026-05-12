@@ -1,6 +1,8 @@
 use crate::{
     entities::txt_toc_rule::TxtTocRuleItem,
-    repository::local_fs::txt_toc_rule_repository::{ensure_txt_toc_rules_file, load_txt_toc_rules},
+    repository::local_fs::txt_toc_rule_repository::{
+        ensure_txt_toc_rules_file, load_txt_toc_rules,
+    },
 };
 
 pub fn get_enabled_txt_toc_rules() -> Result<Vec<TxtTocRuleItem>, String> {

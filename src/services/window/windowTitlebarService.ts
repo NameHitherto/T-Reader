@@ -4,8 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 /**
  * 绑定自定义标题栏按钮事件。
  *
- * 所有窗口操作（最小化 / 最大化 / 关闭）统一通过 Rust 后端 command 执行，
- * 前端不再直接调用 Tauri window API。
+ * 窗口操作统一通过 Rust 后端 command 执行。
  *
  * 返回一个清理函数，用于在组件卸载或 beforeunload 时解绑事件。
  */
@@ -19,7 +18,12 @@ export const bindWindowTitlebarControls = () => {
     void invoke('window_toggle_maximize', { label: windowLabel })
   }
   const onClose = () => {
-    void invoke('window_close', { label: windowLabel })
+    if (windowLabel === 'reader') {
+      void invoke('hide_reader_window')
+      return
+    }
+
+    void invoke('app_close')
   }
 
   document.getElementById('titlebar-minimize')?.addEventListener('click', onMinimize)

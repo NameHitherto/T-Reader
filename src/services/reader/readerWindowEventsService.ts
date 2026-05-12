@@ -11,6 +11,7 @@ interface RegisterReaderWindowEventsArgs {
   onShowHelp: () => void
   onUpdateAppTheme: (mode: AppThemeMode) => Promise<void> | void
   onUpdateReaderStyle: () => Promise<void> | void
+  onWindowHide: () => Promise<void>
   onCloseRequested: () => Promise<void>
 }
 
@@ -18,6 +19,7 @@ interface ReaderWindowEventUnlisteners {
   unlistenBook: UnlistenFn
   unlistenStyle: UnlistenFn
   unlistenTheme: UnlistenFn
+  unlistenWindowHide: UnlistenFn
   unlistenClose: UnlistenFn
   unlistenShowBookInfo: UnlistenFn
   unlistenShowAssistant: UnlistenFn
@@ -48,6 +50,10 @@ export const registerReaderWindowEvents = async (
     WINDOW_EVENTS.UPDATE_READER_STYLE,
     args.onUpdateReaderStyle
   )
+  const unlistenWindowHide = await listen(
+    WINDOW_EVENTS.READER_WINDOW_HIDE,
+    args.onWindowHide
+  )
 
   const unlistenClose = await getCurrentWindow().onCloseRequested(async () => {
     await args.onCloseRequested()
@@ -57,6 +63,7 @@ export const registerReaderWindowEvents = async (
     unlistenBook,
     unlistenStyle,
     unlistenTheme,
+    unlistenWindowHide,
     unlistenClose,
     unlistenShowBookInfo,
     unlistenShowAssistant,

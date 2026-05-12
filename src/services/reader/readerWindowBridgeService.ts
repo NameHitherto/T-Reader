@@ -43,6 +43,10 @@ export const ackReaderLoadMessage = async (messageId: string) => {
   })
 }
 
+export const hideReaderWindow = async () => {
+  await invoke('hide_reader_window')
+}
+
 export const dispatchReaderEvent = async (
   eventName: string,
   payload?: unknown
