@@ -153,6 +153,9 @@ pub fn window_show(app: AppHandle, label: String) -> Result<(), String> {
     window
         .show()
         .map_err(|e| format!("窗口显示失败: {:?}", e))?;
+    window
+        .set_focus()
+        .map_err(|e| format!("窗口聚焦失败: {:?}", e))?;
     info!("[{}][window] 窗口显示", label);
     Ok(())
 }

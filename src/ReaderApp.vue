@@ -823,6 +823,17 @@ registerReaderWindowEvents({
   },
   onWindowHide: async () => {
     await saveReaderSession()
+    // 清空当前书籍 DOM 结构
+    if (rendition.value) {
+      stylesheetIsolationController?.destroy()
+      stylesheetIsolationController = null
+      try {
+        destroyEpubRendition(rendition.value)
+      } catch (e) {
+        logWarn('ReaderApp', '隐藏时销毁 Rendition 失败', e)
+      }
+      rendition.value = null
+    }
   },
   onCloseRequested: async () => {
     await saveReaderSession()

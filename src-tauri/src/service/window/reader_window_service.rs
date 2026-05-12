@@ -22,6 +22,10 @@ const READER_WINDOW_HIDE_EVENT: &str = "reader-window-hide";
 const OPEN_TIMEOUT_MS: u64 = 7000;
 const ACK_RETRY_WAIT_MS: u64 = 1800;
 const ACK_RETRY_LIMIT: u8 = 1;
+const MIN_WINDOW_WIDTH: f64 = 880.0;
+const MIN_WINDOW_HEIGHT: f64 = 660.0;
+const INITIAL_WINDOW_WIDTH: f64 = 1280.0;
+const INITIAL_WINDOW_HEIGHT: f64 = 960.0;
 
 static READER_MESSAGE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -38,14 +42,12 @@ pub fn precreate_reader_window(app: &AppHandle) -> Result<(), String> {
         WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
             .title("阅读")
             .decorations(false)
-            .min_inner_size(880.0, 660.0)
+            .min_inner_size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
+            .inner_size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT)
             .focused(false)
             .visible(false)
             .build()
             .map_err(|error| format!("failed to pre-create reader window: {:?}", error))?;
-    window
-        .hide()
-        .map_err(|error| format!("failed to hide pre-created reader window: {:?}", error))?;
 
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Destroyed = event {
@@ -91,7 +93,14 @@ fn ensure_reader_window_exists(
                 window
                     .show()
                     .map_err(|e| format!("显示阅读器窗口失败: {:?}", e))?;
+                window
+                    .set_focus()
+                    .map_err(|e| format!("聚焦阅读器窗口失败: {:?}", e))?;
                 info!("[reader][window] 阅读器窗口已显示");
+            } else {
+                window
+                    .set_focus()
+                    .map_err(|e| format!("聚焦阅读器窗口失败: {:?}", e))?;
             }
         }
         return Ok(false);
@@ -105,9 +114,13 @@ fn ensure_reader_window_exists(
         WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
             .title("阅读")
             .decorations(false)
-            .min_inner_size(880.0, 660.0)
+            .min_inner_size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
+            .inner_size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT)
             .build()
             .map_err(|error| format!("failed to create reader window: {:?}", error))?;
+    window
+        .set_focus()
+        .map_err(|error| format!("failed to focus reader window: {:?}", error))?;
 
     window.on_window_event(move |event| {
         use tauri::WindowEvent;
