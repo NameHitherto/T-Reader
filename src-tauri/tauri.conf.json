@@ -10,16 +10,6 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "书架",
-        "width": 880,
-        "height": 660,
-        "decorations": false,
-        "minWidth": 880,
-        "minHeight": 660
-      }
-    ],
     "security": {
       "csp": null
     }

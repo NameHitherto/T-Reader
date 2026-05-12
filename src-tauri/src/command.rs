@@ -20,6 +20,10 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::window::close_reader_window,
         crate::api::window::dispatch_main_event,
         crate::api::window::dispatch_reader_event,
+        crate::api::window::window_minimize,
+        crate::api::window::window_toggle_maximize,
+        crate::api::window::window_toggle_fullscreen,
+        crate::api::window::window_close,
         crate::api::txt_toc_rule::get_txt_toc_rules,
         crate::api::txt_toc_rule::ensure_txt_toc_rules_file
     ]

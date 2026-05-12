@@ -1,5 +1,6 @@
+use log::info;
 use serde_json::Value;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::{
     entities::{DispatchReaderEventResult, OpenReaderWindowResult, ReaderWindowState},
@@ -54,4 +55,101 @@ pub fn dispatch_main_event(
     payload: Option<Value>,
 ) -> Result<DispatchReaderEventResult, String> {
     reader_window_service::dispatch_main_event(app, event_name, payload)
+}
+
+// ============================================================
+// 通用窗口控制命令 (适用于 main / reader 两个窗口)
+// 窗口最大化和窗口全屏是互斥的，因此需要先检查当前状态再执行相应的操作
+// ============================================================
+
+#[tauri::command]
+pub fn window_minimize(app: AppHandle, label: String) -> Result<(), String> {
+    let window = app
+        .get_webview_window(&label)
+        .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
+    window
+        .minimize()
+        .map_err(|e| format!("窗口最小化失败: {:?}", e))?;
+    info!("[{}][window] 窗口最小化", label);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn window_toggle_maximize(app: AppHandle, label: String) -> Result<(), String> {
+    let window = app
+        .get_webview_window(&label)
+        .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
+
+    let is_fullscreen = window
+        .is_fullscreen()
+        .map_err(|e| format!("检查全屏状态失败: {:?}", e))?;
+    if is_fullscreen {
+        window
+            .set_fullscreen(false)
+            .map_err(|e| format!("退出全屏失败: {:?}", e))?;
+        info!("[{}][window] 退出全屏", label);
+        return Ok(());
+    }
+
+    let is_maximized = window
+        .is_maximized()
+        .map_err(|e| format!("检查最大化状态失败: {:?}", e))?;
+    if is_maximized {
+        window
+            .unmaximize()
+            .map_err(|e| format!("取消最大化失败: {:?}", e))?;
+        info!("[{}][window] 取消最大化", label);
+    } else {
+        window
+            .maximize()
+            .map_err(|e| format!("最大化失败: {:?}", e))?;
+        info!("[{}][window] 窗口最大化", label);
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn window_toggle_fullscreen(app: AppHandle, label: String) -> Result<(), String> {
+    let window = app
+        .get_webview_window(&label)
+        .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
+
+    let is_fullscreen = window
+        .is_fullscreen()
+        .map_err(|e| format!("检查全屏状态失败: {:?}", e))?;
+
+    if is_fullscreen {
+        window
+            .set_fullscreen(false)
+            .map_err(|e| format!("退出全屏失败: {:?}", e))?;
+        info!("[{}][window] 退出全屏", label);
+        return Ok(());
+    }
+
+    let is_maximized = window
+        .is_maximized()
+        .map_err(|e| format!("检查最大化状态失败: {:?}", e))?;
+    
+    if is_maximized {
+        window
+            .unmaximize()
+            .map_err(|e| format!("取消最大化失败: {:?}", e))?;
+        info!("[{}][window] 取消最大化", label);
+    } else {
+        window
+            .set_fullscreen(true)
+            .map_err(|e| format!("进入全屏失败: {:?}", e))?;
+        info!("[{}][window] 进入全屏", label);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn window_close(app: AppHandle, label: String) -> Result<(), String> {
+    let window = app
+        .get_webview_window(&label)
+        .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
+    info!("[{}][window] 窗口关闭命令已执行", label);
+    window.close().map_err(|e| format!("窗口关闭失败: {:?}", e))
 }

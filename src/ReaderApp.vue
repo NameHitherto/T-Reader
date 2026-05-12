@@ -90,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useReaderConfigStore } from './store/readerConfigStore'
@@ -383,17 +384,7 @@ function nextPage() {
 }
 
 async function switchFullscreen() {
-  const win = getCurrentWindow()
-  const isFullscreen = await win.isFullscreen()
-  if (isFullscreen) {
-    await win.setFullscreen(false)
-  } else {
-    const isMaximized = await win.isMaximized()
-    if (isMaximized) {
-      await win.unmaximize()
-    }
-    await win.setFullscreen(true)
-  }
+  await invoke('window_toggle_fullscreen', { label: getCurrentWindow().label })
 }
 
 // ============================================================

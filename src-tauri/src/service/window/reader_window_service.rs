@@ -1,3 +1,4 @@
+use log::info;
 use serde_json::{json, Value};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
@@ -56,12 +57,31 @@ fn ensure_reader_window_exists(
         return Ok(false);
     }
 
-    WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
-        .title("阅读")
-        .decorations(false)
-        .min_inner_size(880.0, 660.0)
-        .build()
-        .map_err(|error| format!("failed to create reader window: {:?}", error))?;
+    info!("[reader][window] 阅读器窗口创建中");
+
+    let app_handle = app.clone();
+    let window =
+        WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
+            .title("阅读")
+            .decorations(false)
+            .min_inner_size(880.0, 660.0)
+            .build()
+            .map_err(|error| format!("failed to create reader window: {:?}", error))?;
+
+    window.on_window_event(move |event| {
+        use tauri::WindowEvent;
+        if let WindowEvent::CloseRequested { .. } = event {
+            if let Some(state) = app_handle.try_state::<crate::entities::ReaderWindowState>() {
+                if let Ok(mut runtime) = state.inner.lock() {
+                    reset_runtime(&mut runtime);
+                }
+            }
+            info!("[reader][window] 阅读器窗口收到关闭请求，重置运行时状态");
+        }
+        if let WindowEvent::Destroyed = event {
+            info!("[reader][window] 阅读器窗口已销毁");
+        }
+    });
 
     let mut runtime = state
         .inner
@@ -69,6 +89,11 @@ fn ensure_reader_window_exists(
         .map_err(|_| "failed to lock reader window state".to_string())?;
     runtime.is_ready = false;
     runtime.last_seen_at = now_millis();
+
+    info!(
+        "[reader][window] 阅读器窗口创建成功 (标签={}, 尺寸=880x660)",
+        READER_LABEL
+    );
 
     Ok(true)
 }
@@ -139,6 +164,7 @@ pub async fn open_reader_window(
 ) -> Result<OpenReaderWindowResult, String> {
     let created = ensure_reader_window_exists(&app, &state)?;
     let message_id = next_reader_message_id();
+    let book_key_for_log = book_key.clone();
 
     {
         let mut runtime = state
@@ -154,6 +180,10 @@ pub async fn open_reader_window(
         runtime.last_seen_at = now_millis();
     }
 
+    info!(
+        "[reader][window] 打开阅读器窗口 (bookKey={}, created={})",
+        book_key_for_log, created
+    );
     let acknowledged = wait_reader_load_ack(&app, &state).await?;
 
     Ok(OpenReaderWindowResult {
@@ -170,6 +200,8 @@ pub fn reader_window_ready(state: State<'_, ReaderWindowState>) -> Result<(), St
         .map_err(|_| "failed to lock reader window state".to_string())?;
     runtime.is_ready = true;
     runtime.last_seen_at = now_millis();
+
+    info!("[reader][window] 阅读器前端就绪");
     Ok(())
 }
 
@@ -187,8 +219,13 @@ pub fn ack_reader_load(
     if runtime.awaiting_message_id.as_deref() == Some(message_id.as_str()) {
         runtime.awaiting_message_id = None;
         runtime.pending_load = None;
-        runtime.last_acked_message_id = Some(message_id);
+        runtime.last_acked_message_id = Some(message_id.clone());
     }
+
+    info!(
+        "[reader][window] 阅读器确认书籍加载 (messageId={})",
+        message_id
+    );
 
     Ok(())
 }
@@ -202,6 +239,7 @@ pub fn close_reader_window(
             .close()
             .map_err(|error| format!("failed to close reader window: {:?}", error))?;
     }
+    info!("[reader][window] 阅读器窗口关闭命令已执行");
 
     let mut runtime = state
         .inner
@@ -265,5 +303,6 @@ pub fn dispatch_main_event(
     )
     .map_err(|error| format!("failed to dispatch main event: {:?}", error))?;
 
+    info!("[main][window] 分发事件到主窗口完成 (event={})", event_name);
     Ok(DispatchReaderEventResult { delivered: true })
 }
