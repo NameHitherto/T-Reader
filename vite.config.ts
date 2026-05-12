@@ -55,6 +55,8 @@ export default defineConfig(async () => ({
   },
   build:{
     assetsInlineLimit: 0,
+    // 5. reduce chunk size warning limit to better suit Tauri's use case
+    chunkSizeWarningLimit: 1500,
     // 4. 此处进行前端多页面模板的配置
     rollupOptions: {
       input:{
