@@ -35,9 +35,6 @@ const bootstrap = async () => {
       disposeTitlebarControls();
       unlistenTheme();
     });
-  }else if(currentPlatform === 'android'){
-    // android平台
-    logError('bootstrap', 'Android平台已不支持!');
   }else{
     logError('bootstrap', '意料之外的平台!');
   }

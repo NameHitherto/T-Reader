@@ -44,28 +44,6 @@
 				"isDefault": true
 			},
 			"problemMatcher": []
-		},
-		// 运行Tauri安卓
-		{
-			"type": "shell",
-			"label": "npm: tauri run --target android",
-			"command": "npm run tauri android dev",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
-		},
-		// 构建Tauri安卓正式版
-		{
-			"type": "shell",
-			"label": "npm: tauri build --target android",
-			"command": "npm run tauri android build --release",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
-		},
+		}
 	]
 }
