@@ -429,7 +429,7 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       ...book,
       bookKey,
       displayTitle: cache.title || book.name,
-      cover: cache.cover,
+      cover: cache.coverUrl,
       format,
       progressValue,
       lastReadLabel: buildLastReadLabel(book, progressValue),
@@ -452,7 +452,7 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       ...book,
       bookKey,
       displayTitle: cache.title || book.name,
-      cover: cache.cover,
+      cover: cache.coverUrl,
       format: 'unknown' as ShelfBookFormat,
       progressValue: 0,
       lastReadLabel: '',
@@ -708,7 +708,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       ...newBook,
       bookKey: importedBook.bookKey,
       displayTitle: cachedPayload.title || newBook.name,
-      cover: cachedPayload.cover,
+      cover: cachedPayload.coverUrl,
       format,
       progressValue: 0,
       lastReadLabel: '未读',
@@ -1004,7 +1004,10 @@ const openSetting = () => {
 // 书架展示格式化
 // ============================================================
 const getBookCover = (cover?: string) => {
-  if (cover && cover.startsWith('data:image')) return cover
+  if (cover && (cover.startsWith('asset:') || cover.startsWith('http://asset.localhost'))) {
+    return cover
+  }
+
   return defaultCover
 }
 

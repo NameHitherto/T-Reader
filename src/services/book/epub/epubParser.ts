@@ -1,18 +1,9 @@
 import ePub from 'libs/epub.js'
 import { ParsedBookMeta } from '@/services/book/types'
-import { convertBlobToBase64 } from '@/utils/blob'
 import { createDurationLogger, logWarn } from '@/utils/logger'
 
-interface ParseEpubMetaOptions {
-  includeCover?: boolean
-}
-
-export const parseEpubMeta = async (
-  buffer: ArrayBuffer,
-  options: ParseEpubMetaOptions = {}
-): Promise<ParsedBookMeta> => {
+export const parseEpubMeta = async (buffer: ArrayBuffer): Promise<ParsedBookMeta> => {
   const finishLog = createDurationLogger('epub-parser', 'parse-epub-meta', {
-    includeCover: Boolean(options.includeCover),
     byteLength: buffer.byteLength,
   })
   const book = ePub(buffer)
@@ -20,22 +11,14 @@ export const parseEpubMeta = async (
   try {
     const metadata = await book.loaded.metadata
 
-    let cover = ''
-    if (options.includeCover) {
-      const coverBlobUrl = await book.coverUrl()
-      cover = coverBlobUrl ? await convertBlobToBase64(coverBlobUrl) : ''
-    }
-
     const payload = {
       format: 'epub' as const,
       title: metadata.title || '',
       author: metadata.creator || '',
-      cover,
     }
     finishLog({
       title: payload.title,
       author: payload.author,
-      hasCover: Boolean(payload.cover),
     })
     return payload
   } finally {

@@ -11,7 +11,13 @@
   },
   "app": {
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$DOCUMENT/T-Reader/cached/**/*"
+        ]
+      }
     }
   },
   "bundle": {

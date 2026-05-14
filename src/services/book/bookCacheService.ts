@@ -1,5 +1,9 @@
 import { epubBookCacheHandler, extractEpubLocations } from '@/services/book/epub/epubCacheService'
-import { buildBookCacheDataPath, buildBookCacheDir } from '@/services/book/bookCachePathService'
+import {
+  buildBookCacheCoverAssetUrl,
+  buildBookCacheDataPath,
+  buildBookCacheDir,
+} from '@/services/book/bookCachePathService'
 import { saveBookLocationsCache } from '@/services/book/bookLocationsCacheService'
 import { createDurationLogger, logWarn } from '@/utils/logger'
 import {
@@ -11,8 +15,23 @@ import {
 
 export interface BookCachePayload {
   title?: string
-  cover?: string
+  coverResource?: string | null
+  coverUrl?: string
   progress?: number
+}
+
+const COVER_RESOURCE_FILENAME = /^cover\.[a-z0-9]+$/i
+
+const normalizeCoverResource = (value: unknown): string | null | undefined => {
+  if (value === null) {
+    return null
+  }
+
+  if (typeof value === 'string' && COVER_RESOURCE_FILENAME.test(value)) {
+    return value
+  }
+
+  return undefined
 }
 
 const normalizeBookCachePayload = (
@@ -20,12 +39,30 @@ const normalizeBookCachePayload = (
 ): BookCachePayload => {
   return {
     title: typeof payload.title === 'string' ? payload.title : undefined,
-    cover: typeof payload.cover === 'string' ? payload.cover : undefined,
+    coverResource: normalizeCoverResource(payload.coverResource),
     progress:
       typeof payload.progress === 'number' && Number.isFinite(payload.progress)
         ? Math.min(100, Math.max(0, payload.progress))
         : undefined,
   }
+}
+
+const withBookCacheRuntimeFields = async (
+  bookKey: string,
+  cache: BookCachePayload,
+): Promise<BookCachePayload> => {
+  if (!cache.coverResource) {
+    return cache
+  }
+
+  return {
+    ...cache,
+    coverUrl: await buildBookCacheCoverAssetUrl(bookKey, cache.coverResource),
+  }
+}
+
+const toStoredBookCachePayload = (payload: BookCachePayload): BookCachePayload => {
+  return normalizeBookCachePayload({ ...payload })
 }
 
 export const removeBookCacheDir = async (bookKey: string): Promise<void> => {
@@ -34,9 +71,12 @@ export const removeBookCacheDir = async (bookKey: string): Promise<void> => {
 
 export const loadBookCache = async (bookKey: string): Promise<BookCachePayload | null> => {
   try {
-    return normalizeBookCachePayload(
-      await readJsonFile<Partial<BookCachePayload> & Record<string, unknown>>(
-        await buildBookCacheDataPath(bookKey),
+    return await withBookCacheRuntimeFields(
+      bookKey,
+      normalizeBookCachePayload(
+        await readJsonFile<Partial<BookCachePayload> & Record<string, unknown>>(
+          await buildBookCacheDataPath(bookKey),
+        ),
       ),
     )
   } catch {
@@ -56,9 +96,9 @@ export const saveBookCache = async (
   })
 
   await ensureLocalDir(cacheDir)
-  await writeJsonFile(await buildBookCacheDataPath(bookKey), nextCache)
+  await writeJsonFile(await buildBookCacheDataPath(bookKey), toStoredBookCachePayload(nextCache))
 
-  return nextCache
+  return await withBookCacheRuntimeFields(bookKey, nextCache)
 }
 
 export const hasRequiredBookCache = (cache: BookCachePayload): boolean => {
@@ -75,6 +115,7 @@ export const primeBookCacheAfterImport = async (
   })
   const currentCache = await loadBookCache(bookKey)
   const nextPayload = await epubBookCacheHandler.buildCachePayload({
+    bookKey,
     fileBuffer,
     originalFileName,
     currentCache: currentCache || {},
@@ -113,7 +154,7 @@ export const primeBookCacheAfterImport = async (
 
   finishLog({
     fileName: originalFileName,
-    hasCover: Boolean(payload.cover),
+    hasCover: Boolean(payload.coverResource),
     progress: payload.progress,
     locationsStatus,
   })

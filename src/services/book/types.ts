@@ -5,7 +5,6 @@ export interface ParsedBookMeta {
   format: BookFormat
   title: string
   author: string
-  cover: string
 }
 
 export interface ImportBookParams {
@@ -23,6 +22,7 @@ export interface BookImportHandler {
 export interface BookCachePrimeHandler {
   hasRequiredCache: (cache: BookCachePayload) => boolean
   buildCachePayload: (args: {
+    bookKey: string
     fileBuffer: ArrayBuffer
     originalFileName: string
     currentCache: BookCachePayload
