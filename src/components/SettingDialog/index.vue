@@ -68,42 +68,53 @@
 
       <section class="section">
         <el-divider class="divider" content-position="left">AI大模型</el-divider>
-        <div class="switch-container">
-          <label class="field-label">是否开启</label>
-          <el-switch v-model="isAiAssistantEnabled" />
-        </div>
-        <div class="select-container">
-          <label class="field-label">模型编码</label>
-          <el-select
-            v-model="modelValue"
-            placeholder="请选择"
-            :disabled="!isAiAssistantEnabled"
-          >
-            <el-option
-              v-for="item in modelList"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
-        <div class="input-container">
-          <label class="field-label">模型路径</label>
-          <el-input
-            v-model="modelUrl"
-            :readonly="true"
-            :disabled="!isAiAssistantEnabled"
-          />
-        </div>
-        <div class="input-container">
-          <label class="field-label">API key</label>
-          <el-input
-            v-model="modelAPIKey"
-            type="password"
-            show-password
-            :disabled="!isAiAssistantEnabled"
-          />
-        </div>
+
+        <!-- Display state -->
+        <template v-if="!isEditing">
+          <div class="purpose-tabs">
+            <el-radio-group v-model="activePurpose" size="small">
+              <el-radio-button value="chat">对话</el-radio-button>
+              <el-radio-button value="image">图像</el-radio-button>
+              <el-radio-button value="embedding">嵌入</el-radio-button>
+              <el-radio-button value="rerank">重排序</el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <div v-if="currentProvider" class="model-card">
+            <div class="model-card-body">
+              <div class="model-card-field">
+                <span class="model-card-label">API格式</span>
+                <span class="model-card-value">{{ currentProvider.providerType }}</span>
+              </div>
+              <div class="model-card-field">
+                <span class="model-card-label">模型ID</span>
+                <span class="model-card-value">{{ currentProvider.modelId }}</span>
+              </div>
+              <div class="model-card-field">
+                <span class="model-card-label">请求地址</span>
+                <span class="model-card-value">{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span>
+              </div>
+            </div>
+            <div class="model-card-actions">
+              <el-button size="small" @click="startEdit">编辑</el-button>
+              <el-button size="small" type="danger" @click="deleteProvider">删除</el-button>
+            </div>
+          </div>
+
+          <div v-else class="model-empty">
+            <p>暂无{{ purposeLabel }}模型配置</p>
+            <el-button type="primary" size="small" @click="startAdd">添加</el-button>
+          </div>
+        </template>
+
+        <!-- Edit state -->
+        <ModelProviderForm
+          v-else
+          :provider="editingProvider"
+          :readonly-purpose="!isAdding"
+          @submit="handleFormSubmit"
+          @cancel="handleFormCancel"
+        />
       </section>
 
       <section class="section">
@@ -177,9 +188,12 @@ import {
   saveTxtTocRules,
 } from '@/services/settings/txtTocRulesService'
 import { emitAppThemeUpdate } from '@/services/theme/themeService'
+import { PURPOSE_LABELS } from '@/types/model'
+import ModelProviderForm from '@/components/SettingDialog/ModelProviderForm.vue'
 
 export default {
   name: 'SettingDialog',
+  components: { ModelProviderForm },
   emits: ['close-dialog'],
   data() {
     return {
@@ -192,13 +206,16 @@ export default {
       platformList: [
         { value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' }
       ],
-      isAiAssistantEnabled: false,
-      modelValue: '',
-      modelList: [
-        { value: 'glm-4-flash', label: '智谱清言' },
-        { value: 'deepseek-v3', label: 'DeepSeek-V3(阿里云百炼)' }
-      ],
-      modelAPIKey: '',
+      modelProviders: {
+        chat: null,
+        image: null,
+        embedding: null,
+        rerank: null,
+      },
+      activePurpose: 'chat',
+      isEditing: false,
+      isAdding: false,
+      editingProvider: null,
       txtTocRules: [],
     };
   },
@@ -212,17 +229,12 @@ export default {
       }
       return this.webdavUrlRoot + this.webdavUrlFolder + '/'
     },
-    modelUrl() {
-      if (this.modelValue === '') {
-        return ''
-      } else if (this.modelValue === 'glm-4-flash') {
-        return 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-      } else if (this.modelValue === 'deepseek-v3') {
-        return 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-      }
-
-      return ''
-    }
+    currentProvider() {
+      return this.modelProviders[this.activePurpose] ?? null
+    },
+    purposeLabel() {
+      return PURPOSE_LABELS[this.activePurpose] ?? ''
+    },
   },
   methods: {
     async onOpen() {
@@ -233,9 +245,7 @@ export default {
       this.webdavUrlFolder = loadedSettings.webdavUrlFolder
       this.webdavUsername = loadedSettings.webdavUser
       this.webdavPassword = loadedSettings.webdavPass
-      this.isAiAssistantEnabled = loadedSettings.isAiEnabled === 'true'
-      this.modelValue = loadedSettings.modelName
-      this.modelAPIKey = loadedSettings.modelApiKey
+      this.modelProviders = { ...loadedSettings.modelProviders }
       this.txtTocRules = await loadTxtTocRules()
     },
     async saveSetting() {
@@ -245,10 +255,7 @@ export default {
         webdavUrl: this.webdavUrl,
         webdavUser: this.webdavUsername,
         webdavPass: this.webdavPassword,
-        isAiEnabled: this.isAiAssistantEnabled.toString(),
-        modelName: this.modelValue,
-        modelUrl: this.modelUrl,
-        modelApiKey: this.modelAPIKey,
+        modelProviders: this.modelProviders,
         themeMode: this.themeMode,
       }
 
@@ -257,6 +264,43 @@ export default {
       await saveTxtTocRules(this.txtTocRules)
       await emitAppThemeUpdate(this.themeMode)
       this.$emit('close-dialog')
+    },
+    startEdit() {
+      this.isEditing = true
+      this.isAdding = false
+      this.editingProvider = { ...this.currentProvider }
+    },
+    startAdd() {
+      this.isEditing = true
+      this.isAdding = true
+      this.editingProvider = {
+        purpose: this.activePurpose,
+        providerType: 'OpenAI',
+        baseUrl: '',
+        endpoint: '',
+        modelId: '',
+        apiKey: '',
+      }
+    },
+    handleFormSubmit(provider) {
+      this.modelProviders = {
+        ...this.modelProviders,
+        [provider.purpose]: provider,
+      }
+      this.isEditing = false
+      this.isAdding = false
+      this.editingProvider = null
+    },
+    handleFormCancel() {
+      this.isEditing = false
+      this.isAdding = false
+      this.editingProvider = null
+    },
+    deleteProvider() {
+      this.modelProviders = {
+        ...this.modelProviders,
+        [this.activePurpose]: null,
+      }
     },
     moveRule(currentIndex, offset) {
       const targetIndex = currentIndex + offset
@@ -382,6 +426,100 @@ export default {
     gap: 12px;
   }
 
+  // Model provider styles
+  .purpose-tabs {
+    position: relative;
+    margin-bottom: 12px;
+    top: -6px;
+
+    :deep(.el-radio-group) {
+      background-color: var(--surface-inset);
+      padding: 6px 4px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    :deep(.el-radio-button) {
+      --el-radio-button-checked-bg-color: transparent;
+      --el-radio-button-checked-text-color: var(--text-primary);
+      --el-radio-button-checked-border-color: transparent;
+
+      .el-radio-button__inner {
+        border: none !important;
+        box-shadow: none !important;
+        background-color: transparent;
+        color: var(--text-secondary);
+        border-radius: calc(var(--radius-sm) - 4px) !important;
+        padding: 6px 16px;
+        transition:
+          background-color var(--duration-fast) var(--easing-standard),
+          color var(--duration-fast) var(--easing-standard),
+          box-shadow var(--duration-fast) var(--easing-standard);
+      }
+
+      &.is-active .el-radio-button__inner {
+        background-color: var(--surface-card);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-sm) !important;
+        font-weight: 700;
+      }
+    }
+  }
+
+  .model-card {
+    display: flex;
+    gap: 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-strong);
+    padding: 10px;
+  }
+
+  .model-card-body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .model-card-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .model-card-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .model-card-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    word-break: break-all;
+  }
+
+  .model-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-self: center;
+  }
+
+  .model-empty {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  // TXT TOC rules
   .txt-toc-rule-empty {
     margin-top: 12px;
     color: var(--text-secondary);

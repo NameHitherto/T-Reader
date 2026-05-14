@@ -81,6 +81,10 @@
   }
 }
 
+.el-button + .el-button {
+  margin-left: 0;
+}
+
 .el-button:not(.is-text):not(.is-link):not(.el-button--primary):not(.el-button--danger):not(.el-button--success) {
   border-color: var(--border-emphasis);
   background: var(--surface-strong);

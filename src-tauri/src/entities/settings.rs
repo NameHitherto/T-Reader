@@ -1,7 +1,24 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 fn default_theme_mode() -> String {
     "light".to_string()
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ModelProviderConfig {
+    #[serde(default, rename = "purpose")]
+    pub purpose: String,
+    #[serde(default, rename = "providerType")]
+    pub provider_type: String,
+    #[serde(default, rename = "baseUrl")]
+    pub base_url: String,
+    #[serde(default, rename = "endpoint")]
+    pub endpoint: String,
+    #[serde(default, rename = "modelId")]
+    pub model_id: String,
+    #[serde(default, rename = "apiKey")]
+    pub api_key: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -26,4 +43,6 @@ pub struct Settings {
     pub model_api_key: String,
     #[serde(default = "default_theme_mode", rename = "themeMode")]
     pub theme_mode: String,
+    #[serde(default, rename = "modelProviders")]
+    pub model_providers: Option<HashMap<String, ModelProviderConfig>>,
 }
