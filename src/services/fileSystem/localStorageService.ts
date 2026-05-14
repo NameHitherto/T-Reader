@@ -16,7 +16,6 @@ export const LOCAL_DIRS = {
   books: 'books',
   progress: 'bookProgress',
   cached: 'cached',
-  cachedLocations: 'cached/locations',
   system: 'system',
 } as const
 
@@ -52,8 +51,8 @@ export const ensureLocalStorageDirs = async (): Promise<void> => {
           mkdir(buildLocalDirPath(subdir), {
             ...DOCUMENT_OPTIONS,
             recursive: true,
-          })
-        )
+          }),
+        ),
       )
     })()
   }
@@ -74,7 +73,7 @@ export const readBinaryFile = async (relativePath: string): Promise<Uint8Array> 
 
 export const writeBinaryFile = async (
   relativePath: string,
-  data: Uint8Array | number[]
+  data: Uint8Array | number[],
 ): Promise<void> => {
   await ensureLocalStorageDirs()
   const payload = data instanceof Uint8Array ? data : Uint8Array.from(data)
@@ -91,12 +90,32 @@ export const writeJsonFile = async (relativePath: string, value: unknown): Promi
   await writeBinaryFile(relativePath, encodeJson(value))
 }
 
+export const ensureLocalDir = async (relativeSubdir: string): Promise<void> => {
+  await mkdir(buildLocalDirPath(relativeSubdir), {
+    ...DOCUMENT_OPTIONS,
+    recursive: true,
+  })
+}
+
 export const removeLocalFile = async (relativePath: string): Promise<void> => {
   if (!(await localPathExists(relativePath))) {
     return
   }
 
   await remove(relativePath, DOCUMENT_OPTIONS)
+}
+
+export const removeLocalDir = async (relativeSubdir: string): Promise<void> => {
+  const relativePath = buildLocalDirPath(relativeSubdir)
+
+  if (!(await localPathExists(relativePath))) {
+    return
+  }
+
+  await remove(relativePath, {
+    ...DOCUMENT_OPTIONS,
+    recursive: true,
+  })
 }
 
 export const readLocalDirEntries = async (relativePath: string): Promise<DirEntry[]> => {

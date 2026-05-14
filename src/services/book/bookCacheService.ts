@@ -1,16 +1,11 @@
-import {
-  epubBookCacheHandler,
-  extractEpubLocations,
-} from '@/services/book/epub/epubCacheService'
-import { toBookCacheFilename } from '@/services/book/bookIdentity'
-import {
-  saveBookLocationsCache,
-} from '@/services/book/bookLocationsCacheService'
+import { epubBookCacheHandler, extractEpubLocations } from '@/services/book/epub/epubCacheService'
+import { buildBookCacheDataPath, buildBookCacheDir } from '@/services/book/bookCachePathService'
+import { saveBookLocationsCache } from '@/services/book/bookLocationsCacheService'
 import { createDurationLogger, logWarn } from '@/utils/logger'
 import {
-  buildLocalFilePath,
-  LOCAL_DIRS,
+  ensureLocalDir,
   readJsonFile,
+  removeLocalDir,
   writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
 
@@ -20,7 +15,9 @@ export interface BookCachePayload {
   progress?: number
 }
 
-const normalizeBookCachePayload = (payload: Partial<BookCachePayload> & Record<string, unknown>): BookCachePayload => {
+const normalizeBookCachePayload = (
+  payload: Partial<BookCachePayload> & Record<string, unknown>,
+): BookCachePayload => {
   return {
     title: typeof payload.title === 'string' ? payload.title : undefined,
     cover: typeof payload.cover === 'string' ? payload.cover : undefined,
@@ -31,18 +28,16 @@ const normalizeBookCachePayload = (payload: Partial<BookCachePayload> & Record<s
   }
 }
 
-export const getBookCacheFilename = (bookKey: string): string => {
-  return toBookCacheFilename(bookKey)
+export const removeBookCacheDir = async (bookKey: string): Promise<void> => {
+  await removeLocalDir(await buildBookCacheDir(bookKey))
 }
 
 export const loadBookCache = async (bookKey: string): Promise<BookCachePayload | null> => {
-  const filename = getBookCacheFilename(bookKey)
-
   try {
     return normalizeBookCachePayload(
       await readJsonFile<Partial<BookCachePayload> & Record<string, unknown>>(
-        buildLocalFilePath(LOCAL_DIRS.cached, filename)
-      )
+        await buildBookCacheDataPath(bookKey),
+      ),
     )
   } catch {
     return null
@@ -51,30 +46,29 @@ export const loadBookCache = async (bookKey: string): Promise<BookCachePayload |
 
 export const saveBookCache = async (
   bookKey: string,
-  payload: BookCachePayload
+  payload: BookCachePayload,
 ): Promise<BookCachePayload> => {
-  const filename = getBookCacheFilename(bookKey)
+  const cacheDir = await buildBookCacheDir(bookKey)
   const currentCache = (await loadBookCache(bookKey)) || {}
   const nextCache = normalizeBookCachePayload({
     ...currentCache,
     ...payload,
   })
 
-  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.cached, filename), nextCache)
+  await ensureLocalDir(cacheDir)
+  await writeJsonFile(await buildBookCacheDataPath(bookKey), nextCache)
 
   return nextCache
 }
 
-export const hasRequiredBookCache = (
-  cache: BookCachePayload
-): boolean => {
+export const hasRequiredBookCache = (cache: BookCachePayload): boolean => {
   return epubBookCacheHandler.hasRequiredCache(cache)
 }
 
 export const primeBookCacheAfterImport = async (
   bookKey: string,
   fileBuffer: ArrayBuffer,
-  originalFileName: string
+  originalFileName: string,
 ): Promise<BookCachePayload> => {
   const finishLog = createDurationLogger('book-cache-service', 'prime-book-cache-after-import', {
     fileName: originalFileName,

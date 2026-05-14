@@ -2,20 +2,13 @@
   <div class="main-content">
     <!-- 加载遮罩 -->
     <Transition name="loading">
-      <loadingBlockade
-        v-if="isLoading"
-        class="loading"
-        :warn-text="loadingText"
-      />
+      <loadingBlockade v-if="isLoading" class="loading" :warn-text="loadingText" />
     </Transition>
     <!-- 自定义右键菜单 -->
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息弹窗 -->
     <BookInfoDialog v-model="bookInfoVisible" :book-key="bookInfoKey" />
-    <CloudSyncDialog
-      v-model="cloudSyncVisible"
-      @synced="handleCloudSyncSynced"
-    />
+    <CloudSyncDialog v-model="cloudSyncVisible" @synced="handleCloudSyncSynced" />
     <header class="header">
       <div class="header-menu">
         <div class="header-menu-item" @click="addBook">
@@ -48,13 +41,10 @@
           </span>
         </div>
       </div>
-      <SettingDialog
-        v-model="settingVisible"
-        @close-dialog="settingVisible = false"
-      />
+      <SettingDialog v-model="settingVisible" @close-dialog="settingVisible = false" />
     </header>
     <div class="book-list">
-      <el-divider border-style="dashed"/>
+      <el-divider border-style="dashed" />
       <el-empty
         v-if="!booksLoading && isBooksEmpty"
         :image="emptyStateImage"
@@ -64,41 +54,27 @@
         @click="addBook"
       />
       <div v-else class="bookcase">
-        <div v-if="booksLoading" class="bookcase-placeholder">
-          正在加载书架数据...
-        </div>
+        <div v-if="booksLoading" class="bookcase-placeholder">正在加载书架数据...</div>
         <div
           v-else
           class="bookcase-body"
-          :class="
-            shelfViewMode === 'list'
-              ? 'bookcase-body--list'
-              : 'bookcase-body--grid'
-          "
+          :class="shelfViewMode === 'list' ? 'bookcase-body--list' : 'bookcase-body--grid'"
         >
           <div
             v-for="book in books"
             :key="book.bookKey"
             class="shelf-item"
-            :class="
-              shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'
-            "
+            :class="shelfViewMode === 'list' ? 'shelf-list-card' : 'shelf-grid-card'"
             @click="openBook(book.bookKey)"
             @contextmenu="onContextMenu($event, book.bookKey)"
           >
-            <div
-              v-if="shelfViewMode === 'list'"
-              class="shelf-list-cover"
-            >
+            <div v-if="shelfViewMode === 'list'" class="shelf-list-cover">
               <img :src="getBookCover(book.cover)" alt="封面" />
               <span class="book-format-badge">
                 {{ getBookFormatBadge(book) }}
               </span>
             </div>
-            <div
-              v-if="shelfViewMode === 'list'"
-              class="shelf-list-content"
-            >
+            <div v-if="shelfViewMode === 'list'" class="shelf-list-content">
               <span
                 v-if="isBookMissing(book)"
                 class="shelf-list-missing-badge app-status-pill app-status-pill--danger"
@@ -171,18 +147,15 @@ import SettingDialog from '@/components/SettingDialog/index.vue'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import CloudSyncDialog from '@/components/CloudSyncDialog/index.vue'
 import defaultCover from '@/assets/default-cover.png'
-import {
-  detectBookFormatFromPath,
-} from '@/services/book/bookFormatService'
+import { detectBookFormatFromPath } from '@/services/book/bookFormatService'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
   loadBookCache,
-  getBookCacheFilename,
   primeBookCacheAfterImport,
+  removeBookCacheDir,
 } from '@/services/book/bookCacheService'
-import { getBookLocationsCacheFilename } from '@/services/book/bookLocationsCacheService'
 import {
   buildLastReadLabel,
   normalizeDisplayedChapterTitle,
@@ -225,12 +198,7 @@ import type { BookshelfProgressSavedPayload } from '@/services/reader/readerWind
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import { WINDOW_EVENTS } from '@/constants/events'
-import {
-  createDurationLogger,
-  logError,
-  logInfo,
-  logWarn,
-} from '@/utils/logger'
+import { createDurationLogger, logError, logInfo, logWarn } from '@/utils/logger'
 import { getFileNameFromPath } from '@/utils/filePath'
 import { stringifyJson } from '@/utils/json'
 import { formatCloudSyncResultMessage } from '@/services/sync/cloudSyncService'
@@ -283,7 +251,7 @@ const booksLoading = ref(true)
 // ============================================================
 const isLoading = ref(false)
 const loadingText = ref(
-  'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross'
+  'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross',
 )
 const activeLoadingTasks = ref(0)
 
@@ -305,7 +273,7 @@ const menuOptions = ref({} as ContextMenuData)
 // 书架视图状态
 // ============================================================
 const shelfViewMode = ref<ShelfViewMode>(
-  localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list'
+  localStorage.getItem('shelfViewMode') === 'grid' ? 'grid' : 'list',
 )
 
 // ============================================================
@@ -331,10 +299,10 @@ const toTaskErrorMessage = (error: unknown): string => {
 
 const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
 
-const runWithConcurrencyLimit = async <T>(
+const runWithConcurrencyLimit = async <T,>(
   items: readonly T[],
   limit: number,
-  worker: (item: T, index: number) => Promise<void>
+  worker: (item: T, index: number) => Promise<void>,
 ) => {
   let nextIndex = 0
   const workerCount = Math.min(limit, items.length)
@@ -351,7 +319,7 @@ const runWithConcurrencyLimit = async <T>(
 
         await worker(items[currentIndex], currentIndex)
       }
-    })
+    }),
   )
 }
 
@@ -408,7 +376,7 @@ const toEpubFileName = (fileName: string): string => {
 const cleanupImportedBookArtifacts = async (
   originalFileName: string,
   bookKey: string | null,
-  removeBookArtifacts: boolean
+  removeBookArtifacts: boolean,
 ) => {
   const cleanupTasks: Promise<unknown>[] = [
     removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, originalFileName)),
@@ -417,10 +385,7 @@ const cleanupImportedBookArtifacts = async (
   if (bookKey && removeBookArtifacts) {
     cleanupTasks.push(
       removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey))),
-      removeLocalFile(buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(bookKey))),
-      removeLocalFile(
-        buildLocalFilePath(LOCAL_DIRS.cachedLocations, getBookLocationsCacheFilename(bookKey))
-      )
+      removeBookCacheDir(bookKey),
     )
   }
 
@@ -601,7 +566,7 @@ const addBook = async () => {
 
   try {
     await runWithConcurrencyLimit(selectedPaths, parallelImports, (path) =>
-      addBookByPath(path, batchContext)
+      addBookByPath(path, batchContext),
     )
   } finally {
     batchNotifier.flushWhenComplete()
@@ -669,7 +634,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     const fileBytes = await readLocalBookFile(originalFileName)
     const bufferFile = fileBytes.buffer.slice(
       fileBytes.byteOffset,
-      fileBytes.byteOffset + fileBytes.byteLength
+      fileBytes.byteOffset + fileBytes.byteLength,
     ) as ArrayBuffer
     const importedBook = await getImportedBookName(originalFileName, bufferFile)
     importedBookKey = importedBook.bookKey
@@ -706,7 +671,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
           filename: configFilename,
         })
         const cloudConfig = normalizeBookConfig(
-          JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[])))
+          JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[]))),
         )
         newBook = cloudConfig
         usedCloudConfig = true
@@ -727,10 +692,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
 
     updateLoadingText(IMPORT_LOADING_TEXT.saving)
 
-    await writeJsonFile(
-      buildLocalFilePath(LOCAL_DIRS.progress, configFilename),
-      newBook
-    )
+    await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.progress, configFilename), newBook)
     createdBookArtifacts = true
 
     await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
@@ -739,7 +701,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     const cachedPayload = await primeBookCacheAfterImport(
       importedBook.bookKey,
       bufferFile,
-      originalFileName
+      originalFileName,
     )
 
     shelfBooks.upsertShelfBook({
@@ -764,22 +726,21 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
             filename: configFilename,
             contents: Array.from(encodedBookConfig),
           }),
-        ])
-          .then((results) => {
-            const rejected = results.find((result) => result.status === 'rejected')
-            if (rejected) {
-              const reason = toTaskErrorMessage(rejected.reason)
-              logWarn('bookshelf', 'import-book remote-sync-failed', {
-                bookKey: importedBook.bookKey,
-                fileName: originalFileName,
-                reason,
-              })
-              batchContext.batchNotifier.recordFailure(bookLabel, reason)
-              return
-            }
+        ]).then((results) => {
+          const rejected = results.find((result) => result.status === 'rejected')
+          if (rejected) {
+            const reason = toTaskErrorMessage(rejected.reason)
+            logWarn('bookshelf', 'import-book remote-sync-failed', {
+              bookKey: importedBook.bookKey,
+              fileName: originalFileName,
+              reason,
+            })
+            batchContext.batchNotifier.recordFailure(bookLabel, reason)
+            return
+          }
 
-            batchContext.batchNotifier.recordSuccess(bookLabel)
-          })
+          batchContext.batchNotifier.recordSuccess(bookLabel)
+        })
       })
     } else {
       batchContext.batchNotifier.recordSuccess(bookLabel)
@@ -799,11 +760,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       batchContext.reservedBookKeys.delete(reservedBookKey)
     }
     if (localCopyCreated && !importSucceeded) {
-      await cleanupImportedBookArtifacts(
-        originalFileName,
-        importedBookKey,
-        createdBookArtifacts
-      )
+      await cleanupImportedBookArtifacts(originalFileName, importedBookKey, createdBookArtifacts)
     }
     endLoading()
   }
@@ -818,9 +775,7 @@ const deleteBook = async (bookKey: string) => {
   })
   try {
     const targetBook = shelfBooks.getShelfBook(bookKey)
-    const resolvedBookFile = targetBook
-      ? await resolveBookFile(bookKey).catch(() => null)
-      : null
+    const resolvedBookFile = targetBook ? await resolveBookFile(bookKey).catch(() => null) : null
 
     await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey)))
 
@@ -829,15 +784,7 @@ const deleteBook = async (bookKey: string) => {
     }
 
     if (targetBook) {
-      await removeLocalFile(
-        buildLocalFilePath(LOCAL_DIRS.cached, getBookCacheFilename(targetBook.bookKey))
-      )
-      await removeLocalFile(
-        buildLocalFilePath(
-          LOCAL_DIRS.cachedLocations,
-          getBookLocationsCacheFilename(targetBook.bookKey)
-        )
-      )
+      await removeBookCacheDir(targetBook.bookKey)
     }
 
     await removeBookMarksByBookKey(bookKey)
@@ -945,7 +892,7 @@ const applyBookshelfProgressSaved = (payload: BookshelfProgressSavedPayload) => 
         durChapterTitle: payload.durChapterTitle,
         durChapterTime: payload.durChapterTime,
       },
-      progressValue
+      progressValue,
     ),
   })
 }
@@ -959,7 +906,7 @@ const registerBookshelfProgressSavedListener = async () => {
     WINDOW_EVENTS.BOOKSHELF_PROGRESS_SAVED,
     (event) => {
       applyBookshelfProgressSaved(event.payload)
-    }
+    },
   )
 }
 
@@ -974,7 +921,7 @@ const registerCloudSyncFailedListener = async () => {
         message: '阅读进度已保存至本地，但云端同步失败，请检查网络连接。',
         taskKey: 'bookshelf-cloud-sync-failed',
       })
-    }
+    },
   )
 }
 
@@ -1164,7 +1111,7 @@ onUnmounted(() => {
         &::before {
           position: absolute;
           z-index: -1;
-          content: "";
+          content: '';
           display: block;
           border-radius: var(--radius-sm);
           width: 100%;
@@ -1203,7 +1150,9 @@ onUnmounted(() => {
       }
       &-label {
         transform: translateX(100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+          transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         transform-origin: center right;
         display: block;
         text-align: center;
@@ -1283,14 +1232,14 @@ onUnmounted(() => {
             }
 
             span::after {
-              content: "";
+              content: '';
               position: absolute;
               left: 0;
               bottom: 0;
               width: 0;
               height: 2px;
               background: var(--t-color-light-yellow);
-              transition: width 0.2s ease-in
+              transition: width 0.2s ease-in;
             }
           }
           .book-author {
@@ -1325,14 +1274,13 @@ onUnmounted(() => {
               line-height: 22px;
             }
 
-            span:first-child{
+            span:first-child {
               color: var(--t-color-dark-grey);
               font-weight: 900;
             }
           }
         }
       }
-      
     }
 
     .bookcase {
@@ -1423,7 +1371,10 @@ onUnmounted(() => {
         height: 120px;
         border-radius: 10px;
         overflow: hidden;
-        transition: width 0.28s ease, height 0.28s ease, border-radius 0.28s ease;
+        transition:
+          width 0.28s ease,
+          height 0.28s ease,
+          border-radius 0.28s ease;
 
         img {
           width: 100%;
@@ -1457,7 +1408,9 @@ onUnmounted(() => {
         flex-direction: column;
         gap: 4px;
         padding-right: 72px;
-        transition: padding-right 0.28s ease, gap 0.28s ease;
+        transition:
+          padding-right 0.28s ease,
+          gap 0.28s ease;
       }
 
       .shelf-list-author {
@@ -1514,7 +1467,7 @@ onUnmounted(() => {
         }
 
         span::after {
-          content: "";
+          content: '';
           position: absolute;
           left: 0;
           bottom: 0;
@@ -1587,7 +1540,10 @@ onUnmounted(() => {
         display: flex;
         flex-direction: column;
         width: var(--shelf-grid-item-width);
-        transition: width 0.28s ease, transform 0.28s ease, filter 0.28s ease;
+        transition:
+          width 0.28s ease,
+          transform 0.28s ease,
+          filter 0.28s ease;
         will-change: width, transform;
         animation: shelf-grid-relayout-a 0.32s ease both;
       }
@@ -1598,7 +1554,9 @@ onUnmounted(() => {
         overflow: hidden;
         border: 1px solid var(--border-soft);
         box-shadow: var(--shadow-md);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
 
         img {
           width: 100%;
@@ -1835,7 +1793,6 @@ onUnmounted(() => {
       }
     }
   }
-
 }
 
 .loading {
@@ -1851,4 +1808,3 @@ onUnmounted(() => {
   backdrop-filter: 0;
 }
 </style>
-
