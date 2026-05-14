@@ -37,26 +37,14 @@ export const getBookCacheFilename = (bookKey: string): string => {
 
 export const loadBookCache = async (bookKey: string): Promise<BookCachePayload | null> => {
   const filename = getBookCacheFilename(bookKey)
-  const finishLog = createDurationLogger('book-cache-service', 'load-book-cache', {
-    fileName: filename,
-  })
 
   try {
-    const payload = normalizeBookCachePayload(
+    return normalizeBookCachePayload(
       await readJsonFile<Partial<BookCachePayload> & Record<string, unknown>>(
         buildLocalFilePath(LOCAL_DIRS.cached, filename)
       )
     )
-    finishLog({
-      fileName: filename,
-      hit: true,
-    })
-    return payload
   } catch {
-    finishLog({
-      fileName: filename,
-      hit: false,
-    })
     return null
   }
 }
@@ -66,9 +54,6 @@ export const saveBookCache = async (
   payload: BookCachePayload
 ): Promise<BookCachePayload> => {
   const filename = getBookCacheFilename(bookKey)
-  const finishLog = createDurationLogger('book-cache-service', 'save-book-cache', {
-    fileName: filename,
-  })
   const currentCache = (await loadBookCache(bookKey)) || {}
   const nextCache = normalizeBookCachePayload({
     ...currentCache,
@@ -77,10 +62,6 @@ export const saveBookCache = async (
 
   await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.cached, filename), nextCache)
 
-  finishLog({
-    fileName: filename,
-    keys: Object.keys(nextCache),
-  })
   return nextCache
 }
 

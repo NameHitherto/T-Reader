@@ -6,7 +6,6 @@ import {
   removeLocalFile,
   writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
-import { createDurationLogger } from '@/utils/logger'
 
 export type BookLocationsCacheStatus = 'ready' | 'building' | 'failed'
 
@@ -64,34 +63,13 @@ const buildBookLocationsCachePath = (bookKey: string): string => {
 export const loadBookLocationsCache = async (
   bookKey: string
 ): Promise<BookLocationsCachePayload | null> => {
-  const filename = getBookLocationsCacheFilename(bookKey)
-  const finishLog = createDurationLogger(
-    'book-locations-cache-service',
-    'load-book-locations-cache',
-    {
-      fileName: filename,
-    }
-  )
-
   try {
-    const payload = normalizeBookLocationsCachePayload(
+    return normalizeBookLocationsCachePayload(
       await readJsonFile<RawBookLocationsCachePayload>(
         buildBookLocationsCachePath(bookKey)
       )
     )
-
-    finishLog({
-      fileName: filename,
-      hit: true,
-      status: payload.status,
-      ready: payload.status === 'ready',
-    })
-    return payload
   } catch {
-    finishLog({
-      fileName: filename,
-      hit: false,
-    })
     return null
   }
 }
@@ -100,23 +78,9 @@ export const saveBookLocationsCache = async (
   bookKey: string,
   payload: BookLocationsCachePayload
 ): Promise<BookLocationsCachePayload> => {
-  const filename = getBookLocationsCacheFilename(bookKey)
-  const finishLog = createDurationLogger(
-    'book-locations-cache-service',
-    'save-book-locations-cache',
-    {
-      fileName: filename,
-    }
-  )
   const normalizedPayload = normalizeBookLocationsCachePayload(payload)
 
   await writeJsonFile(buildBookLocationsCachePath(bookKey), normalizedPayload)
-
-  finishLog({
-    fileName: filename,
-    status: normalizedPayload.status,
-    ready: normalizedPayload.status === 'ready',
-  })
 
   return normalizedPayload
 }

@@ -80,11 +80,11 @@ export const logError = (
 
 export const createDurationLogger = (scope: string, message: string, payload?: LogPayload) => {
   const startedAt = performance.now()
-  logInfo(scope, `${message}:start`, payload)
+  logInfo(scope, `══════════ ${message}:start ═════════`, payload)
 
   return (result?: LogPayload) => {
     const durationMs = Number((performance.now() - startedAt).toFixed(2))
-    logInfo(scope, `${message}:done`, {
+    logInfo(scope, `══════════ ${message}:done ═════════`, {
       durationMs,
       ...result,
     })

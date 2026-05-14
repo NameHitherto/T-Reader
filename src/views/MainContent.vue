@@ -452,9 +452,6 @@ const cleanupImportedBookArtifacts = async (
 // ============================================================
 const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
   const { bookKey, config: book } = storedBook
-  const finishLog = createDurationLogger('bookshelf', 'build-shelf-book', {
-    bookKey,
-  })
   try {
     const format = await resolveBookFormat(bookKey)
     const cache = (await loadBookCache(bookKey)) || {}
@@ -473,7 +470,7 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       lastReadLabel: buildLastReadLabel(book, progressValue),
     }
 
-    finishLog({
+    logInfo('bookshelf', 'build-shelf-book:done', {
       bookKey,
       format,
       progressValue,
@@ -496,7 +493,7 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       lastReadLabel: '',
     }
 
-    finishLog({
+    logInfo('bookshelf', 'build-shelf-book:done', {
       bookKey,
       format: 'unknown',
       progressValue: 0,
