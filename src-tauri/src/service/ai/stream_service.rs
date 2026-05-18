@@ -10,26 +10,14 @@ use crate::{
 fn resolve_chat_config(
     settings: &crate::entities::settings::Settings,
 ) -> Result<(String, String, String), String> {
-    if let Some(ref providers) = settings.model_providers {
-        if let Some(chat) = providers.get("chat") {
-            if chat.model_id.is_empty() {
-                return Err("No chat model configured".to_string());
-            }
-            return Ok((
-                chat.model_id.clone(),
-                format!("{}{}", chat.base_url, chat.endpoint),
-                chat.api_key.clone(),
-            ));
+    if let Some(chat) = settings.model_providers.get("chat") {
+        if chat.model_id.is_empty() {
+            return Err("No chat model configured".to_string());
         }
-        return Err("No chat model configured".to_string());
-    }
-
-    // Fallback to legacy flat fields
-    if settings.is_ai_enabled == "true" && !settings.model_name.is_empty() {
         return Ok((
-            settings.model_name.clone(),
-            settings.model_url.clone(),
-            settings.model_api_key.clone(),
+            chat.model_id.clone(),
+            format!("{}{}", chat.base_url, chat.endpoint),
+            chat.api_key.clone(),
         ));
     }
 

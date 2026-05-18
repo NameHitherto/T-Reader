@@ -33,16 +33,8 @@ pub struct Settings {
     pub webdav_user: String,
     #[serde(default, rename = "webdavPass")]
     pub webdav_pass: String,
-    #[serde(default, rename = "isAiEnabled")]
-    pub is_ai_enabled: String,
-    #[serde(default, rename = "modelName")]
-    pub model_name: String,
-    #[serde(default, rename = "modelUrl")]
-    pub model_url: String,
-    #[serde(default, rename = "modelApiKey")]
-    pub model_api_key: String,
     #[serde(default = "default_theme_mode", rename = "themeMode")]
     pub theme_mode: String,
     #[serde(default, rename = "modelProviders")]
-    pub model_providers: Option<HashMap<String, ModelProviderConfig>>,
+    pub model_providers: HashMap<String, ModelProviderConfig>,
 }

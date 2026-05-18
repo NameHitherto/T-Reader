@@ -5,7 +5,8 @@ import {
   readJsonFile,
   writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
-import type { ModelProvider, ModelProviderMap } from '@/types/model'
+import { MODEL_PURPOSES } from '@/types/model'
+import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/types/model'
 
 export type AppThemeMode = 'light' | 'dark'
 
@@ -30,6 +31,26 @@ const emptyModelProviders = (): ModelProviderMap => ({
   rerank: null,
 })
 
+const normalizeModelProviders = (value: unknown): ModelProviderMap => {
+  const providers = emptyModelProviders()
+  if (!value || typeof value !== 'object') {
+    return providers
+  }
+
+  const rawProviders = value as Partial<Record<ModelPurpose, ModelProvider | null>>
+  for (const purpose of MODEL_PURPOSES) {
+    providers[purpose] = rawProviders[purpose] ?? null
+  }
+
+  return providers
+}
+
+const compactModelProviders = (providers: ModelProviderMap) => {
+  return Object.fromEntries(
+    Object.entries(providers).filter(([, provider]) => provider !== null)
+  ) as Partial<Record<ModelPurpose, ModelProvider>>
+}
+
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   webdavUrlRoot: '',
   webdavUrlFolder: '',
@@ -40,69 +61,15 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   themeMode: 'light',
 }
 
-const KNOWN_ENDPOINTS = ['/v1/chat/completions', '/v1/responses', '/v1/responses/compact', '/v1/messages']
-
-function migrateLegacyAiSettings(raw: Record<string, unknown>): ModelProviderMap {
-  const providers = emptyModelProviders()
-  const isAiEnabled = raw.isAiEnabled === 'true'
-  const modelName = typeof raw.modelName === 'string' ? raw.modelName : ''
-  const modelUrl = typeof raw.modelUrl === 'string' ? raw.modelUrl : ''
-  const modelApiKey = typeof raw.modelApiKey === 'string' ? raw.modelApiKey : ''
-
-  if (!isAiEnabled || !modelName) {
-    return providers
-  }
-
-  let baseUrl = modelUrl
-  let endpoint = ''
-  for (const ep of KNOWN_ENDPOINTS) {
-    if (modelUrl.endsWith(ep)) {
-      baseUrl = modelUrl.slice(0, -ep.length)
-      endpoint = ep
-      break
-    }
-  }
-
-  providers.chat = {
-    purpose: 'chat',
-    providerType: 'Other',
-    baseUrl,
-    endpoint,
-    modelId: modelName,
-    apiKey: modelApiKey,
-  }
-
-  return providers
-}
-
-function hasLegacyAiFields(raw: Record<string, unknown>): boolean {
-  return (
-    'isAiEnabled' in raw ||
-    'modelName' in raw ||
-    'modelUrl' in raw ||
-    'modelApiKey' in raw
-  )
-}
-
 export const normalizeAppSettings = (
   settings: Partial<AppSettings> | null | undefined,
 ): AppSettings => {
-  const merged = {
+  return {
     ...DEFAULT_APP_SETTINGS,
     ...(settings || {}),
     themeMode: normalizeAppThemeMode(settings?.themeMode),
+    modelProviders: normalizeModelProviders(settings?.modelProviders),
   }
-
-  if (!merged.modelProviders || Object.keys(merged.modelProviders).length === 0) {
-    const raw = (settings || {}) as Record<string, unknown>
-    if (hasLegacyAiFields(raw)) {
-      merged.modelProviders = migrateLegacyAiSettings(raw)
-    } else {
-      merged.modelProviders = emptyModelProviders()
-    }
-  }
-
-  return merged
 }
 
 export const getChatProvider = (settings: AppSettings): ModelProvider | null => {
@@ -124,10 +91,16 @@ export const loadAppSettings = async (): Promise<AppSettings> => {
 
 export const saveAppSettings = async (settings: Partial<AppSettings>) => {
   const entries = Object.entries(settings).filter(([, value]) => value !== undefined)
-  const payload = Object.fromEntries(entries) as Partial<AppSettings>
+  const payload: Record<string, unknown> = Object.fromEntries(entries)
 
   if ('themeMode' in payload) {
     payload.themeMode = normalizeAppThemeMode(payload.themeMode)
+  }
+
+  if ('modelProviders' in payload) {
+    payload.modelProviders = compactModelProviders(
+      normalizeModelProviders(payload.modelProviders)
+    )
   }
 
   let currentSettings: Record<string, unknown> = {}
@@ -140,8 +113,16 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
     // Use defaults when the settings file has not been created yet.
   }
 
-  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'), {
+  const nextSettings = {
     ...currentSettings,
     ...payload,
-  })
+  }
+
+  if ('modelProviders' in nextSettings) {
+    nextSettings.modelProviders = compactModelProviders(
+      normalizeModelProviders(nextSettings.modelProviders)
+    )
+  }
+
+  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'), nextSettings)
 }
