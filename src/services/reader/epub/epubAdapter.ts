@@ -12,6 +12,7 @@ export interface EpubRenderResult {
   rendition: EpubRenditionLike
   toc: EpubTocItem[]
   stylesheetIsolation: EpubBuiltInStylesheetIsolationController
+  displayTarget?: string
 }
 
 export const destroyEpubRendition = (rendition: EpubRenditionLike | null) => {
@@ -32,7 +33,8 @@ export const renderEpubBook = async (
   loadEpubBuiltInStylesheet: boolean,
   explicitCfi?: string,
   progressSnapshot?: Partial<BookConfig>,
-  cachedLocations?: string
+  cachedLocations?: string,
+  initialStylesheetCss = '',
 ): Promise<EpubRenderResult> => {
   const ePubBook = ePub(bookArrayBuffer)
   await ePubBook.ready
@@ -42,6 +44,7 @@ export const renderEpubBook = async (
   } else {
     stylesheetIsolation.disableBuiltInStylesheet()
   }
+  stylesheetIsolation.setCustomStylesheet(initialStylesheetCss)
 
   const epubReader = document.getElementById('epub-reader')
   if (epubReader) {
@@ -63,19 +66,10 @@ export const renderEpubBook = async (
     } catch (error) {
       logWarn('epubAdapter', '加载 EPUB locations 缓存失败', error)
     }
-  } else {
-    void ePubBook.locations.generate(1000).catch((error: unknown) => {
-      logWarn('epubAdapter', '生成 EPUB locations 失败', error)
-    })
   }
 
   const displayTarget =
     explicitCfi || (await resolveEpubDisplayTarget(ePubBook, progressSnapshot || {}))
-  if (displayTarget) {
-    await rendition.display(displayTarget)
-  } else {
-    await rendition.display()
-  }
 
   const tocData = await ePubBook.loaded.navigation
 
@@ -83,5 +77,6 @@ export const renderEpubBook = async (
     rendition: rendition as unknown as EpubRenditionLike,
     toc: tocData.toc as EpubTocItem[],
     stylesheetIsolation,
+    displayTarget,
   }
 }

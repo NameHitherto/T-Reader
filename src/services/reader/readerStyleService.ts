@@ -39,7 +39,8 @@ export const applyReaderStyles = (
   readerConfig: ReaderStyleConfig,
   readerDefaultTheme: Record<string, unknown>,
   rendition: EpubRenditionLike | null,
-  themeMode: AppThemeMode = getAppliedAppThemeMode()
+  themeMode: AppThemeMode = getAppliedAppThemeMode(),
+  applyIframeStyle = true
 ) => {
   const palette = getReaderRuntimePalette(readerConfig, themeMode)
 
@@ -71,6 +72,16 @@ export const applyReaderStyles = (
   if (readerRoot) {
     readerRoot.style.background = palette.viewportBackground
     readerRoot.style.color = palette.text
+  }
+
+  const epubReader = document.getElementById('epub-reader')
+  if (epubReader) {
+    epubReader.style.background = palette.viewportBackground
+    epubReader.style.color = palette.text
+  }
+
+  if (!applyIframeStyle) {
+    return
   }
 
   applyEpubReaderStyles(readerConfig, readerDefaultTheme, rendition, palette)

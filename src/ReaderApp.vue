@@ -137,6 +137,7 @@ import {
   applyReaderStyles,
   ReaderStyleConfig,
 } from '@/services/reader/readerStyleService'
+import { serializeReaderThemeCss } from '@/services/reader/epub/epubStyleService'
 import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
@@ -288,12 +289,13 @@ const readerDefaultTheme = computed(() => {
   return themeReturned
 })
 
-async function applyReaderStyle() {
+async function applyReaderStyle(applyIframeStyle = true) {
   applyReaderStyles(
     readerConfig.value as ReaderStyleConfig,
     readerDefaultTheme.value,
     rendition.value,
-    appThemeMode.value
+    appThemeMode.value,
+    applyIframeStyle
   )
 }
 
@@ -608,13 +610,15 @@ async function loadBook(cfi?: string) {
       readerConfig.value.loadEpubBuiltInStylesheet,
       cfi,
       bookConfig,
-      getReadyBookLocations(bookLocationsCache)
+      getReadyBookLocations(bookLocationsCache),
+      serializeReaderThemeCss(readerDefaultTheme.value)
     )
     rendition.value = epubBook.rendition
     stylesheetIsolationController = epubBook.stylesheetIsolation
+    await applyReaderStyle(false)
+    await rendition.value.display(epubBook.displayTarget)
     handleRenditionEvents()
     toc.value = epubBook.toc
-    await applyReaderStyle()
     bindTocButtonClick()
 
     if (bookLocationsCache?.status !== 'ready') {
