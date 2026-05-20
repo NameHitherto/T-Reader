@@ -6,6 +6,9 @@ import gridViewIcon from '@/assets/icons/grid-view.svg'
 import sidebarBookshelfIcon from '@/assets/icons/sidebar-bookshelf.svg'
 import sidebarNoteIcon from '@/assets/icons/sidebar-note.svg'
 import sidebarAboutIcon from '@/assets/icons/sidebar-about.svg'
+import contactBilibiliIcon from '@/assets/icons/contact-bilibili.svg'
+import contactGithubIcon from '@/assets/icons/contact-github.svg'
+import contactEmailIcon from '@/assets/icons/contact-email.svg'
 
 import bookOpenIcon from '@/components/ContextMenu/assets/book-open.svg'
 import uploadIcon from '@/components/ContextMenu/assets/upload.svg'
@@ -28,6 +31,9 @@ export type IconName =
   | 'sidebarBookshelf'
   | 'sidebarNote'
   | 'sidebarAbout'
+  | 'contactBilibili'
+  | 'contactGithub'
+  | 'contactEmail'
   | 'bookOpen'
   | 'upload'
   | 'delete'
@@ -52,6 +58,9 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   sidebarBookshelf: { src: sidebarBookshelfIcon, mode: 'mask' },
   sidebarNote: { src: sidebarNoteIcon, mode: 'mask' },
   sidebarAbout: { src: sidebarAboutIcon, mode: 'mask' },
+  contactBilibili: { src: contactBilibiliIcon, mode: 'mask' },
+  contactGithub: { src: contactGithubIcon, mode: 'mask' },
+  contactEmail: { src: contactEmailIcon, mode: 'mask' },
   bookOpen: { src: bookOpenIcon, mode: 'mask' },
   upload: { src: uploadIcon, mode: 'mask' },
   delete: { src: deleteIcon, mode: 'mask' },

@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { getVersion } from '@tauri-apps/api/app'
 import { Channel, invoke } from '@tauri-apps/api/core'
+import { open } from '@tauri-apps/plugin-shell'
 import { computed, onMounted, ref } from 'vue'
+import AppIcon from '@/components/common/AppIcon/index.vue'
+import { about } from '@/constants/about'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
+import type { IconName } from '@/icons/registry'
 import type { AppUpdateCheckResult, AppUpdateProgressEvent } from '@/types/appUpdate'
 
 const version = ref('')
@@ -79,6 +83,46 @@ const showReleaseNotes = computed(() => {
 
   return hasUpdate && !showProgressTimeline.value
 })
+
+interface ContactItem {
+  key: string
+  label: string
+  value: string
+  actionLabel: string
+  target: string
+  icon: IconName
+  iconColor: string
+}
+
+const contactItems = computed<ContactItem[]>(() => [
+  {
+    key: 'bilibili',
+    label: 'Bilibili',
+    value: about.contact.bilibili,
+    actionLabel: '打开主页',
+    target: about.contact.bilibili,
+    icon: 'contactBilibili',
+    iconColor: '#00aeec',
+  },
+  {
+    key: 'github',
+    label: 'GitHub',
+    value: about.contact.github,
+    actionLabel: '打开主页',
+    target: about.contact.github,
+    icon: 'contactGithub',
+    iconColor: '#24292f',
+  },
+  {
+    key: 'email',
+    label: '邮箱',
+    value: about.contact.email,
+    actionLabel: '发送邮件',
+    target: `mailto:${about.contact.email}`,
+    icon: 'contactEmail',
+    iconColor: 'var(--brand-primary)',
+  },
+])
 
 const progressPercent = computed(() => {
   const event = currentProgress.value
@@ -211,6 +255,19 @@ const startUpdate = async () => {
   }
 }
 
+const openContactTarget = async (label: string, target: string) => {
+  try {
+    await open(target)
+  } catch (error) {
+    showMainTaskMessage({
+      type: 'error',
+      title: `打开${label}失败`,
+      message: toTaskErrorMessage(error),
+      taskKey: `about-contact-${label}`,
+    })
+  }
+}
+
 onMounted(async () => {
   version.value = await getVersion()
 })
@@ -223,16 +280,47 @@ onMounted(async () => {
         <img src="/src-tauri/icons/reader.png" class="app-logo" alt="T-Reader logo" />
         <div class="hero-copy">
           <h2>更新中心</h2>
-          <p class="hero-subtitle">当前版本：<strong>v{{ version }}</strong></p>
+          <p class="hero-subtitle">
+            当前版本：<strong>v{{ version }}</strong>
+          </p>
           <p class="hero-meta">{{ statusText }}</p>
         </div>
       </div>
 
       <div class="hero-actions">
         <el-button type="primary" :loading="checking" @click="checkForUpdates">检查更新</el-button>
-        <el-button type="success" :loading="installing" :disabled="!canStartInstall" @click="startUpdate">
+        <el-button
+          type="success"
+          :loading="installing"
+          :disabled="!canStartInstall"
+          @click="startUpdate"
+        >
           下载并安装
         </el-button>
+      </div>
+    </section>
+
+    <section class="surface-card info-card contact-card">
+      <div class="section-header">
+        <h3>联系作者</h3>
+        <p>如有问题请联系。</p>
+      </div>
+
+      <div class="contact-list">
+        <div v-for="item in contactItems" :key="item.key" class="contact-item">
+          <div class="contact-main">
+            <span class="contact-icon" :style="{ color: item.iconColor }">
+              <AppIcon :name="item.icon" :size="24" :aria-label="`${item.label} 图标`" />
+            </span>
+            <div class="contact-meta">
+              <span class="contact-label">{{ item.label }}</span>
+              <span class="contact-value">{{ item.value }}</span>
+            </div>
+          </div>
+          <el-button type="primary" plain @click="openContactTarget(item.label, item.target)">
+            {{ item.actionLabel }}
+          </el-button>
+        </div>
       </div>
     </section>
 
@@ -245,10 +333,14 @@ onMounted(async () => {
     <section v-if="showProgressTimeline" class="surface-card info-card">
       <h3>进度时间线</h3>
       <p class="info-line"><strong>阶段：</strong>{{ stageToLabel(currentProgress?.stage) }}</p>
-      <p class="info-line"><strong>更新时间：</strong>{{ formatDateTime(currentProgress?.eventAt) }}</p>
+      <p class="info-line">
+        <strong>更新时间：</strong>{{ formatDateTime(currentProgress?.eventAt) }}
+      </p>
       <el-progress :percentage="progressPercent" :stroke-width="12" />
       <p class="info-line"><strong>传输：</strong>{{ transferText }}</p>
-      <p class="info-line"><strong>状态：</strong>{{ currentProgress?.message || '等待下载开始' }}</p>
+      <p class="info-line">
+        <strong>状态：</strong>{{ currentProgress?.message || '等待下载开始' }}
+      </p>
     </section>
   </div>
 </template>
@@ -305,6 +397,106 @@ onMounted(async () => {
   margin: 6px 0 0;
   color: var(--text-tertiary);
   font-size: 13px;
+}
+
+.contact-card {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.section-header {
+  margin-bottom: 14px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
+  }
+}
+
+.contact-list {
+  display: grid;
+  gap: 10px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card-soft);
+  transition:
+    background-color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard),
+    transform var(--duration-fast) var(--easing-standard);
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--border-brand);
+    background: var(--surface-brand-soft);
+  }
+
+  :deep(.el-button) {
+    flex: 0 0 auto;
+  }
+}
+
+.contact-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.contact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border: 1px solid rgb(15 23 42 / 12%);
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 94%);
+  box-shadow: var(--shadow-sm);
+}
+
+.contact-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.contact-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.contact-value {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .contact-item {
+    align-items: stretch;
+    flex-direction: column;
+
+    :deep(.el-button) {
+      width: 100%;
+    }
+  }
 }
 
 .hero-actions {
