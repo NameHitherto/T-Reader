@@ -6,7 +6,6 @@ import gridViewIcon from '@/assets/icons/grid-view.svg'
 import sidebarBookshelfIcon from '@/assets/icons/sidebar-bookshelf.svg'
 import sidebarNoteIcon from '@/assets/icons/sidebar-note.svg'
 import sidebarAboutIcon from '@/assets/icons/sidebar-about.svg'
-import sidebarMoreIcon from '@/assets/icons/sidebar-more.svg'
 
 import bookOpenIcon from '@/components/ContextMenu/assets/book-open.svg'
 import uploadIcon from '@/components/ContextMenu/assets/upload.svg'
@@ -29,7 +28,6 @@ export type IconName =
   | 'sidebarBookshelf'
   | 'sidebarNote'
   | 'sidebarAbout'
-  | 'sidebarMore'
   | 'bookOpen'
   | 'upload'
   | 'delete'
@@ -54,7 +52,6 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   sidebarBookshelf: { src: sidebarBookshelfIcon, mode: 'mask' },
   sidebarNote: { src: sidebarNoteIcon, mode: 'mask' },
   sidebarAbout: { src: sidebarAboutIcon, mode: 'mask' },
-  sidebarMore: { src: sidebarMoreIcon, mode: 'mask' },
   bookOpen: { src: bookOpenIcon, mode: 'mask' },
   upload: { src: uploadIcon, mode: 'mask' },
   delete: { src: deleteIcon, mode: 'mask' },

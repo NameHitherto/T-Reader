@@ -9,21 +9,20 @@
       </div>
       <nav>
         <ul class="menu">
-          <li :class="{active: currentView === 'Home'}" @click="navigate('Home', '/')">
+          <li :class="{ active: currentView === 'Home' }" @click="navigate('Home', '/')">
             <AppIcon name="sidebarBookshelf" :size="24" />
             <span class="menu-label">书架</span>
           </li>
-          <li :class="{active: currentView === 'Bookmark'}" @click="navigate('Bookmark', '/bookmark')">
+          <li
+            :class="{ active: currentView === 'Bookmark' }"
+            @click="navigate('Bookmark', '/bookmark')"
+          >
             <AppIcon name="sidebarNote" :size="24" />
             <span class="menu-label">笔记</span>
           </li>
-          <li :class="{active: currentView === 'About'}" @click="navigate('About', '/about')">
+          <li :class="{ active: currentView === 'About' }" @click="navigate('About', '/about')">
             <AppIcon name="sidebarAbout" :size="24" />
             <span class="menu-label">关于</span>
-          </li>
-          <li :class="{active: currentView === 'Experiment'}" @click="navigate('Experiment', '/experiment')">
-            <AppIcon name="sidebarMore" :size="24" />
-            <span class="menu-label">更多</span>
           </li>
         </ul>
       </nav>
@@ -49,7 +48,7 @@ export default {
   watch: {
     $route(to) {
       this.currentView = to.name
-    }
+    },
   },
   mounted() {
     this.currentView = this.$route.name as string
@@ -63,8 +62,8 @@ export default {
       if (this.$route.path !== path) {
         this.$router.push(path)
       }
-    }
-  }
+    },
+  },
 }
 </script>
 <style scoped>
