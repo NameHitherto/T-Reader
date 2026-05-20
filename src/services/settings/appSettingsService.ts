@@ -39,7 +39,16 @@ const normalizeModelProviders = (value: unknown): ModelProviderMap => {
 
   const rawProviders = value as Partial<Record<ModelPurpose, ModelProvider | null>>
   for (const purpose of MODEL_PURPOSES) {
-    providers[purpose] = rawProviders[purpose] ?? null
+    const provider = rawProviders[purpose]
+    if (!provider) {
+      providers[purpose] = null
+      continue
+    }
+
+    providers[purpose] = {
+      ...provider,
+      endpoint: provider.endpoint === '/v1/responses/compact' ? '/v1/responses' : provider.endpoint,
+    }
   }
 
   return providers
@@ -47,7 +56,7 @@ const normalizeModelProviders = (value: unknown): ModelProviderMap => {
 
 const compactModelProviders = (providers: ModelProviderMap) => {
   return Object.fromEntries(
-    Object.entries(providers).filter(([, provider]) => provider !== null)
+    Object.entries(providers).filter(([, provider]) => provider !== null),
   ) as Partial<Record<ModelPurpose, ModelProvider>>
 }
 
@@ -98,9 +107,7 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
   }
 
   if ('modelProviders' in payload) {
-    payload.modelProviders = compactModelProviders(
-      normalizeModelProviders(payload.modelProviders)
-    )
+    payload.modelProviders = compactModelProviders(normalizeModelProviders(payload.modelProviders))
   }
 
   let currentSettings: Record<string, unknown> = {}
@@ -120,7 +127,7 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
 
   if ('modelProviders' in nextSettings) {
     nextSettings.modelProviders = compactModelProviders(
-      normalizeModelProviders(nextSettings.modelProviders)
+      normalizeModelProviders(nextSettings.modelProviders),
     )
   }
 

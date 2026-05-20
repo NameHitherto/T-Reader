@@ -1,3 +1,4 @@
+pub mod ai_stream;
 pub mod app_update;
 pub mod cloud_sync;
 pub mod font;
@@ -5,6 +6,7 @@ pub mod reader_window;
 pub mod settings;
 pub mod txt_toc_rule;
 
+pub use ai_stream::AiStreamState;
 pub use app_update::{
     AppUpdateAttempt, AppUpdateCheckResult, AppUpdateProgressEvent, AppUpdateProxyInfo,
     AppUpdateSource, AppUpdateState, PendingUpdate, ProxyPrepareResult,

@@ -5,7 +5,7 @@ mod repository;
 mod service;
 mod utils;
 
-use entities::{AppUpdateState, ReaderWindowState};
+use entities::{AiStreamState, AppUpdateState, ReaderWindowState};
 use log::LevelFilter;
 use service::window::main_window_service;
 use service::window::reader_window_service;
@@ -53,6 +53,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .manage(AppUpdateState::default())
+        .manage(AiStreamState::default())
         .manage(ReaderWindowState::default())
         .setup(|app| {
             main_window_service::create_main_window(app.handle())
