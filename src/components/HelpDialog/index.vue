@@ -102,8 +102,7 @@ export default defineComponent({
       { description: '上一页', key: ['←'] },
       { description: '下一页', key: ['↓'] },
       { description: '下一页', key: ['→'] },
-      { description: '沉浸阅读', key: ['F11'] },
-      { description: '测试', key: ['Ctrl', 'Alt', 'T'] },
+      { description: '沉浸阅读', key: ['F11'] }
     ]
 
     const groupedShortcuts = computed(() => {
