@@ -5,22 +5,12 @@
     <!-- 翻页按钮 -->
     <div class="pagination">
       <button class="prev-page button" @click="prevPage">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 20 20"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20">
           <path fill="currentColor" d="m4 10l9 9l1.4-1.5L7 10l7.4-7.5L13 1z" />
         </svg>
       </button>
       <button class="next-page button" @click="nextPage">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 20 20"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20">
           <path fill="currentColor" d="M7 1L5.6 2.5L13 10l-7.4 7.5L7 19l9-9z" />
         </svg>
       </button>
@@ -30,16 +20,9 @@
     <template #header>
       <span class="drawer-title">目录</span>
     </template>
-    <el-menu
-      ref="tocMenuRef"
-      :default-active="activeChapter"
-      @select="goToChapter"
-    >
+    <el-menu ref="tocMenuRef" :default-active="activeChapter" @select="goToChapter">
       <template v-for="item in toc" :key="item.id || item.href">
-        <toc-menu
-          v-if="item.subitems?.length"
-          :sub-toc="item"
-        />
+        <toc-menu v-if="item.subitems?.length" :sub-toc="item" />
         <el-menu-item v-else :key="item.id" :index="item.href">
           {{ item.label }}
         </el-menu-item>
@@ -56,8 +39,6 @@
     v-model:book-mark-list="bookMarkEditionContent"
     @delete="(markId: string) => delBookMark(markId)"
   />
-  <!-- AI 助手 -->
-  <AssistantDialog v-model="assistantVisible" :book-key="currentBookKey" />
   <!-- 功能帮助 -->
   <HelpDialog v-model="helpVisible" />
   <SystemFontEnableDialog v-model="systemFontDialogVisible" />
@@ -99,7 +80,6 @@ import { logInfo, logWarn, logError } from '@/utils/logger'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
-import AssistantDialog from './components/AssistantDialog/index.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
@@ -107,10 +87,7 @@ import TocMenu from './components/TocMenu/index.vue'
 import { BookConfig } from '@/types/book'
 import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import { READER_DOM_EVENTS } from '@/constants/events'
-import {
-  destroyEpubRendition,
-  renderEpubBook,
-} from '@/services/reader/epub/epubAdapter'
+import { destroyEpubRendition, renderEpubBook } from '@/services/reader/epub/epubAdapter'
 import type { EpubBuiltInStylesheetIsolationController } from '@/services/reader/epub/epubBuiltinStylesheetIsolationService'
 import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
@@ -126,26 +103,17 @@ import {
   scrollDrawerToActiveChapter,
 } from '@/services/reader/epub/tocService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
-import {
-  dispatchReaderKeydown,
-  resetReaderTransientUi,
-} from '@/services/reader/interactionService'
+import { dispatchReaderKeydown, resetReaderTransientUi } from '@/services/reader/interactionService'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { withReaderLoading } from '@/services/reader/readerLoadingService'
-import {
-  applyReaderStyles,
-  ReaderStyleConfig,
-} from '@/services/reader/readerStyleService'
+import { applyReaderStyles, ReaderStyleConfig } from '@/services/reader/readerStyleService'
 import { serializeReaderThemeCss } from '@/services/reader/epub/epubStyleService'
 import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
 } from '@/services/reader/readerConfigService'
-import {
-  fetchSystemFonts,
-  normalizeReaderConfig,
-} from '@/services/reader/systemFontService'
+import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFontService'
 import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
 import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
@@ -203,13 +171,10 @@ const { readerConfig } = storeToRefs(readerConfigStore)
 const appThemeMode = ref<AppThemeMode>(getAppliedAppThemeMode())
 
 const readerPalette = computed(() =>
-  getReaderRuntimePalette(readerConfig.value, appThemeMode.value)
+  getReaderRuntimePalette(readerConfig.value, appThemeMode.value),
 )
 const readerFontApplication = computed(() =>
-  buildReaderFontApplication(
-    readerConfig.value.font,
-    readerConfig.value.enabledSystemFonts
-  )
+  buildReaderFontApplication(readerConfig.value.font, readerConfig.value.enabledSystemFonts),
 )
 const readerDefaultTheme = computed(() => {
   const columnStyle: Record<string, string> = {}
@@ -295,7 +260,7 @@ async function applyReaderStyle(applyIframeStyle = true) {
     readerDefaultTheme.value,
     rendition.value,
     appThemeMode.value,
-    applyIframeStyle
+    applyIframeStyle,
   )
 }
 
@@ -322,16 +287,14 @@ async function loadReaderConfig() {
   } catch {
     readerConfigStore.setDefaultConfig()
     readerConfigStore.setReaderConfig(
-      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
     )
     logWarn('reader', 'ReaderConfig.json文件不存在，已加载默认配置')
   }
 }
 
 async function saveReaderConfig() {
-  await saveReaderConfigToDisk(
-    syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
-  )
+  await saveReaderConfigToDisk(syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value))
 }
 
 // ============================================================
@@ -437,7 +400,9 @@ function bindTocButtonClick() {
   const tocButton = document.getElementById('titlebar-toc')
   if (!tocButton) return
 
-  const handler = () => { tocDrawer.value = true }
+  const handler = () => {
+    tocDrawer.value = true
+  }
   tocButton.addEventListener('click', handler)
   detachTocButtonListener = () => {
     tocButton.removeEventListener('click', handler)
@@ -478,16 +443,12 @@ const bookMarkStore = useBookMarkStore()
 const { bookMarks } = storeToRefs(bookMarkStore)
 const defaultHighlightColor = DEFAULT_BOOKMARK_HIGHLIGHT_COLOR
 
-const {
-  bookMarkEditionVisible,
-  bookMarkEditionContent,
-  openEditorByMarkId,
-  closeEditor,
-} = useBookmarkEditor({
-  bookMarkStore,
-  rendition,
-  defaultHighlightColor,
-})
+const { bookMarkEditionVisible, bookMarkEditionContent, openEditorByMarkId, closeEditor } =
+  useBookmarkEditor({
+    bookMarkStore,
+    rendition,
+    defaultHighlightColor,
+  })
 
 function initAllBookMarks() {
   if (!currentBookKey.value) return
@@ -496,7 +457,7 @@ function initAllBookMarks() {
     rendition.value,
     bookMarks.value,
     currentBookKey.value,
-    defaultHighlightColor
+    defaultHighlightColor,
   )
 }
 
@@ -515,7 +476,7 @@ async function addBookMark() {
     rendition.value,
     selectedRange.value ? selectedRange.value : '',
     tempId,
-    defaultHighlightColor
+    defaultHighlightColor,
   )
   return tempId
 }
@@ -562,7 +523,9 @@ function handleRenditionEvents() {
     onToggleFullscreen: () => switchFullscreen(),
     onReaderClick: () => {
       resetReaderTransientUi({
-        hideContextMenu: () => { showContextMenu.value = false },
+        hideContextMenu: () => {
+          showContextMenu.value = false
+        },
       })
     },
     onMarkClicked: (markId: string) => openEditorByMarkId(markId),
@@ -611,7 +574,7 @@ async function loadBook(cfi?: string) {
       cfi,
       bookConfig,
       getReadyBookLocations(bookLocationsCache),
-      serializeReaderThemeCss(readerDefaultTheme.value)
+      serializeReaderThemeCss(readerDefaultTheme.value),
     )
     rendition.value = epubBook.rendition
     stylesheetIsolationController = epubBook.stylesheetIsolation
@@ -626,7 +589,7 @@ async function loadBook(cfi?: string) {
         void primeBookCacheAfterImport(
           currentBookKey.value as string,
           bookArrayBuffer as ArrayBuffer,
-          fileName
+          fileName,
         ).catch((error) => {
           logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
         })
@@ -639,7 +602,10 @@ async function loadBook(cfi?: string) {
       void initAllBookMarks()
     }
 
-    logInfo('ReaderApp', 'loadBook', { bookKey: currentBookKey.value, title: bookCache?.title || bookConfig.name })
+    logInfo('ReaderApp', 'loadBook', {
+      bookKey: currentBookKey.value,
+      title: bookCache?.title || bookConfig.name,
+    })
   }).catch((e) => {
     logError('ReaderApp', '书籍加载失败', e)
   })
@@ -757,7 +723,6 @@ watch(styleMenuVisible, (visible) => {
 // ============================================================
 // 弹窗状态
 // ============================================================
-const assistantVisible = ref(false)
 const helpVisible = ref(false)
 const systemFontDialogVisible = ref(false)
 
@@ -775,7 +740,6 @@ const unlistenStyle = ref<UnlistenFn | null>(null)
 const unlistenTheme = ref<UnlistenFn | null>(null)
 const unlistenWindowHide = ref<UnlistenFn | null>(null)
 const unlistenShowBookInfo = ref<UnlistenFn | null>(null)
-const unlistenShowAssistant = ref<UnlistenFn | null>(null)
 const unlistenShowHelp = ref<UnlistenFn | null>(null)
 
 const saveReaderSession = async () => {
@@ -809,19 +773,22 @@ registerReaderWindowEvents({
       await loadBook()
     }
   },
-  onShowBookInfo: () => { bookInfoVisible.value = true },
-  onShowAssistant: () => { assistantVisible.value = true },
-  onShowHelp: () => { helpVisible.value = true },
+  onShowBookInfo: () => {
+    bookInfoVisible.value = true
+  },
+  onShowHelp: () => {
+    helpVisible.value = true
+  },
   onUpdateAppTheme: async (mode) => {
     appThemeMode.value = mode
     readerConfigStore.setReaderConfig(
-      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
     )
     await applyReaderStyle()
   },
   onUpdateReaderStyle: async () => {
     readerConfigStore.setReaderConfig(
-      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value)
+      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
     )
     await applyReaderStyle()
   },
@@ -849,7 +816,6 @@ registerReaderWindowEvents({
   unlistenWindowHide.value = unlisteners.unlistenWindowHide
   unlistenClosed.value = unlisteners.unlistenClose
   unlistenShowBookInfo.value = unlisteners.unlistenShowBookInfo
-  unlistenShowAssistant.value = unlisteners.unlistenShowAssistant
   unlistenShowHelp.value = unlisteners.unlistenShowHelp
 })
 
@@ -882,7 +848,6 @@ onUnmounted(() => {
   unlistenWindowHide.value?.()
   unlistenClosed.value?.()
   unlistenShowBookInfo.value?.()
-  unlistenShowAssistant.value?.()
   unlistenShowHelp.value?.()
   detachTocButtonListener?.()
   detachTocButtonListener = null

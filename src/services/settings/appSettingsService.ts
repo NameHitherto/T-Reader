@@ -47,7 +47,7 @@ const normalizeModelProviders = (value: unknown): ModelProviderMap => {
 
 const compactModelProviders = (providers: ModelProviderMap) => {
   return Object.fromEntries(
-    Object.entries(providers).filter(([, provider]) => provider !== null)
+    Object.entries(providers).filter(([, provider]) => provider !== null),
   ) as Partial<Record<ModelPurpose, ModelProvider>>
 }
 
@@ -72,10 +72,6 @@ export const normalizeAppSettings = (
   }
 }
 
-export const getChatProvider = (settings: AppSettings): ModelProvider | null => {
-  return settings.modelProviders.chat ?? null
-}
-
 export const loadAppSettings = async (): Promise<AppSettings> => {
   try {
     const loadedSettings = await readJsonFile<Partial<AppSettings>>(
@@ -98,9 +94,7 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
   }
 
   if ('modelProviders' in payload) {
-    payload.modelProviders = compactModelProviders(
-      normalizeModelProviders(payload.modelProviders)
-    )
+    payload.modelProviders = compactModelProviders(normalizeModelProviders(payload.modelProviders))
   }
 
   let currentSettings: Record<string, unknown> = {}
@@ -120,7 +114,7 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
 
   if ('modelProviders' in nextSettings) {
     nextSettings.modelProviders = compactModelProviders(
-      normalizeModelProviders(nextSettings.modelProviders)
+      normalizeModelProviders(nextSettings.modelProviders),
     )
   }
 
