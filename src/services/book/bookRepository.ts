@@ -26,11 +26,7 @@ import {
   toBookConfigFilename,
 } from '@/services/book/bookIdentity'
 import { normalizeBookConfig } from '@/services/book/bookConfigService'
-import {
-  logError,
-  logInfo,
-  logWarn,
-} from '@/utils/logger'
+import { logError, logInfo, logWarn } from '@/utils/logger'
 import { encodeJson } from '@/utils/json'
 import { BookFormat } from '@/types/book'
 import { dispatchMainEvent } from '@/services/reader/readerWindowBridgeService'
@@ -69,8 +65,7 @@ let cachedBookFileIndex: Map<string, ResolvedBookFile> | null = null
 const toPersistedBookConfig = (config: BookConfig): BookConfig => {
   return normalizeBookConfig({
     ...config,
-    durChapterTime:
-      typeof config.durChapterTime === 'number' ? config.durChapterTime : Date.now(),
+    durChapterTime: typeof config.durChapterTime === 'number' ? config.durChapterTime : Date.now(),
   })
 }
 
@@ -120,7 +115,7 @@ const toResolvedBookFile = (fileName: string): ResolvedBookFile | null => {
 const persistBookConfigToLocal = async (filename: string, config: BookConfig): Promise<void> => {
   await writeJsonFile(
     buildLocalFilePath(LOCAL_DIRS.progress, filename),
-    toPersistedBookConfig(config)
+    toPersistedBookConfig(config),
   )
 }
 
@@ -193,7 +188,7 @@ const persistRecoveredIndexEntries = async (entries: BookFileIndexEntry[]) => {
   const nextEntries = [...currentPayload.entries]
   for (const entry of entries) {
     const duplicateIndex = nextEntries.findIndex(
-      (current) => current.bookKey === entry.bookKey || current.fileName === entry.fileName
+      (current) => current.bookKey === entry.bookKey || current.fileName === entry.fileName,
     )
 
     if (duplicateIndex >= 0) {
@@ -214,15 +209,17 @@ export const invalidateBookFileIndex = () => {
 }
 
 export const reconcileLibraryBookFileIndex = async (
-  targetBookKeys: string[] = []
+  targetBookKeys: string[] = [],
 ): Promise<Map<string, ResolvedBookFile>> => {
   const currentIndex = await loadStoredBookIndexMap()
   const targetSet = new Set(targetBookKeys.filter((bookKey) => !currentIndex.has(bookKey)))
   const localFiles = await listLocalBookFiles()
   const indexedFileNames = new Set(
-    Array.from(currentIndex.values()).map((entry) => entry.fileName.toLowerCase())
+    Array.from(currentIndex.values()).map((entry) => entry.fileName.toLowerCase()),
   )
-  const unresolvedFiles = localFiles.filter((fileName) => !indexedFileNames.has(fileName.toLowerCase()))
+  const unresolvedFiles = localFiles.filter(
+    (fileName) => !indexedFileNames.has(fileName.toLowerCase()),
+  )
 
   if (targetBookKeys.length > 0 && targetSet.size === 0) {
     logInfo('book-repository', 'reconcile-library-book-file-index:done', {
@@ -284,14 +281,14 @@ export const hasLocalBookFile = async (fileName: string): Promise<boolean> => {
 export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {
   const entries = await readLocalDirEntries(`T-Reader/${LOCAL_DIRS.progress}`)
   const configEntries = entries.filter(
-    (entry) => entry.isFile && entry.name.toLowerCase().endsWith('.json')
+    (entry) => entry.isFile && entry.name.toLowerCase().endsWith('.json'),
   )
   const normalizedConfigs = (
     await Promise.all(
       configEntries.map(async (entry) => {
         try {
           const payload = await readJsonFile<Partial<BookConfig> & Record<string, unknown>>(
-            buildLocalFilePath(LOCAL_DIRS.progress, entry.name)
+            buildLocalFilePath(LOCAL_DIRS.progress, entry.name),
           )
 
           return {
@@ -305,7 +302,7 @@ export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {
           })
           return null
         }
-      })
+      }),
     )
   ).filter((entry): entry is StoredBookConfig => entry !== null)
   logInfo('book-repository', 'load-book-configs:done', {
@@ -318,12 +315,14 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   const filename = toBookConfigFilename(bookKey)
   const [localResult, cloudResult] = await Promise.allSettled([
     readJsonFile<Partial<BookConfig> & Record<string, unknown>>(
-      buildLocalFilePath(LOCAL_DIRS.progress, filename)
+      buildLocalFilePath(LOCAL_DIRS.progress, filename),
     ).then((data) => normalizeBookConfig(data)),
     invoke('webdav_get', {
       subdir: CLOUD_DIRS.progress,
       filename,
-    }).then((data) => parseBookConfigData(toUint8Array(data as ArrayBufferLike | Uint8Array | number[]))),
+    }).then((data) =>
+      parseBookConfigData(toUint8Array(data as ArrayBufferLike | Uint8Array | number[])),
+    ),
   ])
 
   const localConfig = localResult.status === 'fulfilled' ? localResult.value : null
@@ -459,7 +458,7 @@ export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload
   const payload = await primeBookCacheAfterImport(
     bookKey,
     toArrayBuffer(bookData.bookData),
-    bookData.fileName
+    bookData.fileName,
   )
   logInfo('book-repository', 'ensure-book-cache:done', {
     bookKey,
@@ -469,9 +468,7 @@ export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload
   return payload
 }
 
-export const loadLocalBookBinary = async (
-  bookKey: string
-): Promise<LoadedBookBinary | null> => {
+export const loadLocalBookBinary = async (bookKey: string): Promise<LoadedBookBinary | null> => {
   const resolved = await resolveBookFile(bookKey)
   const exists = await hasLocalBookFile(resolved.fileName)
   if (!exists) {
@@ -552,7 +549,7 @@ export const removeBookFileIndexEntry = async (bookKey: string): Promise<void> =
 
 export const getImportedBookName = async (
   fileName: string,
-  fileBuffer: ArrayBuffer
+  fileBuffer: ArrayBuffer,
 ): Promise<{ bookKey: string; name: string; format: BookFormat }> => {
   const format = detectBookFormatFromPath(fileName)
   if (!format) {

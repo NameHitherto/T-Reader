@@ -5,7 +5,7 @@ import { logError } from '@/utils/logger'
 export const extractEpubContent = async (bookData: Uint8Array): Promise<string> => {
   const arrayBuffer = bookData.buffer.slice(
     bookData.byteOffset,
-    bookData.byteOffset + bookData.byteLength
+    bookData.byteOffset + bookData.byteLength,
   ) as ArrayBuffer
   const book = ePub(arrayBuffer)
   await book.ready

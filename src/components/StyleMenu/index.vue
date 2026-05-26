@@ -1,9 +1,5 @@
 <template>
-  <div
-    ref="menuElement"
-    class="menu"
-    :style="menuStyle"
-  >
+  <div ref="menuElement" class="menu" :style="menuStyle">
     <div class="menu-hero">
       <div class="menu-title">阅读样式</div>
       <div class="menu-theme">
@@ -65,11 +61,7 @@
     </div>
 
     <div class="basic-section section">
-      <div
-        v-for="(setting, index) in settings"
-        :key="index"
-        class="adjust-option"
-      >
+      <div v-for="(setting, index) in settings" :key="index" class="adjust-option">
         <label>{{ setting.label }}</label>
         <el-input-number
           v-model="setting.value"
@@ -109,9 +101,7 @@
       <p class="epub-stylesheet-tip">切换后在下次打开书籍时生效</p>
     </div>
 
-    <button class="menu-reset-button app-secondary-button" @click="resetStyle">
-      恢复默认样式
-    </button>
+    <button class="menu-reset-button app-secondary-button" @click="resetStyle">恢复默认样式</button>
   </div>
 </template>
 
@@ -281,12 +271,12 @@ export default defineComponent({
       return value === 'paginated' ? 'paginated' : 'scrolled'
     }
     const normalizeEpubBuiltInStylesheetToggleValue = (
-      value: boolean
+      value: boolean,
     ): EpubBuiltInStylesheetToggleValue => {
       return value ? 'enabled' : 'disabled'
     }
     const resolveEpubBuiltInStylesheetToggleValue = (
-      value?: EpubBuiltInStylesheetToggleValue
+      value?: EpubBuiltInStylesheetToggleValue,
     ): boolean => {
       return value === 'enabled'
     }
@@ -305,9 +295,11 @@ export default defineComponent({
     })
     const flow = ref<ReaderFlowToggleValue>(normalizeFlowToggleValue(readerConfig.value.flow))
     const epubBuiltInStylesheet = ref<EpubBuiltInStylesheetToggleValue>(
-      normalizeEpubBuiltInStylesheetToggleValue(readerConfig.value.loadEpubBuiltInStylesheet)
+      normalizeEpubBuiltInStylesheetToggleValue(readerConfig.value.loadEpubBuiltInStylesheet),
     )
-    const fontOptions = computed(() => buildReaderFontOptions(readerConfig.value.enabledSystemFonts))
+    const fontOptions = computed(() =>
+      buildReaderFontOptions(readerConfig.value.enabledSystemFonts),
+    )
     const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
     const themeModeLabel = computed(() => {
       return currentThemeMode.value === 'dark' ? '黑夜模式' : '白天模式'
@@ -336,7 +328,7 @@ export default defineComponent({
       selectedFont.value = readerConfig.value.font
       flow.value = normalizeFlowToggleValue(readerConfig.value.flow)
       epubBuiltInStylesheet.value = normalizeEpubBuiltInStylesheetToggleValue(
-        readerConfig.value.loadEpubBuiltInStylesheet
+        readerConfig.value.loadEpubBuiltInStylesheet,
       )
     }
 
@@ -345,7 +337,7 @@ export default defineComponent({
     }
 
     const buildBackgroundPresetsForCurrentTheme = (
-      preset: ReaderBackgroundPreset
+      preset: ReaderBackgroundPreset,
     ): ReaderBackgroundPresets => {
       if (currentThemeMode.value === 'dark') {
         return {
@@ -362,7 +354,7 @@ export default defineComponent({
 
     const syncCurrentThemeCompatColors = () => {
       readerConfigStore.setReaderConfig(
-        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value)
+        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value),
       )
     }
 
@@ -385,7 +377,7 @@ export default defineComponent({
     const selectBackgroundPreset = (preset: ReaderBackgroundPreset) => {
       readerConfigStore.changeState(
         'backgroundPresets',
-        buildBackgroundPresetsForCurrentTheme(preset)
+        buildBackgroundPresetsForCurrentTheme(preset),
       )
       syncCurrentThemeCompatColors()
       emitStyleApplication()
@@ -426,7 +418,7 @@ export default defineComponent({
       () => readerConfig.value.font,
       (font) => {
         selectedFont.value = font
-      }
+      },
     )
 
     return {

@@ -40,7 +40,7 @@ export const buildLocalSrcValue = (fontNames: string[]) => {
 
 export const getReaderLocalFontCandidates = (
   font: (EnabledSystemFont & { familyAliases?: string[] }) | null,
-  rawFontValue = ''
+  rawFontValue = '',
 ) => {
   if (!font) {
     return dedupeNames(rawFontValue)
@@ -52,13 +52,13 @@ export const getReaderLocalFontCandidates = (
     font.displayFamily,
     font.family,
     ...(font.familyAliases || []),
-    rawFontValue
+    rawFontValue,
   )
 }
 
 export const buildReaderFontApplication = (
   fontValue: string,
-  enabledFonts: EnabledSystemFont[]
+  enabledFonts: EnabledSystemFont[],
 ): ReaderFontApplication => {
   const normalizedValue = fontValue.trim().toLowerCase()
   const isDefaultFont = normalizedValue === DEFAULT_READER_FONT
@@ -102,10 +102,10 @@ export const buildReaderFontApplication = (
 
 export const syncReaderSystemFontStyle = (
   fontApplication: ReaderFontApplication,
-  targetDocument: Document = document
+  targetDocument: Document = document,
 ) => {
   const existingStyle = targetDocument.getElementById(
-    READER_SYSTEM_FONT_STYLE_ID
+    READER_SYSTEM_FONT_STYLE_ID,
   ) as HTMLStyleElement | null
 
   if (!fontApplication.fontFaceRule) {

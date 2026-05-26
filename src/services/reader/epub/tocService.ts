@@ -2,7 +2,7 @@ import type { EpubBookLike, EpubNavigationItem } from '@/types/epub'
 
 export const collectParentChapterIndexes = (
   book: EpubBookLike | undefined,
-  activeChapter: string
+  activeChapter: string,
 ): string[] => {
   if (!book || !activeChapter) {
     return []

@@ -16,18 +16,14 @@ const LEGADO_PARAGRAPH_INDENT = '\u3000\u3000'
 const ZERO_WIDTH_CHARS = new RegExp(
   // eslint-disable-next-line no-misleading-character-class
   `[${['\\u2009', '\\u200B', '\\u200C', '\\u200D', '\\uFEFF'].join('')}]`,
-  'g'
+  'g',
 )
 
 const getSectionRoot = (section: EpubSectionLike): Element | null => {
   return section?.document?.body || section?.contents || section?.document?.documentElement || null
 }
 
-const BLOCK_TAGS = new Set([
-  'div', 'p',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'article', 'dd', 'dl',
-])
+const BLOCK_TAGS = new Set(['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'article', 'dd', 'dl'])
 
 const VOID_NEWLINE_TAGS = new Set(['br', 'hr'])
 
@@ -40,11 +36,7 @@ const removeUnwantedNodes = (root: Node): void => {
   const doc = root.ownerDocument
   if (!doc) return
 
-  const walker = doc.createTreeWalker(
-    root,
-    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT,
-    null
-  )
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT, null)
 
   const toRemove: Node[] = []
   let node: Node | null
@@ -160,20 +152,16 @@ export const domToLegadoText = (root: Node): string => {
   if (!doc) return ''
 
   const segments: string[] = []
-  const walker = doc.createTreeWalker(
-    root,
-    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-    {
-      acceptNode: (node) => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const tag = (node as Element).tagName.toLowerCase()
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as Element).tagName.toLowerCase()
 
-          return tag === 'img' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
-        }
-        return NodeFilter.FILTER_ACCEPT
-      },
-    }
-  )
+        return tag === 'img' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+      }
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
 
   let node: Node | null
   while ((node = walker.nextNode())) {
@@ -242,7 +230,7 @@ const collectTextNodes = (root: Element): Text[] => {
  */
 export const createRangeFromLegadoOffset = (
   section: EpubSectionLike,
-  chapterOffset: number
+  chapterOffset: number,
 ): Range | null => {
   const doc = section?.document as Document | undefined
   const root = getSectionRoot(section)

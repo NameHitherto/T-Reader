@@ -18,6 +18,6 @@ export const formatDateToNumber = (date: string) => {
     Number(month) - 1,
     Number(day),
     Number(hours),
-    Number(minutes)
+    Number(minutes),
   ).getTime()
 }

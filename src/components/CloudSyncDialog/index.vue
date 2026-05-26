@@ -24,9 +24,7 @@
         </div>
       </div>
 
-      <div v-if="previewLoading" class="dialog-loading">
-        正在读取云端与本地文件差异...
-      </div>
+      <div v-if="previewLoading" class="dialog-loading">正在读取云端与本地文件差异...</div>
 
       <div v-else-if="loadError" class="dialog-error-panel">
         <div class="dialog-error-title">读取同步信息失败</div>
@@ -37,13 +35,16 @@
       <template v-else>
         <el-scrollbar class="sync-scrollbar">
           <div v-if="preview.bookItems.length > 0" class="sync-file-list">
-            <section
-              v-for="item in preview.bookItems"
-              :key="item.fileName"
-              class="sync-file-row"
-            >
+            <section v-for="item in preview.bookItems" :key="item.fileName" class="sync-file-row">
               <div class="sync-file-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
                 </svg>
               </div>
@@ -58,28 +59,96 @@
                     class="state-pill"
                     :class="item.localExists ? 'state-pill--exists' : 'state-pill--missing'"
                   >
-                    <svg v-if="item.localExists" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <svg
+                      v-if="item.localExists"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <svg
+                      v-else
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
                     本地{{ item.localExists ? '存在' : '缺失' }}
                   </span>
                   <span
                     class="state-pill"
                     :class="item.cloudExists ? 'state-pill--exists' : 'state-pill--missing'"
                   >
-                    <svg v-if="item.cloudExists" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <svg
+                      v-if="item.cloudExists"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <svg
+                      v-else
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
                     云端{{ item.cloudExists ? '存在' : '缺失' }}
                   </span>
                   <span
                     class="action-badge"
                     :class="
-                      item.status === 'upload'
-                        ? 'action-badge--upload'
-                        : 'action-badge--download'
+                      item.status === 'upload' ? 'action-badge--upload' : 'action-badge--download'
                     "
                   >
-                    <svg v-if="item.status === 'upload'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><polyline points="16 16 12 12 8 16"></polyline></svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path><polyline points="8 17 12 21 16 17"></polyline></svg>
+                    <svg
+                      v-if="item.status === 'upload'"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="16 16 12 12 8 16"></polyline>
+                      <line x1="12" y1="12" x2="12" y2="21"></line>
+                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                      <polyline points="16 16 12 12 8 16"></polyline>
+                    </svg>
+                    <svg
+                      v-else
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="8 17 12 21 16 17"></polyline>
+                      <line x1="12" y1="12" x2="12" y2="21"></line>
+                      <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path>
+                      <polyline points="8 17 12 21 16 17"></polyline>
+                    </svg>
                     {{ item.status === 'upload' ? '可上传' : '可下载' }}
                   </span>
                 </div>
@@ -92,8 +161,28 @@
                   :disabled="applying"
                   @click="updateSelection(item.fileName, !draftSelections[item.fileName])"
                 >
-                  <svg v-if="draftSelections[item.fileName]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>
+                  <svg
+                    v-if="draftSelections[item.fileName]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <svg
+                    v-else
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
                   {{ draftSelections[item.fileName] ? '待执行' : '不执行' }}
                 </button>
               </div>
@@ -101,10 +190,7 @@
           </div>
 
           <div v-else class="sync-empty-state">
-            <el-empty
-              description="books 目录当前没有差异文件"
-              :image-size="120"
-            />
+            <el-empty description="books 目录当前没有差异文件" :image-size="120" />
             <div class="sync-empty-tip">
               仍然可以执行同步，本次会继续检查并补齐 `bookProgress` 配置。
             </div>
@@ -159,11 +245,11 @@ export default defineComponent({
     const draftSelections = reactive<Record<string, boolean>>({})
 
     const isBusy = computed(() => previewLoading.value || applying.value)
-    const selectedCount = computed(() =>
-      preview.value.bookItems.filter((item) => draftSelections[item.fileName]).length
+    const selectedCount = computed(
+      () => preview.value.bookItems.filter((item) => draftSelections[item.fileName]).length,
     )
     const executeButtonLabel = computed(() =>
-      selectedCount.value > 0 ? `执行云同步（${selectedCount.value} 项）` : '执行云同步'
+      selectedCount.value > 0 ? `执行云同步（${selectedCount.value} 项）` : '执行云同步',
     )
 
     const replaceDraftSelections = (nextSelections: Record<string, boolean>) => {
@@ -225,7 +311,7 @@ export default defineComponent({
       }
       return {
         base: fileName.slice(0, lastDotIndex),
-        ext: fileName.slice(lastDotIndex)
+        ext: fileName.slice(lastDotIndex),
       }
     }
 

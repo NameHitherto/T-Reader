@@ -3,9 +3,7 @@ import { ImportBookParams } from '@/services/book/types'
 import { epubBookImportHandler } from '@/services/book/epub/epubImportService'
 import { logInfo } from '@/utils/logger'
 
-export const buildBookConfigFromImport = async (
-  params: ImportBookParams
-): Promise<BookConfig> => {
+export const buildBookConfigFromImport = async (params: ImportBookParams): Promise<BookConfig> => {
   const { originalFileName, format } = params
 
   const meta = await epubBookImportHandler.parseMeta(params)

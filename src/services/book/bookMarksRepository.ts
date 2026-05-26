@@ -21,7 +21,7 @@ const buildPayload = (bookMarks: BookMark[]): BookMarksFile => ({
 const readBookMarksFile = async (): Promise<BookMarksFile | null> => {
   try {
     return await readJsonFile<BookMarksFile>(
-      buildLocalFilePath(LOCAL_DIRS.system, BOOK_MARKS_FILENAME)
+      buildLocalFilePath(LOCAL_DIRS.system, BOOK_MARKS_FILENAME),
     )
   } catch {
     return null
@@ -48,7 +48,7 @@ export const saveAllBookMarks = async (bookMarks: BookMark[]): Promise<void> => 
 
 export const replaceBookMarksForBook = async (
   bookKey: string,
-  nextMarks: BookMark[]
+  nextMarks: BookMark[],
 ): Promise<void> => {
   const payload = await readBookMarksFile()
   if (!payload && nextMarks.length === 0) {

@@ -30,15 +30,9 @@
         </div>
       </div>
 
-      <div v-if="loading" class="dialog-loading">
-        正在读取系统字体...
-      </div>
+      <div v-if="loading" class="dialog-loading">正在读取系统字体...</div>
 
-      <el-scrollbar
-        v-else
-        :distance="240"
-        @end-reached="loadMoreFontGroups"
-      >
+      <el-scrollbar v-else :distance="240" @end-reached="loadMoreFontGroups">
         <div v-if="visibleFontFamilyGroups.length > 0" class="font-grid">
           <section
             v-for="group in renderedFontFamilyGroups"
@@ -49,22 +43,13 @@
             <div class="font-card-header">
               <div>
                 <div class="font-card-title">{{ group.displayFamily }}</div>
-                <div class="font-card-meta">
-                  {{ group.entries.length }} 个样式可选
-                </div>
+                <div class="font-card-meta">{{ group.entries.length }} 个样式可选</div>
               </div>
-              <span v-if="draftSelections[group.family]" class="font-card-status">
-                已启用
-              </span>
-              <span v-else class="font-card-status font-card-status--muted">
-                未启用
-              </span>
+              <span v-if="draftSelections[group.family]" class="font-card-status"> 已启用 </span>
+              <span v-else class="font-card-status font-card-status--muted"> 未启用 </span>
             </div>
 
-            <div
-              class="font-preview"
-              :style="{ fontFamily: getPreviewFontFamilyCss(group) }"
-            >
+            <div class="font-preview" :style="{ fontFamily: getPreviewFontFamilyCss(group) }">
               <div class="font-preview-caption">字体预览</div>
               <div class="font-preview-title">洛琪希 赛高！</div>
               <div class="font-preview-text">{{ previewText }}</div>
@@ -74,16 +59,15 @@
               <el-radio-group
                 :model-value="getFamilyMode(group.family)"
                 class="family-toggle-group"
-                @update:model-value="(value: string | number | boolean) => changeFamilyMode(group, String(value))"
+                @update:model-value="
+                  (value: string | number | boolean) => changeFamilyMode(group, String(value))
+                "
               >
                 <el-radio-button value="disabled">不启用</el-radio-button>
                 <el-radio-button value="enabled">启用</el-radio-button>
               </el-radio-group>
 
-              <div
-                v-if="getFamilyMode(group.family) === 'enabled'"
-                class="family-style-picker"
-              >
+              <div v-if="getFamilyMode(group.family) === 'enabled'" class="family-style-picker">
                 <div class="family-style-head">
                   <span class="family-style-label">启用样式</span>
                   <span class="family-style-current">{{ getSelectedEntryLabel(group) }}</span>
@@ -94,7 +78,10 @@
                   :model-value="draftSelections[group.family]"
                   class="family-style-select"
                   placeholder="选择要启用的子字体"
-                  @update:model-value="(value: string | number | boolean) => selectFamilyEntry(group.family, String(value))"
+                  @update:model-value="
+                    (value: string | number | boolean) =>
+                      selectFamilyEntry(group.family, String(value))
+                  "
                 >
                   <el-option
                     v-for="entry in group.entries"
@@ -112,13 +99,8 @@
           </section>
         </div>
 
-        <div
-          v-if="visibleFontFamilyGroups.length > 0"
-          class="font-list-status"
-        >
-          <span>
-            已经到底啦~
-          </span>
+        <div v-if="visibleFontFamilyGroups.length > 0" class="font-list-status">
+          <span> 已经到底啦~ </span>
         </div>
 
         <el-empty
@@ -128,10 +110,7 @@
         />
 
         <div v-else class="search-empty-state">
-          <el-empty
-            description="没有匹配的系统字体"
-            :image-size="120"
-          />
+          <el-empty description="没有匹配的系统字体" :image-size="120" />
           <el-button @click="clearSearch">清空搜索</el-button>
         </div>
       </el-scrollbar>
@@ -140,9 +119,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="closeDialog">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveSelection">
-          保存启用项
-        </el-button>
+        <el-button type="primary" :loading="saving" @click="saveSelection"> 保存启用项 </el-button>
       </div>
     </template>
   </el-dialog>
@@ -208,18 +185,18 @@ export default defineComponent({
     const fontFamilyGroups = computed(() => groupSystemFontsByFamily(systemFonts.value))
     const visibleFontFamilyGroups = computed(() =>
       baseOrderedFontFamilyGroups.value.filter((group) =>
-        doesSystemFontGroupMatchKeyword(group, searchKeyword.value)
-      )
+        doesSystemFontGroupMatchKeyword(group, searchKeyword.value),
+      ),
     )
     const renderedFontFamilyGroups = computed(() =>
-      visibleFontFamilyGroups.value.slice(0, renderedFontGroupCount.value)
+      visibleFontFamilyGroups.value.slice(0, renderedFontGroupCount.value),
     )
-    const hasMoreFontFamilyGroups = computed(() =>
-      renderedFontGroupCount.value < visibleFontFamilyGroups.value.length
+    const hasMoreFontFamilyGroups = computed(
+      () => renderedFontGroupCount.value < visibleFontFamilyGroups.value.length,
     )
     const previewText = SYSTEM_FONT_PREVIEW_TEXT
-    const selectedCount = computed(() =>
-      Object.values(draftSelections).filter((value) => Boolean(value)).length
+    const selectedCount = computed(
+      () => Object.values(draftSelections).filter((value) => Boolean(value)).length,
     )
     const previewFontFamilyByGroup = computed(() => {
       const fontFamilyMap = new Map<string, string>()
@@ -234,39 +211,41 @@ export default defineComponent({
     const getPreviewEntry = (group: { family: string; entries: SystemFontEntry[] }) => {
       const selectedValue = draftSelections[group.family]
       const selectedEntry = group.entries.find(
-        (entry) => getReaderFontValue(entry) === selectedValue
+        (entry) => getReaderFontValue(entry) === selectedValue,
       )
 
       return selectedEntry || group.entries[0] || null
     }
 
     const previewFontFaceRules = computed(() => {
-      return renderedFontFamilyGroups.value.flatMap((group) => {
-        const previewFontFamily = previewFontFamilyByGroup.value.get(group.family)
-        const previewEntry = getPreviewEntry(group)
+      return renderedFontFamilyGroups.value
+        .flatMap((group) => {
+          const previewFontFamily = previewFontFamilyByGroup.value.get(group.family)
+          const previewEntry = getPreviewEntry(group)
 
-        if (!previewFontFamily || !previewEntry) {
-          return []
-        }
+          if (!previewFontFamily || !previewEntry) {
+            return []
+          }
 
-        const localSources = getReaderLocalFontCandidates(
-          previewEntry,
-          getReaderFontValue(previewEntry)
-        )
+          const localSources = getReaderLocalFontCandidates(
+            previewEntry,
+            getReaderFontValue(previewEntry),
+          )
 
-        if (localSources.length === 0) {
-          return []
-        }
+          if (localSources.length === 0) {
+            return []
+          }
 
-        return [
-          `@font-face { font-family: "${escapeCssString(previewFontFamily)}"; src: ${buildLocalSrcValue(localSources)}; font-display: swap; }`,
-        ]
-      }).join('\n')
+          return [
+            `@font-face { font-family: "${escapeCssString(previewFontFamily)}"; src: ${buildLocalSrcValue(localSources)}; font-display: swap; }`,
+          ]
+        })
+        .join('\n')
     })
 
     const syncPreviewFontStyle = (fontFaceRules: string) => {
       const existingStyle = document.getElementById(
-        PREVIEW_FONT_STYLE_ID
+        PREVIEW_FONT_STYLE_ID,
       ) as HTMLStyleElement | null
 
       if (!fontFaceRules) {
@@ -309,7 +288,7 @@ export default defineComponent({
 
       renderedFontGroupCount.value = Math.min(
         renderedFontGroupCount.value + FONT_GROUP_BATCH_SIZE,
-        visibleFontFamilyGroups.value.length
+        visibleFontFamilyGroups.value.length,
       )
     }
 
@@ -352,7 +331,7 @@ export default defineComponent({
       resetDraftSelections()
       baseOrderedFontFamilyGroups.value = orderSystemFontFamilyGroups(
         fontFamilyGroups.value,
-        readerConfig.value.enabledSystemFonts.map((font) => font.family)
+        readerConfig.value.enabledSystemFonts.map((font) => font.family),
       )
       searchKeyword.value = ''
       resetRenderedFontGroupCount()
@@ -390,7 +369,7 @@ export default defineComponent({
 
     const changeFamilyMode = (
       group: { family: string; entries: SystemFontEntry[] },
-      mode: string
+      mode: string,
     ) => {
       if (mode === 'disabled') {
         updateSelection(group.family, '')
@@ -423,7 +402,7 @@ export default defineComponent({
     const getSelectedEntryLabel = (group: { family: string; entries: SystemFontEntry[] }) => {
       const selectedValue = draftSelections[group.family]
       const selectedEntry = group.entries.find(
-        (entry) => getReaderFontValue(entry) === selectedValue
+        (entry) => getReaderFontValue(entry) === selectedValue,
       )
 
       if (selectedEntry) {
@@ -444,7 +423,7 @@ export default defineComponent({
           }
 
           const selectedEntry = group.entries.find(
-            (entry) => getReaderFontValue(entry) === selectedValue
+            (entry) => getReaderFontValue(entry) === selectedValue,
           )
 
           return selectedEntry ? [toEnabledSystemFont(selectedEntry)] : []

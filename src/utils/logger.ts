@@ -1,8 +1,4 @@
-import {
-  error as logErrorFn,
-  info as logInfoFn,
-  warn as logWarnFn,
-} from '@tauri-apps/plugin-log'
+import { error as logErrorFn, info as logInfoFn, warn as logWarnFn } from '@tauri-apps/plugin-log'
 
 type LogPayload = Record<string, unknown> | undefined
 
@@ -24,7 +20,7 @@ const emitFrontendLog = (logTask: Promise<void>) => {
   void logTask.catch((error) => {
     globalThis.console.error(
       `${buildFallbackConsolePrefix('ERROR')}[${windowLabel}][logger] failed-to-dispatch-tauri-log`,
-      error
+      error,
     )
   })
 }
@@ -38,11 +34,7 @@ const formatPayload = (payload?: LogPayload): string => {
   }
 }
 
-const buildLogMessage = (
-  scope: string,
-  message: string,
-  payload?: LogPayload
-): string => {
+const buildLogMessage = (scope: string, message: string, payload?: LogPayload): string => {
   const payloadStr = formatPayload(payload)
   const event = payloadStr ? `${message} ${payloadStr}` : message
 
@@ -58,18 +50,14 @@ export const logInfo = (scope: string, message: string, payload?: LogPayload) =>
 }
 
 export const logWarn = (scope: string, message: string, error?: unknown) => {
-  const payload: LogPayload = error !== undefined
-    ? { error: error instanceof Error ? error.message : String(error) }
-    : undefined
+  const payload: LogPayload =
+    error !== undefined
+      ? { error: error instanceof Error ? error.message : String(error) }
+      : undefined
   emitFrontendLog(logWarnFn(buildLogMessage(scope, message, payload)))
 }
 
-export const logError = (
-  scope: string,
-  message: string,
-  err?: unknown,
-  payload?: LogPayload
-) => {
+export const logError = (scope: string, message: string, err?: unknown, payload?: LogPayload) => {
   const combinedPayload: Record<string, unknown> = payload ? { ...payload } : {}
   if (err !== undefined) {
     combinedPayload.error = err instanceof Error ? err.message : String(err)

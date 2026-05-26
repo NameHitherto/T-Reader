@@ -17,11 +17,7 @@
               :class="{ 'menu-item--danger': item.type === 'delete' }"
               @click="(event) => handleClick(item, event)"
             >
-              <AppIcon
-                class="menu-icon"
-                :name="resolveIconName(item.type)"
-                :size="18"
-              />
+              <AppIcon class="menu-icon" :name="resolveIconName(item.type)" :size="18" />
               <span class="label">{{ item.label }}</span>
             </div>
           </div>
@@ -44,13 +40,13 @@ export default {
     show: Boolean,
     menuData: {
       type: Object as PropType<ContextMenuData>,
-      required: true
+      required: true,
     },
   },
   emits: ['update:show'],
   data() {
     return {
-      menuActive: true
+      menuActive: true,
     }
   },
   watch: {
@@ -61,8 +57,8 @@ export default {
           this.menuActive = true
         })
       },
-      deep: true
-    }
+      deep: true,
+    },
   },
   mounted() {
     document.addEventListener('click', this.handleBackDropClick)
@@ -76,8 +72,8 @@ export default {
     },
     handleBackDropClick(event: MouseEvent) {
       const target = event.target as Node
-      const menu = this.$refs.menu as HTMLElement;
-      if(menu && !menu.contains(target)){
+      const menu = this.$refs.menu as HTMLElement
+      if (menu && !menu.contains(target)) {
         this.$emit('update:show', false)
       }
     },
@@ -86,8 +82,8 @@ export default {
         item.onClick(event)
       }
       this.$emit('update:show', false)
-    }
-  }
+    },
+  },
 }
 </script>
 <style scoped lang="scss">
@@ -171,11 +167,15 @@ export default {
   background: var(--surface-strong);
 }
 
-.menu-enter-active, .menu-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+.menu-enter-active,
+.menu-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
-.menu-enter-from, .menu-leave-to{
+.menu-enter-from,
+.menu-leave-to {
   opacity: 0;
   transform: translateY(6px) scale(0.98);
 }

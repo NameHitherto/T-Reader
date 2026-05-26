@@ -20,7 +20,7 @@ interface BindRenditionEventsArgs {
 
 export const bindRenditionEvents = (
   rendition: EpubRenditionLike | null,
-  args: BindRenditionEventsArgs
+  args: BindRenditionEventsArgs,
 ) => {
   if (!rendition) {
     return
@@ -118,7 +118,8 @@ export const bindRenditionEvents = (
     return contents
   })
 
-  const renderedContents = typeof rendition.getContents === 'function' ? rendition.getContents() : []
+  const renderedContents =
+    typeof rendition.getContents === 'function' ? rendition.getContents() : []
   for (const contents of renderedContents) {
     bindContextMenuForContents(contents)
   }

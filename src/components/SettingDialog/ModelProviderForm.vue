@@ -7,12 +7,7 @@
         :disabled="readonlyPurpose"
         @update:model-value="onPurposeChange"
       >
-        <el-option
-          v-for="p in purposes"
-          :key="p.value"
-          :label="p.label"
-          :value="p.value"
-        />
+        <el-option v-for="p in purposes" :key="p.value" :label="p.label" :value="p.value" />
       </el-select>
     </div>
     <div class="input-container">
@@ -22,12 +17,7 @@
     <div class="input-container">
       <label class="field-label">服务商 (provider_type)</label>
       <el-select :model-value="form.providerType" @update:model-value="onProviderTypeChange">
-        <el-option
-          v-for="p in providerTypes"
-          :key="p"
-          :label="p"
-          :value="p"
-        />
+        <el-option v-for="p in providerTypes" :key="p" :label="p" :value="p" />
       </el-select>
     </div>
     <div class="input-container">
@@ -37,17 +27,9 @@
         :model-value="form.endpoint"
         @update:model-value="form.endpoint = $event"
       >
-        <el-option
-          v-for="ep in endpointPresets"
-          :key="ep"
-          :label="ep"
-          :value="ep"
-        />
+        <el-option v-for="ep in endpointPresets" :key="ep" :label="ep" :value="ep" />
       </el-select>
-      <el-input
-        v-else
-        v-model="form.endpoint"
-      />
+      <el-input v-else v-model="form.endpoint" />
     </div>
     <div class="input-container">
       <label class="field-label">模型ID</label>

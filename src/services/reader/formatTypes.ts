@@ -19,7 +19,7 @@ export interface ReaderProgressHandler {
   }) => Promise<BookProgressSnapshot | null>
   resolveDisplayTarget: (
     source: EpubBookLike,
-    snapshot: BookProgressSnapshot
+    snapshot: BookProgressSnapshot,
   ) => Promise<string | number | undefined>
   calculateProgress: (args: {
     rendition: EpubRenditionLike | null

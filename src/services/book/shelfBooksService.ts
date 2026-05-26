@@ -55,7 +55,7 @@ export const useShelfBooksService = (): ShelfBooksService => {
   const books = computed(() =>
     bookOrder.value
       .map((bookKey) => booksByKey.value.get(bookKey))
-      .filter((book): book is ShelfBook => Boolean(book))
+      .filter((book): book is ShelfBook => Boolean(book)),
   )
 
   const isBooksEmpty = computed(() => books.value.length === 0)

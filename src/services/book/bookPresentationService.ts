@@ -1,12 +1,9 @@
 import { BookConfig } from '@/types/book'
-import {
-  isUnreadProgressSnapshot,
-  normalizeBookConfig,
-} from '@/services/book/bookConfigService'
+import { isUnreadProgressSnapshot, normalizeBookConfig } from '@/services/book/bookConfigService'
 
 export const normalizeDisplayedChapterTitle = (
   title?: string | null,
-  fallback = '暂无章节标题'
+  fallback = '暂无章节标题',
 ) => {
   const normalizedTitle = typeof title === 'string' ? title.trim() : ''
 
@@ -18,8 +15,11 @@ export const normalizeDisplayedChapterTitle = (
 }
 
 export const buildLastReadLabel = (
-  bookConfig: Pick<BookConfig, 'durChapterIndex' | 'durChapterPos' | 'durChapterTitle' | 'durChapterTime'>,
-  progressValue: number
+  bookConfig: Pick<
+    BookConfig,
+    'durChapterIndex' | 'durChapterPos' | 'durChapterTitle' | 'durChapterTime'
+  >,
+  progressValue: number,
 ): string => {
   const snapshot = normalizeBookConfig({
     name: '',
@@ -43,7 +43,7 @@ export const buildLastReadLabel = (
   const startOfTarget = new Date(
     target.getFullYear(),
     target.getMonth(),
-    target.getDate()
+    target.getDate(),
   ).getTime()
   const diffDays = Math.floor((startOfNow - startOfTarget) / 86400000)
 
@@ -60,6 +60,6 @@ export const buildLastReadLabel = (
   }
 
   return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(
-    target.getDate()
+    target.getDate(),
   ).padStart(2, '0')}`
 }

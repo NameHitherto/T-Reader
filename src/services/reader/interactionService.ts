@@ -10,10 +10,7 @@ interface ResetReaderTransientUiHandlers {
   hideContextMenu: () => void
 }
 
-export const dispatchReaderKeydown = (
-  event: KeyboardEvent,
-  handlers: ReaderKeydownHandlers
-) => {
+export const dispatchReaderKeydown = (event: KeyboardEvent, handlers: ReaderKeydownHandlers) => {
   if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
     handlers.onPrevPage()
     return
@@ -29,9 +26,7 @@ export const dispatchReaderKeydown = (
   }
 }
 
-export const resetReaderTransientUi = (
-  handlers: ResetReaderTransientUiHandlers
-) => {
+export const resetReaderTransientUi = (handlers: ResetReaderTransientUiHandlers) => {
   window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.CLOSE_STYLE_MENU))
   handlers.hideContextMenu()
 }

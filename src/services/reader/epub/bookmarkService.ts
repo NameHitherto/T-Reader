@@ -5,7 +5,7 @@ import type { EpubRenditionLike } from '@/types/epub'
 export const applyBookmarkHighlight = (
   rendition: EpubRenditionLike | null,
   bookMark: BookMark,
-  defaultHighlightColor: string
+  defaultHighlightColor: string,
 ) => {
   if (!rendition) {
     return
@@ -23,7 +23,7 @@ export const applyBookmarkHighlight = (
     {
       fill: bookMark.color || defaultHighlightColor,
       stroke: bookMark.hasBorder ? themePalette.readerText : 'none',
-    }
+    },
   )
 }
 
@@ -31,22 +31,15 @@ export const addBookmarkHighlight = (
   rendition: EpubRenditionLike | null,
   cfiRange: string,
   markId: string,
-  defaultHighlightColor: string
+  defaultHighlightColor: string,
 ) => {
   if (!rendition) {
     return
   }
 
-  rendition.annotations.add(
-    'highlight',
-    cfiRange,
-    { markId },
-    undefined,
-    'bookmark-highlight',
-    {
-      fill: defaultHighlightColor,
-    }
-  )
+  rendition.annotations.add('highlight', cfiRange, { markId }, undefined, 'bookmark-highlight', {
+    fill: defaultHighlightColor,
+  })
 }
 
 export const removeBookmarkHighlight = (rendition: EpubRenditionLike | null, cfiRange: string) => {
@@ -61,7 +54,7 @@ export const initBookMarksForBook = (
   rendition: EpubRenditionLike | null,
   bookMarks: BookMark[],
   bookKey: string,
-  defaultHighlightColor: string
+  defaultHighlightColor: string,
 ) => {
   if (!rendition) {
     return

@@ -31,7 +31,7 @@ export const getCloudSyncPreview = async (): Promise<CloudSyncPreviewResult> => 
 }
 
 export const applyCloudSyncPlan = async (
-  request: CloudSyncApplyRequest
+  request: CloudSyncApplyRequest,
 ): Promise<CloudSyncApplyResult> => {
   return await invoke<CloudSyncApplyResult>('webdav_apply_sync_plan', {
     request,
@@ -39,11 +39,9 @@ export const applyCloudSyncPlan = async (
 }
 
 export const buildDefaultCloudSyncSelectionMap = (
-  items: CloudSyncPreviewItem[]
+  items: CloudSyncPreviewItem[],
 ): Record<string, boolean> => {
-  return Object.fromEntries(
-    items.map((item) => [item.fileName, item.status === 'download'])
-  )
+  return Object.fromEntries(items.map((item) => [item.fileName, item.status === 'download']))
 }
 
 const toBookAction = (status: CloudSyncPreviewItem['status']): CloudSyncBookAction | null => {
@@ -56,7 +54,7 @@ const toBookAction = (status: CloudSyncPreviewItem['status']): CloudSyncBookActi
 
 export const buildCloudSyncApplyRequest = (
   items: CloudSyncPreviewItem[],
-  selectionMap: Record<string, boolean>
+  selectionMap: Record<string, boolean>,
 ): CloudSyncApplyRequest => {
   const bookSelections = items.flatMap((item) => {
     if (!selectionMap[item.fileName]) {

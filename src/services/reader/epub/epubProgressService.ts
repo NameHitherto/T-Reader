@@ -33,7 +33,7 @@ const flattenToc = (items: EpubTocItem[] = []): EpubTocItem[] => {
 
 export const resolveEpubTocLabel = (
   tocItems: EpubTocItem[] = [],
-  href?: string
+  href?: string,
 ): string | undefined => {
   if (!href) {
     return undefined
@@ -41,7 +41,8 @@ export const resolveEpubTocLabel = (
 
   const normalizedHref = normalizeChapterKey(href)
 
-  return flattenToc(tocItems).find((item) => normalizeChapterKey(item.href) === normalizedHref)?.label
+  return flattenToc(tocItems).find((item) => normalizeChapterKey(item.href) === normalizedHref)
+    ?.label
 }
 
 const resolveTocHref = (tocItems: EpubTocItem[] = [], title?: string): string | undefined => {
@@ -56,11 +57,9 @@ const resolveTocHref = (tocItems: EpubTocItem[] = [], title?: string): string | 
 
 const loadSection = async (
   book: EpubBookLike,
-  target: string | number
+  target: string | number,
 ): Promise<EpubSectionLike | null> => {
-  const section = typeof target === 'number'
-    ? book?.section?.(target)
-    : book?.section?.(target)
+  const section = typeof target === 'number' ? book?.section?.(target) : book?.section?.(target)
   if (!section) {
     return null
   }
@@ -75,7 +74,7 @@ const loadSection = async (
 
 const resolveSectionFromSnapshot = async (
   book: EpubBookLike,
-  snapshot: EpubProgressLike
+  snapshot: EpubProgressLike,
 ): Promise<EpubSectionLike | null> => {
   const tocItems = book?.navigation?.toc || []
   let section = Number.isInteger(snapshot.durChapterIndex)
@@ -104,16 +103,15 @@ const resolveSectionFromSnapshot = async (
 }
 
 export const isEpubProgressSnapshot = (
-  bookConfig: Partial<BookConfig>
+  bookConfig: Partial<BookConfig>,
 ): bookConfig is Partial<BookConfig> & EpubProgressLike => {
   return (
-    typeof bookConfig.durChapterIndex === 'number' &&
-    typeof bookConfig.durChapterPos === 'number'
+    typeof bookConfig.durChapterIndex === 'number' && typeof bookConfig.durChapterPos === 'number'
   )
 }
 
 export const toEpubProgressSnapshot = (
-  bookConfig: Partial<BookConfig>
+  bookConfig: Partial<BookConfig>,
 ): EpubProgressSnapshot | null => {
   if (!isEpubProgressSnapshot(bookConfig)) {
     return null
@@ -132,10 +130,10 @@ export const toEpubProgressSnapshot = (
 }
 
 export const serializeEpubProgress = async (
-  rendition: EpubRenditionLike | null
+  rendition: EpubRenditionLike | null,
 ): Promise<EpubProgressSnapshot | null> => {
   const currentLocation = await Promise.resolve<EpubLocationLike | undefined>(
-    rendition?.currentLocation?.()
+    rendition?.currentLocation?.(),
   )
   const cfi = currentLocation?.start?.cfi
   const book = rendition?.book
@@ -178,7 +176,7 @@ export const serializeEpubProgress = async (
 
 export const resolveEpubDisplayTarget = async (
   book: EpubBookLike,
-  snapshot: EpubProgressLike
+  snapshot: EpubProgressLike,
 ): Promise<string | undefined> => {
   if (!isEpubProgressSnapshot(snapshot)) {
     return undefined
@@ -215,7 +213,7 @@ export const resolveEpubDisplayTarget = async (
 export const calculateEpubProgressFromSnapshot = async (
   bookData: Uint8Array,
   snapshot: EpubProgressLike,
-  cachedLocations?: string
+  cachedLocations?: string,
 ): Promise<number> => {
   if (!cachedLocations || !isEpubProgressSnapshot(snapshot)) {
     return 0
@@ -223,7 +221,7 @@ export const calculateEpubProgressFromSnapshot = async (
 
   const arrayBuffer = bookData.buffer.slice(
     bookData.byteOffset,
-    bookData.byteOffset + bookData.byteLength
+    bookData.byteOffset + bookData.byteLength,
   ) as ArrayBuffer
   const book = ePub(arrayBuffer)
 

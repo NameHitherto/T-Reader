@@ -33,14 +33,14 @@ const readIndexFile = async (): Promise<BookFileIndexFile | null> => {
 
   try {
     const payload = await readJsonFile<Partial<BookFileIndexFile>>(
-      buildLocalFilePath(LOCAL_DIRS.system, BOOK_FILE_INDEX_FILENAME)
+      buildLocalFilePath(LOCAL_DIRS.system, BOOK_FILE_INDEX_FILENAME),
     )
 
     const normalizedEntries = Array.isArray(payload.entries)
       ? payload.entries
           .filter(
             (entry): entry is BookFileIndexEntry =>
-              typeof entry?.bookKey === 'string' && typeof entry?.fileName === 'string'
+              typeof entry?.bookKey === 'string' && typeof entry?.fileName === 'string',
           )
           .map((entry) => ({
             bookKey: entry.bookKey,
@@ -72,7 +72,10 @@ export const loadBookFileIndex = async (): Promise<BookFileIndexFile | null> => 
 export const saveBookFileIndex = async (payload: BookFileIndexFile): Promise<void> => {
   const normalizedPayload = buildPayload(payload.entries)
 
-  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, BOOK_FILE_INDEX_FILENAME), normalizedPayload)
+  await writeJsonFile(
+    buildLocalFilePath(LOCAL_DIRS.system, BOOK_FILE_INDEX_FILENAME),
+    normalizedPayload,
+  )
 
   cachedBookFileIndex = normalizedPayload
 }
@@ -101,7 +104,7 @@ export const setBookFileIndexEntry = async (bookKey: string, fileName: string): 
   const payload = (await readIndexFile()) || buildPayload([])
   const normalizedFileName = normalizeFileName(fileName)
   const nextEntries = payload.entries.filter(
-    (entry) => entry.bookKey !== bookKey && entry.fileName !== normalizedFileName
+    (entry) => entry.bookKey !== bookKey && entry.fileName !== normalizedFileName,
   )
 
   nextEntries.push({

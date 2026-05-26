@@ -1,8 +1,5 @@
 import { getReaderRuntimePalette } from '@/services/theme/themeService'
-import type {
-  ReaderRenditionLike,
-  ReaderStyleConfig,
-} from '@/services/reader/readerStyleService'
+import type { ReaderRenditionLike, ReaderStyleConfig } from '@/services/reader/readerStyleService'
 
 type ReaderPalette = ReturnType<typeof getReaderRuntimePalette>
 
@@ -21,7 +18,7 @@ export const serializeReaderThemeCss = (theme: Record<string, unknown>) => {
       }
 
       const serializedDeclarations = serializeCssDeclaration(
-        declarations as Record<string, unknown>
+        declarations as Record<string, unknown>,
       )
       if (!serializedDeclarations) {
         return ''
@@ -37,7 +34,7 @@ export const applyEpubReaderStyles = (
   readerConfig: ReaderStyleConfig,
   readerDefaultTheme: Record<string, unknown>,
   rendition: ReaderRenditionLike | null,
-  palette: ReaderPalette
+  palette: ReaderPalette,
 ) => {
   const epubReader = document.getElementById('epub-reader')
   if (epubReader) {

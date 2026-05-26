@@ -36,32 +36,18 @@
         :data="booksMarks"
         :max-height="tableMaxHeight"
         :default-sort="{ prop: 'createTime', order: 'descending' }"
-        style="width: 100%;"
+        style="width: 100%"
       >
         <el-table-column prop="bookTitle" label="书名" width="180" show-overflow-tooltip />
         <el-table-column label="详情">
-          <el-table-column
-            prop="content"
-            label="内容"
-            show-overflow-tooltip
-            min-width="120"
-          />
-          <el-table-column
-            prop="comments"
-            label="笔记内容"
-            show-overflow-tooltip
-            min-width="120"
-          />
+          <el-table-column prop="content" label="内容" show-overflow-tooltip min-width="120" />
+          <el-table-column prop="comments" label="笔记内容" show-overflow-tooltip min-width="120" />
           <el-table-column prop="createTime" label="创建时间" width="160" />
         </el-table-column>
         <el-table-column fixed="right" label="操作" width="160">
           <template #default="item">
-            <el-button @click="jumpToRead(item.row)">
-              跳转
-            </el-button>
-            <el-button @click="deleteBookMark(item.row)">
-              删除
-            </el-button>
+            <el-button @click="jumpToRead(item.row)"> 跳转 </el-button>
+            <el-button @click="deleteBookMark(item.row)"> 删除 </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -102,17 +88,20 @@ export default defineComponent({
     groupedBooksMarks() {
       const temp = [...this.booksMarks]
 
-      return temp.reduce((acc, bookMark) => {
-        if (!acc[bookMark.bookName]) {
-          acc[bookMark.bookName] = []
-        }
-        acc[bookMark.bookName].push(bookMark)
-        return acc
-      }, {} as Record<string, BookMark[]>)
+      return temp.reduce(
+        (acc, bookMark) => {
+          if (!acc[bookMark.bookName]) {
+            acc[bookMark.bookName] = []
+          }
+          acc[bookMark.bookName].push(bookMark)
+          return acc
+        },
+        {} as Record<string, BookMark[]>,
+      )
     },
     rankedBooksMarks() {
       return [...this.booksMarks].sort(
-        (a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime)
+        (a, b) => formatDateToNumber(b.createTime) - formatDateToNumber(a.createTime),
       )
     },
     scrollLeftMax() {
@@ -163,7 +152,9 @@ export default defineComponent({
     },
     handleWheel(e: WheelEvent) {
       e.preventDefault()
-      const scrollbarRef = this.$refs.scrollbar as { setScrollLeft: (left: number) => void } | undefined
+      const scrollbarRef = this.$refs.scrollbar as
+        | { setScrollLeft: (left: number) => void }
+        | undefined
       this.scrollLeft = this.scrollLeft + e.deltaY >= 0 ? this.scrollLeft + e.deltaY : 0
       this.scrollLeft = this.scrollLeft > this.scrollLeftMax ? this.scrollLeftMax : this.scrollLeft
       scrollbarRef?.setScrollLeft(this.scrollLeft)
@@ -200,7 +191,7 @@ export default defineComponent({
 })
 </script>
 
-<style lang='scss' scoped>
+<style lang="scss" scoped>
 .bookmark {
   width: 100%;
   height: 100%;

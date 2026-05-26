@@ -87,25 +87,23 @@ const LIGHT_BACKGROUND_PRESET_VALUES = new Set<ReaderLightBackgroundPreset>([
   'warm-yellow',
 ])
 
-const DARK_BACKGROUND_PRESET_VALUES = new Set<ReaderDarkBackgroundPreset>([
-  'default',
-  'ide-dark',
-])
+const DARK_BACKGROUND_PRESET_VALUES = new Set<ReaderDarkBackgroundPreset>(['default', 'ide-dark'])
 
-const LIGHT_BACKGROUND_PRESET_OPTIONS: ReaderBackgroundPresetOption<ReaderLightBackgroundPreset>[] = [
-  {
-    value: 'default',
-    label: '主题默认',
-    description: '沿用白天主题的简约纯白底色。',
-    preview: '#FFFFFF',
-  },
-  {
-    value: 'warm-yellow',
-    label: '暖黄护眼',
-    description: '暖黄纸面配色，适合长时间沉浸阅读。',
-    preview: '#FBF0D9',
-  },
-]
+const LIGHT_BACKGROUND_PRESET_OPTIONS: ReaderBackgroundPresetOption<ReaderLightBackgroundPreset>[] =
+  [
+    {
+      value: 'default',
+      label: '主题默认',
+      description: '沿用白天主题的简约纯白底色。',
+      preview: '#FFFFFF',
+    },
+    {
+      value: 'warm-yellow',
+      label: '暖黄护眼',
+      description: '暖黄纸面配色，适合长时间沉浸阅读。',
+      preview: '#FBF0D9',
+    },
+  ]
 
 const DARK_BACKGROUND_PRESET_OPTIONS: ReaderBackgroundPresetOption<ReaderDarkBackgroundPreset>[] = [
   {
@@ -158,13 +156,15 @@ const READER_RUNTIME_OVERRIDES: Record<
 }
 
 const normalizeLightBackgroundPreset = (value: unknown): ReaderLightBackgroundPreset => {
-  return typeof value === 'string' && LIGHT_BACKGROUND_PRESET_VALUES.has(value as ReaderLightBackgroundPreset)
+  return typeof value === 'string' &&
+    LIGHT_BACKGROUND_PRESET_VALUES.has(value as ReaderLightBackgroundPreset)
     ? (value as ReaderLightBackgroundPreset)
     : DEFAULT_READER_BACKGROUND_PRESETS.light
 }
 
 const normalizeDarkBackgroundPreset = (value: unknown): ReaderDarkBackgroundPreset => {
-  return typeof value === 'string' && DARK_BACKGROUND_PRESET_VALUES.has(value as ReaderDarkBackgroundPreset)
+  return typeof value === 'string' &&
+    DARK_BACKGROUND_PRESET_VALUES.has(value as ReaderDarkBackgroundPreset)
     ? (value as ReaderDarkBackgroundPreset)
     : DEFAULT_READER_BACKGROUND_PRESETS.dark
 }
@@ -177,7 +177,7 @@ export const getAppliedAppThemeMode = (): AppThemeMode => {
 }
 
 export const getAppThemePalette = (
-  mode: AppThemeMode = getAppliedAppThemeMode()
+  mode: AppThemeMode = getAppliedAppThemeMode(),
 ): AppThemePalette => {
   return THEME_PALETTES[normalizeAppThemeMode(mode)]
 }
@@ -196,7 +196,7 @@ export const initializeAppTheme = async () => {
 }
 
 export const normalizeReaderBackgroundPresets = (
-  presets: Partial<ReaderBackgroundPresets> | null | undefined
+  presets: Partial<ReaderBackgroundPresets> | null | undefined,
 ): ReaderBackgroundPresets => {
   return {
     light: normalizeLightBackgroundPreset(presets?.light),
@@ -208,7 +208,7 @@ const resolveReaderBackgroundPresets = (
   configOrPresets?:
     | { backgroundPresets?: Partial<ReaderBackgroundPresets> | null }
     | Partial<ReaderBackgroundPresets>
-    | null
+    | null,
 ) => {
   if (
     configOrPresets &&
@@ -218,12 +218,12 @@ const resolveReaderBackgroundPresets = (
     return normalizeReaderBackgroundPresets(configOrPresets.backgroundPresets)
   }
 
-  return normalizeReaderBackgroundPresets(configOrPresets as Partial<ReaderBackgroundPresets> | null | undefined)
+  return normalizeReaderBackgroundPresets(
+    configOrPresets as Partial<ReaderBackgroundPresets> | null | undefined,
+  )
 }
 
-export const getReaderBackgroundPresetOptions = (
-  mode: AppThemeMode = getAppliedAppThemeMode()
-) => {
+export const getReaderBackgroundPresetOptions = (mode: AppThemeMode = getAppliedAppThemeMode()) => {
   return normalizeAppThemeMode(mode) === 'dark'
     ? DARK_BACKGROUND_PRESET_OPTIONS
     : LIGHT_BACKGROUND_PRESET_OPTIONS
@@ -234,7 +234,7 @@ export const getActiveReaderBackgroundPreset = (
     | { backgroundPresets?: Partial<ReaderBackgroundPresets> | null }
     | Partial<ReaderBackgroundPresets>
     | null,
-  mode: AppThemeMode = getAppliedAppThemeMode()
+  mode: AppThemeMode = getAppliedAppThemeMode(),
 ) => {
   const normalizedMode = normalizeAppThemeMode(mode)
 
@@ -246,7 +246,7 @@ export const getReaderRuntimePalette = (
     | { backgroundPresets?: Partial<ReaderBackgroundPresets> | null }
     | Partial<ReaderBackgroundPresets>
     | null,
-  mode: AppThemeMode = getAppliedAppThemeMode()
+  mode: AppThemeMode = getAppliedAppThemeMode(),
 ): ReaderRuntimePalette => {
   const normalizedMode = normalizeAppThemeMode(mode)
   const basePalette = getAppThemePalette(normalizedMode)
@@ -276,7 +276,7 @@ export const getReaderThemeCompatColors = (
     | { backgroundPresets?: Partial<ReaderBackgroundPresets> | null }
     | Partial<ReaderBackgroundPresets>
     | null,
-  mode: AppThemeMode = getAppliedAppThemeMode()
+  mode: AppThemeMode = getAppliedAppThemeMode(),
 ) => {
   const palette = getReaderRuntimePalette(configOrPresets, mode)
 
@@ -294,7 +294,7 @@ export const syncReaderConfigThemeColors = <
   },
 >(
   config: T,
-  mode: AppThemeMode = getAppliedAppThemeMode()
+  mode: AppThemeMode = getAppliedAppThemeMode(),
 ): T => {
   return {
     ...config,

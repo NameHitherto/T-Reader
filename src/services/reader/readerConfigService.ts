@@ -9,7 +9,7 @@ const READER_CONFIG_FILENAME = 'ReaderConfig.json'
 
 export const loadReaderConfigFromDisk = async () => {
   return await readJsonFile<Record<string, unknown>>(
-    buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME)
+    buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME),
   )
 }
 

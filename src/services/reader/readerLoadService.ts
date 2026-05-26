@@ -1,8 +1,4 @@
-import {
-  ensureBookCache,
-  loadBookBinary,
-  loadBookConfig,
-} from '@/services/book/bookRepository'
+import { ensureBookCache, loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
 import { loadBookLocationsCache } from '@/services/book/bookLocationsCacheService'
 import { ReaderFormatLoadResult } from '@/services/reader/formatTypes'
 
@@ -17,7 +13,7 @@ export const loadReaderBookData = async (bookKey: string): Promise<ReaderFormatL
   const bookLocationsCache = await loadBookLocationsCache(bookKey)
   const bookArrayBuffer = loadedBook.bookData.buffer.slice(
     loadedBook.bookData.byteOffset,
-    loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength
+    loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength,
   ) as ArrayBuffer
 
   return {

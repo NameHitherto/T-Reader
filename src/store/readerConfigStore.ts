@@ -1,43 +1,43 @@
 // src/stores/readerConfigStore.ts
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import type { EnabledSystemFont } from '@/types/readerFonts';
-import { DEFAULT_READER_FONT } from '@/types/readerFonts';
-import { getReaderThemeCompatColors } from '@/services/theme/themeService';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import type { EnabledSystemFont } from '@/types/readerFonts'
+import { DEFAULT_READER_FONT } from '@/types/readerFonts'
+import { getReaderThemeCompatColors } from '@/services/theme/themeService'
 import {
   createDefaultReaderBackgroundPresets,
   type ReaderBackgroundPresets,
-} from '@/types/readerBackground';
+} from '@/types/readerBackground'
 
 export type ReaderFlowMode =
   | 'auto'
   | 'paginated'
   | 'scrolled'
   | 'scrolled-doc'
-  | 'scrolled-continuous';
+  | 'scrolled-continuous'
 
 export interface ReaderConfig {
-  fontSize: number;
-  fontWeight: number;
-  lineSpacing: number;
-  paragraphSpacing: number;
-  letterSpacing: number;
-  boxPaddingTop: number;
-  boxPaddingBottom: number;
-  boxPaddingHorizontal: number;
-  columnCount: number;
-  indent: number;
-  font: string;
-  color: string;
-  fontColor: string;
-  backgroundPresets: ReaderBackgroundPresets;
-  flow: ReaderFlowMode;
-  enabledSystemFonts: EnabledSystemFont[];
-  loadEpubBuiltInStylesheet: boolean;
+  fontSize: number
+  fontWeight: number
+  lineSpacing: number
+  paragraphSpacing: number
+  letterSpacing: number
+  boxPaddingTop: number
+  boxPaddingBottom: number
+  boxPaddingHorizontal: number
+  columnCount: number
+  indent: number
+  font: string
+  color: string
+  fontColor: string
+  backgroundPresets: ReaderBackgroundPresets
+  flow: ReaderFlowMode
+  enabledSystemFonts: EnabledSystemFont[]
+  loadEpubBuiltInStylesheet: boolean
 }
 
 export const createDefaultReaderConfig = (): ReaderConfig => {
-  const backgroundPresets = createDefaultReaderBackgroundPresets();
+  const backgroundPresets = createDefaultReaderBackgroundPresets()
 
   return {
     ...getReaderThemeCompatColors(backgroundPresets),
@@ -56,44 +56,44 @@ export const createDefaultReaderConfig = (): ReaderConfig => {
     flow: 'paginated',
     enabledSystemFonts: [],
     loadEpubBuiltInStylesheet: false,
-  };
-};
+  }
+}
 
 export const useReaderConfigStore = defineStore('readerConfig', () => {
-    // 使用 ref 定义响应式状态
-    const readerConfig = ref<ReaderConfig>(createDefaultReaderConfig());
+  // 使用 ref 定义响应式状态
+  const readerConfig = ref<ReaderConfig>(createDefaultReaderConfig())
 
-    // 此处可以定义一个恢复默认设置的方法
-    const setDefaultConfig = () => {
-        readerConfig.value = createDefaultReaderConfig();
-    };
+  // 此处可以定义一个恢复默认设置的方法
+  const setDefaultConfig = () => {
+    readerConfig.value = createDefaultReaderConfig()
+  }
 
-    // 更新状态变量
-    const setReaderConfig = (config: Partial<ReaderConfig>) => {
-        readerConfig.value = { ...readerConfig.value, ...config };
-    };
+  // 更新状态变量
+  const setReaderConfig = (config: Partial<ReaderConfig>) => {
+    readerConfig.value = { ...readerConfig.value, ...config }
+  }
 
-    // 定义计算方法
-    const calculate = (key: keyof ReaderConfig, value: number) => {
-        const currentValue = readerConfig.value[key];
-        if (typeof currentValue !== 'number') {
-            return;
-        }
-        const nextValue = Number((currentValue + value).toFixed(2));
-        // 保留小数位同number一样
-        (readerConfig.value[key] as number) = nextValue;
-    };
+  // 定义计算方法
+  const calculate = (key: keyof ReaderConfig, value: number) => {
+    const currentValue = readerConfig.value[key]
+    if (typeof currentValue !== 'number') {
+      return
+    }
+    const nextValue = Number((currentValue + value).toFixed(2))
+    // 保留小数位同number一样
+    ;(readerConfig.value[key] as number) = nextValue
+  }
 
-    // 定义Action
-    const changeState = <K extends keyof ReaderConfig>(key: K, value: ReaderConfig[K]) => {
-        readerConfig.value[key] = value;
-    };
+  // 定义Action
+  const changeState = <K extends keyof ReaderConfig>(key: K, value: ReaderConfig[K]) => {
+    readerConfig.value[key] = value
+  }
 
-    return {
-        readerConfig,
-        setReaderConfig,
-        calculate,
-        changeState,
-        setDefaultConfig,
-    };
-});
+  return {
+    readerConfig,
+    setReaderConfig,
+    calculate,
+    changeState,
+    setDefaultConfig,
+  }
+})

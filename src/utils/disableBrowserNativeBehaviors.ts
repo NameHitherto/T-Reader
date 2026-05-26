@@ -1,31 +1,29 @@
 export const disableBrowserNativeBehaviors = () => {
   const onKeyDown = (event: KeyboardEvent) => {
     if (
-      event.key === "F5" ||
-      ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r")
+      event.key === 'F5' ||
+      ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r')
     ) {
-      event.preventDefault();
+      event.preventDefault()
     }
-  };
+  }
 
   const onContextMenu = (event: MouseEvent) => {
-    const target = event.target as HTMLElement | null;
+    const target = event.target as HTMLElement | null
     if (
       target &&
-      (target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable)
+      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
     ) {
-      return;
+      return
     }
-    event.preventDefault();
-  };
+    event.preventDefault()
+  }
 
-  document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("contextmenu", onContextMenu);
+  document.addEventListener('keydown', onKeyDown)
+  document.addEventListener('contextmenu', onContextMenu)
 
-  window.addEventListener("beforeunload", () => {
-    document.removeEventListener("keydown", onKeyDown);
-    document.removeEventListener("contextmenu", onContextMenu);
-  });
-};
+  window.addEventListener('beforeunload', () => {
+    document.removeEventListener('keydown', onKeyDown)
+    document.removeEventListener('contextmenu', onContextMenu)
+  })
+}

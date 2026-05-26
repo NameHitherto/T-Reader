@@ -10,7 +10,7 @@ interface ReaderLoadingOptions {
 
 export const withReaderLoading = async <T>(
   task: () => Promise<T>,
-  options: ReaderLoadingOptions = {}
+  options: ReaderLoadingOptions = {},
 ): Promise<T> => {
   const palette = getAppThemePalette(getAppliedAppThemeMode())
   const loading = ElLoading.service({

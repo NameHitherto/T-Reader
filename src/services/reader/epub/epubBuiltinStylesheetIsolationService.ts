@@ -51,7 +51,7 @@ const insertCustomStylesheetNode = (doc: Document, css: string) => {
 }
 
 export const createEpubBuiltInStylesheetIsolationController = (
-  book: EpubBookLike
+  book: EpubBookLike,
 ): EpubBuiltInStylesheetIsolationController => {
   const contentHook = book.spine?.hooks?.content
   let isRegistered = false

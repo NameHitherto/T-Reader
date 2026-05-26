@@ -64,7 +64,7 @@ export interface EpubRenditionLike {
       data?: unknown,
       callback?: unknown,
       className?: string,
-      styles?: Record<string, string>
+      styles?: Record<string, string>,
     ) => void
     remove: (cfiRange: string, type: string) => void
   }

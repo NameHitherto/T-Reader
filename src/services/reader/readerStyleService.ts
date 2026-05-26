@@ -1,7 +1,4 @@
-import {
-  getAppliedAppThemeMode,
-  getReaderRuntimePalette,
-} from '@/services/theme/themeService'
+import { getAppliedAppThemeMode, getReaderRuntimePalette } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import type { ReaderBackgroundPresets } from '@/types/readerBackground'
 import type { EnabledSystemFont } from '@/types/readerFonts'
@@ -40,27 +37,21 @@ export const applyReaderStyles = (
   readerDefaultTheme: Record<string, unknown>,
   rendition: EpubRenditionLike | null,
   themeMode: AppThemeMode = getAppliedAppThemeMode(),
-  applyIframeStyle = true
+  applyIframeStyle = true,
 ) => {
   const palette = getReaderRuntimePalette(readerConfig, themeMode)
 
   document.documentElement.style.setProperty('--reader-background', palette.viewportBackground)
   document.documentElement.style.setProperty(
     '--reader-content-background',
-    palette.contentBackground
+    palette.contentBackground,
   )
   document.documentElement.style.setProperty('--reader-surface', palette.surface)
   document.documentElement.style.setProperty('--reader-surface-strong', palette.surfaceStrong)
   document.documentElement.style.setProperty('--reader-text', palette.text)
   document.documentElement.style.setProperty('--reader-text-muted', palette.mutedText)
-  document.documentElement.style.setProperty(
-    '--reader-selection-bg',
-    palette.selectionBackground
-  )
-  document.documentElement.style.setProperty(
-    '--reader-selection-text',
-    palette.selectionColor
-  )
+  document.documentElement.style.setProperty('--reader-selection-bg', palette.selectionBackground)
+  document.documentElement.style.setProperty('--reader-selection-text', palette.selectionColor)
   document.documentElement.style.setProperty('--reader-image-filter', palette.imageFilter)
 
   document.body.style.background = palette.viewportBackground

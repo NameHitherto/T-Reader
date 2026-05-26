@@ -49,7 +49,7 @@ export const hideReaderWindow = async () => {
 
 export const dispatchReaderEvent = async (
   eventName: string,
-  payload?: unknown
+  payload?: unknown,
 ): Promise<boolean> => {
   const result = await invoke<DispatchReaderEventResult>('dispatch_reader_event', {
     eventName,
@@ -59,10 +59,7 @@ export const dispatchReaderEvent = async (
   return result.delivered
 }
 
-export const dispatchMainEvent = async (
-  eventName: string,
-  payload?: unknown
-): Promise<boolean> => {
+export const dispatchMainEvent = async (eventName: string, payload?: unknown): Promise<boolean> => {
   const result = await invoke<DispatchReaderEventResult>('dispatch_main_event', {
     eventName,
     payload: payload ?? {},
@@ -79,8 +76,6 @@ export const dispatchReaderThemeUpdate = async (mode: string) => {
   return await dispatchReaderEvent(WINDOW_EVENTS.UPDATE_APP_THEME, { mode })
 }
 
-export const dispatchBookshelfProgressSaved = async (
-  payload: BookshelfProgressSavedPayload
-) => {
+export const dispatchBookshelfProgressSaved = async (payload: BookshelfProgressSavedPayload) => {
   return await dispatchMainEvent(WINDOW_EVENTS.BOOKSHELF_PROGRESS_SAVED, payload)
 }

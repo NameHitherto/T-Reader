@@ -6,7 +6,7 @@ import { epubReaderProgressHandler } from '@/services/reader/epub/epubProgressSe
 import type { EpubBookLike, EpubRenditionLike } from '@/types/epub'
 
 export const serializeReaderProgress = async (
-  rendition: EpubRenditionLike | null
+  rendition: EpubRenditionLike | null,
 ): Promise<BookProgressSnapshot | null> => {
   return await epubReaderProgressHandler.serializeProgress({
     rendition,
@@ -15,7 +15,7 @@ export const serializeReaderProgress = async (
 
 export const resolveReaderDisplayTarget = async (
   source: EpubBookLike,
-  snapshot: BookProgressSnapshot
+  snapshot: BookProgressSnapshot,
 ): Promise<string | number | undefined> => {
   return await epubReaderProgressHandler.resolveDisplayTarget(source, snapshot)
 }
@@ -24,7 +24,7 @@ export const calculateShelfProgress = async (
   bookData: Uint8Array | undefined,
   snapshot: BookProgressSnapshot,
   cache: BookCachePayload,
-  locationsCache?: BookLocationsCachePayload | null
+  locationsCache?: BookLocationsCachePayload | null,
 ): Promise<number> => {
   if (isUnreadProgressSnapshot(snapshot)) {
     return 0
