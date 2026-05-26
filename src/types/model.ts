@@ -17,14 +17,14 @@ export type ModelProviderMap = Record<ModelPurpose, ModelProvider | null>
 
 export const PURPOSE_LABELS: Record<ModelPurpose, string> = {
   chat: '对话',
-  image: '图像',
   embedding: '嵌入',
   rerank: '重排序',
+  image: '图像',
 }
 
 export const ENDPOINT_PRESETS: Record<ProviderType, Partial<Record<ModelPurpose, string[]>>> = {
   OpenAI: {
-    chat: ['/v1/chat/completions', '/v1/responses', '/v1/responses/compact'],
+    chat: ['/v1/chat/completions', '/v1/responses'],
     image: ['/v1/images/generations'],
     embedding: ['/v1/embeddings'],
     rerank: ['/v1/rerank'],
