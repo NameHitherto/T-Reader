@@ -92,7 +92,9 @@
               </div>
               <div class="model-card-field">
                 <span class="model-card-label">请求地址</span>
-                <span class="model-card-value">{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span>
+                <span class="model-card-value"
+                  >{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span
+                >
               </div>
             </div>
             <div class="model-card-actions">
@@ -119,15 +121,9 @@
 
       <section class="section">
         <el-divider class="divider" content-position="left">TXT分章规则</el-divider>
-        <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">
-          暂无可展示规则
-        </div>
+        <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">暂无可展示规则</div>
         <div v-else class="txt-toc-rule-list">
-          <article
-            v-for="(rule, index) in txtTocRules"
-            :key="rule.id"
-            class="txt-toc-rule-card"
-          >
+          <article v-for="(rule, index) in txtTocRules" :key="rule.id" class="txt-toc-rule-card">
             <div class="txt-toc-rule-priority-actions">
               <button
                 type="button"
@@ -170,18 +166,14 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button type="primary" @click="saveSetting">保存</el-button>
-        <el-button @click="$emit('close-dialog')">取消</el-button>
+        <el-button @click="closeDialog">关闭</el-button>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script>
-import {
-  loadAppSettings,
-  saveAppSettings,
-} from '@/services/settings/appSettingsService'
+import { loadAppSettings, saveAppSettings } from '@/services/settings/appSettingsService'
 import {
   loadTxtTocRules,
   resequenceTxtTocRules,
@@ -190,6 +182,9 @@ import {
 import { emitAppThemeUpdate } from '@/services/theme/themeService'
 import { PURPOSE_LABELS } from '@/types/model'
 import ModelProviderForm from '@/components/SettingDialog/ModelProviderForm.vue'
+import { logWarn } from '@/utils/logger'
+
+const AUTO_SAVE_DELAY_MS = 200
 
 export default {
   name: 'SettingDialog',
@@ -203,9 +198,7 @@ export default {
       webdavUrlFolder: '',
       webdavUsername: '',
       webdavPassword: '',
-      platformList: [
-        { value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' }
-      ],
+      platformList: [{ value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' }],
       modelProviders: {
         chat: null,
         image: null,
@@ -217,7 +210,12 @@ export default {
       isAdding: false,
       editingProvider: null,
       txtTocRules: [],
-    };
+      isLoadingSettings: false,
+      autoSaveTimer: null,
+      lastSavedSnapshot: '',
+      lastSavedThemeMode: 'light',
+      hasLoadedSettings: false,
+    }
   },
   computed: {
     webdavUrl() {
@@ -236,20 +234,65 @@ export default {
       return PURPOSE_LABELS[this.activePurpose] ?? ''
     },
   },
+  watch: {
+    themeMode() {
+      this.scheduleAutoSave()
+    },
+    webdavUrlRoot() {
+      this.scheduleAutoSave()
+    },
+    webdavUrlFolder() {
+      this.scheduleAutoSave()
+    },
+    webdavUsername() {
+      this.scheduleAutoSave()
+    },
+    webdavPassword() {
+      this.scheduleAutoSave()
+    },
+    modelProviders: {
+      deep: true,
+      handler() {
+        this.scheduleAutoSave()
+      },
+    },
+    txtTocRules: {
+      deep: true,
+      handler() {
+        this.scheduleAutoSave()
+      },
+    },
+  },
+  beforeUnmount() {
+    this.clearAutoSaveTimer()
+  },
   methods: {
     async onOpen() {
-      const loadedSettings = await loadAppSettings()
-      this.settings = loadedSettings
-      this.themeMode = loadedSettings.themeMode
-      this.webdavUrlRoot = loadedSettings.webdavUrlRoot
-      this.webdavUrlFolder = loadedSettings.webdavUrlFolder
-      this.webdavUsername = loadedSettings.webdavUser
-      this.webdavPassword = loadedSettings.webdavPass
-      this.modelProviders = { ...loadedSettings.modelProviders }
-      this.txtTocRules = await loadTxtTocRules()
+      if (this.hasLoadedSettings) {
+        await this.flushAutoSaveSettings()
+      }
+
+      this.isLoadingSettings = true
+
+      try {
+        const loadedSettings = await loadAppSettings()
+        this.settings = loadedSettings
+        this.themeMode = loadedSettings.themeMode
+        this.webdavUrlRoot = loadedSettings.webdavUrlRoot
+        this.webdavUrlFolder = loadedSettings.webdavUrlFolder
+        this.webdavUsername = loadedSettings.webdavUser
+        this.webdavPassword = loadedSettings.webdavPass
+        this.modelProviders = { ...loadedSettings.modelProviders }
+        this.txtTocRules = await loadTxtTocRules()
+        this.lastSavedThemeMode = loadedSettings.themeMode
+        this.lastSavedSnapshot = this.createSettingsSnapshot()
+        this.hasLoadedSettings = true
+      } finally {
+        this.isLoadingSettings = false
+      }
     },
-    async saveSetting() {
-      const nextSettings = {
+    buildNextSettings() {
+      return {
         webdavUrlRoot: this.webdavUrlRoot,
         webdavUrlFolder: this.webdavUrlFolder,
         webdavUrl: this.webdavUrl,
@@ -258,11 +301,62 @@ export default {
         modelProviders: this.modelProviders,
         themeMode: this.themeMode,
       }
+    },
+    createSettingsSnapshot() {
+      return JSON.stringify({
+        settings: this.buildNextSettings(),
+        txtTocRules: this.txtTocRules,
+      })
+    },
+    clearAutoSaveTimer() {
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer)
+        this.autoSaveTimer = null
+      }
+    },
+    scheduleAutoSave() {
+      if (this.isLoadingSettings || !this.hasLoadedSettings) {
+        return
+      }
 
+      this.clearAutoSaveTimer()
+      this.autoSaveTimer = setTimeout(() => {
+        this.autoSaveTimer = null
+        void this.autoSaveSettings()
+      }, AUTO_SAVE_DELAY_MS)
+    },
+    async flushAutoSaveSettings() {
+      this.clearAutoSaveTimer()
+      await this.autoSaveSettings()
+    },
+    async autoSaveSettings() {
+      if (!this.hasLoadedSettings) {
+        return
+      }
+
+      const snapshot = this.createSettingsSnapshot()
+      if (snapshot === this.lastSavedSnapshot) {
+        return
+      }
+
+      const nextSettings = this.buildNextSettings()
+      const shouldEmitThemeUpdate = this.themeMode !== this.lastSavedThemeMode
       this.settings = nextSettings
-      await saveAppSettings(nextSettings)
-      await saveTxtTocRules(this.txtTocRules)
-      await emitAppThemeUpdate(this.themeMode)
+
+      try {
+        await saveAppSettings(nextSettings)
+        await saveTxtTocRules(this.txtTocRules)
+        if (shouldEmitThemeUpdate) {
+          await emitAppThemeUpdate(this.themeMode)
+          this.lastSavedThemeMode = this.themeMode
+        }
+        this.lastSavedSnapshot = snapshot
+      } catch (error) {
+        logWarn('SettingDialog', 'auto-save-settings failed', error)
+      }
+    },
+    async closeDialog() {
+      await this.flushAutoSaveSettings()
       this.$emit('close-dialog')
     },
     startEdit() {
@@ -315,7 +409,7 @@ export default {
       this.txtTocRules = resequenceTxtTocRules(nextRules)
     },
   },
-};
+}
 </script>
 
 <style scoped lang="scss">
