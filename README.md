@@ -2,7 +2,7 @@
 
 T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、AI 阅读助手与应用内更新能力。
 
-![version](https://img.shields.io/badge/version-1.2.1-blue)
+![version](https://img.shields.io/badge/version-1.4.2-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 ## 核心能力
@@ -12,11 +12,8 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 独立阅读器窗口支持目录、翻页、滚动、快捷键与沉浸式阅读
 - 支持 EPUB 书签、高亮和个人笔记，笔记页可统一浏览与跳转
 - 阅读样式支持字体、字号、字重、行距、段距、页边距、栏数、翻页模式调节
-- 支持 WebDAV 云同步，云端与本地进度按时间戳择优合并
-- 支持 AI 阅读助手，可基于当前书籍内容进行问答
-- 支持缓存封面、EPUB locations、TXT 段落统计，减少重复加载开销
-- 支持应用内检查更新、下载更新并重启安装
-- 主流程带通知反馈与前后端日志，便于排查问题
+- 支持 WebDAV 云同步
+- 支持应用内检查更新、下载更新
 
 ## 界面预览
 
@@ -143,45 +140,7 @@ npm run release -- v1.0.1
 
 `npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
 
-## 开发说明
-
-- 主窗口入口：`index.html` + `src/main.ts`
-- 阅读器入口：`reader.html` + `src/readerMain.ts`
-- 主窗口路由：
-  - `/` 书架
-  - `/bookmark` 笔记
-  - `/about` 关于 / 更新
-  - `/experiment` 实验页占位
-- 阅读器窗口事件统一定义在 `src/constants/events.ts`
-- 窗口标题栏初始化位于 `src/services/window/windowTitlebarService.ts`
-
-## 常见问题
-
-### 1. 开发端口冲突
-
-若启动时出现 `1420` 端口占用，需要同时修改：
-
-- `vite.config.ts`
-- `src-tauri/tauri.conf.json` 中的 `devUrl`
-
-### 2. Rust 下载慢
-
-可先配置镜像源：
-
-```bash
-$env:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
-```
-
-### 3. 子模块依赖安装异常
-
-若 `libs/epub.js` 安装依赖时遇到 `phantomjs` 下载失败，可尝试：
-
-```bash
-$env:PHANTOMJS_CDNURL='https://npmmirror.com/mirrors/phantomjs'
-npm install
-```
-
 ## 相关仓库
 
 - 桌面端仓库：https://github.com/NameHitherto/T-Reader
-- 移动端仓库：https://github.com/NameHitherto/T-Reader-Mobile
+- ~~移动端仓库：https://github.com/NameHitherto/T-Reader-Mobile~~
