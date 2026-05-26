@@ -66,10 +66,10 @@
         </div>
       </section>
 
-      <section class="section">
+      <!-- 暂无应用实现，临时隐藏。 -->
+      <section v-show="false" class="section">
         <el-divider class="divider" content-position="left">AI大模型</el-divider>
 
-        <!-- Display state -->
         <template v-if="!isEditing">
           <div class="purpose-tabs">
             <el-radio-group v-model="activePurpose" size="small">
