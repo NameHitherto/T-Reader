@@ -28,6 +28,15 @@ pub async fn upsert_book(
 }
 
 #[tauri::command]
+pub async fn update_book_progress(
+    database: State<'_, DatabaseState>,
+    book_key: String,
+    progress: f64,
+) -> Result<BookRecord, String> {
+    books::update_book_progress(&database.pool, &book_key, progress).await
+}
+
+#[tauri::command]
 pub async fn remove_book_by_key(
     database: State<'_, DatabaseState>,
     book_key: String,

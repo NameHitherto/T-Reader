@@ -1,7 +1,6 @@
 import { BookMark } from '@/store/bookMark'
 import { BookConfig } from '@/types/book'
-import { loadBookCache, saveBookCache } from '@/services/book/bookCacheService'
-import { loadBookConfig, saveBookConfig } from '@/services/book/bookRepository'
+import { loadBookConfig, saveBookConfig, updateBookProgress } from '@/services/book/bookRepository'
 import { replaceBookMarksForBook } from '@/services/book/bookMarksRepository'
 import { serializeReaderProgress } from '@/services/reader/progressSnapshotService'
 import { epubReaderProgressHandler } from '@/services/reader/epub/epubProgressService'
@@ -19,16 +18,12 @@ export interface SavedReaderProgress {
 }
 
 const resolveReaderProgressPercent = async (
-  bookKey: string,
   rendition: EpubRenditionLike | null,
   bookConfig: Pick<BookConfig, 'durChapterIndex'>,
 ): Promise<number> => {
-  const bookCache = await loadBookCache(bookKey)
-
   return await epubReaderProgressHandler.calculateProgress({
     rendition,
     bookConfig,
-    bookCache,
   })
 }
 
@@ -52,10 +47,8 @@ export const saveReaderProgress = async (
   await replaceBookMarksForBook(bookKey, nextBookMarks)
 
   await saveBookConfig(bookKey, bookConfig)
-  const progress = await resolveReaderProgressPercent(bookKey, rendition, bookConfig)
-  await saveBookCache(bookKey, {
-    progress,
-  })
+  const progress = await resolveReaderProgressPercent(rendition, bookConfig)
+  await updateBookProgress(bookKey, progress)
 
   return {
     bookConfig,

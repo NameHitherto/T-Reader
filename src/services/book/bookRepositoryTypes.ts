@@ -10,6 +10,7 @@ export interface StoredBookRecord {
   cacheName: string
   hasCover: boolean
   coverName?: string | null
+  progress: number
   createdAt: string
   updatedAt: string
 }
@@ -23,4 +24,5 @@ export interface UpsertBookRequest {
   cacheName?: string
   hasCover?: boolean
   coverName?: string | null
+  progress?: number
 }

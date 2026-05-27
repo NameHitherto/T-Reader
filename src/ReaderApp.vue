@@ -115,7 +115,7 @@ import {
 } from '@/services/reader/readerConfigService'
 import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFontService'
 import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
-import { primeBookCacheAfterImport } from '@/services/book/bookCacheService'
+import { primeBookResourcesAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
@@ -549,7 +549,7 @@ async function loadBook(cfi?: string) {
 
   await withReaderLoading(async () => {
     const loadedBook = await loadReaderBookData(currentBookKey.value as string)
-    const { bookConfig, bookCache, bookLocationsCache, fileName, bookArrayBuffer } = loadedBook
+    const { bookConfig, bookLocationsCache, fileName, bookArrayBuffer } = loadedBook
 
     currentBookConfig.value = bookConfig
     readingPercentage.value = ''
@@ -589,7 +589,7 @@ async function loadBook(cfi?: string) {
 
     if (bookLocationsCache?.status !== 'ready') {
       queueMicrotask(() => {
-        void primeBookCacheAfterImport(
+        void primeBookResourcesAfterImport(
           currentBookKey.value as string,
           bookArrayBuffer as ArrayBuffer,
           fileName,
@@ -607,7 +607,7 @@ async function loadBook(cfi?: string) {
 
     logInfo('ReaderApp', 'loadBook', {
       bookKey: currentBookKey.value,
-      title: bookCache?.title || bookConfig.name,
+      title: bookConfig.name,
     })
   }).catch((e) => {
     logError('ReaderApp', '书籍加载失败', e)

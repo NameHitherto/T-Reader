@@ -1,5 +1,4 @@
 import { BookProgressSnapshot } from '@/types/book'
-import { BookCachePayload } from '@/services/book/bookCacheService'
 import { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
 import { isUnreadProgressSnapshot } from '@/services/book/bookConfigService'
 import { epubReaderProgressHandler } from '@/services/reader/epub/epubProgressService'
@@ -23,7 +22,6 @@ export const resolveReaderDisplayTarget = async (
 export const calculateShelfProgress = async (
   bookData: Uint8Array | undefined,
   snapshot: BookProgressSnapshot,
-  cache: BookCachePayload,
   locationsCache?: BookLocationsCachePayload | null,
 ): Promise<number> => {
   if (isUnreadProgressSnapshot(snapshot)) {
@@ -33,7 +31,6 @@ export const calculateShelfProgress = async (
   return await epubReaderProgressHandler.calculateShelfProgress({
     bookData,
     snapshot,
-    cache,
     locationsCache,
   })
 }

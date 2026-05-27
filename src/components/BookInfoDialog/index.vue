@@ -69,7 +69,8 @@
 <script>
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
-import { ensureBookCache, loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
+import { getStoredBookByKey, loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
+import { buildBookCoverUrl } from '@/services/book/bookCacheService'
 import { logWarn } from '@/utils/logger'
 
 export default {
@@ -119,10 +120,11 @@ export default {
       this.resetFields()
 
       const bookConfig = await loadBookConfig(this.bookKey)
-      const bookCache = await ensureBookCache(this.bookKey)
-      this.bookCover = bookCache?.coverUrl || this.defaultCover
+      const storedBook = await getStoredBookByKey(this.bookKey)
+      this.bookCover =
+        (await buildBookCoverUrl(this.bookKey, storedBook?.coverName)) || this.defaultCover
       this.creator = bookConfig.author || ''
-      this.title = bookCache?.title || ''
+      this.title = storedBook?.title || bookConfig.name || ''
 
       const loadedBook = await loadBookBinary(this.bookKey)
       if (loadedBook.format !== 'epub') {

@@ -13,6 +13,7 @@ pub struct BookRecord {
     pub cache_name: String,
     pub has_cover: bool,
     pub cover_name: Option<String>,
+    pub progress: f64,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -28,6 +29,7 @@ pub struct UpsertBookRequest {
     pub cache_name: Option<String>,
     pub has_cover: Option<bool>,
     pub cover_name: Option<String>,
+    pub progress: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]

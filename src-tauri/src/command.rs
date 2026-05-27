@@ -30,6 +30,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::book::list_books,
         crate::api::book::get_book_by_key,
         crate::api::book::upsert_book,
+        crate::api::book::update_book_progress,
         crate::api::book::remove_book_by_key,
         crate::api::book::resolve_book_file,
         crate::api::note::load_all_notes,

@@ -4,12 +4,6 @@ import {
   detectBookFormatFromFilename,
   detectBookFormatFromPath,
 } from '@/services/book/bookFormatService'
-import {
-  BookCachePayload,
-  hasRequiredBookCache,
-  loadBookCache,
-  primeBookCacheAfterImport,
-} from '@/services/book/bookCacheService'
 import type { StoredBookRecord, UpsertBookRequest } from '@/services/book/bookRepositoryTypes'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { buildBookName, buildBookTitle, toBookConfigFilename } from '@/services/book/bookIdentity'
@@ -45,6 +39,7 @@ export interface LoadedBookBinary extends ResolvedBookFile {
 export interface StoredBookConfig {
   bookKey: string
   config: BookConfig
+  record: StoredBookRecord
 }
 
 let cachedBookFileMap: Map<string, ResolvedBookFile> | null = null
@@ -66,10 +61,6 @@ const toUint8Array = (data: ArrayBufferLike | Uint8Array | number[]): Uint8Array
   }
 
   return new Uint8Array(data)
-}
-
-const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
-  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer
 }
 
 const parseBookConfigData = (data: Uint8Array): BookConfig => {
@@ -113,6 +104,7 @@ const toStoredBookConfig = async (book: StoredBookRecord): Promise<StoredBookCon
 
   return {
     bookKey: book.bookKey,
+    record: book,
     config: normalizeBookConfig({
       ...progressConfig,
       name: progressConfig?.name || book.title,
@@ -126,6 +118,20 @@ export const upsertStoredBook = async (request: UpsertBookRequest): Promise<Stor
   cachedBookFileMap = null
 
   return record
+}
+
+export const getStoredBookByKey = async (bookKey: string): Promise<StoredBookRecord | null> => {
+  return await invoke<StoredBookRecord | null>('get_book_by_key', { bookKey })
+}
+
+export const updateBookProgress = async (
+  bookKey: string,
+  progress: number,
+): Promise<StoredBookRecord> => {
+  return await invoke<StoredBookRecord>('update_book_progress', {
+    bookKey,
+    progress,
+  })
 }
 
 const persistBookConfigToLocal = async (filename: string, config: BookConfig): Promise<void> => {
@@ -324,34 +330,6 @@ export const resolveBookFormat = async (bookKey: string): Promise<BookFormat> =>
   const resolved = await resolveBookFile(bookKey)
 
   return resolved.format
-}
-
-export const ensureBookCache = async (bookKey: string): Promise<BookCachePayload> => {
-  const currentCache = (await loadBookCache(bookKey)) || {}
-  const resolved = await resolveBookFile(bookKey)
-  const hasRequiredCache = hasRequiredBookCache(currentCache)
-
-  if (hasRequiredCache) {
-    logInfo('book-repository', 'ensure-book-cache:done', {
-      bookKey,
-      source: 'existing-cache',
-      format: resolved.format,
-    })
-    return currentCache
-  }
-
-  const bookData = await loadBookBinary(bookKey)
-  const payload = await primeBookCacheAfterImport(
-    bookKey,
-    toArrayBuffer(bookData.bookData),
-    bookData.fileName,
-  )
-  logInfo('book-repository', 'ensure-book-cache:done', {
-    bookKey,
-    source: 'rebuilt-cache',
-    format: bookData.format,
-  })
-  return payload
 }
 
 export const loadLocalBookBinary = async (bookKey: string): Promise<LoadedBookBinary | null> => {

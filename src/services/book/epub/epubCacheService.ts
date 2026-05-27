@@ -1,6 +1,4 @@
 import ePub from 'libs/epub.js'
-import { parseEpubMeta } from '@/services/book/epub/epubParser'
-import { BookCachePrimeHandler } from '@/services/book/types'
 import { buildBookCacheCoverPath, buildBookCacheDir } from '@/services/book/bookCachePathService'
 import { ensureLocalDir, writeBinaryFile } from '@/services/fileSystem/localStorageService'
 import { createDurationLogger, logWarn } from '@/utils/logger'
@@ -68,7 +66,7 @@ const extractEpubCoverBlob = async (fileBuffer: ArrayBuffer): Promise<Blob | nul
   }
 }
 
-const saveEpubCoverResource = async (
+export const saveEpubCoverResource = async (
   bookKey: string,
   fileBuffer: ArrayBuffer,
 ): Promise<string | null> => {
@@ -93,34 +91,4 @@ const saveEpubCoverResource = async (
     })
     return null
   }
-}
-
-export const epubBookCacheHandler: BookCachePrimeHandler = {
-  hasRequiredCache(cache) {
-    return Boolean(cache.title && cache.coverResource !== undefined)
-  },
-  async buildCachePayload({ bookKey, fileBuffer, originalFileName, currentCache }) {
-    const progress = currentCache.progress ?? 0
-
-    try {
-      const meta = await parseEpubMeta(fileBuffer)
-      const coverResource = await saveEpubCoverResource(bookKey, fileBuffer)
-
-      return {
-        title: meta.title,
-        coverResource,
-        progress,
-      }
-    } catch (error) {
-      logWarn('book-cache-service', 'prime-book-cache-after-import fallback', {
-        fileName: originalFileName,
-        format: 'epub',
-        error,
-      })
-
-      return {
-        progress,
-      }
-    }
-  },
 }

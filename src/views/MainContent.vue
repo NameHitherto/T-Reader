@@ -152,8 +152,8 @@ import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
-  loadBookCache,
-  primeBookCacheAfterImport,
+  buildBookCoverUrl,
+  primeBookResourcesAfterImport,
   removeBookCacheDir,
 } from '@/services/book/bookCacheService'
 import {
@@ -415,20 +415,16 @@ const cleanupImportedBookArtifacts = async (
 // 书架数据加载
 // ============================================================
 const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> => {
-  const { bookKey, config: book } = storedBook
+  const { bookKey, config: book, record } = storedBook
   try {
     const format = await resolveBookFormat(bookKey)
-    const cache = (await loadBookCache(bookKey)) || {}
-    const progressValue =
-      typeof cache.progress === 'number' && Number.isFinite(cache.progress)
-        ? Math.min(100, Math.max(0, cache.progress))
-        : 0
+    const progressValue = clampProgressValue(record.progress)
 
     const shelfBook = {
       ...book,
       bookKey,
-      displayTitle: cache.title || book.name,
-      cover: cache.coverUrl,
+      displayTitle: record.title || book.name,
+      cover: await buildBookCoverUrl(bookKey, record.coverName),
       format,
       progressValue,
       lastReadLabel: buildLastReadLabel(book, progressValue),
@@ -446,14 +442,13 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       error,
     })
 
-    const cache = (await loadBookCache(bookKey)) || {}
     const shelfBook = {
       ...book,
       bookKey,
-      displayTitle: cache.title || book.name,
-      cover: cache.coverUrl,
+      displayTitle: record.title || book.name,
+      cover: await buildBookCoverUrl(bookKey, record.coverName),
       format: 'unknown' as ShelfBookFormat,
-      progressValue: 0,
+      progressValue: clampProgressValue(record.progress),
       lastReadLabel: '',
     }
 
@@ -693,7 +688,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.progress, configFilename), newBook)
     createdBookArtifacts = true
 
-    const cachedPayload = await primeBookCacheAfterImport(
+    const resourcePayload = await primeBookResourcesAfterImport(
       importedBook.bookKey,
       bufferFile,
       originalFileName,
@@ -704,8 +699,9 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       author: newBook.author,
       fileName: originalFileName,
       format,
-      hasCover: Boolean(cachedPayload.coverResource),
-      coverName: cachedPayload.coverResource || null,
+      hasCover: Boolean(resourcePayload.coverResource),
+      coverName: resourcePayload.coverResource || null,
+      progress: 0,
     })
 
     invalidateBookFileCache()
@@ -713,8 +709,8 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     shelfBooks.upsertShelfBook({
       ...newBook,
       bookKey: importedBook.bookKey,
-      displayTitle: cachedPayload.title || newBook.name,
-      cover: cachedPayload.coverUrl,
+      displayTitle: newBook.name,
+      cover: resourcePayload.coverUrl,
       format,
       progressValue: 0,
       lastReadLabel: '未读',
@@ -722,7 +718,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
 
     updateLoadingText(IMPORT_LOADING_TEXT.uploading)
 
-    const bookLabel = cachedPayload.title || newBook.name || importedBook.name
+    const bookLabel = newBook.name || importedBook.name
     batchContext.batchNotifier.registerTask(bookLabel)
     if (!usedCloudConfig) {
       queueMicrotask(() => {
