@@ -1,5 +1,6 @@
 mod api;
 mod command;
+mod database;
 mod entities;
 mod repository;
 mod service;
@@ -9,6 +10,8 @@ use entities::{AppUpdateState, ReaderWindowState};
 use log::LevelFilter;
 use service::window::main_window_service;
 use service::window::reader_window_service;
+use std::io;
+use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use utils::logging::build_log_target;
 
@@ -55,10 +58,14 @@ pub fn run() {
         .manage(AppUpdateState::default())
         .manage(ReaderWindowState::default())
         .setup(|app| {
+            let database_state = tauri::async_runtime::block_on(database::initialize_database())
+                .map_err(io::Error::other)?;
+            app.manage(database_state);
+
             main_window_service::create_main_window(app.handle())
-                .expect("failed to create main window");
+                .map_err(|error| io::Error::other(error.to_string()))?;
             reader_window_service::precreate_reader_window(app.handle())
-                .expect("failed to pre-create reader window");
+                .map_err(|error| io::Error::other(error.to_string()))?;
             Ok(())
         })
         .invoke_handler(command::invoke_handler())

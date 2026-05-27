@@ -168,17 +168,16 @@ import {
 import {
   getImportedBookName,
   hasOriginalFilenameConflict,
-  invalidateBookFileIndex,
+  invalidateBookFileCache,
   loadBookConfigs,
-  reconcileLibraryBookFileIndex,
-  removeBookFileIndexEntry,
+  removeStoredBook,
   resolveBookFile,
   resolveBookFormat,
+  upsertStoredBook,
   uploadLocalBookFileToCloud,
 } from '@/services/book/bookRepository'
 import type { StoredBookConfig } from '@/services/book/bookRepository'
 import { readLocalBookFile } from '@/services/book/bookFileAccessService'
-import { setBookFileIndexEntry } from '@/services/book/bookFileIndexRepository'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
 import { normalizeBookConfig } from '@/services/book/bookConfigService'
@@ -393,14 +392,14 @@ const cleanupImportedBookArtifacts = async (
   const rejectedResults = cleanupResults.filter((result) => result.status === 'rejected')
 
   if (bookKey && removeBookArtifacts) {
-    await removeBookFileIndexEntry(bookKey).catch((error) => {
-      logWarn('bookshelf', 'cleanup-import-artifacts remove-index-failed', {
+    await removeStoredBook(bookKey).catch((error) => {
+      logWarn('bookshelf', 'cleanup-import-artifacts remove-book-record-failed', {
         bookKey,
         fileName: originalFileName,
         error,
       })
     })
-    invalidateBookFileIndex()
+    invalidateBookFileCache()
   }
 
   if (rejectedResults.length > 0) {
@@ -472,7 +471,6 @@ const loadBooks = async () => {
   try {
     booksLoading.value = true
     const loadedBooks = await loadBookConfigs()
-    await reconcileLibraryBookFileIndex(loadedBooks.map((book) => book.bookKey))
     shelfBooks.setShelfBooks(await Promise.all(loadedBooks.map((book) => buildShelfBook(book))))
     finishLog({
       total: books.value.length,
@@ -492,7 +490,7 @@ const handleCloudSyncSynced = async (result: CloudSyncApplyResult) => {
   beginLoading(IMPORT_LOADING_TEXT.syncing)
   try {
     cloudSyncVisible.value = false
-    invalidateBookFileIndex()
+    invalidateBookFileCache()
     await loadBooks()
     showMainTaskMessage({
       type: 'success',
@@ -695,14 +693,22 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.progress, configFilename), newBook)
     createdBookArtifacts = true
 
-    await setBookFileIndexEntry(importedBook.bookKey, originalFileName)
-
-    invalidateBookFileIndex()
     const cachedPayload = await primeBookCacheAfterImport(
       importedBook.bookKey,
       bufferFile,
       originalFileName,
     )
+    await upsertStoredBook({
+      bookKey: importedBook.bookKey,
+      title: newBook.name,
+      author: newBook.author,
+      fileName: originalFileName,
+      format,
+      hasCover: Boolean(cachedPayload.coverResource),
+      coverName: cachedPayload.coverResource || null,
+    })
+
+    invalidateBookFileCache()
 
     shelfBooks.upsertShelfBook({
       ...newBook,
@@ -788,9 +794,9 @@ const deleteBook = async (bookKey: string) => {
     }
 
     await removeBookMarksByBookKey(bookKey)
-    await removeBookFileIndexEntry(bookKey)
+    await removeStoredBook(bookKey)
 
-    invalidateBookFileIndex()
+    invalidateBookFileCache()
     shelfBooks.removeShelfBook(bookKey)
     showMenu.value = false
 

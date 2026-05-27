@@ -26,6 +26,16 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::window::window_hide,
         crate::api::window::app_close,
         crate::api::txt_toc_rule::get_txt_toc_rules,
-        crate::api::txt_toc_rule::ensure_txt_toc_rules_file
+        crate::api::txt_toc_rule::ensure_txt_toc_rules_file,
+        crate::api::book::list_books,
+        crate::api::book::get_book_by_key,
+        crate::api::book::upsert_book,
+        crate::api::book::remove_book_by_key,
+        crate::api::book::resolve_book_file,
+        crate::api::note::load_all_notes,
+        crate::api::note::load_notes_by_book_key,
+        crate::api::note::replace_notes_for_book,
+        crate::api::note::save_all_notes,
+        crate::api::note::remove_notes_by_book_key
     ]
 }
