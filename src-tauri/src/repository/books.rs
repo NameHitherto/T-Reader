@@ -61,7 +61,7 @@ pub async fn upsert_book(
         .cache_name
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| hash_book_key(&book_key));
-    let has_cover = request.has_cover.unwrap_or(false);
+    let has_cover = request.has_cover.unwrap_or(true);
     let should_update_progress = request.progress.is_some();
     let progress = clamp_progress(request.progress.unwrap_or(0.0));
 
@@ -117,6 +117,36 @@ pub async fn update_book_progress(
         "#,
     )
     .bind(clamp_progress(progress))
+    .bind(book_key)
+    .fetch_optional(pool)
+    .await
+    .map_err(|error| error.to_string())?
+    .ok_or_else(|| format!("book not found for key {}", book_key))
+}
+
+pub async fn update_book_cover(
+    pool: &SqlitePool,
+    book_key: &str,
+    has_cover: bool,
+    cover_name: Option<String>,
+) -> Result<BookRecord, String> {
+    let normalized_cover_name = if has_cover {
+        cover_name.filter(|value| !value.trim().is_empty())
+    } else {
+        None
+    };
+
+    sqlx::query_as::<_, BookRecord>(
+        r#"
+        UPDATE books
+        SET has_cover = ?, cover_name = ?, updated_at = datetime('now')
+        WHERE book_key = ?
+        RETURNING id, title, author, book_key, file_name, format, cache_name,
+                  has_cover, cover_name, progress, created_at, updated_at
+        "#,
+    )
+    .bind(has_cover)
+    .bind(normalized_cover_name)
     .bind(book_key)
     .fetch_optional(pool)
     .await

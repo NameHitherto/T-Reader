@@ -152,8 +152,9 @@ import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
-  buildBookCoverUrl,
-  primeBookResourcesAfterImport,
+  parseBookCoverInBackground,
+  primeBookLocationsAfterImport,
+  resolveBookCoverForDisplay,
   removeBookCacheDir,
 } from '@/services/book/bookCacheService'
 import {
@@ -177,6 +178,7 @@ import {
   uploadLocalBookFileToCloud,
 } from '@/services/book/bookRepository'
 import type { StoredBookConfig } from '@/services/book/bookRepository'
+import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
 import { readLocalBookFile } from '@/services/book/bookFileAccessService'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
@@ -424,7 +426,9 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       ...book,
       bookKey,
       displayTitle: record.title || book.name,
-      cover: await buildBookCoverUrl(bookKey, record.coverName),
+      cover: await resolveBookCoverForDisplay(record, defaultCover, {
+        onCoverUpdated: refreshShelfBookCover,
+      }),
       format,
       progressValue,
       lastReadLabel: buildLastReadLabel(book, progressValue),
@@ -446,7 +450,9 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       ...book,
       bookKey,
       displayTitle: record.title || book.name,
-      cover: await buildBookCoverUrl(bookKey, record.coverName),
+      cover: await resolveBookCoverForDisplay(record, defaultCover, {
+        onCoverUpdated: refreshShelfBookCover,
+      }),
       format: 'unknown' as ShelfBookFormat,
       progressValue: clampProgressValue(record.progress),
       lastReadLabel: '',
@@ -459,6 +465,18 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
     })
     return shelfBook
   }
+}
+
+const refreshShelfBookCover = async (record: StoredBookRecord) => {
+  const shelfBook = shelfBooks.getShelfBook(record.bookKey)
+  if (!shelfBook) {
+    return
+  }
+
+  shelfBooks.upsertShelfBook({
+    ...shelfBook,
+    cover: await resolveBookCoverForDisplay(record, defaultCover),
+  })
 }
 
 const loadBooks = async () => {
@@ -688,19 +706,22 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.progress, configFilename), newBook)
     createdBookArtifacts = true
 
-    const resourcePayload = await primeBookResourcesAfterImport(
-      importedBook.bookKey,
-      bufferFile,
-      originalFileName,
+    void primeBookLocationsAfterImport(importedBook.bookKey, bufferFile, originalFileName).catch(
+      (error) => {
+        logWarn('bookshelf', 'prime-epub-locations-cache failed', {
+          bookKey: importedBook.bookKey,
+          fileName: originalFileName,
+          error,
+        })
+      },
     )
-    await upsertStoredBook({
+
+    const storedBook = await upsertStoredBook({
       bookKey: importedBook.bookKey,
       title: newBook.name,
       author: newBook.author,
       fileName: originalFileName,
       format,
-      hasCover: Boolean(resourcePayload.coverResource),
-      coverName: resourcePayload.coverResource || null,
       progress: 0,
     })
 
@@ -710,10 +731,13 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       ...newBook,
       bookKey: importedBook.bookKey,
       displayTitle: newBook.name,
-      cover: resourcePayload.coverUrl,
+      cover: defaultCover,
       format,
       progressValue: 0,
       lastReadLabel: '未读',
+    })
+    parseBookCoverInBackground(storedBook, {
+      onCoverUpdated: refreshShelfBookCover,
     })
 
     updateLoadingText(IMPORT_LOADING_TEXT.uploading)

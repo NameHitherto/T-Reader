@@ -115,7 +115,7 @@ import {
 } from '@/services/reader/readerConfigService'
 import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFontService'
 import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
-import { primeBookResourcesAfterImport } from '@/services/book/bookCacheService'
+import { primeBookLocationsAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
@@ -589,7 +589,7 @@ async function loadBook(cfi?: string) {
 
     if (bookLocationsCache?.status !== 'ready') {
       queueMicrotask(() => {
-        void primeBookResourcesAfterImport(
+        void primeBookLocationsAfterImport(
           currentBookKey.value as string,
           bookArrayBuffer as ArrayBuffer,
           fileName,

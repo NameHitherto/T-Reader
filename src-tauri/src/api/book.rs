@@ -37,6 +37,16 @@ pub async fn update_book_progress(
 }
 
 #[tauri::command]
+pub async fn update_book_cover(
+    database: State<'_, DatabaseState>,
+    book_key: String,
+    has_cover: bool,
+    cover_name: Option<String>,
+) -> Result<BookRecord, String> {
+    books::update_book_cover(&database.pool, &book_key, has_cover, cover_name).await
+}
+
+#[tauri::command]
 pub async fn remove_book_by_key(
     database: State<'_, DatabaseState>,
     book_key: String,

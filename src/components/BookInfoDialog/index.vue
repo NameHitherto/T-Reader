@@ -70,7 +70,7 @@
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
 import { getStoredBookByKey, loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
-import { buildBookCoverUrl } from '@/services/book/bookCacheService'
+import { resolveBookCoverForDisplay } from '@/services/book/bookCacheService'
 import { logWarn } from '@/utils/logger'
 
 export default {
@@ -121,8 +121,13 @@ export default {
 
       const bookConfig = await loadBookConfig(this.bookKey)
       const storedBook = await getStoredBookByKey(this.bookKey)
-      this.bookCover =
-        (await buildBookCoverUrl(this.bookKey, storedBook?.coverName)) || this.defaultCover
+      this.bookCover = storedBook
+        ? await resolveBookCoverForDisplay(storedBook, this.defaultCover, {
+            onCoverUpdated: async (book) => {
+              this.bookCover = await resolveBookCoverForDisplay(book, this.defaultCover)
+            },
+          })
+        : this.defaultCover
       this.creator = bookConfig.author || ''
       this.title = storedBook?.title || bookConfig.name || ''
 

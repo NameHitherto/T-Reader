@@ -134,6 +134,18 @@ export const updateBookProgress = async (
   })
 }
 
+export const updateBookCover = async (
+  bookKey: string,
+  hasCover: boolean,
+  coverName?: string | null,
+): Promise<StoredBookRecord> => {
+  return await invoke<StoredBookRecord>('update_book_cover', {
+    bookKey,
+    hasCover,
+    coverName: hasCover ? coverName || null : null,
+  })
+}
+
 const persistBookConfigToLocal = async (filename: string, config: BookConfig): Promise<void> => {
   await writeJsonFile(
     buildLocalFilePath(LOCAL_DIRS.progress, filename),
