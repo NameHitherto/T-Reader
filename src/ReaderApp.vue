@@ -103,7 +103,7 @@ import {
   scrollDrawerToActiveChapter,
 } from '@/services/reader/epub/tocService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
-import { dispatchReaderKeydown, resetReaderTransientUi } from '@/services/reader/interactionService'
+import { bindReaderInteractions } from '@/services/reader/readerInteractionBindingService'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
 import { useBookMarkStore, BookMark } from './store/bookMark'
 import { withReaderLoading } from '@/services/reader/readerLoadingService'
@@ -336,6 +336,8 @@ async function saveReaderRendition() {
 // ============================================================
 // 页面导航
 // ============================================================
+let disposeReaderInteractions: (() => void) | null = null
+
 function prevPage() {
   if (rendition.value && readerConfig.value.flow === 'paginated') {
     rendition.value.prev?.()
@@ -350,17 +352,6 @@ function nextPage() {
 
 async function switchFullscreen() {
   await invoke('window_toggle_fullscreen', { label: getCurrentWindow().label })
-}
-
-// ============================================================
-// 键盘交互
-// ============================================================
-function keydownHandler(e: KeyboardEvent) {
-  dispatchReaderKeydown(e, {
-    onPrevPage: () => prevPage(),
-    onNextPage: () => nextPage(),
-    onToggleFullscreen: () => switchFullscreen(),
-  })
 }
 
 // ============================================================
@@ -518,17 +509,24 @@ function handleRenditionEvents() {
       selectedText.value = text
       selectedRange.value = cfiRange
     },
-    onKeyNavigatePrev: () => prevPage(),
-    onKeyNavigateNext: () => nextPage(),
-    onToggleFullscreen: () => switchFullscreen(),
-    onReaderClick: () => {
-      resetReaderTransientUi({
-        hideContextMenu: () => {
-          showContextMenu.value = false
-        },
-      })
-    },
     onMarkClicked: (markId: string) => openEditorByMarkId(markId),
+  })
+}
+
+function bindCurrentReaderInteractions() {
+  disposeReaderInteractions?.()
+  disposeReaderInteractions = null
+
+  if (!rendition.value) return
+
+  const binding = bindReaderInteractions(rendition.value, {
+    onPrevPage: () => prevPage(),
+    onNextPage: () => nextPage(),
+    onToggleFullscreen: () => switchFullscreen(),
+    hideContextMenu: () => {
+      showContextMenu.value = false
+    },
+    isParentPointerIgnored: (target) => styleMenuVisible.value && isStyleMenuRelatedTarget(target),
     openContextMenu: (x, y, menuItems) =>
       openContextMenu('root', x, y, menuItems as ContextMenuItem[]),
     buildContextMenuItems: () => [
@@ -536,6 +534,8 @@ function handleRenditionEvents() {
       { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
     ],
   })
+
+  disposeReaderInteractions = binding.dispose
 }
 
 async function loadBook(cfi?: string) {
@@ -557,6 +557,8 @@ async function loadBook(cfi?: string) {
     bookMarkStore.clearBookMarks()
 
     if (rendition.value) {
+      disposeReaderInteractions?.()
+      disposeReaderInteractions = null
       stylesheetIsolationController?.destroy()
       stylesheetIsolationController = null
       try {
@@ -581,6 +583,7 @@ async function loadBook(cfi?: string) {
     await applyReaderStyle(false)
     await rendition.value.display(epubBook.displayTarget)
     handleRenditionEvents()
+    bindCurrentReaderInteractions()
     toc.value = epubBook.toc
     bindTocButtonClick()
 
@@ -696,13 +699,6 @@ function handleStyleMenuAfterEnter() {
   void syncStyleMenuLayout()
 }
 
-function handleDocumentPointerDown(event: PointerEvent) {
-  if (!styleMenuVisible.value) return
-  const target = event.target as HTMLElement | null
-  if (isStyleMenuRelatedTarget(target)) return
-  closeStyleMenu()
-}
-
 function handleReaderDomToggleStyleMenu() {
   void toggleStyleMenu()
 }
@@ -796,6 +792,8 @@ registerReaderWindowEvents({
     await saveReaderSession()
     // 清空当前书籍 DOM 结构
     if (rendition.value) {
+      disposeReaderInteractions?.()
+      disposeReaderInteractions = null
       stylesheetIsolationController?.destroy()
       stylesheetIsolationController = null
       try {
@@ -829,16 +827,14 @@ void notifyReaderWindowReady().catch((error) => {
 onMounted(async () => {
   await loadReaderConfig()
 
-  document.addEventListener('keydown', keydownHandler)
-  document.addEventListener('pointerdown', handleDocumentPointerDown)
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.addEventListener('resize', handleWindowResize)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', keydownHandler)
-  document.removeEventListener('pointerdown', handleDocumentPointerDown)
+  disposeReaderInteractions?.()
+  disposeReaderInteractions = null
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.removeEventListener('resize', handleWindowResize)

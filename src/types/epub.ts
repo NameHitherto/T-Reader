@@ -76,6 +76,7 @@ export interface EpubRenditionLike {
   hooks: {
     content: {
       clear?: () => void
+      deregister?: (callback: (contents: EpubContentsLike) => EpubContentsLike) => void
       register: (callback: (contents: EpubContentsLike) => EpubContentsLike) => unknown
     }
   }
