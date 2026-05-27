@@ -2,6 +2,7 @@ pub mod book;
 pub mod file;
 pub mod font;
 pub mod note;
+pub mod settings;
 pub mod txt_toc_rule;
 pub mod updater;
 pub mod webdav;

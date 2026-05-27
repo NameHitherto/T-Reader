@@ -21,7 +21,7 @@ pub struct ModelProviderConfig {
     pub api_key: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Settings {
     #[serde(default, rename = "webdavUrlRoot")]
     pub webdav_url_root: String,
@@ -37,4 +37,60 @@ pub struct Settings {
     pub theme_mode: String,
     #[serde(default, rename = "modelProviders")]
     pub model_providers: HashMap<String, ModelProviderConfig>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveAppSettingsRequest {
+    pub webdav_url_root: Option<String>,
+    pub webdav_url_folder: Option<String>,
+    pub webdav_url: Option<String>,
+    pub webdav_user: Option<String>,
+    pub webdav_pass: Option<String>,
+    pub theme_mode: Option<String>,
+    pub model_providers: Option<HashMap<String, ModelProviderConfig>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ReaderStyleSettings {
+    pub font_size: f64,
+    pub font_weight: f64,
+    pub line_spacing: f64,
+    pub paragraph_spacing: f64,
+    pub letter_spacing: f64,
+    pub box_padding_top: f64,
+    pub box_padding_bottom: f64,
+    pub box_padding_horizontal: f64,
+    pub column_count: f64,
+    pub indent: f64,
+    pub font: String,
+    pub color: String,
+    pub font_color: String,
+    pub background_presets: serde_json::Value,
+    pub flow: String,
+    pub enabled_system_fonts: serde_json::Value,
+    pub load_epub_built_in_stylesheet: bool,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveReaderStyleSettingsRequest {
+    pub font_size: Option<f64>,
+    pub font_weight: Option<f64>,
+    pub line_spacing: Option<f64>,
+    pub paragraph_spacing: Option<f64>,
+    pub letter_spacing: Option<f64>,
+    pub box_padding_top: Option<f64>,
+    pub box_padding_bottom: Option<f64>,
+    pub box_padding_horizontal: Option<f64>,
+    pub column_count: Option<f64>,
+    pub indent: Option<f64>,
+    pub font: Option<String>,
+    pub color: Option<String>,
+    pub font_color: Option<String>,
+    pub background_presets: Option<serde_json::Value>,
+    pub flow: Option<String>,
+    pub enabled_system_fonts: Option<serde_json::Value>,
+    pub load_epub_built_in_stylesheet: Option<bool>,
 }

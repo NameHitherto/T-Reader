@@ -22,5 +22,8 @@ pub use reader_window::{
     DispatchReaderEventResult, OpenReaderWindowResult, PendingLoadMessage, ReaderWindowRuntime,
     ReaderWindowState,
 };
-pub use settings::Settings;
+pub use settings::{
+    ModelProviderConfig, ReaderStyleSettings, SaveAppSettingsRequest,
+    SaveReaderStyleSettingsRequest, Settings,
+};
 pub use txt_toc_rule::TxtTocRuleItem;

@@ -1,10 +1,5 @@
+import { invoke } from '@tauri-apps/api/core'
 import { logWarn } from '@/utils/logger'
-import {
-  buildLocalFilePath,
-  LOCAL_DIRS,
-  readJsonFile,
-  writeJsonFile,
-} from '@/services/fileSystem/localStorageService'
 import { MODEL_PURPOSES } from '@/types/model'
 import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/types/model'
 
@@ -74,9 +69,7 @@ export const normalizeAppSettings = (
 
 export const loadAppSettings = async (): Promise<AppSettings> => {
   try {
-    const loadedSettings = await readJsonFile<Partial<AppSettings>>(
-      buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'),
-    )
+    const loadedSettings = await invoke<Partial<AppSettings>>('load_app_settings')
 
     return normalizeAppSettings(loadedSettings)
   } catch (error) {
@@ -97,26 +90,5 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
     payload.modelProviders = compactModelProviders(normalizeModelProviders(payload.modelProviders))
   }
 
-  let currentSettings: Record<string, unknown> = {}
-
-  try {
-    currentSettings = await readJsonFile<Record<string, unknown>>(
-      buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'),
-    )
-  } catch {
-    // Use defaults when the settings file has not been created yet.
-  }
-
-  const nextSettings = {
-    ...currentSettings,
-    ...payload,
-  }
-
-  if ('modelProviders' in nextSettings) {
-    nextSettings.modelProviders = compactModelProviders(
-      normalizeModelProviders(nextSettings.modelProviders),
-    )
-  }
-
-  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'), nextSettings)
+  await invoke<AppSettings>('save_app_settings', { request: payload })
 }

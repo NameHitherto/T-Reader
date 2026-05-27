@@ -1,5 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
+use sqlx::SqlitePool;
+
 use crate::{
     entities::{
         CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncBookAction, CloudSyncBookSelection,
@@ -64,8 +66,8 @@ async fn collect_remote_files(
         .collect())
 }
 
-async fn collect_sync_snapshot() -> Result<SyncSnapshot, String> {
-    let settings = load_settings_entity()?;
+async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, String> {
+    let settings = load_settings_entity(pool).await?;
     let client = build_webdav_client();
 
     ensure_cloud_dirs(&settings).await?;
@@ -356,27 +358,28 @@ fn build_legacy_request(snapshot: &SyncSnapshot) -> CloudSyncApplyRequest {
     CloudSyncApplyRequest { book_selections }
 }
 
-pub async fn webdav_get_sync_preview() -> Result<CloudSyncPreviewResult, String> {
+pub async fn webdav_get_sync_preview(pool: &SqlitePool) -> Result<CloudSyncPreviewResult, String> {
     let started_at = start_timer("webdav", "webdav-get-sync-preview");
-    let snapshot = collect_sync_snapshot().await?;
+    let snapshot = collect_sync_snapshot(pool).await?;
     let result = build_preview_result(&snapshot);
     finish_timer("webdav", "webdav-get-sync-preview", started_at);
     Ok(result)
 }
 
 pub async fn webdav_apply_sync_plan(
+    pool: &SqlitePool,
     request: CloudSyncApplyRequest,
 ) -> Result<CloudSyncApplyResult, String> {
     let started_at = start_timer("webdav", "webdav-apply-sync-plan");
-    let snapshot = collect_sync_snapshot().await?;
+    let snapshot = collect_sync_snapshot(pool).await?;
     let result = apply_sync_plan_with_snapshot(snapshot, request).await?;
     finish_timer("webdav", "webdav-apply-sync-plan", started_at);
     Ok(result)
 }
 
-pub async fn webdav_sync_files() -> Result<(), String> {
+pub async fn webdav_sync_files(pool: &SqlitePool) -> Result<(), String> {
     let started_at = start_timer("webdav", "webdav-sync-files");
-    let snapshot = collect_sync_snapshot().await?;
+    let snapshot = collect_sync_snapshot(pool).await?;
     let request = build_legacy_request(&snapshot);
     apply_sync_plan_with_snapshot(snapshot, request).await?;
     finish_timer("webdav", "webdav-sync-files", started_at);

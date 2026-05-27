@@ -289,7 +289,7 @@ async function loadReaderConfig() {
     readerConfigStore.setReaderConfig(
       syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
     )
-    logWarn('reader', 'ReaderConfig.json文件不存在，已加载默认配置')
+    logWarn('reader', '阅读配置加载失败，已加载默认配置')
   }
 }
 
