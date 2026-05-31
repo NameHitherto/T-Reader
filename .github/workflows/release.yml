@@ -42,7 +42,7 @@ jobs:
         run: |
           npm ci
           cd libs/epub.js
-          npm ci
+          npm ci --omit=dev
 
       - name: Read Release Notes
         id: read_release_notes
