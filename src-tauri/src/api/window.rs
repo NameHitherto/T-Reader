@@ -3,7 +3,10 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    entities::{DispatchReaderEventResult, OpenReaderWindowResult, ReaderWindowState},
+    entities::{
+        DispatchReaderEventResult, OpenReaderWindowResult, PrepareReaderBookDeleteResult,
+        ReaderWindowState,
+    },
     service::window::reader_window_service,
 };
 
@@ -28,6 +31,24 @@ pub fn ack_reader_load(
     message_id: String,
 ) -> Result<(), String> {
     reader_window_service::ack_reader_load(state, message_id)
+}
+
+#[tauri::command]
+pub async fn prepare_reader_book_delete(
+    app: AppHandle,
+    state: State<'_, ReaderWindowState>,
+    book_key: String,
+) -> Result<PrepareReaderBookDeleteResult, String> {
+    reader_window_service::prepare_reader_book_delete(app, state, book_key).await
+}
+
+#[tauri::command]
+pub fn ack_reader_book_delete(
+    state: State<'_, ReaderWindowState>,
+    message_id: String,
+    affected: bool,
+) -> Result<(), String> {
+    reader_window_service::ack_reader_book_delete(state, message_id, affected)
 }
 
 #[tauri::command]

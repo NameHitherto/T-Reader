@@ -1,5 +1,6 @@
 export const WINDOW_EVENTS = {
   LOAD_BOOK_KEY: 'load-book-key',
+  PREPARE_BOOK_DELETE: 'prepare-book-delete',
   BOOKSHELF_PROGRESS_SAVED: 'bookshelf-progress-saved',
   SHOW_BOOK_INFO: 'show-book-info',
   SHOW_HELP: 'show-help',

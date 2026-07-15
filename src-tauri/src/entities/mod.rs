@@ -19,8 +19,8 @@ pub use cloud_sync::{
 pub use font::FontNameEntry;
 pub use note::BookMarkDto;
 pub use reader_window::{
-    DispatchReaderEventResult, OpenReaderWindowResult, PendingLoadMessage, ReaderWindowRuntime,
-    ReaderWindowState,
+    DispatchReaderEventResult, OpenReaderWindowResult, PendingBookDeleteMessage,
+    PendingLoadMessage, PrepareReaderBookDeleteResult, ReaderWindowRuntime, ReaderWindowState,
 };
 pub use settings::{
     ModelProviderConfig, ReaderStyleSettings, SaveAppSettingsRequest,

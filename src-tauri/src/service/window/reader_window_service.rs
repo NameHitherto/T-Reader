@@ -9,8 +9,8 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder
 
 use crate::{
     entities::{
-        DispatchReaderEventResult, OpenReaderWindowResult, PendingLoadMessage, ReaderWindowRuntime,
-        ReaderWindowState,
+        DispatchReaderEventResult, OpenReaderWindowResult, PendingBookDeleteMessage,
+        PendingLoadMessage, PrepareReaderBookDeleteResult, ReaderWindowRuntime, ReaderWindowState,
     },
     utils::time::now_millis,
 };
@@ -19,7 +19,9 @@ const READER_LABEL: &str = "reader";
 const MAIN_LABEL: &str = "main";
 const LOAD_BOOK_EVENT: &str = "load-book-key";
 const READER_WINDOW_HIDE_EVENT: &str = "reader-window-hide";
+const PREPARE_BOOK_DELETE_EVENT: &str = "prepare-book-delete";
 const OPEN_TIMEOUT_MS: u64 = 7000;
+const BOOK_DELETE_TIMEOUT_MS: u64 = 7000;
 const ACK_RETRY_WAIT_MS: u64 = 1800;
 const ACK_RETRY_LIMIT: u8 = 1;
 const MIN_WINDOW_WIDTH: f64 = 880.0;
@@ -63,6 +65,9 @@ fn reset_runtime(runtime: &mut ReaderWindowRuntime) {
     runtime.is_ready = false;
     runtime.pending_load = None;
     runtime.awaiting_message_id = None;
+    runtime.pending_book_delete = None;
+    runtime.awaiting_book_delete_message_id = None;
+    runtime.last_book_delete_affected = None;
     runtime.last_seen_at = now_millis();
 }
 
@@ -77,6 +82,21 @@ fn emit_pending_load(app: &AppHandle, payload: &PendingLoadMessage) -> Result<()
         }),
     )
     .map_err(|error| format!("failed to emit pending load event: {:?}", error))
+}
+
+fn emit_pending_book_delete(
+    app: &AppHandle,
+    payload: &PendingBookDeleteMessage,
+) -> Result<(), String> {
+    app.emit_to(
+        READER_LABEL,
+        PREPARE_BOOK_DELETE_EVENT,
+        json!({
+            "bookKey": payload.book_key,
+            "messageId": payload.message_id,
+        }),
+    )
+    .map_err(|error| format!("failed to emit reader book delete event: {:?}", error))
 }
 
 fn ensure_reader_window_exists(
@@ -281,6 +301,141 @@ pub fn ack_reader_load(
         message_id
     );
 
+    Ok(())
+}
+
+pub async fn prepare_reader_book_delete(
+    app: AppHandle,
+    state: State<'_, ReaderWindowState>,
+    book_key: String,
+) -> Result<PrepareReaderBookDeleteResult, String> {
+    let message_id = next_reader_message_id();
+
+    if app.get_webview_window(READER_LABEL).is_none() {
+        return Ok(PrepareReaderBookDeleteResult {
+            acknowledged: true,
+            affected: false,
+            message_id,
+        });
+    }
+
+    let payload = {
+        let mut runtime = state
+            .inner
+            .lock()
+            .map_err(|_| "failed to lock reader window state".to_string())?;
+
+        if !runtime.is_ready {
+            return Err("reader 尚未就绪，无法确认书籍清理".to_string());
+        }
+        if runtime.awaiting_book_delete_message_id.is_some() {
+            return Err("reader 正在处理另一项书籍清理请求".to_string());
+        }
+
+        let payload = PendingBookDeleteMessage {
+            book_key,
+            message_id: message_id.clone(),
+        };
+        runtime.pending_book_delete = Some(payload.clone());
+        runtime.awaiting_book_delete_message_id = Some(message_id.clone());
+        runtime.last_book_delete_affected = None;
+        runtime.last_seen_at = now_millis();
+        payload
+    };
+
+    if let Err(error) = emit_pending_book_delete(&app, &payload) {
+        let mut runtime = state
+            .inner
+            .lock()
+            .map_err(|_| "failed to lock reader window state".to_string())?;
+        if runtime.awaiting_book_delete_message_id.as_deref() == Some(message_id.as_str()) {
+            runtime.pending_book_delete = None;
+            runtime.awaiting_book_delete_message_id = None;
+            runtime.last_book_delete_affected = None;
+        }
+        return Err(error);
+    }
+    let start = Instant::now();
+    let timeout = Duration::from_millis(BOOK_DELETE_TIMEOUT_MS);
+
+    loop {
+        if start.elapsed() >= timeout {
+            let mut runtime = state
+                .inner
+                .lock()
+                .map_err(|_| "failed to lock reader window state".to_string())?;
+            if runtime.awaiting_book_delete_message_id.as_deref() == Some(message_id.as_str()) {
+                runtime.pending_book_delete = None;
+                runtime.awaiting_book_delete_message_id = None;
+                runtime.last_book_delete_affected = None;
+            }
+            return Err("reader 书籍清理超时，删除操作已中止".to_string());
+        }
+
+        if app.get_webview_window(READER_LABEL).is_none() {
+            let mut runtime = state
+                .inner
+                .lock()
+                .map_err(|_| "failed to lock reader window state".to_string())?;
+            reset_runtime(&mut runtime);
+            return Err("reader 窗口在书籍清理期间不可用".to_string());
+        }
+
+        let acknowledged_result = {
+            let runtime = state
+                .inner
+                .lock()
+                .map_err(|_| "failed to lock reader window state".to_string())?;
+
+            if runtime.awaiting_book_delete_message_id.is_none() {
+                runtime.last_book_delete_affected
+            } else {
+                None
+            }
+        };
+
+        if let Some(affected) = acknowledged_result {
+            if affected {
+                if let Some(window) = app.get_webview_window(READER_LABEL) {
+                    window
+                        .hide()
+                        .map_err(|error| format!("隐藏阅读器窗口失败: {:?}", error))?;
+                }
+            }
+
+            info!(
+                "[reader][window] 阅读器确认删除前清理 (messageId={}, affected={})",
+                message_id, affected
+            );
+            return Ok(PrepareReaderBookDeleteResult {
+                acknowledged: true,
+                affected,
+                message_id,
+            });
+        }
+
+        thread::sleep(Duration::from_millis(80));
+    }
+}
+
+pub fn ack_reader_book_delete(
+    state: State<'_, ReaderWindowState>,
+    message_id: String,
+    affected: bool,
+) -> Result<(), String> {
+    let mut runtime = state
+        .inner
+        .lock()
+        .map_err(|_| "failed to lock reader window state".to_string())?;
+
+    runtime.last_seen_at = now_millis();
+    if runtime.awaiting_book_delete_message_id.as_deref() != Some(message_id.as_str()) {
+        return Err("reader 书籍清理确认消息已过期".to_string());
+    }
+
+    runtime.pending_book_delete = None;
+    runtime.awaiting_book_delete_message_id = None;
+    runtime.last_book_delete_affected = Some(affected);
     Ok(())
 }
 

@@ -20,6 +20,8 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::window::open_reader_window,
         crate::api::window::reader_window_ready,
         crate::api::window::ack_reader_load,
+        crate::api::window::prepare_reader_book_delete,
+        crate::api::window::ack_reader_book_delete,
         crate::api::window::hide_reader_window,
         crate::api::window::dispatch_main_event,
         crate::api::window::dispatch_reader_event,

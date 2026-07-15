@@ -11,10 +11,21 @@ interface DispatchReaderEventResult {
   delivered: boolean
 }
 
+export interface PrepareReaderBookDeleteResult {
+  acknowledged: boolean
+  affected: boolean
+  messageId: string
+}
+
 export interface ReaderLoadPayload {
   bookKey: string
   cfi?: string
   messageId?: string
+}
+
+export interface PrepareBookDeletePayload {
+  bookKey: string
+  messageId: string
 }
 
 export interface BookshelfProgressSavedPayload {
@@ -40,6 +51,19 @@ export const notifyReaderWindowReady = async () => {
 export const ackReaderLoadMessage = async (messageId: string) => {
   await invoke('ack_reader_load', {
     messageId,
+  })
+}
+
+export const prepareReaderBookDelete = async (bookKey: string) => {
+  return await invoke<PrepareReaderBookDeleteResult>('prepare_reader_book_delete', {
+    bookKey,
+  })
+}
+
+export const ackReaderBookDelete = async (messageId: string, affected: boolean) => {
+  await invoke('ack_reader_book_delete', {
+    messageId,
+    affected,
   })
 }
 

@@ -129,6 +129,7 @@ import {
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import type { EpubRenditionLike, EpubTocItem } from '@/types/epub'
 import {
+  ackReaderBookDelete,
   ackReaderLoadMessage,
   dispatchBookshelfProgressSaved,
   notifyReaderWindowReady,
@@ -158,6 +159,7 @@ const bookInfoVisible = ref(false)
 const rendition = ref<EpubRenditionLike | null>(null)
 const currentBookConfig = ref<BookConfig | null>(null)
 let stylesheetIsolationController: EpubBuiltInStylesheetIsolationController | null = null
+let readerLoadGeneration = 0
 
 // ============================================================
 // 阅读配置 store
@@ -538,36 +540,74 @@ function bindCurrentReaderInteractions() {
   disposeReaderInteractions = binding.dispose
 }
 
-async function loadBook(cfi?: string) {
-  if (!pendingBookKey.value) {
-    setTimeout(loadBook, 500)
-    return
+interface DisposeReaderBookRuntimeOptions {
+  invalidateLoad?: boolean
+  resetBookState?: boolean
+}
+
+function disposeReaderBookRuntime(options: DisposeReaderBookRuntimeOptions = {}) {
+  const { invalidateLoad = true, resetBookState = true } = options
+  if (invalidateLoad) {
+    readerLoadGeneration += 1
   }
 
-  currentBookKey.value = pendingBookKey.value
-  pendingBookKey.value = null
+  try {
+    disposeReaderInteractions?.()
+  } catch (error) {
+    logWarn('ReaderApp', '解绑阅读器交互失败', error)
+  }
+  disposeReaderInteractions = null
+
+  try {
+    stylesheetIsolationController?.destroy()
+  } catch (error) {
+    logWarn('ReaderApp', '销毁 EPUB 样式隔离控制器失败', error)
+  }
+  stylesheetIsolationController = null
+
+  if (rendition.value) {
+    try {
+      destroyEpubRendition(rendition.value)
+    } catch (error) {
+      logWarn('ReaderApp', '销毁 Rendition 失败', error)
+    }
+    rendition.value = null
+  }
+
+  document.getElementById('epub-reader')?.replaceChildren()
+  detachTocButtonListener?.()
+  detachTocButtonListener = null
+  toc.value = []
+  activeChapter.value = ''
+  tocDrawer.value = false
+  readingPercentage.value = ''
+  readingChapterTitle.value = ''
+  selectedText.value = ''
+  selectedRange.value = null
+  showContextMenu.value = false
+  bookInfoVisible.value = false
+  bookMarkStore.clearBookMarks()
+
+  if (resetBookState) {
+    currentBookKey.value = null
+    pendingBookKey.value = null
+    currentBookConfig.value = null
+  }
+}
+
+async function loadBook(bookKey: string, cfi?: string) {
+  const generation = ++readerLoadGeneration
+  let replacedReaderRuntime = false
+  pendingBookKey.value = bookKey
 
   await withReaderLoading(async () => {
-    const loadedBook = await loadReaderBookData(currentBookKey.value as string)
+    const loadedBook = await loadReaderBookData(bookKey)
+    if (generation !== readerLoadGeneration) return
+
     const { bookConfig, bookLocationsCache, fileName, bookArrayBuffer } = loadedBook
-
-    currentBookConfig.value = bookConfig
-    readingPercentage.value = ''
-    readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
-    bookMarkStore.clearBookMarks()
-
-    if (rendition.value) {
-      disposeReaderInteractions?.()
-      disposeReaderInteractions = null
-      stylesheetIsolationController?.destroy()
-      stylesheetIsolationController = null
-      try {
-        destroyEpubRendition(rendition.value)
-      } catch (e) {
-        logWarn('ReaderApp', '销毁旧的 Rendition 失败', e)
-      }
-      rendition.value = null
-    }
+    disposeReaderBookRuntime({ invalidateLoad: false, resetBookState: true })
+    replacedReaderRuntime = true
+    pendingBookKey.value = bookKey
 
     const epubBook = await renderEpubBook(
       bookArrayBuffer as ArrayBuffer,
@@ -578,10 +618,25 @@ async function loadBook(cfi?: string) {
       getReadyBookLocations(bookLocationsCache),
       serializeReaderThemeCss(readerDefaultTheme.value),
     )
+
+    if (generation !== readerLoadGeneration) {
+      epubBook.stylesheetIsolation.destroy()
+      destroyEpubRendition(epubBook.rendition)
+      document.getElementById('epub-reader')?.replaceChildren()
+      return
+    }
+
     rendition.value = epubBook.rendition
     stylesheetIsolationController = epubBook.stylesheetIsolation
+    currentBookKey.value = bookKey
+    pendingBookKey.value = null
+    currentBookConfig.value = bookConfig
+    readingChapterTitle.value = normalizeDisplayedChapterTitle(bookConfig.durChapterTitle)
+
     await applyReaderStyle(false)
     await rendition.value.display(epubBook.displayTarget)
+    if (generation !== readerLoadGeneration) return
+
     handleRenditionEvents()
     bindCurrentReaderInteractions()
     toc.value = epubBook.toc
@@ -589,28 +644,35 @@ async function loadBook(cfi?: string) {
 
     if (bookLocationsCache?.status !== 'ready') {
       queueMicrotask(() => {
-        void primeBookLocationsAfterImport(
-          currentBookKey.value as string,
-          bookArrayBuffer as ArrayBuffer,
-          fileName,
-        ).catch((error) => {
-          logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
-        })
+        void primeBookLocationsAfterImport(bookKey, bookArrayBuffer as ArrayBuffer, fileName).catch(
+          (error) => {
+            logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
+          },
+        )
       })
     }
 
-    const currentBookMarks = await loadBookMarksByBookKey(currentBookKey.value as string)
+    const currentBookMarks = await loadBookMarksByBookKey(bookKey)
+    if (generation !== readerLoadGeneration) return
+
     if (currentBookMarks.length > 0) {
       bookMarkStore.importBookMark(currentBookMarks)
       void initAllBookMarks()
     }
 
     logInfo('ReaderApp', 'loadBook', {
-      bookKey: currentBookKey.value,
+      bookKey,
       title: bookConfig.name,
     })
-  }).catch((e) => {
-    logError('ReaderApp', '书籍加载失败', e)
+  }).catch((error) => {
+    if (generation === readerLoadGeneration) {
+      if (replacedReaderRuntime) {
+        disposeReaderBookRuntime({ invalidateLoad: false })
+      } else {
+        pendingBookKey.value = null
+      }
+    }
+    logError('ReaderApp', '书籍加载失败', error, { bookKey })
   })
 }
 
@@ -731,6 +793,7 @@ function handleOpenSystemFontDialog() {
 // 窗口事件注册 & 初始化
 // ============================================================
 const unlistenBook = ref<UnlistenFn | null>(null)
+const unlistenPrepareBookDelete = ref<UnlistenFn | null>(null)
 const unlistenClosed = ref<UnlistenFn | null>(null)
 const unlistenStyle = ref<UnlistenFn | null>(null)
 const unlistenTheme = ref<UnlistenFn | null>(null)
@@ -747,6 +810,14 @@ const saveReaderSession = async () => {
   })
 }
 
+let readerLifecycleQueue: Promise<void> = Promise.resolve()
+
+const runReaderLifecycleTask = (task: () => Promise<void>): Promise<void> => {
+  const nextTask = readerLifecycleQueue.then(task, task)
+  readerLifecycleQueue = nextTask.catch(() => undefined)
+  return nextTask
+}
+
 registerReaderWindowEvents({
   onLoadBookKey: async (event) => {
     const payload = event.payload || {}
@@ -761,14 +832,38 @@ registerReaderWindowEvents({
       })
     }
 
-    await saveReaderRendition()
-    pendingBookKey.value = payload.bookKey
-    if (payload.cfi) {
-      await loadBook(payload.cfi)
-    } else {
-      await loadBook()
-    }
+    await runReaderLifecycleTask(async () => {
+      await saveReaderRendition().catch((error) => {
+        logWarn('ReaderApp', '切换书籍前保存旧书进度失败，将继续加载新书', error)
+      })
+      await loadBook(payload.bookKey, payload.cfi)
+    })
   },
+  onPrepareBookDelete: (event) =>
+    runReaderLifecycleTask(async () => {
+      const payload = event.payload
+      if (!payload?.bookKey || !payload.messageId) {
+        logWarn('ReaderApp', '收到无效的删除前清理消息', payload)
+        return
+      }
+
+      const affected =
+        currentBookKey.value === payload.bookKey || pendingBookKey.value === payload.bookKey
+      if (affected) {
+        disposeReaderBookRuntime()
+        logInfo('ReaderApp', '删除前已清理阅读器书籍状态', {
+          bookKey: payload.bookKey,
+          messageId: payload.messageId,
+        })
+      }
+
+      await ackReaderBookDelete(payload.messageId, affected).catch((error) => {
+        logError('ReaderApp', '删除前清理 ACK 失败', error, {
+          bookKey: payload.bookKey,
+          messageId: payload.messageId,
+        })
+      })
+    }),
   onShowBookInfo: () => {
     bookInfoVisible.value = true
   },
@@ -788,27 +883,21 @@ registerReaderWindowEvents({
     )
     await applyReaderStyle()
   },
-  onWindowHide: async () => {
-    await saveReaderSession()
-    // 清空当前书籍 DOM 结构
-    if (rendition.value) {
-      disposeReaderInteractions?.()
-      disposeReaderInteractions = null
-      stylesheetIsolationController?.destroy()
-      stylesheetIsolationController = null
+  onWindowHide: () =>
+    runReaderLifecycleTask(async () => {
       try {
-        destroyEpubRendition(rendition.value)
-      } catch (e) {
-        logWarn('ReaderApp', '隐藏时销毁 Rendition 失败', e)
+        await saveReaderSession()
+      } finally {
+        disposeReaderBookRuntime()
       }
-      rendition.value = null
-    }
-  },
-  onCloseRequested: async () => {
-    await saveReaderSession()
-  },
+    }),
+  onCloseRequested: () =>
+    runReaderLifecycleTask(async () => {
+      await saveReaderSession()
+    }),
 }).then((unlisteners) => {
   unlistenBook.value = unlisteners.unlistenBook
+  unlistenPrepareBookDelete.value = unlisteners.unlistenPrepareBookDelete
   unlistenStyle.value = unlisteners.unlistenStyle
   unlistenTheme.value = unlisteners.unlistenTheme
   unlistenWindowHide.value = unlisteners.unlistenWindowHide
@@ -833,22 +922,18 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  disposeReaderInteractions?.()
-  disposeReaderInteractions = null
+  disposeReaderBookRuntime()
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.removeEventListener('resize', handleWindowResize)
   unlistenBook.value?.()
+  unlistenPrepareBookDelete.value?.()
   unlistenStyle.value?.()
   unlistenTheme.value?.()
   unlistenWindowHide.value?.()
   unlistenClosed.value?.()
   unlistenShowBookInfo.value?.()
   unlistenShowHelp.value?.()
-  detachTocButtonListener?.()
-  detachTocButtonListener = null
-  stylesheetIsolationController?.destroy()
-  stylesheetIsolationController = null
   setStyleMenuButtonActive(false)
 })
 </script>

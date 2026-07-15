@@ -8,12 +8,21 @@ pub struct PendingLoadMessage {
     pub message_id: String,
 }
 
+#[derive(Clone)]
+pub struct PendingBookDeleteMessage {
+    pub book_key: String,
+    pub message_id: String,
+}
+
 #[derive(Default)]
 pub struct ReaderWindowRuntime {
     pub is_ready: bool,
     pub pending_load: Option<PendingLoadMessage>,
     pub awaiting_message_id: Option<String>,
     pub last_acked_message_id: Option<String>,
+    pub pending_book_delete: Option<PendingBookDeleteMessage>,
+    pub awaiting_book_delete_message_id: Option<String>,
+    pub last_book_delete_affected: Option<bool>,
     pub last_seen_at: u64,
 }
 
@@ -27,6 +36,14 @@ pub struct ReaderWindowState {
 pub struct OpenReaderWindowResult {
     pub created: bool,
     pub acknowledged: bool,
+    pub message_id: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrepareReaderBookDeleteResult {
+    pub acknowledged: bool,
+    pub affected: bool,
     pub message_id: String,
 }
 

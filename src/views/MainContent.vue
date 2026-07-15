@@ -195,7 +195,10 @@ import {
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
 import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
-import type { BookshelfProgressSavedPayload } from '@/services/reader/readerWindowBridgeService'
+import {
+  prepareReaderBookDelete,
+  type BookshelfProgressSavedPayload,
+} from '@/services/reader/readerWindowBridgeService'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import { WINDOW_EVENTS } from '@/constants/events'
@@ -802,6 +805,16 @@ const deleteBook = async (bookKey: string) => {
   try {
     const targetBook = shelfBooks.getShelfBook(bookKey)
     const resolvedBookFile = targetBook ? await resolveBookFile(bookKey).catch(() => null) : null
+    const readerCleanup = await prepareReaderBookDelete(bookKey)
+    if (!readerCleanup.acknowledged) {
+      throw new Error('阅读窗口未能确认书籍清理，删除操作已中止。')
+    }
+
+    logInfo('bookshelf', 'delete-book reader-cleanup-confirmed', {
+      bookKey,
+      messageId: readerCleanup.messageId,
+      affected: readerCleanup.affected,
+    })
 
     await removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey)))
 
