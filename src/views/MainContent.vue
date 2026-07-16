@@ -232,6 +232,7 @@ interface BatchImportContext {
 // 常量
 // ============================================================
 const MAX_PARALLEL_IMPORTS = 3
+const CLOUD_CONFIG_PRECHECK_TIMEOUT_MS = 1500
 const IMPORT_LOADING_TEXT = {
   parsing:
     'Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files',
@@ -302,6 +303,25 @@ const toTaskErrorMessage = (error: unknown): string => {
 }
 
 const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
+
+const withTimeout = async <T,>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> => {
+  let timeoutId: number | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs)
+  })
+
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId)
+    }
+  }
+}
 
 const runWithConcurrencyLimit = async <T,>(
   items: readonly T[],
@@ -681,17 +701,25 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       })
     } else {
       try {
-        const existsOnCloud = await invoke('webdav_exists', {
-          subdir: CLOUD_DIRS.progress,
-          filename: configFilename,
-        })
-        if (existsOnCloud) {
-          const cloudData = await invoke('webdav_get', {
+        const existsOnCloud = await withTimeout(
+          invoke<boolean>('webdav_exists', {
             subdir: CLOUD_DIRS.progress,
             filename: configFilename,
-          })
+          }),
+          CLOUD_CONFIG_PRECHECK_TIMEOUT_MS,
+          '云端配置预检超时',
+        )
+        if (existsOnCloud) {
+          const cloudData = await withTimeout(
+            invoke<number[]>('webdav_get', {
+              subdir: CLOUD_DIRS.progress,
+              filename: configFilename,
+            }),
+            CLOUD_CONFIG_PRECHECK_TIMEOUT_MS,
+            '云端配置读取超时',
+          )
           const cloudConfig = normalizeBookConfig(
-            JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[]))),
+            JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData))),
           )
           newBook = cloudConfig
           usedCloudConfig = true
