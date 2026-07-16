@@ -317,6 +317,7 @@ async function saveReaderRendition() {
     bookKey: currentBookKey.value,
     rendition: rendition.value,
     bookMarks: bookMarks.value,
+    currentBookConfig: currentBookConfig.value,
   })
 
   if (savedProgress) {

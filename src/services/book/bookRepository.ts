@@ -340,31 +340,45 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   }
 }
 
+const notifyBookConfigCloudSyncFailed = (bookKey: string, filename: string): void => {
+  void dispatchMainEvent(WINDOW_EVENTS.CLOUD_SYNC_FAILED, {
+    bookKey,
+    fileName: filename,
+  }).catch((dispatchError) => {
+    logWarn('book-repository', 'dispatch-cloud-sync-failed-event failed', {
+      bookKey,
+      error: dispatchError,
+    })
+  })
+}
+
+const queueBookConfigCloudSave = (bookKey: string, filename: string, config: BookConfig): void => {
+  queueMicrotask(() => {
+    void persistBookConfigToCloud(filename, config)
+      .then(() => {
+        logInfo('book-repository', 'save-book-config cloud-sync-done', {
+          bookKey,
+          fileName: filename,
+        })
+      })
+      .catch((error) => {
+        logWarn('book-repository', 'save-book-config cloud-sync-failed', {
+          bookKey,
+          fileName: filename,
+          error,
+        })
+        notifyBookConfigCloudSyncFailed(bookKey, filename)
+      })
+  })
+}
+
 export const saveBookConfig = async (bookKey: string, config: BookConfig): Promise<void> => {
   const filename = toBookConfigFilename(bookKey)
   const persisted = toPersistedBookConfig(config)
   const jsonBytes = encodeJson(persisted)
 
   await persistBookConfigToLocal(filename, persisted)
-
-  try {
-    await persistBookConfigToCloud(filename, persisted)
-  } catch (error) {
-    logWarn('book-repository', 'save-book-config cloud-sync-failed', {
-      bookKey,
-      fileName: filename,
-      error,
-    })
-    void dispatchMainEvent(WINDOW_EVENTS.CLOUD_SYNC_FAILED, {
-      bookKey,
-      fileName: filename,
-    }).catch((dispatchError) => {
-      logWarn('book-repository', 'dispatch-cloud-sync-failed-event failed', {
-        bookKey,
-        error: dispatchError,
-      })
-    })
-  }
+  queueBookConfigCloudSave(bookKey, filename, persisted)
 
   logInfo('book-repository', 'save-book-config:done', {
     bookKey,
