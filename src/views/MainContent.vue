@@ -674,31 +674,38 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     const configFilename = toBookConfigFilename(importedBook.bookKey)
     let usedCloudConfig = false
 
-    try {
-      const existsOnCloud = await invoke('webdav_exists', {
-        subdir: CLOUD_DIRS.progress,
-        filename: configFilename,
+    if (navigator.onLine === false) {
+      logInfo('bookshelf', 'import-book skip-cloud-config-check-offline', {
+        bookKey: importedBook.bookKey,
+        fileName: configFilename,
       })
-      if (existsOnCloud) {
-        const cloudData = await invoke('webdav_get', {
+    } else {
+      try {
+        const existsOnCloud = await invoke('webdav_exists', {
           subdir: CLOUD_DIRS.progress,
           filename: configFilename,
         })
-        const cloudConfig = normalizeBookConfig(
-          JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[]))),
-        )
-        newBook = cloudConfig
-        usedCloudConfig = true
-        logInfo('bookshelf', 'import-book use-cloud-config', {
+        if (existsOnCloud) {
+          const cloudData = await invoke('webdav_get', {
+            subdir: CLOUD_DIRS.progress,
+            filename: configFilename,
+          })
+          const cloudConfig = normalizeBookConfig(
+            JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData as number[]))),
+          )
+          newBook = cloudConfig
+          usedCloudConfig = true
+          logInfo('bookshelf', 'import-book use-cloud-config', {
+            bookKey: importedBook.bookKey,
+            fileName: configFilename,
+          })
+        }
+      } catch (error) {
+        logWarn('bookshelf', 'import-book check-cloud-config-failed', {
           bookKey: importedBook.bookKey,
-          fileName: configFilename,
+          error,
         })
       }
-    } catch (error) {
-      logWarn('bookshelf', 'import-book check-cloud-config-failed', {
-        bookKey: importedBook.bookKey,
-        error,
-      })
     }
 
     const bookConfigJson = stringifyJson(newBook)
