@@ -352,23 +352,50 @@ const notifyBookConfigCloudSyncFailed = (bookKey: string, filename: string): voi
   })
 }
 
-const queueBookConfigCloudSave = (bookKey: string, filename: string, config: BookConfig): void => {
-  queueMicrotask(() => {
-    void persistBookConfigToCloud(filename, config)
-      .then(() => {
+interface PendingBookConfigCloudSave {
+  filename: string
+  config: BookConfig
+}
+
+const pendingBookConfigCloudSaves = new Map<string, PendingBookConfigCloudSave>()
+const processingBookConfigCloudSaves = new Set<string>()
+
+const processBookConfigCloudSaves = async (bookKey: string): Promise<void> => {
+  if (processingBookConfigCloudSaves.has(bookKey)) {
+    return
+  }
+
+  processingBookConfigCloudSaves.add(bookKey)
+  try {
+    let pending = pendingBookConfigCloudSaves.get(bookKey)
+    while (pending) {
+      pendingBookConfigCloudSaves.delete(bookKey)
+      try {
+        await persistBookConfigToCloud(pending.filename, pending.config)
         logInfo('book-repository', 'save-book-config cloud-sync-done', {
           bookKey,
-          fileName: filename,
+          fileName: pending.filename,
         })
-      })
-      .catch((error) => {
+      } catch (error) {
         logWarn('book-repository', 'save-book-config cloud-sync-failed', {
           bookKey,
-          fileName: filename,
+          fileName: pending.filename,
           error,
         })
-        notifyBookConfigCloudSyncFailed(bookKey, filename)
-      })
+        notifyBookConfigCloudSyncFailed(bookKey, pending.filename)
+      }
+
+      pending = pendingBookConfigCloudSaves.get(bookKey)
+    }
+  } finally {
+    processingBookConfigCloudSaves.delete(bookKey)
+  }
+}
+
+const queueBookConfigCloudSave = (bookKey: string, filename: string, config: BookConfig): void => {
+  pendingBookConfigCloudSaves.set(bookKey, { filename, config })
+  queueMicrotask(() => {
+    void processBookConfigCloudSaves(bookKey)
   })
 }
 
