@@ -3,6 +3,7 @@ use std::{fs, path::PathBuf};
 
 use crate::{
     entities::Settings,
+    repository::webdav::client::build_webdav_client,
     utils::logging::{log_error, log_info, log_warn},
 };
 
@@ -108,7 +109,7 @@ pub fn ensure_local_dirs() -> Result<PathBuf, String> {
 }
 
 pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
-    let client = reqwest::Client::new();
+    let client = build_webdav_client();
 
     let root_url = settings.webdav_url.trim_end_matches('/').to_string() + "/";
     let _ = client

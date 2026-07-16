@@ -10,6 +10,7 @@ interface SaveReaderProgressArgs {
   bookKey: string
   rendition: EpubRenditionLike | null
   bookMarks: BookMark[]
+  currentBookConfig?: BookConfig | null
 }
 
 export interface SavedReaderProgress {
@@ -30,9 +31,9 @@ const resolveReaderProgressPercent = async (
 export const saveReaderProgress = async (
   args: SaveReaderProgressArgs,
 ): Promise<SavedReaderProgress | null> => {
-  const { bookKey, rendition, bookMarks } = args
+  const { bookKey, rendition, bookMarks, currentBookConfig } = args
 
-  const bookConfig = await loadBookConfig(bookKey)
+  const bookConfig = currentBookConfig ? { ...currentBookConfig } : await loadBookConfig(bookKey)
   const progressSnapshot = await serializeReaderProgress(rendition)
   if (!progressSnapshot) {
     return null
