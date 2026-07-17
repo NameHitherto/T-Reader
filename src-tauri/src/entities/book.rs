@@ -20,6 +20,21 @@ pub struct BookRecord {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateBookMetadataRequest {
+    pub book_key: String,
+    pub title: String,
+    pub author: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateBookMetadataResult {
+    pub old_book_key: String,
+    pub book: BookRecord,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpsertBookRequest {
     pub book_key: Option<String>,
     pub title: String,

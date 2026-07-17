@@ -8,6 +8,11 @@
     <ContextMenu v-model:show="showMenu" :menu-data="menuOptions" />
     <!-- 书籍信息弹窗 -->
     <BookInfoDialog v-model="bookInfoVisible" :book-key="bookInfoKey" />
+    <BookMetadataEditDialog
+      v-model="bookMetadataEditVisible"
+      :book-key="bookMetadataEditKey"
+      @saved="handleBookMetadataSaved"
+    />
     <CloudSyncDialog v-model="cloudSyncVisible" @synced="handleCloudSyncSynced" />
     <header class="header">
       <div class="header-menu">
@@ -145,6 +150,7 @@ import type { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import emptyStateImage from '@/assets/images/empty.png'
 import SettingDialog from '@/components/SettingDialog/index.vue'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
+import BookMetadataEditDialog from '@/components/BookMetadataEditDialog.vue'
 import CloudSyncDialog from '@/components/CloudSyncDialog/index.vue'
 import defaultCover from '@/assets/default-cover.png'
 import { detectBookFormatFromPath } from '@/services/book/bookFormatService'
@@ -265,8 +271,10 @@ const activeLoadingTasks = ref(0)
 // ============================================================
 const settingVisible = ref(false)
 const bookInfoVisible = ref(false)
+const bookMetadataEditVisible = ref(false)
 const cloudSyncVisible = ref(false)
 const bookInfoKey = ref<string>('')
+const bookMetadataEditKey = ref<string>('')
 
 // ============================================================
 // 右键菜单状态
@@ -1029,6 +1037,16 @@ const showBookInfo = (bookKey: string) => {
   bookInfoVisible.value = true
 }
 
+const showBookMetadataEditor = (bookKey: string) => {
+  bookMetadataEditKey.value = bookKey
+  bookMetadataEditVisible.value = true
+}
+
+const handleBookMetadataSaved = async () => {
+  invalidateBookFileCache()
+  await loadBooks()
+}
+
 // ============================================================
 // 右键菜单业务
 // ============================================================
@@ -1043,6 +1061,11 @@ const onContextMenu = (e: MouseEvent, bookKey: string) => {
       label: '上传 | 上传到云端',
       type: 'upload',
       onClick: () => void uploadBookToCloud(bookKey),
+    },
+    {
+      label: '编辑 | 编辑元数据',
+      type: 'edit',
+      onClick: () => showBookMetadataEditor(bookKey),
     },
     {
       label: '信息 | 详细信息',

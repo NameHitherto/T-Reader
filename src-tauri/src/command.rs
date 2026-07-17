@@ -1,6 +1,7 @@
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         crate::api::file::copy_file_to_subdir,
+        crate::api::file::read_local_cover_file,
         crate::api::file::convert_txt_to_epub,
         crate::api::webdav::webdav_upload,
         crate::api::webdav::webdav_get,
@@ -36,6 +37,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::book::list_books,
         crate::api::book::get_book_by_key,
         crate::api::book::upsert_book,
+        crate::api::book::update_book_metadata,
         crate::api::book::update_book_progress,
         crate::api::book::update_book_cover,
         crate::api::book::remove_book_by_key,

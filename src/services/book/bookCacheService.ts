@@ -3,12 +3,20 @@ import {
   buildBookCacheCoverAssetUrl,
   buildBookCacheCoverPath,
   buildBookCacheDir,
+  buildBookCacheLocationsPath,
 } from '@/services/book/bookCachePathService'
 import { saveBookLocationsCache } from '@/services/book/bookLocationsCacheService'
 import { loadBookBinary, updateBookCover } from '@/services/book/bookRepository'
 import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
 import { createDurationLogger, logInfo, logWarn } from '@/utils/logger'
-import { localPathExists, removeLocalDir } from '@/services/fileSystem/localStorageService'
+import {
+  ensureLocalDir,
+  localPathExists,
+  readBinaryFile,
+  removeLocalDir,
+  removeLocalFile,
+  writeBinaryFile,
+} from '@/services/fileSystem/localStorageService'
 
 export interface ResolveBookCoverOptions {
   onCoverUpdated?: (book: StoredBookRecord) => void | Promise<void>
@@ -33,6 +41,62 @@ export const buildBookCoverUrl = async (
 
 export const removeBookCacheDir = async (bookKey: string): Promise<void> => {
   await removeLocalDir(await buildBookCacheDir(bookKey))
+}
+
+export const saveUploadedBookCover = async (
+  bookKey: string,
+  bytes: Uint8Array,
+  extension: 'jpg' | 'png',
+): Promise<string> => {
+  const coverName = `cover.${extension}`
+  await ensureLocalDir(await buildBookCacheDir(bookKey))
+  await writeBinaryFile(await buildBookCacheCoverPath(bookKey, coverName), bytes)
+  return coverName
+}
+
+export const migrateBookCache = async (
+  oldBookKey: string,
+  newBookKey: string,
+  coverName?: string | null,
+): Promise<void> => {
+  if (oldBookKey === newBookKey) {
+    return
+  }
+
+  const oldDir = await buildBookCacheDir(oldBookKey)
+  const newDir = await buildBookCacheDir(newBookKey)
+  await ensureLocalDir(newDir)
+
+  const locationsPath = await buildBookCacheLocationsPath(oldBookKey)
+  if (await localPathExists(locationsPath)) {
+    await writeBinaryFile(
+      await buildBookCacheLocationsPath(newBookKey),
+      await readBinaryFile(locationsPath),
+    )
+  }
+
+  if (coverName) {
+    const oldCoverPath = await buildBookCacheCoverPath(oldBookKey, coverName)
+    if (await localPathExists(oldCoverPath)) {
+      await writeBinaryFile(
+        await buildBookCacheCoverPath(newBookKey, coverName),
+        await readBinaryFile(oldCoverPath),
+      )
+    }
+  }
+
+  await removeLocalDir(oldDir)
+}
+
+export const removeBookCoverResource = async (
+  bookKey: string,
+  coverName?: string | null,
+): Promise<void> => {
+  if (!coverName) {
+    return
+  }
+
+  await removeLocalFile(await buildBookCacheCoverPath(bookKey, coverName))
 }
 
 export const parseBookCoverInBackground = (

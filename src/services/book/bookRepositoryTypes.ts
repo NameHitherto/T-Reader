@@ -26,3 +26,14 @@ export interface UpsertBookRequest {
   coverName?: string | null
   progress?: number
 }
+
+export interface UpdateBookMetadataRequest {
+  bookKey: string
+  title: string
+  author: string
+}
+
+export interface UpdateBookMetadataResult {
+  oldBookKey: string
+  book: StoredBookRecord
+}

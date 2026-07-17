@@ -2,7 +2,10 @@ use tauri::State;
 
 use crate::{
     database::DatabaseState,
-    entities::{BookRecord, ResolvedBookFile, UpsertBookRequest},
+    entities::{
+        BookRecord, ResolvedBookFile, UpdateBookMetadataRequest, UpdateBookMetadataResult,
+        UpsertBookRequest,
+    },
     repository::books,
 };
 
@@ -25,6 +28,14 @@ pub async fn upsert_book(
     request: UpsertBookRequest,
 ) -> Result<BookRecord, String> {
     books::upsert_book(&database.pool, request).await
+}
+
+#[tauri::command]
+pub async fn update_book_metadata(
+    database: State<'_, DatabaseState>,
+    request: UpdateBookMetadataRequest,
+) -> Result<UpdateBookMetadataResult, String> {
+    books::update_book_metadata(&database.pool, request).await
 }
 
 #[tauri::command]

@@ -15,6 +15,7 @@ import uploadIcon from '@/components/ContextMenu/assets/upload.svg'
 import deleteIcon from '@/components/ContextMenu/assets/delete.svg'
 import goBackIcon from '@/components/ContextMenu/assets/go-back.svg'
 import infoIcon from '@/components/ContextMenu/assets/info.svg'
+import editIcon from '@/components/ContextMenu/assets/edit.svg'
 import bookmarkIcon from '@/components/ContextMenu/assets/bookmark.svg'
 import delBookMarkIcon from '@/components/ContextMenu/assets/delBookMark.svg'
 import commentIcon from '@/components/ContextMenu/assets/comment.svg'
@@ -39,6 +40,7 @@ export type IconName =
   | 'delete'
   | 'goBack'
   | 'info'
+  | 'edit'
   | 'bookmark'
   | 'delBookMark'
   | 'comment'
@@ -66,6 +68,7 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   delete: { src: deleteIcon, mode: 'mask' },
   goBack: { src: goBackIcon, mode: 'mask' },
   info: { src: infoIcon, mode: 'mask' },
+  edit: { src: editIcon, mode: 'mask' },
   bookmark: { src: bookmarkIcon, mode: 'mask' },
   delBookMark: { src: delBookMarkIcon, mode: 'mask' },
   comment: { src: commentIcon, mode: 'mask' },

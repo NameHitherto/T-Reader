@@ -11,7 +11,10 @@ pub use app_update::{
     AppUpdateAttempt, AppUpdateCheckResult, AppUpdateProgressEvent, AppUpdateProxyInfo,
     AppUpdateSource, AppUpdateState, PendingUpdate, ProxyPrepareResult,
 };
-pub use book::{BookRecord, ResolvedBookFile, UpsertBookRequest};
+pub use book::{
+    BookRecord, ResolvedBookFile, UpdateBookMetadataRequest, UpdateBookMetadataResult,
+    UpsertBookRequest,
+};
 pub use cloud_sync::{
     CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncBookAction, CloudSyncBookSelection,
     CloudSyncBookStatus, CloudSyncPreviewItem, CloudSyncPreviewResult,

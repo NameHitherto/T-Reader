@@ -4,7 +4,12 @@ import {
   detectBookFormatFromFilename,
   detectBookFormatFromPath,
 } from '@/services/book/bookFormatService'
-import type { StoredBookRecord, UpsertBookRequest } from '@/services/book/bookRepositoryTypes'
+import type {
+  StoredBookRecord,
+  UpdateBookMetadataRequest,
+  UpdateBookMetadataResult,
+  UpsertBookRequest,
+} from '@/services/book/bookRepositoryTypes'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { buildBookName, buildBookTitle, toBookConfigFilename } from '@/services/book/bookIdentity'
 import { normalizeBookConfig } from '@/services/book/bookConfigService'
@@ -122,6 +127,14 @@ export const upsertStoredBook = async (request: UpsertBookRequest): Promise<Stor
 
 export const getStoredBookByKey = async (bookKey: string): Promise<StoredBookRecord | null> => {
   return await invoke<StoredBookRecord | null>('get_book_by_key', { bookKey })
+}
+
+export const updateBookMetadata = async (
+  request: UpdateBookMetadataRequest,
+): Promise<UpdateBookMetadataResult> => {
+  const result = await invoke<UpdateBookMetadataResult>('update_book_metadata', { request })
+  cachedBookFileMap = null
+  return result
 }
 
 export const updateBookProgress = async (

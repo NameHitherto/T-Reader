@@ -1,8 +1,11 @@
-use sqlx::SqlitePool;
+use sqlx::{Sqlite, SqlitePool, Transaction};
 use uuid::Uuid;
 
 use crate::{
-    entities::{BookRecord, ResolvedBookFile, UpsertBookRequest},
+    entities::{
+        BookRecord, ResolvedBookFile, UpdateBookMetadataRequest, UpdateBookMetadataResult,
+        UpsertBookRequest,
+    },
     service::book_identity::{build_book_key, hash_book_key},
 };
 
@@ -100,6 +103,78 @@ pub async fn upsert_book(
     .fetch_one(pool)
     .await
     .map_err(|error| error.to_string())
+}
+
+
+pub async fn update_book_metadata(
+    pool: &SqlitePool,
+    request: UpdateBookMetadataRequest,
+) -> Result<UpdateBookMetadataResult, String> {
+    let title = crate::service::book_identity::build_book_title(Some(&request.title));
+    let author = crate::service::book_identity::build_book_title(Some(&request.author));
+    let new_book_key = build_book_key(Some(&title), Some(&author));
+    let new_cache_name = hash_book_key(&new_book_key);
+
+    let mut tx: Transaction<'_, Sqlite> = pool.begin().await.map_err(|error| error.to_string())?;
+    let old_book = sqlx::query_as::<_, BookRecord>(
+        r#"
+        SELECT id, title, author, book_key, file_name, format, cache_name,
+               has_cover, cover_name, progress, created_at, updated_at
+        FROM books
+        WHERE book_key = ?
+        "#,
+    )
+    .bind(&request.book_key)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|error| error.to_string())?
+    .ok_or_else(|| format!("book not found for key {}", request.book_key))?;
+
+    if new_book_key != request.book_key {
+        let duplicate = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM books WHERE book_key = ? AND id <> ?",
+        )
+        .bind(&new_book_key)
+        .bind(&old_book.id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|error| error.to_string())?;
+        if duplicate > 0 {
+            return Err(format!("已存在同名同作者的书籍：{}", new_book_key));
+        }
+    }
+
+    let updated_book = sqlx::query_as::<_, BookRecord>(
+        r#"
+        UPDATE books
+        SET title = ?, author = ?, book_key = ?, cache_name = ?, updated_at = datetime('now')
+        WHERE id = ?
+        RETURNING id, title, author, book_key, file_name, format, cache_name,
+                  has_cover, cover_name, progress, created_at, updated_at
+        "#,
+    )
+    .bind(&title)
+    .bind(&author)
+    .bind(&new_book_key)
+    .bind(&new_cache_name)
+    .bind(&old_book.id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(|error| error.to_string())?;
+
+    sqlx::query("UPDATE notes SET book_title = ?, updated_at = datetime('now') WHERE book_id = ?")
+        .bind(&title)
+        .bind(&old_book.id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    tx.commit().await.map_err(|error| error.to_string())?;
+
+    Ok(UpdateBookMetadataResult {
+        old_book_key: old_book.book_key,
+        book: updated_book,
+    })
 }
 
 pub async fn update_book_progress(
