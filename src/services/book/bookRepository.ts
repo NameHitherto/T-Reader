@@ -18,6 +18,7 @@ import { encodeJson } from '@/utils/json'
 import { BookFormat } from '@/types/book'
 import { dispatchMainEvent } from '@/services/reader/readerWindowBridgeService'
 import { WINDOW_EVENTS } from '@/constants/events'
+import { loadAppSettings } from '@/services/settings/appSettingsService'
 import {
   localBookExists,
   listLocalBookFiles,
@@ -191,54 +192,59 @@ const readCloudBookConfig = async (filename: string): Promise<BookConfig> => {
   return parseBookConfigData(toUint8Array(data as ArrayBufferLike | Uint8Array | number[]))
 }
 
-const canAttemptCloudRequest = (): boolean => navigator.onLine !== false
+const CLOUD_BOOK_CONFIG_READ_TIMEOUT_MS = 1500
 
-const reconcileBookConfigWithCloud = async (
-  bookKey: string,
-  filename: string,
-  loadedLocalConfig: BookConfig,
-): Promise<void> => {
+type CloudBookConfigReadAvailability = 'available' | 'offline' | 'unconfigured'
+
+let webdavConfigAvailabilityPromise: Promise<boolean> | null = null
+
+const isValidWebdavUrl = (value: string): boolean => {
   try {
-    const cloudConfig = await readCloudBookConfig(filename)
-    const currentLocalConfig = await readLocalBookConfig(filename).catch(() => loadedLocalConfig)
-    const localTime = getDurChapterTime(currentLocalConfig)
-    const cloudTime = getDurChapterTime(cloudConfig)
+    const url = new URL(value)
 
-    if (cloudTime > localTime) {
-      await persistBookConfigToLocal(filename, cloudConfig)
-      logWarn('book-repository', 'reconcile-book-config select-cloud', {
-        bookKey,
-        fileName: filename,
-        localTime,
-        cloudTime,
-      })
-      return
-    }
-
-    if (localTime > cloudTime) {
-      await persistBookConfigToCloud(filename, currentLocalConfig)
-    }
-  } catch (error) {
-    logWarn('book-repository', 'reconcile-book-config failed', {
-      bookKey,
-      fileName: filename,
-      error,
-    })
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
   }
 }
 
-const queueBookConfigCloudReconciliation = (
-  bookKey: string,
-  filename: string,
-  localConfig: BookConfig,
-): void => {
-  if (!canAttemptCloudRequest()) {
-    return
+const hasValidWebdavConfig = async (): Promise<boolean> => {
+  if (!webdavConfigAvailabilityPromise) {
+    webdavConfigAvailabilityPromise = loadAppSettings()
+      .then((settings) => isValidWebdavUrl(settings.webdavUrl.trim()))
+      .finally(() => {
+        webdavConfigAvailabilityPromise = null
+      })
   }
 
-  queueMicrotask(() => {
-    void reconcileBookConfigWithCloud(bookKey, filename, localConfig)
+  return await webdavConfigAvailabilityPromise
+}
+
+const getCloudBookConfigReadAvailability = async (): Promise<CloudBookConfigReadAvailability> => {
+  if (navigator.onLine === false) {
+    return 'offline'
+  }
+
+  return (await hasValidWebdavConfig()) ? 'available' : 'unconfigured'
+}
+
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs)
   })
+
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId)
+    }
+  }
 }
 
 const readLocalBookFile = async (filename: string): Promise<Uint8Array> => {
@@ -308,10 +314,51 @@ export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {
 
 export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   const filename = toBookConfigFilename(bookKey)
+  const cloudAvailability = await getCloudBookConfigReadAvailability()
+  let cloudError: unknown
+
+  if (cloudAvailability === 'available') {
+    try {
+      const cloudConfig = await withTimeout(
+        readCloudBookConfig(filename),
+        CLOUD_BOOK_CONFIG_READ_TIMEOUT_MS,
+        `Timed out reading cloud book config: ${bookKey}`,
+      )
+
+      try {
+        await persistBookConfigToLocal(filename, cloudConfig)
+      } catch (localPersistError) {
+        logWarn('book-repository', 'load-book-config cache-cloud-locally-failed', {
+          bookKey,
+          fileName: filename,
+          error: localPersistError,
+        })
+      }
+
+      logInfo('book-repository', 'load-book-config:done', {
+        bookKey,
+        source: 'cloud',
+        durChapterTime: getDurChapterTime(cloudConfig),
+      })
+      return cloudConfig
+    } catch (error) {
+      cloudError = error
+      logWarn('book-repository', 'load-book-config fallback-to-local', {
+        bookKey,
+        fileName: filename,
+        error,
+      })
+    }
+  } else {
+    logInfo('book-repository', 'load-book-config skip-cloud', {
+      bookKey,
+      fileName: filename,
+      reason: cloudAvailability,
+    })
+  }
 
   try {
     const localConfig = await readLocalBookConfig(filename)
-    queueBookConfigCloudReconciliation(bookKey, filename, localConfig)
     logInfo('book-repository', 'load-book-config:done', {
       bookKey,
       source: 'local',
@@ -319,37 +366,16 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
     })
     return localConfig
   } catch (localError) {
-    if (!canAttemptCloudRequest()) {
-      throw Object.assign(new Error(`Book config not found locally while offline: ${bookKey}`), {
-        cause: localError,
-      })
-    }
-
-    try {
-      const cloudConfig = await readCloudBookConfig(filename)
-      await persistBookConfigToLocal(filename, cloudConfig)
-      logWarn('book-repository', 'load-book-config fallback-to-cloud', {
-        bookKey,
-        fileName: filename,
-        localError,
-      })
-      logInfo('book-repository', 'load-book-config:done', {
-        bookKey,
-        source: 'cloud',
-        durChapterTime: getDurChapterTime(cloudConfig),
-      })
-      return cloudConfig
-    } catch (cloudError) {
-      logWarn('book-repository', 'load-book-config unavailable', {
-        bookKey,
-        fileName: filename,
-        localError,
-        cloudError,
-      })
-      throw Object.assign(new Error(`Book config not found for ${bookKey}`), {
-        cause: cloudError,
-      })
-    }
+    logWarn('book-repository', 'load-book-config unavailable', {
+      bookKey,
+      fileName: filename,
+      cloudAvailability,
+      cloudError,
+      localError,
+    })
+    throw Object.assign(new Error(`Book config not found for ${bookKey}`), {
+      cause: cloudError ?? localError,
+    })
   }
 }
 
