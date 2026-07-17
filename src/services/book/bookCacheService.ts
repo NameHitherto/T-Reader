@@ -46,7 +46,7 @@ export const removeBookCacheDir = async (bookKey: string): Promise<void> => {
 export const saveUploadedBookCover = async (
   bookKey: string,
   bytes: Uint8Array,
-  extension: 'jpg' | 'png',
+  extension: 'jpg' | 'png' | 'webp',
 ): Promise<string> => {
   const coverName = `cover.${extension}`
   await ensureLocalDir(await buildBookCacheDir(bookKey))

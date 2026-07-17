@@ -30,7 +30,7 @@
             >
               移除封面
             </el-button>
-            <div class="cover-hint">支持 JPG/JPEG、PNG，大小不超过 5MB</div>
+            <div class="cover-hint">支持 JPG/JPEG、PNG、WebP，大小不超过 5MB</div>
           </div>
         </div>
       </el-form-item>
@@ -96,7 +96,15 @@ const oldConfig = ref<{
 } | null>(null)
 const coverPreview = ref('')
 const coverBytes = ref<Uint8Array | null>(null)
-const coverExtension = ref<'jpg' | 'png'>('jpg')
+type CoverExtension = 'jpg' | 'png' | 'webp'
+
+interface LocalCoverFile {
+  bytes: number[]
+  extension: CoverExtension
+  mimeType: string
+}
+
+const coverExtension = ref<CoverExtension>('jpg')
 const coverSelected = ref(false)
 const coverRemoved = ref(false)
 const saving = ref(false)
@@ -160,24 +168,20 @@ const chooseCover = async () => {
   const selected = await open({
     multiple: false,
     directory: false,
-    filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png'] }],
+    filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
   })
   if (!selected || Array.isArray(selected)) return
 
   try {
-    const bytes = new Uint8Array(
-      await invoke<number[]>('read_local_cover_file', { filepath: selected }),
-    )
+    const result = await invoke<LocalCoverFile>('read_local_cover_file', { filepath: selected })
+    const bytes = new Uint8Array(result.bytes)
     if (bytes.byteLength > MAX_COVER_BYTES) throw new Error('封面大小不能超过 5MB')
-    const lower = selected.toLowerCase()
-    coverExtension.value = lower.endsWith('.png') ? 'png' : 'jpg'
+    coverExtension.value = result.extension
     coverBytes.value = bytes
     coverSelected.value = true
     coverRemoved.value = false
     if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl)
-    previewObjectUrl = URL.createObjectURL(
-      new Blob([bytes], { type: coverExtension.value === 'png' ? 'image/png' : 'image/jpeg' }),
-    )
+    previewObjectUrl = URL.createObjectURL(new Blob([bytes], { type: result.mimeType }))
     coverPreview.value = previewObjectUrl
   } catch (error) {
     errorMessage.value = toErrorMessage(error)
