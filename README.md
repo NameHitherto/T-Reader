@@ -1,8 +1,8 @@
 # T-Reader
 
-T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、AI 阅读助手与应用内更新能力。
+T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、自动更新能力。
 
-![version](https://img.shields.io/badge/version-1.4.2-blue)
+![version](https://img.shields.io/badge/version-1.6.0-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 ## 核心能力
@@ -11,27 +11,27 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 书架支持列表 / 网格双视图，并展示封面、格式、最近阅读与进度
 - 独立阅读器窗口支持目录、翻页、滚动、快捷键与沉浸式阅读
 - 支持 EPUB 书签、高亮和个人笔记，笔记页可统一浏览与跳转
-- 阅读样式支持字体、字号、字重、行距、段距、页边距、栏数、翻页模式调节
-- 支持 WebDAV 云同步
+- 阅读界面清爽简洁，书籍字体可选择Windows系统内置字体
+- 阅读样式支持字号、字重、行距、段距、页边距、栏数、翻页模式调节
+- 支持 WebDAV 云同步，目前已适配第三方开源移动端阅读器Legado
 - 支持应用内检查更新、下载更新
 
-## 界面预览
+## UI界面预览
 
-### 书架网格视图
+### 书架
 
-![书架网格视图](./docs/images/bookshelf.jpg)
+![书架](./docs/images/bookshelf.png)
 
-### 书架列表视图
+### 书架（列表模式）
 
-![书架列表视图](./docs/images/listview.jpg)
-
-### 书籍导入
-
-![书籍导入](./docs/images/import.jpg)
+![书架列表视图](./docs/images/listview.png)
 
 ### 阅读器与样式设置
 
 ![阅读器与样式设置](./docs/images/reader.jpg)
+
+### 云同步
+![云同步](./docs/images/webdav.png)
 
 ## 技术栈
 
@@ -137,8 +137,6 @@ npm run tauri dev
 npm run tauri build
 npm run release -- v1.0.1
 ```
-
-`npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
 
 ## 相关仓库
 
