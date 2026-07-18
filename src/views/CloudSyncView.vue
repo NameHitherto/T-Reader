@@ -1,18 +1,6 @@
 <template>
-  <el-dialog
-    :model-value="modelValue"
-    align-center
-    append-to-body
-    class="cloud-sync-dialog-wrapper"
-    destroy-on-close
-    :show-close="false"
-    :close-on-press-escape="!isBusy"
-    :close-on-click-modal="!isBusy"
-    width="min(980px, calc(100vw - 64px))"
-    @update:model-value="handleVisibilityChange"
-    @open="handleOpen"
-  >
-    <div class="cloud-sync-dialog">
+  <div class="cloud-sync-page">
+    <div class="cloud-sync-panel">
       <div class="dialog-hero">
         <div class="dialog-title">云同步清单</div>
         <div class="dialog-stats">
@@ -199,45 +187,44 @@
       </template>
     </div>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button :disabled="isBusy" @click="closeDialog">取消</el-button>
+    <footer class="cloud-sync-page-footer">
+      <div class="cloud-sync-page-tip">
+        同步前会再次核对本地与云端状态，执行期间请保持网络连接。
+      </div>
+      <div class="cloud-sync-page-actions">
+        <el-button :disabled="isBusy" @click="loadPreview">重新检查</el-button>
         <el-button
           type="primary"
           :loading="applying"
           :disabled="previewLoading || Boolean(loadError)"
           @click="executeSync"
         >
-          {{ executeButtonLabel }}
+          执行云同步
         </el-button>
       </div>
-    </template>
-  </el-dialog>
+    </footer>
+  </div>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, reactive, ref } from 'vue'
+import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
+import { invalidateBookFileCache } from '@/services/book/bookRepository'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 import {
   EMPTY_CLOUD_SYNC_PREVIEW,
   applyCloudSyncPlan,
   buildCloudSyncApplyRequest,
   buildDefaultCloudSyncSelectionMap,
+  formatCloudSyncResultMessage,
   getCloudSyncPreview,
   toCloudSyncErrorMessage,
 } from '@/services/sync/cloudSyncService'
-import type { CloudSyncApplyResult, CloudSyncPreviewResult } from '@/types/sync'
+import type { CloudSyncPreviewResult } from '@/types/sync'
 
 export default defineComponent({
-  name: 'CloudSyncDialog',
-  props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  emits: ['update:modelValue', 'synced'],
-  setup(_, { emit }) {
+  name: 'CloudSyncView',
+  setup() {
     const previewLoading = ref(false)
     const applying = ref(false)
     const loadError = ref('')
@@ -284,26 +271,6 @@ export default defineComponent({
       }
     }
 
-    const handleOpen = async () => {
-      await loadPreview()
-    }
-
-    const handleVisibilityChange = (value: boolean) => {
-      if (!value && isBusy.value) {
-        return
-      }
-
-      emit('update:modelValue', value)
-    }
-
-    const closeDialog = () => {
-      if (isBusy.value) {
-        return
-      }
-
-      emit('update:modelValue', false)
-    }
-
     const splitFileName = (fileName: string) => {
       const lastDotIndex = fileName.lastIndexOf('.')
       if (lastDotIndex === -1) {
@@ -329,8 +296,14 @@ export default defineComponent({
       try {
         const request = buildCloudSyncApplyRequest(preview.value.bookItems, draftSelections)
         const result = await applyCloudSyncPlan(request)
-        emit('synced', result as CloudSyncApplyResult)
-        emit('update:modelValue', false)
+        invalidateBookFileCache()
+        showMainTaskMessage({
+          type: 'success',
+          title: '云同步完成',
+          message: formatCloudSyncResultMessage(result),
+          taskKey: 'cloud-sync-apply',
+        })
+        await loadPreview()
       } catch (error) {
         showMainTaskMessage({
           type: 'error',
@@ -343,6 +316,24 @@ export default defineComponent({
       }
     }
 
+    onBeforeRouteLeave(() => {
+      if (!applying.value) {
+        return true
+      }
+
+      showMainTaskMessage({
+        type: 'warning',
+        title: '云同步正在执行',
+        message: '请等待当前同步任务完成后再离开此页面。',
+        taskKey: 'cloud-sync-route-guard',
+      })
+      return false
+    })
+
+    onMounted(() => {
+      void loadPreview()
+    })
+
     return {
       previewLoading,
       applying,
@@ -353,9 +344,6 @@ export default defineComponent({
       selectedCount,
       executeButtonLabel,
       loadPreview,
-      handleOpen,
-      handleVisibilityChange,
-      closeDialog,
       splitFileName,
       updateSelection,
       executeSync,
@@ -365,7 +353,48 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.cloud-sync-dialog {
+.cloud-sync-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 24px 28px 18px;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--app-bg-accent);
+}
+
+.cloud-sync-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.cloud-sync-page-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-shrink: 0;
+  padding: 16px 20px 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.cloud-sync-page-tip {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cloud-sync-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cloud-sync-panel {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -466,7 +495,8 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     min-height: 0;
-    max-height: min(52vh, 540px);
+    flex: 1;
+    max-height: none;
     padding-right: 4px;
   }
 
@@ -654,14 +684,8 @@ export default defineComponent({
   }
 }
 
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
 @media (max-width: 820px) {
-  .cloud-sync-dialog {
+  .cloud-sync-panel {
     .dialog-hero {
       padding: 16px;
     }
@@ -680,57 +704,19 @@ export default defineComponent({
     }
   }
 }
-</style>
 
-<style lang="scss">
-.cloud-sync-dialog-wrapper {
-  display: flex;
-  flex-direction: column;
-  max-height: min(84vh, 920px);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-
-  .el-dialog__header {
-    display: none;
+@media (max-width: 760px) {
+  .cloud-sync-page {
+    padding: 18px;
   }
 
-  .el-dialog__body {
-    display: flex;
+  .cloud-sync-page-footer {
+    align-items: stretch;
     flex-direction: column;
-    min-height: 0;
-    padding: 22px;
-    overflow: hidden;
   }
 
-  .el-dialog__footer {
-    padding: 22px;
-  }
-
-  .el-dialog__footer .el-button:hover,
-  .el-dialog__footer .el-button:focus-visible,
-  .el-dialog__footer .el-button:active {
-    transform: none;
-  }
-
-  .el-scrollbar__wrap {
-    overflow-x: hidden;
-
-    &::-webkit-scrollbar {
-      width: var(--t-scrollbar-width-thin);
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--scrollbar-thumb);
-      border-radius: var(--radius-pill);
-    }
-
-    &:hover::-webkit-scrollbar-thumb {
-      background-color: var(--scrollbar-thumb-strong);
-    }
+  .cloud-sync-page-actions {
+    justify-content: flex-end;
   }
 }
 </style>

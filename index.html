@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,22 +7,25 @@
   </head>
 
   <body>
-    <div data-tauri-drag-region class="titlebar" id="titlebar-custom">
-      <div class="titlebar-button" id="titlebar-minimize">
+    <div class="titlebar" id="titlebar-custom">
+      <div data-tauri-drag-region class="titlebar-drag-region"></div>
+      <div id="titlebar-page-title" class="titlebar-page-title"></div>
+      <div id="titlebar-page-actions" class="titlebar-page-actions"></div>
+      <div class="titlebar-button" id="titlebar-minimize" aria-label="最小化窗口">
         <span
           class="titlebar-icon"
           style="--titlebar-icon: url('/src/assets/window-minimize-outline.svg')"
           aria-label="minimize"
         ></span>
       </div>
-      <div class="titlebar-button" id="titlebar-maximize">
+      <div class="titlebar-button" id="titlebar-maximize" aria-label="最大化窗口">
         <span
           class="titlebar-icon"
           style="--titlebar-icon: url('/src/assets/window-maximize.svg')"
           aria-label="maximize"
         ></span>
       </div>
-      <div class="titlebar-button" id="titlebar-close">
+      <div class="titlebar-button titlebar-button--close" id="titlebar-close" aria-label="关闭窗口">
         <span
           class="titlebar-icon"
           style="--titlebar-icon: url('/src/assets/window-close.svg')"

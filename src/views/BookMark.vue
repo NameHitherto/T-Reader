@@ -197,7 +197,6 @@ export default defineComponent({
   height: 100%;
   background-image: radial-gradient(var(--surface-grid-dot) 2px, transparent 0);
   background-size: 30px 30px;
-  border-left: 2px dashed var(--border-default);
   animation: backgroundMove 2s infinite linear;
   display: flex;
   flex-direction: column;

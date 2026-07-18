@@ -1,175 +1,168 @@
 <template>
-  <el-dialog
-    align-center
-    destroy-on-close
-    title="设置中心"
-    class="dialog-wrapper"
-    :append-to-body="true"
-    :show-close="false"
-    :close-on-press-escape="false"
-    @open="onOpen"
-  >
-    <div class="dialog-content">
-      <section class="section section--theme">
-        <el-divider class="divider" content-position="left">界面主题</el-divider>
-        <div class="theme-mode-group">
-          <button
-            type="button"
-            class="theme-mode-card"
-            :class="{ 'is-active': themeMode === 'light' }"
-            @click="themeMode = 'light'"
-          >
-            <span class="theme-mode-title">白天模式☀️</span>
-          </button>
-          <button
-            type="button"
-            class="theme-mode-card"
-            :class="{ 'is-active': themeMode === 'dark' }"
-            @click="themeMode = 'dark'"
-          >
-            <span class="theme-mode-title">黑夜模式🌙</span>
-          </button>
-        </div>
-      </section>
+  <div class="settings-page">
+    <div class="settings-page-scroll">
+      <div class="settings-content">
+        <div class="dialog-content">
+          <section class="section section--theme">
+            <el-divider class="divider" content-position="left">界面主题</el-divider>
+            <div class="theme-mode-group">
+              <button
+                type="button"
+                class="theme-mode-card"
+                :class="{ 'is-active': themeMode === 'light' }"
+                @click="themeMode = 'light'"
+              >
+                <span class="theme-mode-title">白天模式☀️</span>
+              </button>
+              <button
+                type="button"
+                class="theme-mode-card"
+                :class="{ 'is-active': themeMode === 'dark' }"
+                @click="themeMode = 'dark'"
+              >
+                <span class="theme-mode-title">黑夜模式🌙</span>
+              </button>
+            </div>
+          </section>
 
-      <section class="section">
-        <el-divider class="divider" content-position="left">云同步</el-divider>
-        <div class="select-container">
-          <label class="field-label">云同步平台</label>
-          <el-select v-model="webdavUrlRoot" placeholder="请选择">
-            <el-option
-              v-for="item in platformList"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+          <section class="section">
+            <el-divider class="divider" content-position="left">云同步</el-divider>
+            <div class="select-container">
+              <label class="field-label">云同步平台</label>
+              <el-select v-model="webdavUrlRoot" placeholder="请选择">
+                <el-option
+                  v-for="item in platformList"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </div>
+            <div class="input-container">
+              <label class="field-label">文件目录</label>
+              <el-input v-model="webdavUrlFolder" placeholder="请输入云同步的目录">
+                <template #prepend>({{ webdavUrlRoot }})</template>
+              </el-input>
+            </div>
+            <div class="input-container">
+              <label class="field-label">用户名</label>
+              <el-input v-model="webdavUsername" placeholder="请输入用户名" />
+            </div>
+            <div class="input-container">
+              <label class="field-label">密码</label>
+              <el-input
+                v-model="webdavPassword"
+                type="password"
+                placeholder="请输入密码"
+                show-password
+              />
+            </div>
+          </section>
+
+          <!-- 暂无应用实现，临时隐藏。 -->
+          <section v-show="false" class="section">
+            <el-divider class="divider" content-position="left">AI大模型</el-divider>
+
+            <template v-if="!isEditing">
+              <div class="purpose-tabs">
+                <el-radio-group v-model="activePurpose" size="small">
+                  <el-radio-button value="chat">对话</el-radio-button>
+                  <el-radio-button value="image">图像</el-radio-button>
+                  <el-radio-button value="embedding">嵌入</el-radio-button>
+                  <el-radio-button value="rerank">重排序</el-radio-button>
+                </el-radio-group>
+              </div>
+
+              <div v-if="currentProvider" class="model-card">
+                <div class="model-card-body">
+                  <div class="model-card-field">
+                    <span class="model-card-label">API格式</span>
+                    <span class="model-card-value">{{ currentProvider.providerType }}</span>
+                  </div>
+                  <div class="model-card-field">
+                    <span class="model-card-label">模型ID</span>
+                    <span class="model-card-value">{{ currentProvider.modelId }}</span>
+                  </div>
+                  <div class="model-card-field">
+                    <span class="model-card-label">请求地址</span>
+                    <span class="model-card-value"
+                      >{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span
+                    >
+                  </div>
+                </div>
+                <div class="model-card-actions">
+                  <el-button size="small" @click="startEdit">编辑</el-button>
+                  <el-button size="small" type="danger" @click="deleteProvider">删除</el-button>
+                </div>
+              </div>
+
+              <div v-else class="model-empty">
+                <p>暂无{{ purposeLabel }}模型配置</p>
+                <el-button type="primary" size="small" @click="startAdd">添加</el-button>
+              </div>
+            </template>
+
+            <!-- Edit state -->
+            <ModelProviderForm
+              v-else
+              :provider="editingProvider"
+              :readonly-purpose="!isAdding"
+              @submit="handleFormSubmit"
+              @cancel="handleFormCancel"
             />
-          </el-select>
-        </div>
-        <div class="input-container">
-          <label class="field-label">文件目录</label>
-          <el-input v-model="webdavUrlFolder" placeholder="请输入云同步的目录">
-            <template #prepend>({{ webdavUrlRoot }})</template>
-          </el-input>
-        </div>
-        <div class="input-container">
-          <label class="field-label">用户名</label>
-          <el-input v-model="webdavUsername" placeholder="请输入用户名" />
-        </div>
-        <div class="input-container">
-          <label class="field-label">密码</label>
-          <el-input
-            v-model="webdavPassword"
-            type="password"
-            placeholder="请输入密码"
-            show-password
-          />
-        </div>
-      </section>
+          </section>
 
-      <!-- 暂无应用实现，临时隐藏。 -->
-      <section v-show="false" class="section">
-        <el-divider class="divider" content-position="left">AI大模型</el-divider>
-
-        <template v-if="!isEditing">
-          <div class="purpose-tabs">
-            <el-radio-group v-model="activePurpose" size="small">
-              <el-radio-button value="chat">对话</el-radio-button>
-              <el-radio-button value="image">图像</el-radio-button>
-              <el-radio-button value="embedding">嵌入</el-radio-button>
-              <el-radio-button value="rerank">重排序</el-radio-button>
-            </el-radio-group>
-          </div>
-
-          <div v-if="currentProvider" class="model-card">
-            <div class="model-card-body">
-              <div class="model-card-field">
-                <span class="model-card-label">API格式</span>
-                <span class="model-card-value">{{ currentProvider.providerType }}</span>
-              </div>
-              <div class="model-card-field">
-                <span class="model-card-label">模型ID</span>
-                <span class="model-card-value">{{ currentProvider.modelId }}</span>
-              </div>
-              <div class="model-card-field">
-                <span class="model-card-label">请求地址</span>
-                <span class="model-card-value"
-                  >{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span
-                >
-              </div>
-            </div>
-            <div class="model-card-actions">
-              <el-button size="small" @click="startEdit">编辑</el-button>
-              <el-button size="small" type="danger" @click="deleteProvider">删除</el-button>
-            </div>
-          </div>
-
-          <div v-else class="model-empty">
-            <p>暂无{{ purposeLabel }}模型配置</p>
-            <el-button type="primary" size="small" @click="startAdd">添加</el-button>
-          </div>
-        </template>
-
-        <!-- Edit state -->
-        <ModelProviderForm
-          v-else
-          :provider="editingProvider"
-          :readonly-purpose="!isAdding"
-          @submit="handleFormSubmit"
-          @cancel="handleFormCancel"
-        />
-      </section>
-
-      <section class="section">
-        <el-divider class="divider" content-position="left">TXT分章规则</el-divider>
-        <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">暂无可展示规则</div>
-        <div v-else class="txt-toc-rule-list">
-          <article v-for="(rule, index) in txtTocRules" :key="rule.id" class="txt-toc-rule-card">
-            <div class="txt-toc-rule-priority-actions">
-              <button
-                type="button"
-                class="txt-toc-rule-order-btn"
-                title="上移优先级"
-                :disabled="index === 0"
-                @click="moveRule(index, -1)"
+          <section class="section">
+            <el-divider class="divider" content-position="left">TXT分章规则</el-divider>
+            <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">暂无可展示规则</div>
+            <div v-else class="txt-toc-rule-list">
+              <article
+                v-for="(rule, index) in txtTocRules"
+                :key="rule.id"
+                class="txt-toc-rule-card"
               >
-                ↑
-              </button>
-              <button
-                type="button"
-                class="txt-toc-rule-order-btn"
-                title="下移优先级"
-                :disabled="index === txtTocRules.length - 1"
-                @click="moveRule(index, 1)"
-              >
-                ↓
-              </button>
-            </div>
+                <div class="txt-toc-rule-priority-actions">
+                  <button
+                    type="button"
+                    class="txt-toc-rule-order-btn"
+                    title="上移优先级"
+                    :disabled="index === 0"
+                    @click="moveRule(index, -1)"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    class="txt-toc-rule-order-btn"
+                    title="下移优先级"
+                    :disabled="index === txtTocRules.length - 1"
+                    @click="moveRule(index, 1)"
+                  >
+                    ↓
+                  </button>
+                </div>
 
-            <div class="txt-toc-rule-content">
-              <div class="txt-toc-rule-header">
-                <span class="txt-toc-rule-name">{{ rule.name }}</span>
-                <el-switch v-model="rule.enable" />
-              </div>
-              <div class="txt-toc-rule-field">
-                <span class="txt-toc-rule-label">样例</span>
-                <p class="txt-toc-rule-example">{{ rule.example }}</p>
-              </div>
-              <div class="txt-toc-rule-field">
-                <span class="txt-toc-rule-label">规则</span>
-                <pre class="txt-toc-rule-regex">{{ rule.rule }}</pre>
-              </div>
+                <div class="txt-toc-rule-content">
+                  <div class="txt-toc-rule-header">
+                    <span class="txt-toc-rule-name">{{ rule.name }}</span>
+                    <el-switch v-model="rule.enable" />
+                  </div>
+                  <div class="txt-toc-rule-field">
+                    <span class="txt-toc-rule-label">样例</span>
+                    <p class="txt-toc-rule-example">{{ rule.example }}</p>
+                  </div>
+                  <div class="txt-toc-rule-field">
+                    <span class="txt-toc-rule-label">规则</span>
+                    <pre class="txt-toc-rule-regex">{{ rule.rule }}</pre>
+                  </div>
+                </div>
+              </article>
             </div>
-          </article>
+          </section>
         </div>
-      </section>
-    </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="closeDialog">关闭</el-button>
       </div>
-    </template>
-  </el-dialog>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -187,9 +180,8 @@ import { logWarn } from '@/utils/logger'
 const AUTO_SAVE_DELAY_MS = 200
 
 export default {
-  name: 'SettingDialog',
+  name: 'SettingsView',
   components: { ModelProviderForm },
-  emits: ['close-dialog'],
   data() {
     return {
       settings: {},
@@ -263,11 +255,14 @@ export default {
       },
     },
   },
+  mounted() {
+    void this.loadSettings()
+  },
   beforeUnmount() {
-    this.clearAutoSaveTimer()
+    void this.flushAutoSaveSettings()
   },
   methods: {
-    async onOpen() {
+    async loadSettings() {
       if (this.hasLoadedSettings) {
         await this.flushAutoSaveSettings()
       }
@@ -287,6 +282,8 @@ export default {
         this.lastSavedThemeMode = loadedSettings.themeMode
         this.lastSavedSnapshot = this.createSettingsSnapshot()
         this.hasLoadedSettings = true
+      } catch (error) {
+        logWarn('SettingsView', 'load-settings failed', error)
       } finally {
         this.isLoadingSettings = false
       }
@@ -352,12 +349,8 @@ export default {
         }
         this.lastSavedSnapshot = snapshot
       } catch (error) {
-        logWarn('SettingDialog', 'auto-save-settings failed', error)
+        logWarn('SettingsView', 'auto-save-settings failed', error)
       }
-    },
-    async closeDialog() {
-      await this.flushAutoSaveSettings()
-      this.$emit('close-dialog')
     },
     startEdit() {
       this.isEditing = true
@@ -413,18 +406,46 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.dialog-wrapper {
-  max-width: min(640px, calc(100vw - 32px));
-  max-height: 78vh;
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 24px 28px 0;
   overflow: hidden;
+  color: var(--text-primary);
+  background: var(--app-bg-accent);
+}
+
+.settings-page-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: var(--t-scrollbar-width-thin);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-pill);
+  }
+}
+
+.settings-content {
+  width: min(920px, 100%);
+  margin: 0 auto;
 
   .dialog-content {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-height: calc(78vh - 84px);
-    overflow-y: auto;
-    padding-right: 4px;
+    padding: 0 4px 24px 0;
   }
 
   .section {
@@ -725,10 +746,16 @@ export default {
 }
 
 @media (max-width: 720px) {
-  .dialog-wrapper {
+  .settings-content {
     .theme-mode-group {
       grid-template-columns: 1fr;
     }
+  }
+}
+
+@media (max-width: 720px) {
+  .settings-page {
+    padding: 18px 18px 0;
   }
 }
 </style>

@@ -1,4 +1,26 @@
 ﻿<template>
+  <Teleport to="#titlebar-page-actions">
+    <div class="titlebar-shelf-actions">
+      <button
+        type="button"
+        class="titlebar-shelf-button titlebar-shelf-button--icon"
+        :title="shelfViewMode === 'list' ? '切换为网格视图' : '切换为列表视图'"
+        :aria-label="shelfViewMode === 'list' ? '切换为网格视图' : '切换为列表视图'"
+        @click="toggleShelfViewMode"
+      >
+        <AppIcon :name="shelfViewMode === 'list' ? 'gridView' : 'listView'" :size="18" />
+      </button>
+      <button
+        type="button"
+        class="titlebar-shelf-button titlebar-shelf-button--primary"
+        @click="addBook"
+      >
+        <AppIcon name="addBook" :size="18" />
+        <span>导入书籍</span>
+      </button>
+    </div>
+  </Teleport>
+
   <div class="main-content">
     <!-- 加载遮罩 -->
     <Transition name="loading">
@@ -13,43 +35,7 @@
       :book-key="bookMetadataEditKey"
       @saved="handleBookMetadataSaved"
     />
-    <CloudSyncDialog v-model="cloudSyncVisible" @synced="handleCloudSyncSynced" />
-    <header class="header">
-      <div class="header-menu">
-        <div class="header-menu-item" @click="addBook">
-          <span class="header-menu-icon">
-            <AppIcon name="addBook" aria-label="添加书籍" />
-          </span>
-          <span class="header-menu-label">导入书籍</span>
-        </div>
-        <div class="header-menu-item" @click="syncFiles">
-          <span class="header-menu-icon">
-            <AppIcon name="refresh" aria-label="云同步" />
-          </span>
-          <span class="header-menu-label">云同步</span>
-        </div>
-        <div class="header-menu-item" @click="openSetting">
-          <span class="header-menu-icon">
-            <AppIcon name="setting" aria-label="设置" />
-          </span>
-          <span class="header-menu-label">设置中心</span>
-        </div>
-        <div class="header-menu-item" @click="toggleShelfViewMode">
-          <span class="header-menu-icon">
-            <AppIcon
-              :name="shelfViewMode === 'list' ? 'listView' : 'gridView'"
-              :aria-label="shelfViewMode === 'list' ? '列表模式' : '网格模式'"
-            />
-          </span>
-          <span class="header-menu-label">
-            {{ shelfViewMode === 'list' ? '切换网格' : '切换列表' }}
-          </span>
-        </div>
-      </div>
-      <SettingDialog v-model="settingVisible" @close-dialog="settingVisible = false" />
-    </header>
     <div class="book-list">
-      <el-divider border-style="dashed" />
       <el-empty
         v-if="!booksLoading && isBooksEmpty"
         :image="emptyStateImage"
@@ -148,10 +134,8 @@ import AppIcon from '@/components/common/AppIcon/index.vue'
 import type { BookFormat } from '@/types/book'
 import type { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import emptyStateImage from '@/assets/images/empty.png'
-import SettingDialog from '@/components/SettingDialog/index.vue'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import BookMetadataEditDialog from '@/components/BookMetadataEditDialog.vue'
-import CloudSyncDialog from '@/components/CloudSyncDialog/index.vue'
 import defaultCover from '@/assets/default-cover.png'
 import { detectBookFormatFromPath } from '@/services/book/bookFormatService'
 import { buildBookConfigFromImport } from '@/services/book/bookImportService'
@@ -211,8 +195,6 @@ import { WINDOW_EVENTS } from '@/constants/events'
 import { createDurationLogger, logError, logInfo, logWarn } from '@/utils/logger'
 import { getFileNameFromPath } from '@/utils/filePath'
 import { stringifyJson } from '@/utils/json'
-import { formatCloudSyncResultMessage } from '@/services/sync/cloudSyncService'
-import type { CloudSyncApplyResult } from '@/types/sync'
 
 defineOptions({
   name: 'MainContent',
@@ -246,8 +228,6 @@ const IMPORT_LOADING_TEXT = {
     'Saving book files - Saving book files - Saving book files - Saving book files - Saving book files - Saving book files',
   uploading:
     'Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server - Uploading books to server',
-  syncing:
-    'Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server - Downloading files from server',
 } as const
 
 // ============================================================
@@ -269,10 +249,8 @@ const activeLoadingTasks = ref(0)
 // ============================================================
 // 弹窗状态
 // ============================================================
-const settingVisible = ref(false)
 const bookInfoVisible = ref(false)
 const bookMetadataEditVisible = ref(false)
-const cloudSyncVisible = ref(false)
 const bookInfoKey = ref<string>('')
 const bookMetadataEditKey = ref<string>('')
 
@@ -293,7 +271,6 @@ const shelfViewMode = ref<ShelfViewMode>(
 // 事件解绑句柄
 // ============================================================
 let unlistenBookshelfProgressSaved: UnlistenFn | null = null
-let unlistenCloudSyncFailed: UnlistenFn | null = null
 
 // ============================================================
 // 通用工具函数
@@ -524,43 +501,6 @@ const loadBooks = async () => {
   } finally {
     booksLoading.value = false
   }
-}
-
-// ============================================================
-// 云同步业务
-// ============================================================
-const handleCloudSyncSynced = async (result: CloudSyncApplyResult) => {
-  const finishLog = createDurationLogger('bookshelf', 'sync-files')
-  beginLoading(IMPORT_LOADING_TEXT.syncing)
-  try {
-    cloudSyncVisible.value = false
-    invalidateBookFileCache()
-    await loadBooks()
-    showMainTaskMessage({
-      type: 'success',
-      title: '云同步完成',
-      message: formatCloudSyncResultMessage(result),
-      taskKey: 'bookshelf-sync',
-    })
-    finishLog({
-      ...result,
-      total: books.value.length,
-    })
-  } catch (error) {
-    logError('bookshelf', 'sync-files failed', error)
-    showMainTaskMessage({
-      type: 'error',
-      title: '云同步失败',
-      message: toTaskErrorMessage(error),
-      taskKey: 'bookshelf-sync',
-    })
-  } finally {
-    endLoading()
-  }
-}
-
-const syncFiles = () => {
-  cloudSyncVisible.value = true
 }
 
 // ============================================================
@@ -992,21 +932,6 @@ const registerBookshelfProgressSavedListener = async () => {
   )
 }
 
-const registerCloudSyncFailedListener = async () => {
-  unlistenCloudSyncFailed?.()
-  unlistenCloudSyncFailed = await listen<{ bookKey?: string; fileName?: string }>(
-    WINDOW_EVENTS.CLOUD_SYNC_FAILED,
-    () => {
-      showMainTaskMessage({
-        type: 'warning',
-        title: '云同步失败',
-        message: '阅读进度已保存至本地，但云端同步失败，请检查网络连接。',
-        taskKey: 'bookshelf-cloud-sync-failed',
-      })
-    },
-  )
-}
-
 // ============================================================
 // 云端上传业务
 // ============================================================
@@ -1091,13 +1016,6 @@ const onContextMenu = (e: MouseEvent, bookKey: string) => {
 }
 
 // ============================================================
-// 设置弹窗
-// ============================================================
-const openSetting = () => {
-  settingVisible.value = true
-}
-
-// ============================================================
 // 书架展示格式化
 // ============================================================
 const getBookCover = (cover?: string) => {
@@ -1154,120 +1072,85 @@ onMounted(() => {
   void registerBookshelfProgressSavedListener().catch((error) => {
     logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
   })
-  void registerCloudSyncFailedListener().catch((error) => {
-    logWarn('bookshelf', 'register cloud-sync-failed listener failed', error)
-  })
 })
 
 onUnmounted(() => {
   unlistenBookshelfProgressSaved?.()
   unlistenBookshelfProgressSaved = null
-  unlistenCloudSyncFailed?.()
-  unlistenCloudSyncFailed = null
 })
 </script>
 
 <style lang="scss" scoped>
+.titlebar-shelf-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titlebar-shelf-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  color: var(--text-secondary);
+  background: var(--surface-card-soft);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: var(--t-mouse-cursor-link), pointer;
+  transition:
+    color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard),
+    background-color var(--duration-fast) var(--easing-standard),
+    box-shadow var(--duration-fast) var(--easing-standard);
+
+  &:hover {
+    color: var(--brand-primary);
+    border-color: var(--border-brand);
+    background: var(--surface-brand-soft);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+}
+
+.titlebar-shelf-button--icon {
+  width: 34px;
+  padding: 0;
+}
+
+.titlebar-shelf-button--primary {
+  gap: 7px;
+  padding: 0 13px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 12px var(--ring-brand-subtle);
+
+  &:hover {
+    color: #ffffff;
+    background: var(--brand-primary-hover);
+    border-color: var(--brand-primary-hover);
+  }
+}
+
 .main-content {
-  flex: 1;
-  padding: 20px 0 20px 0;
+  width: 100%;
+  height: 100%;
+  padding: 14px 0 16px;
   overflow: hidden;
   user-select: none;
   background: var(--app-bg-accent);
   color: var(--text-primary);
 
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 10px 0;
-
-    .header-menu {
-      padding: 0.5rem;
-      background-color: var(--surface-strong);
-      border: 1px solid var(--border-default);
-      position: relative;
-      display: flex;
-      justify-content: center;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      backdrop-filter: blur(12px);
-
-      &-item {
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        width: 56px;
-        height: 40px;
-        border-radius: 8px;
-        position: relative;
-        z-index: 1;
-        overflow: hidden;
-        transform-origin: center left;
-        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        text-decoration: none;
-        cursor: var(--t-mouse-cursor-link), pointer;
-
-        &::before {
-          position: absolute;
-          z-index: -1;
-          content: '';
-          display: block;
-          border-radius: var(--radius-sm);
-          width: 100%;
-          height: 100%;
-          top: 0;
-          transform: translateX(100%);
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          transform-origin: center right;
-          background-color: var(--surface-card-soft);
-        }
-
-        &:hover {
-          outline: 0;
-          width: 130px;
-
-          &::before,
-          .header-menu-label {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-      }
-      &-icon {
-        width: 24px;
-        height: 24px;
-        display: block;
-        flex-shrink: 0;
-        left: 17px;
-        position: absolute;
-
-        :deep(.app-icon) {
-          width: 100%;
-          height: 100%;
-          color: var(--text-secondary);
-        }
-      }
-      &-label {
-        transform: translateX(100%);
-        transition:
-          transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-          opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        transform-origin: center right;
-        display: block;
-        text-align: center;
-        text-indent: 28px;
-        width: 100%;
-        opacity: 0;
-      }
-    }
-  }
-
   .book-list {
     display: flex;
     flex-direction: column;
+    height: 100%;
     overflow-y: auto;
-    height: calc(100vh - 110px);
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -1278,12 +1161,6 @@ onUnmounted(() => {
     }
     &::-webkit-scrollbar-track {
       background-color: transparent;
-    }
-
-    :deep(.el-divider) {
-      width: auto;
-      margin: 12px 12px 6px 12px;
-      border-top-width: 3px;
     }
 
     :deep(.el-empty) {

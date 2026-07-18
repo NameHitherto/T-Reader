@@ -351,10 +351,6 @@ onMounted(async () => {
   width: 100%;
   padding: 32px 24px;
   overflow-y: auto;
-  background:
-    radial-gradient(circle at 12% 10%, var(--surface-brand-soft), transparent 32%),
-    radial-gradient(circle at 82% 14%, var(--surface-warning-soft), transparent 28%),
-    var(--app-bg-accent);
   color: var(--text-primary);
 }
 

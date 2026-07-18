@@ -1,13 +1,18 @@
+:root {
+  --main-titlebar-height: 44px;
+  --main-sidebar-width: 120px;
+}
+
 .titlebar {
-  height: 30px;
-  background: transparent;
-  user-select: none;
-  display: flex;
-  justify-content: flex-end;
   position: fixed;
-  inset: 0 0 auto 0;
+  inset: 0 0 auto;
   z-index: 4500;
+  display: flex;
   align-items: stretch;
+  justify-content: flex-end;
+  height: 30px;
+  user-select: none;
+  background: transparent;
 }
 
 .titlebar-drag-region {
@@ -28,9 +33,9 @@
     color var(--duration-fast) var(--easing-standard);
 
   .titlebar-icon {
+    display: block;
     width: 16px;
     height: 16px;
-    display: block;
     background-color: currentColor;
     -webkit-mask-image: var(--titlebar-icon);
     -webkit-mask-repeat: no-repeat;
@@ -45,27 +50,66 @@
 
 .titlebar-button {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   width: 40px;
   height: 30px;
+  cursor: default;
 
   &:hover {
     background: var(--titlebar-hover);
   }
 }
 
+#titlebar-custom {
+  height: var(--main-titlebar-height);
+  background: var(--surface-strong);
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: 0 1px 10px rgb(15 23 42 / 5%);
+
+  .titlebar-page-title {
+    position: absolute;
+    z-index: 1;
+    min-width: 0;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .titlebar-page-actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-left: auto;
+    margin-right: 8px;
+  }
+
+  .titlebar-button {
+    width: 46px;
+    height: var(--main-titlebar-height);
+  }
+
+  .titlebar-button--close:hover {
+    color: #ffffff;
+    background: #e81123;
+  }
+}
+
 .titlebar-front-group {
+  position: relative;
+  z-index: 1;
   display: flex;
   margin-right: auto;
   margin-left: 10px;
-  position: relative;
-  z-index: 1;
 
   .titlebar-front-button {
-    opacity: 0;
     width: 40px;
     height: 25px;
     margin-top: 5px;
+    opacity: 0;
     border-radius: var(--radius-xs);
 
     &:hover {
