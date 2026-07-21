@@ -354,7 +354,19 @@ function nextPage() {
 }
 
 async function switchFullscreen() {
-  await invoke('window_toggle_fullscreen', { label: getCurrentWindow().label })
+  const currentWindow = getCurrentWindow()
+  const isFullscreen = await currentWindow.isFullscreen()
+  if (!isFullscreen) {
+    // 进入全屏前让 epub.js 暂停响应 resize，避免 iframe 内容重排与全屏动画冲突
+    window.dispatchEvent(new CustomEvent('reader:before-fullscreen'))
+  }
+  await invoke('window_toggle_fullscreen', { label: currentWindow.label })
+  if (!isFullscreen) {
+    // 全屏完成后再恢复 resize 监听并手动触发一次重排
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('reader:after-fullscreen'))
+    })
+  }
 }
 
 // ============================================================
@@ -770,9 +782,24 @@ function handleReaderDomCloseStyleMenu() {
   closeStyleMenu()
 }
 
+let resizeSuspended = false
+
 function handleWindowResize() {
+  if (resizeSuspended) return
   if (!styleMenuVisible.value) return
   void syncStyleMenuLayout()
+}
+
+function handleBeforeFullscreen() {
+  resizeSuspended = true
+}
+
+function handleAfterFullscreen() {
+  resizeSuspended = false
+  // 手动触发一次 epub.js 重排，确保 iframe 内容在全屏后正确渲染
+  if (rendition.value && typeof rendition.value.resize === 'function') {
+    rendition.value.resize()
+  }
 }
 
 watch(styleMenuVisible, (visible) => {
@@ -920,6 +947,8 @@ onMounted(async () => {
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.addEventListener('resize', handleWindowResize)
+  window.addEventListener('reader:before-fullscreen', handleBeforeFullscreen)
+  window.addEventListener('reader:after-fullscreen', handleAfterFullscreen)
 })
 
 onUnmounted(() => {
@@ -927,6 +956,8 @@ onUnmounted(() => {
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.removeEventListener('resize', handleWindowResize)
+  window.removeEventListener('reader:before-fullscreen', handleBeforeFullscreen)
+  window.removeEventListener('reader:after-fullscreen', handleAfterFullscreen)
   unlistenBook.value?.()
   unlistenPrepareBookDelete.value?.()
   unlistenStyle.value?.()

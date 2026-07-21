@@ -87,4 +87,5 @@ export interface EpubRenditionLike {
   }
   flow: (flow: string) => void
   layout: (settings: unknown) => void
+  resize?: (width?: number, height?: number) => void
 }
