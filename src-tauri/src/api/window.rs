@@ -88,6 +88,24 @@ pub fn window_minimize(app: AppHandle, label: String) -> Result<(), String> {
     let window = app
         .get_webview_window(&label)
         .ok_or_else(|| format!("窗口 '{}' 不存在", label))?;
+
+    // Windows 平台：当窗口处于最大化状态时，直接最小化会产生 WebView
+    // 渲染异常（黑块）。需要先取消最大化，再执行最小化。
+    #[cfg(target_os = "windows")]
+    {
+        let is_maximized = window
+            .is_maximized()
+            .map_err(|e| format!("检查最大化状态失败: {:?}", e))?;
+        if is_maximized {
+            window
+                .unmaximize()
+                .map_err(|e| format!("取消最大化失败: {:?}", e))?;
+            // 给 DWM 一帧的时间完成窗口状态切换，避免最小化动画与
+            // 最大化解除动画重叠导致黑块。
+            std::thread::sleep(std::time::Duration::from_millis(16));
+        }
+    }
+
     window
         .minimize()
         .map_err(|e| format!("窗口最小化失败: {:?}", e))?;
