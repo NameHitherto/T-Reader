@@ -1,3 +1,5 @@
+import { getFootnoteBaseStyles } from '@/services/reader/epub/epubFootnoteStyleService'
+
 interface EpubContentHook {
   register: (hook: (document: Document) => void) => void
   deregister: (hook: (document: Document) => void) => void
@@ -58,8 +60,21 @@ export const createEpubBuiltInStylesheetIsolationController = (
   let isCustomStylesheetRegistered = false
   let customStylesheetCss = ''
 
+  const FOOTNOTE_STYLE_ID = 't-reader-footnote-styles'
+
+  const injectFootnoteStyles = (doc: Document) => {
+    if (doc.getElementById(FOOTNOTE_STYLE_ID)) return
+
+    const style = doc.createElement('style')
+    style.id = FOOTNOTE_STYLE_ID
+    style.textContent = getFootnoteBaseStyles()
+    doc.head?.appendChild(style)
+  }
+
   const stripBuiltInStylesheetHook = (doc: Document) => {
     removeBuiltInStylesheetNodes(doc)
+    // 样式隔离时注入脚注基础样式
+    injectFootnoteStyles(doc)
   }
 
   const customStylesheetHook = (doc: Document) => {
