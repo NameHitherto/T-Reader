@@ -1,6 +1,9 @@
 use crate::{
     database::DatabaseState,
-    entities::{CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncPreviewResult},
+    entities::{
+        webdav_error::WebDavError, CloudSyncApplyRequest, CloudSyncApplyResult,
+        CloudSyncPreviewResult,
+    },
     service::webdav::{
         file_service::{
             webdav_delete_file, webdav_file_exists, webdav_get_file, webdav_upload_file,
@@ -16,7 +19,7 @@ pub async fn webdav_upload(
     subdir: &str,
     filename: &str,
     contents: Vec<u8>,
-) -> Result<(), String> {
+) -> Result<(), WebDavError> {
     webdav_upload_file(&database.pool, subdir, filename, contents).await
 }
 
@@ -25,7 +28,7 @@ pub async fn webdav_get(
     database: State<'_, DatabaseState>,
     subdir: &str,
     filename: &str,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, WebDavError> {
     webdav_get_file(&database.pool, subdir, filename).await
 }
 
@@ -34,7 +37,7 @@ pub async fn webdav_exists(
     database: State<'_, DatabaseState>,
     subdir: &str,
     filename: &str,
-) -> Result<bool, String> {
+) -> Result<bool, WebDavError> {
     webdav_file_exists(&database.pool, subdir, filename).await
 }
 
@@ -43,19 +46,21 @@ pub async fn webdav_delete(
     database: State<'_, DatabaseState>,
     subdir: &str,
     filename: &str,
-) -> Result<(), String> {
+) -> Result<(), WebDavError> {
     webdav_delete_file(&database.pool, subdir, filename).await
 }
 
 #[tauri::command]
-pub async fn webdav_sync_files(database: State<'_, DatabaseState>) -> Result<(), String> {
+pub async fn webdav_sync_files(
+    database: State<'_, DatabaseState>,
+) -> Result<(), WebDavError> {
     sync_service::webdav_sync_files(&database.pool).await
 }
 
 #[tauri::command]
 pub async fn webdav_get_sync_preview(
     database: State<'_, DatabaseState>,
-) -> Result<CloudSyncPreviewResult, String> {
+) -> Result<CloudSyncPreviewResult, WebDavError> {
     sync_service::webdav_get_sync_preview(&database.pool).await
 }
 
@@ -63,6 +68,6 @@ pub async fn webdav_get_sync_preview(
 pub async fn webdav_apply_sync_plan(
     database: State<'_, DatabaseState>,
     request: CloudSyncApplyRequest,
-) -> Result<CloudSyncApplyResult, String> {
+) -> Result<CloudSyncApplyResult, WebDavError> {
     sync_service::webdav_apply_sync_plan(&database.pool, request).await
 }

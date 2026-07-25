@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { toHttpResponseMessage } from '@/services/response/responseHandler'
 import type {
   CloudSyncApplyRequest,
   CloudSyncApplyResult,
@@ -14,17 +15,7 @@ export const EMPTY_CLOUD_SYNC_PREVIEW: CloudSyncPreviewResult = {
   downloadCount: 0,
 }
 
-export const toCloudSyncErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (typeof error === 'string') {
-    return error
-  }
-
-  return '发生未知异常'
-}
+export const toCloudSyncErrorMessage = toHttpResponseMessage
 
 export const getCloudSyncPreview = async (): Promise<CloudSyncPreviewResult> => {
   return await invoke<CloudSyncPreviewResult>('webdav_get_sync_preview')

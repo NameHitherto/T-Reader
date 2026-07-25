@@ -176,6 +176,10 @@ import {
   createMainTaskBatchNotifier,
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
+import {
+  toHttpResponseResult,
+  toSettledResponseResult,
+} from '@/services/response/responseHandler'
 import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
 import {
   prepareReaderBookDelete,
@@ -265,18 +269,6 @@ let unlistenBookshelfProgressSaved: UnlistenFn | null = null
 // ============================================================
 // 通用工具函数
 // ============================================================
-const toTaskErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (typeof error === 'string') {
-    return error
-  }
-
-  return '发生未知异常'
-}
-
 const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
 
 const runWithConcurrencyLimit = async <T,>(
@@ -571,7 +563,8 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
         ]).then((results) => {
           const rejected = results.find((result) => result.status === 'rejected')
           if (rejected) {
-            const reason = toTaskErrorMessage(rejected.reason)
+            const response = toSettledResponseResult(rejected, 'upload', '进度配置')
+            const reason = response?.message ?? '上传失败'
             logWarn('bookshelf', 'import-book remote-sync-failed', {
               bookKey: result.bookKey,
               fileName: result.fileName,
@@ -597,7 +590,8 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     })
     const bookLabel = sourceFileName
     batchContext.batchNotifier.registerTask(bookLabel)
-    batchContext.batchNotifier.recordFailure(bookLabel, toTaskErrorMessage(error))
+    const response = toHttpResponseResult(error, 'upload', '书籍')
+    batchContext.batchNotifier.recordFailure(bookLabel, response.message)
   } finally {
     batchContext.reservedOriginalFileNames.delete(normalizedOriginalFileName)
     endLoading()
@@ -659,15 +653,21 @@ const deleteBook = async (bookKey: string) => {
       ]).then((results) => {
         const rejected = results.find((result) => result.status === 'rejected')
         if (rejected) {
-          logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
-            bookKey,
-          })
-          showMainTaskMessage({
-            type: 'warning',
-            title: '云端清理失败',
-            message: `本地已删除书籍，但云端清理失败：${toTaskErrorMessage(rejected.reason)}`,
-            taskKey: `bookshelf-delete:${bookKey}`,
-          })
+          const response = toSettledResponseResult(rejected, 'delete', '书籍文件')
+          if (response) {
+            logWarn('bookshelf', 'delete-book remote-cleanup-failed', {
+              bookKey,
+              statusCode: (rejected.reason as { statusCode?: number }).statusCode,
+            })
+            showMainTaskMessage({
+              type: response.type,
+              title: response.type === 'success' ? '删除完成' : '云端清理失败',
+              message: response.type === 'success'
+                ? `本地已删除书籍，云端文件不存在，无需清理。`
+                : `本地已删除书籍，但云端清理失败：${response.message}`,
+              taskKey: `bookshelf-delete:${bookKey}`,
+            })
+          }
           return
         }
 
@@ -687,10 +687,11 @@ const deleteBook = async (bookKey: string) => {
     logError('bookshelf', 'delete-book failed', error, {
       bookKey,
     })
+    const response = toHttpResponseResult(error, 'delete', '书籍')
     showMainTaskMessage({
-      type: 'error',
+      type: response.type,
       title: '删除失败',
-      message: toTaskErrorMessage(error),
+      message: response.message,
       taskKey: `bookshelf-delete:${bookKey}`,
     })
   }
@@ -771,10 +772,11 @@ const uploadBookToCloud = async (bookKey: string) => {
       taskKey: `bookshelf-upload:${bookKey}`,
     })
   } catch (error) {
+    const response = toHttpResponseResult(error, 'upload', '书籍')
     showMainTaskMessage({
-      type: 'error',
+      type: response.type,
       title: '上传失败',
-      message: toTaskErrorMessage(error),
+      message: response.message,
       taskKey: `bookshelf-upload:${bookKey}`,
     })
   }

@@ -1,18 +1,22 @@
 use reqwest::Client;
 
 use crate::{
-    entities::Settings,
+    entities::{webdav_error::WebDavError, Settings},
     utils::{
         logging::log_info,
         webdav::{get_remote_file_url, parse_webdav_response},
     },
 };
 
+fn build_resource(subdir: &str, filename: &str) -> String {
+    format!("{}/{}", subdir, filename)
+}
+
 pub async fn list_remote_files(
     client: &Client,
     settings: &Settings,
     subdir: &str,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, WebDavError> {
     let url = format!("{}/{}/", settings.webdav_url.trim_end_matches('/'), subdir);
     let response = client
         .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
@@ -20,17 +24,35 @@ pub async fn list_remote_files(
         .header("Depth", "1")
         .send()
         .await
-        .map_err(|error| format!("failed to list remote files: {:?}", error))?;
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "list".to_string(),
+            resource: subdir.to_string(),
+            message: format!("网络请求失败: {:?}", error),
+        })?;
 
+    let status = response.status().as_u16();
     if !response.status().is_success() {
-        return Err(format!(
-            "failed to list remote files: {:?}",
-            response.status()
-        ));
+        return Err(WebDavError {
+            status_code: status,
+            operation: "list".to_string(),
+            resource: subdir.to_string(),
+            message: format!("列出远程文件失败，HTTP 状态码: {}", status),
+        });
     }
 
-    let body = response.text().await.map_err(|error| error.to_string())?;
-    let files = parse_webdav_response(&body)?;
+    let body = response.text().await.map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: subdir.to_string(),
+        message: format!("读取响应体失败: {}", error),
+    })?;
+    let files = parse_webdav_response(&body).map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: subdir.to_string(),
+        message: error,
+    })?;
     log_info(
         "webdav",
         &format!("list-remote-files subdir={} total={}", subdir, files.len()),
@@ -43,26 +65,39 @@ pub async fn download_remote_file(
     settings: &Settings,
     subdir: &str,
     filename: &str,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, WebDavError> {
     let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
     let response = client
         .get(&url)
         .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
-        .map_err(|error| format!("failed to download remote file: {:?}", error))?;
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "download".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("网络请求失败: {:?}", error),
+        })?;
 
+    let status = response.status().as_u16();
     if !response.status().is_success() {
-        return Err(format!(
-            "failed to download remote file: {:?}",
-            response.status()
-        ));
+        return Err(WebDavError {
+            status_code: status,
+            operation: "download".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("下载远程文件失败，HTTP 状态码: {}", status),
+        });
     }
 
     let bytes = response
         .bytes()
         .await
-        .map_err(|error| error.to_string())?
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "download".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("读取响应体失败: {}", error),
+        })?
         .to_vec();
     log_info(
         "webdav",
@@ -82,7 +117,7 @@ pub async fn upload_remote_file(
     subdir: &str,
     filename: &str,
     contents: Vec<u8>,
-) -> Result<(), String> {
+) -> Result<(), WebDavError> {
     let content_len = contents.len();
     let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
     let response = client
@@ -91,13 +126,21 @@ pub async fn upload_remote_file(
         .body(contents)
         .send()
         .await
-        .map_err(|error| format!("failed to upload remote file: {:?}", error))?;
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "upload".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("网络请求失败: {:?}", error),
+        })?;
 
+    let status = response.status().as_u16();
     if !response.status().is_success() {
-        return Err(format!(
-            "failed to upload remote file: {:?}",
-            response.status()
-        ));
+        return Err(WebDavError {
+            status_code: status,
+            operation: "upload".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("上传远程文件失败，HTTP 状态码: {}", status),
+        });
     }
 
     log_info(
@@ -115,7 +158,7 @@ pub async fn remote_file_exists(
     settings: &Settings,
     subdir: &str,
     filename: &str,
-) -> Result<bool, String> {
+) -> Result<bool, WebDavError> {
     let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
     let response = client
         .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
@@ -123,20 +166,28 @@ pub async fn remote_file_exists(
         .header("Depth", "0")
         .send()
         .await
-        .map_err(|error| format!("failed to check remote file exists: {:?}", error))?;
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "exists".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("网络请求失败: {:?}", error),
+        })?;
 
     if response.status().is_success() {
         return Ok(true);
     }
 
-    if response.status().as_u16() == 404 {
+    let status = response.status().as_u16();
+    if status == 404 {
         return Ok(false);
     }
 
-    Err(format!(
-        "failed to check remote file exists: {:?}",
-        response.status()
-    ))
+    Err(WebDavError {
+        status_code: status,
+        operation: "exists".to_string(),
+        resource: build_resource(subdir, filename),
+        message: format!("检查远程文件存在性失败，HTTP 状态码: {}", status),
+    })
 }
 
 pub async fn delete_remote_file(
@@ -144,20 +195,28 @@ pub async fn delete_remote_file(
     settings: &Settings,
     subdir: &str,
     filename: &str,
-) -> Result<(), String> {
+) -> Result<(), WebDavError> {
     let url = get_remote_file_url(&settings.webdav_url, subdir, filename);
     let response = client
         .delete(&url)
         .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
         .send()
         .await
-        .map_err(|error| format!("failed to delete remote file: {:?}", error))?;
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "delete".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("网络请求失败: {:?}", error),
+        })?;
 
+    let status = response.status().as_u16();
     if !response.status().is_success() {
-        return Err(format!(
-            "failed to delete remote file: {:?}",
-            response.status()
-        ));
+        return Err(WebDavError {
+            status_code: status,
+            operation: "delete".to_string(),
+            resource: build_resource(subdir, filename),
+            message: format!("删除远程文件失败，HTTP 状态码: {}", status),
+        });
     }
 
     log_info(

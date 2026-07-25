@@ -6,6 +6,7 @@ pub mod note;
 pub mod reader_window;
 pub mod settings;
 pub mod txt_toc_rule;
+pub mod webdav_error;
 
 pub use app_update::{
     AppUpdateAttempt, AppUpdateCheckResult, AppUpdateProgressEvent, AppUpdateProxyInfo,

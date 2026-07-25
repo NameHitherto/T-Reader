@@ -5,9 +5,9 @@ use sqlx::SqlitePool;
 
 use crate::{
     entities::{
-        CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncBookAction, CloudSyncBookSelection,
-        CloudSyncBookStatus, CloudSyncPreviewItem, CloudSyncPreviewResult, Settings,
-        UpsertBookRequest,
+        webdav_error::WebDavError, CloudSyncApplyRequest, CloudSyncApplyResult,
+        CloudSyncBookAction, CloudSyncBookSelection, CloudSyncBookStatus, CloudSyncPreviewItem,
+        CloudSyncPreviewResult, Settings, UpsertBookRequest,
     },
     repository::{
         books::{get_book_by_key, upsert_book},
@@ -51,8 +51,14 @@ struct SyncSnapshot {
 fn collect_local_files(
     dir_path: &std::path::Path,
     filter: fn(&str) -> bool,
-) -> Result<BTreeSet<String>, String> {
-    Ok(list_files(dir_path)?
+) -> Result<BTreeSet<String>, WebDavError> {
+    Ok(list_files(dir_path)
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "list".to_string(),
+            resource: dir_path.to_string_lossy().to_string(),
+            message: error,
+        })?
         .into_iter()
         .filter(|file_name| filter(file_name))
         .collect())
@@ -63,7 +69,7 @@ async fn collect_remote_files(
     settings: &Settings,
     subdir: &str,
     filter: fn(&str) -> bool,
-) -> Result<BTreeSet<String>, String> {
+) -> Result<BTreeSet<String>, WebDavError> {
     Ok(list_remote_files(client, settings, subdir)
         .await?
         .into_iter()
@@ -71,12 +77,27 @@ async fn collect_remote_files(
         .collect())
 }
 
-async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, String> {
-    let settings = load_settings_entity(pool).await?;
+async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, WebDavError> {
+    let settings = load_settings_entity(pool).await.map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: "settings".to_string(),
+        message: error,
+    })?;
     let client = build_webdav_client();
 
-    ensure_cloud_dirs(&settings).await?;
-    let root_path = ensure_local_dirs()?;
+    ensure_cloud_dirs(&settings).await.map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: "cloud_dirs".to_string(),
+        message: error,
+    })?;
+    let root_path = ensure_local_dirs().map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: "local_dirs".to_string(),
+        message: error,
+    })?;
 
     let books_path = root_path.join(CLOUD_BOOKS_DIR);
     let progress_path = root_path.join(CLOUD_PROGRESS_DIR);
@@ -303,7 +324,7 @@ async fn sync_book_files(
     selections: &[CloudSyncBookSelection],
     result: &mut CloudSyncApplyResult,
     pool: &SqlitePool,
-) -> Result<(), String> {
+) -> Result<(), WebDavError> {
     for selection in dedupe_book_selections(selections) {
         let cloud_exists = snapshot.cloud_books.contains(&selection.file_name);
         let local_exists = resolve_local_book_exists(snapshot, &selection.file_name, cloud_exists);
@@ -317,7 +338,12 @@ async fn sync_book_files(
         match selection.action {
             CloudSyncBookAction::Upload => {
                 let local_path = snapshot.books_path.join(&selection.file_name);
-                let contents = read_binary_file(&local_path)?;
+                let contents = read_binary_file(&local_path).map_err(|error| WebDavError {
+                    status_code: 0,
+                    operation: "upload".to_string(),
+                    resource: selection.file_name.clone(),
+                    message: error,
+                })?;
                 upload_remote_file(
                     &snapshot.client,
                     &snapshot.settings,
@@ -342,7 +368,12 @@ async fn sync_book_files(
                         &selection.file_name,
                         &contents,
                         &snapshot.books_path,
-                    )?;
+                    ).map_err(|error| WebDavError {
+                        status_code: 0,
+                        operation: "download".to_string(),
+                        resource: selection.file_name.clone(),
+                        message: error,
+                    })?;
                     log_info(
                         "webdav",
                         &format!(
@@ -352,7 +383,13 @@ async fn sync_book_files(
                     );
                     target_file
                 } else {
-                    write_binary_file(&snapshot.books_path.join(&selection.file_name), &contents)?;
+                    write_binary_file(&snapshot.books_path.join(&selection.file_name), &contents)
+                        .map_err(|error| WebDavError {
+                            status_code: 0,
+                            operation: "download".to_string(),
+                            resource: selection.file_name.clone(),
+                            message: error,
+                        })?;
                     selection.file_name.clone()
                 };
 
@@ -380,9 +417,14 @@ async fn sync_book_files(
 async fn sync_config_files(
     snapshot: &SyncSnapshot,
     result: &mut CloudSyncApplyResult,
-) -> Result<(), String> {
+) -> Result<(), WebDavError> {
     for file_name in snapshot.local_configs.difference(&snapshot.cloud_configs) {
-        let contents = read_binary_file(&snapshot.progress_path.join(file_name))?;
+        let contents = read_binary_file(&snapshot.progress_path.join(file_name)).map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "upload".to_string(),
+            resource: file_name.clone(),
+            message: error,
+        })?;
         upload_remote_file(
             &snapshot.client,
             &snapshot.settings,
@@ -402,13 +444,23 @@ async fn sync_config_files(
             file_name,
         )
         .await?;
-        write_binary_file(&snapshot.progress_path.join(file_name), &contents)?;
+        write_binary_file(&snapshot.progress_path.join(file_name), &contents).map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "download".to_string(),
+            resource: file_name.clone(),
+            message: error,
+        })?;
         result.downloaded_config_count += 1;
     }
 
     for file_name in snapshot.local_configs.intersection(&snapshot.cloud_configs) {
         let local_path = snapshot.progress_path.join(file_name);
-        let local_contents = read_binary_file(&local_path)?;
+        let local_contents = read_binary_file(&local_path).map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "download".to_string(),
+            resource: file_name.clone(),
+            message: error,
+        })?;
         let cloud_contents = download_remote_file(
             &snapshot.client,
             &snapshot.settings,
@@ -433,7 +485,12 @@ async fn sync_config_files(
             result.uploaded_config_count += 1;
             result.replaced_config_count += 1;
         } else {
-            write_binary_file(&local_path, &cloud_contents)?;
+            write_binary_file(&local_path, &cloud_contents).map_err(|error| WebDavError {
+                status_code: 0,
+                operation: "download".to_string(),
+                resource: file_name.clone(),
+                message: error,
+            })?;
             result.downloaded_config_count += 1;
             result.replaced_config_count += 1;
         }
@@ -446,7 +503,7 @@ async fn apply_sync_plan_with_snapshot(
     snapshot: SyncSnapshot,
     request: CloudSyncApplyRequest,
     pool: &SqlitePool,
-) -> Result<CloudSyncApplyResult, String> {
+) -> Result<CloudSyncApplyResult, WebDavError> {
     let mut result = CloudSyncApplyResult::default();
 
     sync_book_files(&snapshot, &request.book_selections, &mut result, pool).await?;
@@ -479,7 +536,7 @@ fn build_legacy_request(snapshot: &SyncSnapshot) -> CloudSyncApplyRequest {
     CloudSyncApplyRequest { book_selections }
 }
 
-pub async fn webdav_get_sync_preview(pool: &SqlitePool) -> Result<CloudSyncPreviewResult, String> {
+pub async fn webdav_get_sync_preview(pool: &SqlitePool) -> Result<CloudSyncPreviewResult, WebDavError> {
     let started_at = start_timer("webdav", "webdav-get-sync-preview");
     let snapshot = collect_sync_snapshot(pool).await?;
     let result = build_preview_result(&snapshot);
@@ -490,7 +547,7 @@ pub async fn webdav_get_sync_preview(pool: &SqlitePool) -> Result<CloudSyncPrevi
 pub async fn webdav_apply_sync_plan(
     pool: &SqlitePool,
     request: CloudSyncApplyRequest,
-) -> Result<CloudSyncApplyResult, String> {
+) -> Result<CloudSyncApplyResult, WebDavError> {
     let started_at = start_timer("webdav", "webdav-apply-sync-plan");
     let snapshot = collect_sync_snapshot(pool).await?;
     let result = apply_sync_plan_with_snapshot(snapshot, request, pool).await?;
@@ -498,7 +555,7 @@ pub async fn webdav_apply_sync_plan(
     Ok(result)
 }
 
-pub async fn webdav_sync_files(pool: &SqlitePool) -> Result<(), String> {
+pub async fn webdav_sync_files(pool: &SqlitePool) -> Result<(), WebDavError> {
     let started_at = start_timer("webdav", "webdav-sync-files");
     let snapshot = collect_sync_snapshot(pool).await?;
     let request = build_legacy_request(&snapshot);

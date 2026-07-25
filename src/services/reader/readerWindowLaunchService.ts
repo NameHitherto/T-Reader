@@ -7,18 +7,7 @@ import {
 import { CLOUD_DIRS } from '@/services/fileSystem/localStorageService'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 import { openReaderWindow } from '@/services/reader/readerWindowBridgeService'
-
-const toTaskErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (typeof error === 'string') {
-    return error
-  }
-
-  return '发生未知异常'
-}
+import { toHttpResponseResult } from '@/services/response/responseHandler'
 
 const launchReaderWindow = async (bookKey: string, cfi = '') => {
   await openReaderWindow(bookKey, cfi)
@@ -59,10 +48,11 @@ export const openReaderWindowWithPrecheck = async (bookKey: string, cfi = ''): P
     await downloadBookFileToLocal(bookKey)
     await launchReaderWindow(bookKey, cfi)
   } catch (error) {
+    const response = toHttpResponseResult(error, 'download', '书籍文件')
     showMainTaskMessage({
-      type: 'error',
+      type: response.type,
       title: '打开阅读器失败',
-      message: toTaskErrorMessage(error),
+      message: response.message,
       taskKey: `reader-open:${bookKey}`,
     })
   }

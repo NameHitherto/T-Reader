@@ -6,6 +6,7 @@ import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { about } from '@/constants/about'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
+import { toHttpResponseMessage } from '@/services/response/responseHandler'
 import type { IconName } from '@/icons/registry'
 import type { AppUpdateCheckResult, AppUpdateProgressEvent } from '@/types/appUpdate'
 
@@ -14,16 +15,6 @@ const checking = ref(false)
 const installing = ref(false)
 const checkResult = ref<AppUpdateCheckResult | null>(null)
 const currentProgress = ref<AppUpdateProgressEvent | null>(null)
-
-const toTaskErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-  if (typeof error === 'string') {
-    return error
-  }
-  return '发生未知错误'
-}
 
 const formatDateTime = (timestamp: number | null | undefined): string => {
   if (!timestamp) {
@@ -201,7 +192,7 @@ const checkForUpdates = async () => {
     showMainTaskMessage({
       type: 'error',
       title: '检查更新失败',
-      message: toTaskErrorMessage(error),
+      message: toHttpResponseMessage(error),
       taskKey: 'app-update-check',
     })
   } finally {
@@ -247,7 +238,7 @@ const startUpdate = async () => {
     showMainTaskMessage({
       type: 'error',
       title: '更新安装失败',
-      message: toTaskErrorMessage(error),
+      message: toHttpResponseMessage(error),
       taskKey: 'app-update-install',
     })
   } finally {
@@ -262,7 +253,7 @@ const openContactTarget = async (label: string, target: string) => {
     showMainTaskMessage({
       type: 'error',
       title: `打开${label}失败`,
-      message: toTaskErrorMessage(error),
+      message: toHttpResponseMessage(error),
       taskKey: `about-contact-${label}`,
     })
   }
