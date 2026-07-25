@@ -1,4 +1,5 @@
 use std::collections::{BTreeSet, HashMap};
+use std::path::Path;
 
 use sqlx::SqlitePool;
 
@@ -6,8 +7,10 @@ use crate::{
     entities::{
         CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncBookAction, CloudSyncBookSelection,
         CloudSyncBookStatus, CloudSyncPreviewItem, CloudSyncPreviewResult, Settings,
+        UpsertBookRequest,
     },
     repository::{
+        books::{get_book_by_key, upsert_book},
         local_fs::{
             dir_repository::{ensure_local_dirs, CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR},
             file_repository::{list_files, read_binary_file, write_binary_file},
@@ -18,14 +21,16 @@ use crate::{
         },
     },
     service::{
+        book_identity::build_book_key,
         filesystem::{
+            epub_meta_service::parse_epub_metadata,
             settings_service::load_settings_entity,
-            txt_to_epub_service::{convert_txt_bytes_to_epub, to_epub_file_name},
+            txt_to_epub_service::{convert_txt_bytes_to_epub, infer_txt_meta_from_filename, to_epub_file_name},
         },
         webdav::dir_service::ensure_cloud_dirs,
     },
     utils::{
-        logging::{finish_timer, log_info, start_timer},
+        logging::{finish_timer, log_info, log_warn, start_timer},
         webdav::{
             is_config_file, is_supported_book_file, is_txt_book_file, should_upload_local_config,
         },
@@ -196,10 +201,108 @@ fn dedupe_book_selections(selections: &[CloudSyncBookSelection]) -> Vec<CloudSyn
     normalized
 }
 
+/// 从已下载的书籍文件中解析元数据并创建数据库记录
+/// 如果数据库中已存在该书籍（通过 book_key 判断），则跳过
+async fn auto_import_downloaded_book(
+    pool: &SqlitePool,
+    progress_path: &Path,
+    file_name: &str,
+    file_contents: &[u8],
+) -> Result<(), String> {
+    // 解析书籍元数据
+    let meta = if is_txt_book_file(file_name) {
+        let inferred = infer_txt_meta_from_filename(file_name);
+        crate::service::filesystem::epub_meta_service::EpubMetadata {
+            title: inferred.title,
+            author: inferred.author,
+        }
+    } else {
+        parse_epub_metadata(file_contents).map_err(|error| {
+            log_warn(
+                "webdav",
+                &format!(
+                    "auto-import parse-epub-meta-failed file={} error={}",
+                    file_name, error
+                ),
+            );
+            error
+        })?
+    };
+
+    let title = crate::service::book_identity::build_book_title(Some(&meta.title));
+    let author = crate::service::book_identity::build_book_title(Some(&meta.author));
+    let book_key = build_book_key(Some(&title), Some(&author));
+
+    // 检查数据库中是否已存在
+    let existing = get_book_by_key(pool, &book_key).await?;
+    if existing.is_some() {
+        log_info(
+            "webdav",
+            &format!(
+                "auto-import book-already-exists book_key={} file={}",
+                book_key, file_name
+            ),
+        );
+        return Ok(());
+    }
+
+    let cache_name = crate::service::book_identity::hash_book_key(&book_key);
+
+    upsert_book(
+        pool,
+        UpsertBookRequest {
+            book_key: Some(book_key.clone()),
+            title: title.clone(),
+            author: author.clone(),
+            file_name: file_name.to_string(),
+            format: Some("epub".to_string()),
+            cache_name: Some(cache_name),
+            has_cover: Some(true),
+            cover_name: None,
+            progress: Some(0.0),
+        },
+    )
+    .await?;
+
+    log_info(
+        "webdav",
+        &format!(
+            "auto-import book-record-created book_key={} title={} author={} file={}",
+            book_key, title, author, file_name
+        ),
+    );
+
+    // 创建初始进度配置文件（如果不存在）
+    let config_file_name = format!("{}.json", book_key);
+    let config_path = progress_path.join(&config_file_name);
+    if !config_path.exists() {
+        let initial_config = serde_json::json!({
+            "name": title,
+            "author": author,
+            "durChapterIndex": 0,
+            "durChapterPos": 0,
+            "durChapterTitle": "",
+            "durChapterTime": 0,
+        });
+        let config_bytes = serde_json::to_vec(&initial_config).map_err(|error| error.to_string())?;
+        write_binary_file(&config_path, &config_bytes)?;
+        log_info(
+            "webdav",
+            &format!(
+                "auto-import progress-config-created book_key={} file={}",
+                book_key, config_file_name
+            ),
+        );
+    }
+
+    Ok(())
+}
+
 async fn sync_book_files(
     snapshot: &SyncSnapshot,
     selections: &[CloudSyncBookSelection],
     result: &mut CloudSyncApplyResult,
+    pool: &SqlitePool,
 ) -> Result<(), String> {
     for selection in dedupe_book_selections(selections) {
         let cloud_exists = snapshot.cloud_books.contains(&selection.file_name);
@@ -233,7 +336,8 @@ async fn sync_book_files(
                     &selection.file_name,
                 )
                 .await?;
-                if is_txt_book_file(&selection.file_name) {
+
+                let actual_file_name = if is_txt_book_file(&selection.file_name) {
                     let target_file = convert_txt_bytes_to_epub(
                         &selection.file_name,
                         &contents,
@@ -246,10 +350,26 @@ async fn sync_book_files(
                             selection.file_name, target_file
                         ),
                     );
+                    target_file
                 } else {
                     write_binary_file(&snapshot.books_path.join(&selection.file_name), &contents)?;
-                }
+                    selection.file_name.clone()
+                };
+
                 result.downloaded_book_count += 1;
+
+                // 自动导入：解析元数据并创建数据库记录
+                if let Err(error) =
+                    auto_import_downloaded_book(pool, &snapshot.progress_path, &actual_file_name, &contents).await
+                {
+                    log_warn(
+                        "webdav",
+                        &format!(
+                            "sync-book-files auto-import-failed file={} error={}",
+                            actual_file_name, error
+                        ),
+                    );
+                }
             }
         }
     }
@@ -325,10 +445,11 @@ async fn sync_config_files(
 async fn apply_sync_plan_with_snapshot(
     snapshot: SyncSnapshot,
     request: CloudSyncApplyRequest,
+    pool: &SqlitePool,
 ) -> Result<CloudSyncApplyResult, String> {
     let mut result = CloudSyncApplyResult::default();
 
-    sync_book_files(&snapshot, &request.book_selections, &mut result).await?;
+    sync_book_files(&snapshot, &request.book_selections, &mut result, pool).await?;
     sync_config_files(&snapshot, &mut result).await?;
 
     Ok(result)
@@ -372,7 +493,7 @@ pub async fn webdav_apply_sync_plan(
 ) -> Result<CloudSyncApplyResult, String> {
     let started_at = start_timer("webdav", "webdav-apply-sync-plan");
     let snapshot = collect_sync_snapshot(pool).await?;
-    let result = apply_sync_plan_with_snapshot(snapshot, request).await?;
+    let result = apply_sync_plan_with_snapshot(snapshot, request, pool).await?;
     finish_timer("webdav", "webdav-apply-sync-plan", started_at);
     Ok(result)
 }
@@ -381,7 +502,7 @@ pub async fn webdav_sync_files(pool: &SqlitePool) -> Result<(), String> {
     let started_at = start_timer("webdav", "webdav-sync-files");
     let snapshot = collect_sync_snapshot(pool).await?;
     let request = build_legacy_request(&snapshot);
-    apply_sync_plan_with_snapshot(snapshot, request).await?;
+    apply_sync_plan_with_snapshot(snapshot, request, pool).await?;
     finish_timer("webdav", "webdav-sync-files", started_at);
     Ok(())
 }
