@@ -3,8 +3,8 @@ use tauri::State;
 use crate::{
     database::DatabaseState,
     entities::{
-        BookRecord, ResolvedBookFile, UpdateBookMetadataRequest, UpdateBookMetadataResult,
-        UpsertBookRequest,
+        BookRecord, ImportBookResult, ResolvedBookFile, UpdateBookMetadataRequest,
+        UpdateBookMetadataResult, UpsertBookRequest,
     },
     repository::books,
 };
@@ -71,4 +71,13 @@ pub async fn resolve_book_file(
     book_key: String,
 ) -> Result<Option<ResolvedBookFile>, String> {
     books::resolve_book_file(&database.pool, &book_key).await
+}
+
+#[tauri::command]
+pub async fn import_book(
+    database: State<'_, DatabaseState>,
+    filepath: String,
+    filename: String,
+) -> Result<ImportBookResult, String> {
+    crate::service::book_import_service::import_book(&database.pool, &filepath, &filename).await
 }

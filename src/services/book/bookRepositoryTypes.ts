@@ -37,3 +37,12 @@ export interface UpdateBookMetadataResult {
   oldBookKey: string
   book: StoredBookRecord
 }
+
+export interface ImportBookResult {
+  bookKey: string
+  title: string
+  author: string
+  fileName: string
+  usedCloudConfig: boolean
+  createdRecord: StoredBookRecord
+}

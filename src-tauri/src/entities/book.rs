@@ -53,3 +53,15 @@ pub struct ResolvedBookFile {
     pub file_name: String,
     pub format: String,
 }
+
+/// 书籍导入结果
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportBookResult {
+    pub book_key: String,
+    pub title: String,
+    pub author: String,
+    pub file_name: String,
+    pub used_cloud_config: bool,
+    pub created_record: BookRecord,
+}

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <Teleport to="#titlebar-page-actions">
     <div class="titlebar-shelf-actions">
       <button
@@ -138,12 +138,10 @@ import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import BookMetadataEditDialog from '@/components/BookMetadataEditDialog.vue'
 import defaultCover from '@/assets/default-cover.png'
 import { detectBookFormatFromPath } from '@/services/book/bookFormatService'
-import { buildBookConfigFromImport } from '@/services/book/bookImportService'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
   parseBookCoverInBackground,
-  primeBookLocationsAfterImport,
   resolveBookCoverForDisplay,
   removeBookCacheDir,
 } from '@/services/book/bookCacheService'
@@ -157,28 +155,22 @@ import {
   type ShelfBookFormat,
 } from '@/services/book/shelfBooksService'
 import {
-  getImportedBookName,
-  hasOriginalFilenameConflict,
   invalidateBookFileCache,
   loadBookConfigs,
   removeStoredBook,
   resolveBookFile,
   resolveBookFormat,
-  upsertStoredBook,
   uploadLocalBookFileToCloud,
 } from '@/services/book/bookRepository'
 import type { StoredBookConfig } from '@/services/book/bookRepository'
-import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
-import { readLocalBookFile } from '@/services/book/bookFileAccessService'
+import type { ImportBookResult, StoredBookRecord } from '@/services/book/bookRepositoryTypes'
 import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
-import { normalizeBookConfig } from '@/services/book/bookConfigService'
 import {
   buildLocalFilePath,
   CLOUD_DIRS,
   LOCAL_DIRS,
   removeLocalFile,
-  writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
 import {
   createMainTaskBatchNotifier,
@@ -194,7 +186,6 @@ import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { createDurationLogger, logError, logInfo, logWarn } from '@/utils/logger'
 import { getFileNameFromPath } from '@/utils/filePath'
-import { stringifyJson } from '@/utils/json'
 
 defineOptions({
   name: 'MainContent',
@@ -220,7 +211,6 @@ interface BatchImportContext {
 // 常量
 // ============================================================
 const MAX_PARALLEL_IMPORTS = 3
-const CLOUD_CONFIG_PRECHECK_TIMEOUT_MS = 1500
 const IMPORT_LOADING_TEXT = {
   parsing:
     'Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files - Parsing book files',
@@ -289,25 +279,6 @@ const toTaskErrorMessage = (error: unknown): string => {
 
 const normalizeOriginalFileName = (fileName: string) => fileName.toLowerCase()
 
-const withTimeout = async <T,>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  message: string,
-): Promise<T> => {
-  let timeoutId: number | undefined
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs)
-  })
-
-  try {
-    return await Promise.race([promise, timeoutPromise])
-  } finally {
-    if (timeoutId !== undefined) {
-      window.clearTimeout(timeoutId)
-    }
-  }
-}
-
 const runWithConcurrencyLimit = async <T,>(
   items: readonly T[],
   limit: number,
@@ -341,12 +312,6 @@ const beginLoading = (text: string) => {
   isLoading.value = true
 }
 
-const updateLoadingText = (text: string) => {
-  if (activeLoadingTasks.value > 0) {
-    loadingText.value = text
-  }
-}
-
 const endLoading = () => {
   activeLoadingTasks.value = Math.max(0, activeLoadingTasks.value - 1)
   isLoading.value = activeLoadingTasks.value > 0
@@ -377,48 +342,6 @@ const toEpubFileName = (fileName: string): string => {
   const stem = lastDotIndex >= 0 ? fileName.slice(0, lastDotIndex) : fileName
 
   return `${stem || fileName}.epub`
-}
-
-// ============================================================
-// 导入失败清理
-// ============================================================
-const cleanupImportedBookArtifacts = async (
-  originalFileName: string,
-  bookKey: string | null,
-  removeBookArtifacts: boolean,
-) => {
-  const cleanupTasks: Promise<unknown>[] = [
-    removeLocalFile(buildLocalFilePath(LOCAL_DIRS.books, originalFileName)),
-  ]
-
-  if (bookKey && removeBookArtifacts) {
-    cleanupTasks.push(
-      removeLocalFile(buildLocalFilePath(LOCAL_DIRS.progress, toBookConfigFilename(bookKey))),
-      removeBookCacheDir(bookKey),
-    )
-  }
-
-  const cleanupResults = await Promise.allSettled(cleanupTasks)
-  const rejectedResults = cleanupResults.filter((result) => result.status === 'rejected')
-
-  if (bookKey && removeBookArtifacts) {
-    await removeStoredBook(bookKey).catch((error) => {
-      logWarn('bookshelf', 'cleanup-import-artifacts remove-book-record-failed', {
-        bookKey,
-        fileName: originalFileName,
-        error,
-      })
-    })
-    invalidateBookFileCache()
-  }
-
-  if (rejectedResults.length > 0) {
-    logWarn('bookshelf', 'cleanup-import-artifacts partial-failed', {
-      bookKey,
-      fileName: originalFileName,
-      failedCount: rejectedResults.length,
-    })
-  }
 }
 
 // ============================================================
@@ -565,9 +488,8 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     return
   }
 
-  let originalFileName = sourceFormat === 'txt' ? toEpubFileName(sourceFileName) : sourceFileName
+  const originalFileName = sourceFormat === 'txt' ? toEpubFileName(sourceFileName) : sourceFileName
   const normalizedOriginalFileName = normalizeOriginalFileName(originalFileName)
-  const format: BookFormat = 'epub'
 
   if (batchContext.reservedOriginalFileNames.has(normalizedOriginalFileName)) {
     logWarn('bookshelf', 'duplicate-batch-file-name-detected', {
@@ -580,200 +502,104 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
   const finishLog = createDurationLogger('bookshelf', 'import-book', {
     fileName: sourceFileName,
     sourceFormat,
-    format,
   })
   batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
-  let reservedBookKey: string | null = null
-  let importedBookKey: string | null = null
-  let localCopyCreated = false
-  let createdBookArtifacts = false
-  let importSucceeded = false
   beginLoading(IMPORT_LOADING_TEXT.parsing)
 
   try {
-    if (await hasOriginalFilenameConflict(originalFileName)) {
-      logWarn('bookshelf', 'duplicate-file-name-detected', {
-        fileName: originalFileName,
-      })
-      return
-    }
+    // 调用 Rust 导入命令，一次性完成所有业务
+    const result = await invoke<ImportBookResult>('import_book', {
+      filepath: path,
+      filename: sourceFileName,
+    })
 
-    if (sourceFormat === 'txt') {
-      originalFileName = await invoke<string>('convert_txt_to_epub', {
-        filepath: path,
-        subdir: batchContext.dirs.books,
-        filename: sourceFileName,
-      })
-    } else {
-      await invoke('copy_file_to_subdir', {
-        filepath: path,
-        subdir: batchContext.dirs.books,
-        filename: originalFileName,
-      })
-    }
-    localCopyCreated = true
-
-    const fileBytes = await readLocalBookFile(originalFileName)
-    const bufferFile = fileBytes.buffer.slice(
-      fileBytes.byteOffset,
-      fileBytes.byteOffset + fileBytes.byteLength,
-    ) as ArrayBuffer
-    const importedBook = await getImportedBookName(originalFileName, bufferFile)
-    importedBookKey = importedBook.bookKey
-
-    if (
-      batchContext.reservedBookKeys.has(importedBook.bookKey) ||
-      shelfBooks.hasShelfBook(importedBook.bookKey)
-    ) {
+    // 检查批量去重和书架重复
+    if (batchContext.reservedBookKeys.has(result.bookKey) || shelfBooks.hasShelfBook(result.bookKey)) {
       logWarn('bookshelf', 'duplicate-book-detected', {
-        bookKey: importedBook.bookKey,
-        fileName: originalFileName,
+        bookKey: result.bookKey,
+        fileName: result.fileName,
       })
       return
     }
-    batchContext.reservedBookKeys.add(importedBook.bookKey)
-    reservedBookKey = importedBook.bookKey
-    let newBook = await buildBookConfigFromImport({
-      sourcePath: path,
-      originalFileName,
-      format,
-      fileBuffer: bufferFile,
-    })
-    const configFilename = toBookConfigFilename(importedBook.bookKey)
-    let usedCloudConfig = false
+    batchContext.reservedBookKeys.add(result.bookKey)
 
-    if (navigator.onLine === false) {
-      logInfo('bookshelf', 'import-book skip-cloud-config-check-offline', {
-        bookKey: importedBook.bookKey,
-        fileName: configFilename,
-      })
-    } else {
-      try {
-        const existsOnCloud = await withTimeout(
-          invoke<boolean>('webdav_exists', {
-            subdir: CLOUD_DIRS.progress,
-            filename: configFilename,
-          }),
-          CLOUD_CONFIG_PRECHECK_TIMEOUT_MS,
-          '云端配置预检超时',
-        )
-        if (existsOnCloud) {
-          const cloudData = await withTimeout(
-            invoke<number[]>('webdav_get', {
-              subdir: CLOUD_DIRS.progress,
-              filename: configFilename,
-            }),
-            CLOUD_CONFIG_PRECHECK_TIMEOUT_MS,
-            '云端配置读取超时',
-          )
-          const cloudConfig = normalizeBookConfig(
-            JSON.parse(new TextDecoder().decode(new Uint8Array(cloudData))),
-          )
-          newBook = cloudConfig
-          usedCloudConfig = true
-          logInfo('bookshelf', 'import-book use-cloud-config', {
-            bookKey: importedBook.bookKey,
-            fileName: configFilename,
-          })
-        }
-      } catch (error) {
-        logWarn('bookshelf', 'import-book check-cloud-config-failed', {
-          bookKey: importedBook.bookKey,
-          error,
-        })
-      }
-    }
-
-    const bookConfigJson = stringifyJson(newBook)
-    const encodedBookConfig = new TextEncoder().encode(bookConfigJson)
-
-    updateLoadingText(IMPORT_LOADING_TEXT.saving)
-
-    await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.progress, configFilename), newBook)
-    createdBookArtifacts = true
-
-    void primeBookLocationsAfterImport(importedBook.bookKey, bufferFile, originalFileName).catch(
-      (error) => {
-        logWarn('bookshelf', 'prime-epub-locations-cache failed', {
-          bookKey: importedBook.bookKey,
-          fileName: originalFileName,
-          error,
-        })
-      },
-    )
-
-    const storedBook = await upsertStoredBook({
-      bookKey: importedBook.bookKey,
-      title: newBook.name,
-      author: newBook.author,
-      fileName: originalFileName,
-      format,
-      progress: 0,
-    })
-
+    // 刷新书架
     invalidateBookFileCache()
-
     shelfBooks.upsertShelfBook({
-      ...newBook,
-      bookKey: importedBook.bookKey,
-      displayTitle: newBook.name,
+      bookKey: result.bookKey,
+      displayTitle: result.title,
+      name: result.title,
+      author: result.author,
+      durChapterIndex: 0,
+      durChapterPos: 0,
+      durChapterTitle: '',
+      durChapterTime: 0,
       cover: defaultCover,
-      format,
+      format: 'epub',
       progressValue: 0,
       lastReadLabel: '未读',
     })
-    parseBookCoverInBackground(storedBook, {
+
+    // 后台解析封面
+    parseBookCoverInBackground(result.createdRecord, {
       onCoverUpdated: refreshShelfBookCover,
     })
 
-    updateLoadingText(IMPORT_LOADING_TEXT.uploading)
-
-    const bookLabel = newBook.name || importedBook.name
+    // 通知
+    const bookLabel = result.title
     batchContext.batchNotifier.registerTask(bookLabel)
-    if (!usedCloudConfig) {
+    if (!result.usedCloudConfig) {
+      // 云端没有配置时，上传新生成的配置
       queueMicrotask(() => {
         void Promise.allSettled([
           invoke('webdav_upload', {
             subdir: batchContext.dirs.progress,
-            filename: configFilename,
-            contents: Array.from(encodedBookConfig),
+            filename: `${result.bookKey}.json`,
+            contents: Array.from(
+              new TextEncoder().encode(
+                JSON.stringify({
+                  name: result.title,
+                  author: result.author,
+                  durChapterIndex: 0,
+                  durChapterPos: 0,
+                  durChapterTitle: '',
+                  durChapterTime: 0,
+                }),
+              ),
+            ),
           }),
         ]).then((results) => {
           const rejected = results.find((result) => result.status === 'rejected')
           if (rejected) {
             const reason = toTaskErrorMessage(rejected.reason)
             logWarn('bookshelf', 'import-book remote-sync-failed', {
-              bookKey: importedBook.bookKey,
-              fileName: originalFileName,
+              bookKey: result.bookKey,
+              fileName: result.fileName,
               reason,
             })
             batchContext.batchNotifier.recordFailure(bookLabel, reason)
             return
           }
-
           batchContext.batchNotifier.recordSuccess(bookLabel)
         })
       })
     } else {
       batchContext.batchNotifier.recordSuccess(bookLabel)
     }
-    importSucceeded = true
+
     finishLog({
-      bookKey: importedBook.bookKey,
+      bookKey: result.bookKey,
       total: books.value.length,
     })
   } catch (error) {
     logError('bookshelf', 'import-book failed', error, {
       fileName: originalFileName,
     })
+    const bookLabel = sourceFileName
+    batchContext.batchNotifier.registerTask(bookLabel)
+    batchContext.batchNotifier.recordFailure(bookLabel, toTaskErrorMessage(error))
   } finally {
     batchContext.reservedOriginalFileNames.delete(normalizedOriginalFileName)
-    if (reservedBookKey) {
-      batchContext.reservedBookKeys.delete(reservedBookKey)
-    }
-    if (localCopyCreated && !importSucceeded) {
-      await cleanupImportedBookArtifacts(originalFileName, importedBookKey, createdBookArtifacts)
-    }
     endLoading()
   }
 }
