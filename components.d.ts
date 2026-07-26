@@ -40,6 +40,7 @@ declare module 'vue' {
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    GenerationStatusBar: typeof import('./src/components/DrawDialog/GenerationStatusBar.vue')['default']
     HelpDialog: typeof import('./src/components/HelpDialog/index.vue')['default']
     LoadingBlockade: typeof import('./src/components/common/LoadingBlockade/index.vue')['default']
     ModelProviderForm: typeof import('./src/components/SettingDialog/ModelProviderForm.vue')['default']

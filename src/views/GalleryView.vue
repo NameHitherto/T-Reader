@@ -1,20 +1,25 @@
 <template>
   <div class="gallery">
-    <div class="gallery-header">
-      <span class="prefix">画廊</span>
-      <el-select
-        v-model="filterBookKey"
-        class="gallery-book-filter"
-        placeholder="全部书籍"
-        clearable
+    <div v-if="bookFilterTags.length > 0" class="gallery-tags">
+      <button
+        type="button"
+        class="gallery-tag"
+        :class="{ 'is-active': filterBookKey === '' }"
+        @click="filterBookKey = ''"
       >
-        <el-option
-          v-for="option in bookFilterOptions"
-          :key="option.value"
-          :label="option.label"
-          :value="option.value"
-        />
-      </el-select>
+        全部
+      </button>
+      <button
+        v-for="tag in bookFilterTags"
+        :key="tag.value"
+        type="button"
+        class="gallery-tag"
+        :class="{ 'is-active': filterBookKey === tag.value }"
+        :title="tag.label"
+        @click="toggleFilter(tag.value)"
+      >
+        {{ tag.label }}
+      </button>
     </div>
 
     <div class="gallery-body">
@@ -96,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import 'element-plus/es/components/message/style/css'
@@ -114,25 +119,52 @@ const assetUrls = reactive<Record<string, string>>({})
 const detailVisible = ref(false)
 const detailImage = ref<GalleryImage | null>(null)
 
+/** 无来源书籍图片的筛选专用值 */
+const NO_BOOK_FILTER = '__none__'
+
 let unlistenImageCreated: UnlistenFn | null = null
 
-const bookFilterOptions = computed(() => {
+const bookFilterTags = computed(() => {
   const seen = new Map<string, string>()
+  let hasNoBookImages = false
   for (const image of images.value) {
-    if (image.bookKey && !seen.has(image.bookKey)) {
-      seen.set(image.bookKey, image.bookTitle || image.bookKey)
+    if (image.bookKey) {
+      if (!seen.has(image.bookKey)) {
+        seen.set(image.bookKey, image.bookTitle || image.bookKey)
+      }
+    } else {
+      hasNoBookImages = true
     }
   }
 
-  return Array.from(seen, ([value, label]) => ({ value, label }))
+  const tags = Array.from(seen, ([value, label]) => ({ value, label }))
+  if (hasNoBookImages && tags.length > 0) {
+    tags.push({ value: NO_BOOK_FILTER, label: '无来源书籍' })
+  }
+
+  return tags
 })
 
 const displayedImages = computed(() => {
   if (!filterBookKey.value) {
     return images.value
   }
+  if (filterBookKey.value === NO_BOOK_FILTER) {
+    return images.value.filter((image) => !image.bookKey)
+  }
 
   return images.value.filter((image) => image.bookKey === filterBookKey.value)
+})
+
+const toggleFilter = (value: string) => {
+  filterBookKey.value = filterBookKey.value === value ? '' : value
+}
+
+// 删除后若当前筛选的书籍不再有图片，回退到"全部"
+watch(bookFilterTags, (tags) => {
+  if (filterBookKey.value && !tags.some((tag) => tag.value === filterBookKey.value)) {
+    filterBookKey.value = ''
+  }
 })
 
 const detailReferencePaths = computed(() => {
@@ -233,22 +265,43 @@ onBeforeUnmount(() => {
   padding: 18px 22px 0;
 }
 
-.gallery-header {
+.gallery-tags {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 14px;
   user-select: none;
-
-  .prefix {
-    color: var(--text-primary);
-    font-size: 18px;
-    font-weight: 700;
-  }
 }
 
-.gallery-book-filter {
-  width: 220px;
+.gallery-tag {
+  max-width: 200px;
+  padding: 5px 12px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-pill);
+  cursor: var(--t-mouse-cursor-link), pointer;
+  transition:
+    color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard),
+    background-color var(--duration-fast) var(--easing-standard);
+
+  &:hover {
+    color: var(--brand-primary);
+    border-color: var(--border-brand);
+  }
+
+  &.is-active {
+    color: var(--brand-primary);
+    font-weight: 700;
+    background: var(--surface-brand-soft);
+    border-color: var(--border-brand);
+  }
 }
 
 .gallery-body {

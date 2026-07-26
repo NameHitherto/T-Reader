@@ -69,21 +69,15 @@
           </el-scrollbar>
         </div>
       </div>
-
-      <div v-if="resultUrl || isGenerating" class="draw-result">
-        <img v-if="resultUrl" :src="resultUrl" alt="" />
-        <span v-else class="draw-result-placeholder">生成中，可能需要一分钟…</span>
-      </div>
     </div>
 
     <template #footer>
-      <el-button :disabled="isGenerating" @click="emit('update:modelValue', false)">
-        关闭
-      </el-button>
+      <span v-if="isGenerating" class="draw-footer-hint">已有生成任务进行中…</span>
+      <el-button @click="emit('update:modelValue', false)">关闭</el-button>
       <el-button
         type="primary"
         :loading="isGenerating"
-        :disabled="prompt.trim().length === 0"
+        :disabled="isGenerating || prompt.trim().length === 0"
         @click="generate"
       >
         生成
@@ -93,16 +87,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ElMessage } from 'element-plus'
 import 'element-plus/es/components/message/style/css'
 import { EpubRenditionLike } from '@/types/epub'
-import { generateGalleryImage, stageReferenceImage } from '@/services/gallery/galleryRepository'
-import { buildGalleryAssetUrl } from '@/services/gallery/galleryAssetService'
-import { dispatchMainEvent } from '@/services/reader/readerWindowBridgeService'
-import { WINDOW_EVENTS } from '@/constants/events'
+import { stageReferenceImage } from '@/services/gallery/galleryRepository'
+import {
+  imageGenerationTask,
+  startImageGenerationTask,
+} from '@/services/gallery/imageGenerationTaskService'
 import { logError, logInfo } from '@/utils/logger'
 import { generateID } from '@/utils/id'
 
@@ -142,10 +137,10 @@ const emit = defineEmits<{
 }>()
 
 const prompt = ref('')
-const isGenerating = ref(false)
-const resultUrl = ref('')
 const bookImages = ref<BookImageEntry[]>([])
 const selectedReferences = ref<ReferenceImage[]>([])
+
+const isGenerating = computed(() => imageGenerationTask.status === 'generating')
 
 let bookImagesLoadedForBookKey: string | null = null
 
@@ -286,12 +281,14 @@ const resolveBookTitle = async (): Promise<string | null> => {
   }
 }
 
+/**
+ * 触发生成后弹窗立即挂起（关闭），任务在后台继续，
+ * 状态通过右下角状态栏展示。
+ */
 const generate = async () => {
   if (isGenerating.value || prompt.value.trim().length === 0) {
     return
   }
-  isGenerating.value = true
-  resultUrl.value = ''
 
   try {
     const referencePaths: string[] = []
@@ -300,34 +297,31 @@ const generate = async () => {
       referencePaths.push(await stageReferenceImage(bytes, reference.mimeType))
     }
 
-    const record = await generateGalleryImage({
+    const started = startImageGenerationTask({
       prompt: prompt.value.trim(),
       bookKey: props.bookKey,
       bookTitle: await resolveBookTitle(),
       referencePaths,
     })
+    if (!started) {
+      ElMessage.warning('已有生成任务进行中，请稍后再试')
+      return
+    }
 
-    resultUrl.value = await buildGalleryAssetUrl(record.imagePath)
-    ElMessage.success('已保存到画廊')
-    void dispatchMainEvent(WINDOW_EVENTS.GALLERY_IMAGE_CREATED, { id: record.id })
+    emit('update:modelValue', false)
   } catch (error) {
-    logError('draw-dialog', 'generate image failed', error)
+    logError('draw-dialog', 'start generate task failed', error)
     ElMessage.error(String(error))
-  } finally {
-    isGenerating.value = false
   }
 }
 
 const onOpen = () => {
   prompt.value = props.initialPrompt
-  resultUrl.value = ''
   void loadBookImages()
 }
 
 const onClose = () => {
-  if (!isGenerating.value) {
-    revokeReferencePreviews()
-  }
+  revokeReferencePreviews()
 }
 
 watch(
@@ -336,7 +330,6 @@ watch(
     // 换书后书内图片与参考图不再有效
     revokeBookImagePreviews()
     revokeReferencePreviews()
-    resultUrl.value = ''
   },
 )
 </script>
@@ -364,6 +357,13 @@ watch(
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
+  user-select: none;
+}
+
+.draw-footer-hint {
+  margin-right: 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
   user-select: none;
 }
 
@@ -449,27 +449,5 @@ watch(
   &.is-selected {
     border-color: var(--brand-primary);
   }
-}
-
-.draw-result {
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: var(--surface-brand-soft);
-  border-radius: var(--radius-md);
-
-  img {
-    display: block;
-    max-width: 100%;
-    max-height: 320px;
-  }
-}
-
-.draw-result-placeholder {
-  color: var(--text-tertiary);
-  font-size: 13px;
-  user-select: none;
 }
 </style>

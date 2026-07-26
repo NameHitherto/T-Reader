@@ -49,6 +49,8 @@
     :initial-prompt="drawDialogPrompt"
     :rendition="rendition"
   />
+  <!-- AI绘画后台任务状态（右下角） -->
+  <GenerationStatusBar />
   <Teleport to="body">
     <Transition
       name="style-menu"
@@ -89,6 +91,7 @@ import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
 import DrawDialog from './components/DrawDialog/index.vue'
+import GenerationStatusBar from './components/DrawDialog/GenerationStatusBar.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
