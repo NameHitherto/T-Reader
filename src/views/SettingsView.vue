@@ -59,8 +59,7 @@
             </div>
           </section>
 
-          <!-- 暂无应用实现，临时隐藏。 -->
-          <section v-show="false" class="section">
+          <section class="section">
             <el-divider class="divider" content-position="left">AI大模型</el-divider>
 
             <template v-if="!isEditing">

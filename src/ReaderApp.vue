@@ -42,6 +42,13 @@
   <!-- 功能帮助 -->
   <HelpDialog v-model="helpVisible" />
   <SystemFontEnableDialog v-model="systemFontDialogVisible" />
+  <!-- AI绘画 -->
+  <DrawDialog
+    v-model="drawDialogVisible"
+    :book-key="currentBookKey"
+    :initial-prompt="drawDialogPrompt"
+    :rendition="rendition"
+  />
   <Teleport to="body">
     <Transition
       name="style-menu"
@@ -81,6 +88,7 @@ import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
+import DrawDialog from './components/DrawDialog/index.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
@@ -547,6 +555,7 @@ function bindCurrentReaderInteractions() {
     buildContextMenuItems: () => [
       { label: '标记 | 添加书签', type: 'bookmark', onClick: () => addBookMark() },
       { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
+      { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
     ],
   })
 
@@ -599,6 +608,8 @@ function disposeReaderBookRuntime(options: DisposeReaderBookRuntimeOptions = {})
   selectedRange.value = null
   showContextMenu.value = false
   bookInfoVisible.value = false
+  drawDialogVisible.value = false
+  drawDialogPrompt.value = ''
   bookMarkStore.clearBookMarks()
 
   if (resetBookState) {
@@ -811,6 +822,22 @@ watch(styleMenuVisible, (visible) => {
 // ============================================================
 const helpVisible = ref(false)
 const systemFontDialogVisible = ref(false)
+const drawDialogVisible = ref(false)
+const drawDialogPrompt = ref('')
+
+function openDrawDialogWithSelection() {
+  drawDialogPrompt.value = selectedText.value
+  drawDialogVisible.value = true
+}
+
+function handleReaderDomToggleDrawDialog() {
+  if (drawDialogVisible.value) {
+    drawDialogVisible.value = false
+    return
+  }
+  drawDialogPrompt.value = ''
+  drawDialogVisible.value = true
+}
 
 function handleOpenSystemFontDialog() {
   closeStyleMenu()
@@ -946,6 +973,7 @@ onMounted(async () => {
 
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
+  window.addEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)
   window.addEventListener('resize', handleWindowResize)
   window.addEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.addEventListener('reader:after-fullscreen', handleAfterFullscreen)
@@ -955,6 +983,7 @@ onUnmounted(() => {
   disposeReaderBookRuntime()
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
+  window.removeEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)
   window.removeEventListener('resize', handleWindowResize)
   window.removeEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.removeEventListener('reader:after-fullscreen', handleAfterFullscreen)

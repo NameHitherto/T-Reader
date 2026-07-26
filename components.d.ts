@@ -14,6 +14,7 @@ declare module 'vue' {
     BookMetadataEditDialog: typeof import('./src/components/BookMetadataEditDialog.vue')['default']
     BubbleToggle: typeof import('./src/components/common/BubbleToggle/index.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
+    DrawDialog: typeof import('./src/components/DrawDialog/index.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']

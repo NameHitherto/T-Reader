@@ -2,6 +2,7 @@ pub mod app_update;
 pub mod book;
 pub mod cloud_sync;
 pub mod font;
+pub mod gallery;
 pub mod note;
 pub mod reader_window;
 pub mod settings;
@@ -21,6 +22,7 @@ pub use cloud_sync::{
     CloudSyncBookStatus, CloudSyncPreviewItem, CloudSyncPreviewResult,
 };
 pub use font::FontNameEntry;
+pub use gallery::{GalleryImageDto, GenerateGalleryImageRequest};
 pub use note::BookMarkDto;
 pub use reader_window::{
     DispatchReaderEventResult, OpenReaderWindowResult, PendingBookDeleteMessage,
