@@ -22,11 +22,23 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Node.js
+      - name: Setup Node.js for epub.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: '16'
           cache: 'npm'
+          cache-dependency-path: 'libs/epub.js/package-lock.json'
+
+      - name: Install epub.js dependencies
+        working-directory: libs/epub.js
+        run: npm ci --omit=dev --ignore-scripts
+
+      - name: Setup Node.js for T-Reader
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -39,10 +51,7 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        run: |
-          npm ci
-          cd libs/epub.js
-          npm ci --omit=dev --ignore-scripts
+        run: npm ci
 
       - name: Read Release Notes
         id: read_release_notes
@@ -69,5 +78,5 @@ jobs:
           releaseName: 'T-Reader ${{ github.ref_name }}'
           releaseBody: ${{ steps.read_release_notes.outputs.notes }}
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           args: ${{ matrix.args }}

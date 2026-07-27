@@ -90,7 +90,7 @@ T-Reader/
 ## 开发环境
 
 - `Rust 1.89.0`
-- 主项目 `Node.js v22.17.1`
+- 主项目建议使用最新稳定版 `Node.js v24`
 - `libs/epub.js` 建议使用 `Node.js v16.20.2`
 
 开始前请先确认本机已满足 Tauri 官方前置环境要求：
@@ -135,7 +135,8 @@ npm run build
 npm run preview
 npm run tauri dev
 npm run tauri build
-npm run release -- v1.0.1
+npm run release -- --tag v1.0.1
+npm run release -- --branch develop/2.0.0 --tag v2.0.0-rc
 ```
 
 ## 相关仓库
