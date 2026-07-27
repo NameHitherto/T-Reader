@@ -135,8 +135,8 @@ npm run build
 npm run preview
 npm run tauri dev
 npm run tauri build
-npm run release -- --tag v1.0.1
-npm run release -- --branch develop/2.0.0 --tag v2.0.0-rc
+node scripts/bump-version.js --tag v1.7.0
+node scripts/bump-version.js --tag v1.7.0 --branch develop
 ```
 
 ## 相关仓库
