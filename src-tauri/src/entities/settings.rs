@@ -5,6 +5,10 @@ fn default_theme_mode() -> String {
     "light".to_string()
 }
 
+fn default_update_channel() -> String {
+    "stable".to_string()
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ModelProviderConfig {
     #[serde(default, rename = "purpose")]
@@ -35,6 +39,8 @@ pub struct Settings {
     pub webdav_pass: String,
     #[serde(default = "default_theme_mode", rename = "themeMode")]
     pub theme_mode: String,
+    #[serde(default = "default_update_channel", rename = "updateChannel")]
+    pub update_channel: String,
     #[serde(default, rename = "modelProviders")]
     pub model_providers: HashMap<String, ModelProviderConfig>,
 }
@@ -48,6 +54,7 @@ pub struct SaveAppSettingsRequest {
     pub webdav_user: Option<String>,
     pub webdav_pass: Option<String>,
     pub theme_mode: Option<String>,
+    pub update_channel: Option<String>,
     pub model_providers: Option<HashMap<String, ModelProviderConfig>>,
 }
 

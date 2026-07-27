@@ -22,6 +22,14 @@ fn normalize_theme_mode(value: String) -> String {
     }
 }
 
+fn normalize_update_channel(value: String) -> String {
+    if value == "preview" {
+        "preview".to_string()
+    } else {
+        "stable".to_string()
+    }
+}
+
 fn default_app_settings() -> Settings {
     Settings {
         webdav_url_root: String::new(),
@@ -30,6 +38,7 @@ fn default_app_settings() -> Settings {
         webdav_user: String::new(),
         webdav_pass: String::new(),
         theme_mode: "light".to_string(),
+        update_channel: "stable".to_string(),
         model_providers: default_model_providers(),
     }
 }
@@ -78,9 +87,9 @@ async fn persist_app_settings(pool: &SqlitePool, settings: Settings) -> Result<S
         r#"
         INSERT INTO app_settings (
             id, webdav_url_root, webdav_url_folder, webdav_url, webdav_user, webdav_pass,
-            theme_mode, model_providers, created_at, updated_at
+            theme_mode, update_channel, model_providers, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ON CONFLICT(id) DO UPDATE SET
             webdav_url_root = excluded.webdav_url_root,
             webdav_url_folder = excluded.webdav_url_folder,
@@ -88,6 +97,7 @@ async fn persist_app_settings(pool: &SqlitePool, settings: Settings) -> Result<S
             webdav_user = excluded.webdav_user,
             webdav_pass = excluded.webdav_pass,
             theme_mode = excluded.theme_mode,
+            update_channel = excluded.update_channel,
             model_providers = excluded.model_providers,
             updated_at = datetime('now')
         "#,
@@ -99,6 +109,7 @@ async fn persist_app_settings(pool: &SqlitePool, settings: Settings) -> Result<S
     .bind(&settings.webdav_user)
     .bind(&settings.webdav_pass)
     .bind(&settings.theme_mode)
+    .bind(&settings.update_channel)
     .bind(model_providers)
     .execute(pool)
     .await
@@ -111,7 +122,7 @@ pub async fn load_app_settings(pool: &SqlitePool) -> Result<Settings, String> {
     let row = sqlx::query(
         r#"
         SELECT webdav_url_root, webdav_url_folder, webdav_url, webdav_user, webdav_pass,
-               theme_mode, model_providers
+               theme_mode, update_channel, model_providers
         FROM app_settings
         WHERE id = 1
         "#,
@@ -137,6 +148,10 @@ pub async fn load_app_settings(pool: &SqlitePool) -> Result<Settings, String> {
         theme_mode: normalize_theme_mode(
             row.try_get::<String, _>("theme_mode")
                 .unwrap_or_else(|_| "light".to_string()),
+        ),
+        update_channel: normalize_update_channel(
+            row.try_get::<String, _>("update_channel")
+                .unwrap_or_else(|_| "stable".to_string()),
         ),
         model_providers: parse_model_providers(
             row.try_get::<String, _>("model_providers")
@@ -168,6 +183,9 @@ pub async fn save_app_settings(
     }
     if let Some(value) = request.theme_mode {
         current.theme_mode = normalize_theme_mode(value);
+    }
+    if let Some(value) = request.update_channel {
+        current.update_channel = normalize_update_channel(value);
     }
     if let Some(value) = request.model_providers {
         current.model_providers = value;

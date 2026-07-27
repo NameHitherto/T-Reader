@@ -4,6 +4,7 @@ import { MODEL_PURPOSES } from '@/types/model'
 import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/types/model'
 
 export type AppThemeMode = 'light' | 'dark'
+export type UpdateChannel = 'stable' | 'preview'
 
 export interface AppSettings {
   webdavUrlRoot: string
@@ -13,10 +14,15 @@ export interface AppSettings {
   webdavPass: string
   modelProviders: ModelProviderMap
   themeMode: AppThemeMode
+  updateChannel: UpdateChannel
 }
 
 export const normalizeAppThemeMode = (value: unknown): AppThemeMode => {
   return value === 'dark' ? 'dark' : 'light'
+}
+
+export const normalizeUpdateChannel = (value: unknown): UpdateChannel => {
+  return value === 'preview' ? 'preview' : 'stable'
 }
 
 const emptyModelProviders = (): ModelProviderMap => ({
@@ -54,6 +60,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   webdavPass: '',
   modelProviders: emptyModelProviders(),
   themeMode: 'light',
+  updateChannel: 'stable',
 }
 
 export const normalizeAppSettings = (
@@ -63,6 +70,7 @@ export const normalizeAppSettings = (
     ...DEFAULT_APP_SETTINGS,
     ...(settings || {}),
     themeMode: normalizeAppThemeMode(settings?.themeMode),
+    updateChannel: normalizeUpdateChannel(settings?.updateChannel),
     modelProviders: normalizeModelProviders(settings?.modelProviders),
   }
 }
@@ -84,6 +92,10 @@ export const saveAppSettings = async (settings: Partial<AppSettings>) => {
 
   if ('themeMode' in payload) {
     payload.themeMode = normalizeAppThemeMode(payload.themeMode)
+  }
+
+  if ('updateChannel' in payload) {
+    payload.updateChannel = normalizeUpdateChannel(payload.updateChannel)
   }
 
   if ('modelProviders' in payload) {

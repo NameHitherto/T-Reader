@@ -1,3 +1,5 @@
+import type { UpdateChannel } from '@/services/settings/appSettingsService'
+
 export type AppUpdateStage = 'preparing' | 'downloading' | 'installing' | 'handoff' | 'failed'
 
 export interface AppUpdateSource {
@@ -26,6 +28,7 @@ export interface AppUpdateAttempt {
 
 export interface AppUpdateCheckResult {
   hasUpdate: boolean
+  updateChannel: UpdateChannel
   currentVersion: string
   latestVersion: string | null
   releaseNotes: string | null

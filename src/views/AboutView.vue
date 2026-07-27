@@ -7,12 +7,21 @@ import AppIcon from '@/components/common/AppIcon/index.vue'
 import { about } from '@/constants/about'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 import { toHttpResponseMessage } from '@/services/response/responseHandler'
+import {
+  loadAppSettings,
+  normalizeUpdateChannel,
+  saveAppSettings,
+  type UpdateChannel,
+} from '@/services/settings/appSettingsService'
 import type { IconName } from '@/icons/registry'
 import type { AppUpdateCheckResult, AppUpdateProgressEvent } from '@/types/appUpdate'
 
 const version = ref('')
 const checking = ref(false)
 const installing = ref(false)
+const savingChannel = ref(false)
+const updateChannel = ref<UpdateChannel>('stable')
+const persistedUpdateChannel = ref<UpdateChannel>('stable')
 const checkResult = ref<AppUpdateCheckResult | null>(null)
 const currentProgress = ref<AppUpdateProgressEvent | null>(null)
 
@@ -73,6 +82,21 @@ const showReleaseNotes = computed(() => {
   const hasUpdate = Boolean(checkResult.value?.hasUpdate)
 
   return hasUpdate && !showProgressTimeline.value
+})
+
+const isPreviewBuild = computed(() => {
+  return /^\d+\.\d+\.\d+-[0-9A-Za-z-]/.test(version.value)
+})
+
+const channelOptions = [
+  { label: '正式版', value: 'stable' },
+  { label: '预览版', value: 'preview' },
+]
+
+const channelDescription = computed(() => {
+  return updateChannel.value === 'preview'
+    ? '接收正式版与抢先体验版本'
+    : '仅接收正式发布版本'
 })
 
 interface ContactItem {
@@ -159,7 +183,9 @@ const checkForUpdates = async () => {
   currentProgress.value = null
 
   try {
-    const result = await invoke<AppUpdateCheckResult>('check_app_update')
+    const result = await invoke<AppUpdateCheckResult>('check_app_update', {
+      updateChannel: updateChannel.value,
+    })
     checkResult.value = result
 
     if (result.error) {
@@ -197,6 +223,34 @@ const checkForUpdates = async () => {
     })
   } finally {
     checking.value = false
+  }
+}
+
+const handleUpdateChannelChange = async (value: string | number | boolean | undefined) => {
+  const nextChannel = normalizeUpdateChannel(value)
+  const previousChannel = persistedUpdateChannel.value
+
+  if (nextChannel === previousChannel) {
+    return
+  }
+
+  savingChannel.value = true
+  try {
+    await saveAppSettings({ updateChannel: nextChannel })
+    updateChannel.value = nextChannel
+    persistedUpdateChannel.value = nextChannel
+    checkResult.value = null
+    currentProgress.value = null
+  } catch (error) {
+    updateChannel.value = previousChannel
+    showMainTaskMessage({
+      type: 'error',
+      title: '更新渠道保存失败',
+      message: toHttpResponseMessage(error),
+      taskKey: 'app-update-channel',
+    })
+  } finally {
+    savingChannel.value = false
   }
 }
 
@@ -260,7 +314,10 @@ const openContactTarget = async (label: string, target: string) => {
 }
 
 onMounted(async () => {
-  version.value = await getVersion()
+  const [currentVersion, settings] = await Promise.all([getVersion(), loadAppSettings()])
+  version.value = currentVersion
+  updateChannel.value = settings.updateChannel
+  persistedUpdateChannel.value = settings.updateChannel
 })
 </script>
 
@@ -271,11 +328,27 @@ onMounted(async () => {
         <img src="/src-tauri/icons/reader.png" class="app-logo" alt="T-Reader logo" />
         <div class="hero-copy">
           <h2>更新中心</h2>
-          <p class="hero-subtitle">
-            当前版本：<strong>v{{ version }}</strong>
-          </p>
+          <div class="hero-subtitle">
+            <span>当前版本：<strong>v{{ version }}</strong></span>
+            <el-tag v-if="isPreviewBuild" type="warning" effect="dark" size="small">
+              抢先体验
+            </el-tag>
+          </div>
           <p class="hero-meta">{{ statusText }}</p>
         </div>
+      </div>
+
+      <div class="channel-setting">
+        <div class="channel-copy">
+          <span class="channel-label">更新渠道</span>
+          <span class="channel-description">{{ channelDescription }}</span>
+        </div>
+        <el-segmented
+          v-model="updateChannel"
+          :options="channelOptions"
+          :disabled="checking || installing || savingChannel"
+          @change="handleUpdateChannelChange"
+        />
       </div>
 
       <div class="hero-actions">
@@ -376,7 +449,11 @@ onMounted(async () => {
 }
 
 .hero-subtitle {
-  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
   color: var(--text-secondary);
 }
 
@@ -490,6 +567,46 @@ onMounted(async () => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.channel-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card-soft);
+}
+
+.channel-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.channel-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.channel-description {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .channel-setting {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :deep(.el-segmented) {
+    width: 100%;
+  }
 }
 
 .info-card {

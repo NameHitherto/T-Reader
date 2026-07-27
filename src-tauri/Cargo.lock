@@ -17,6 +17,7 @@ dependencies = [
  "log",
  "quick-xml 0.36.2",
  "reqwest 0.11.27",
+ "semver",
  "serde",
  "serde_json",
  "sha2",
