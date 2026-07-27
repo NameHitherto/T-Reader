@@ -18,12 +18,12 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
       - name: Setup Node.js for epub.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '16'
           cache: 'npm'
@@ -34,7 +34,7 @@ jobs:
         run: npm ci --omit=dev --ignore-scripts
 
       - name: Setup Node.js for T-Reader
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'npm'
@@ -79,4 +79,5 @@ jobs:
           releaseBody: ${{ steps.read_release_notes.outputs.notes }}
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-          args: ${{ matrix.args }}
+          # MSI only accepts numeric prerelease identifiers, so alpha/rc releases use NSIS.
+          args: ${{ contains(github.ref_name, '-') && '--bundles nsis' || matrix.args }}
