@@ -1,18 +1,9 @@
-import {
-  buildLocalFilePath,
-  LOCAL_DIRS,
-  readJsonFile,
-  writeJsonFile,
-} from '@/services/fileSystem/localStorageService'
-
-const READER_CONFIG_FILENAME = 'ReaderConfig.json'
+import { invoke } from '@tauri-apps/api/core'
 
 export const loadReaderConfigFromDisk = async () => {
-  return await readJsonFile<Record<string, unknown>>(
-    buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME)
-  )
+  return await invoke<Record<string, unknown>>('load_reader_config')
 }
 
-export const saveReaderConfigToDisk = async (config: Record<string, any>) => {
-  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.system, READER_CONFIG_FILENAME), config)
+export const saveReaderConfigToDisk = async (config: object) => {
+  await invoke('save_reader_config', { request: config })
 }

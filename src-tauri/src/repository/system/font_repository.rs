@@ -64,7 +64,9 @@ pub fn load_system_fonts() -> Vec<FontNameEntry> {
             subfamily: parsed
                 .as_ref()
                 .and_then(|metadata| metadata.subfamily.clone()),
-            full_name: parsed.as_ref().and_then(|metadata| metadata.full_name.clone()),
+            full_name: parsed
+                .as_ref()
+                .and_then(|metadata| metadata.full_name.clone()),
             postscript_name: parsed
                 .as_ref()
                 .and_then(|metadata| metadata.postscript_name.clone())
@@ -114,8 +116,11 @@ fn parse_font_metadata(path: &Path, face_index: u32) -> Option<ParsedFontMetadat
     );
     let full_name = select_name_value(&face, &[name_id::FULL_NAME], NamePreference::Display)
         .or_else(|| select_name_value(&face, &[name_id::FULL_NAME], NamePreference::Canonical));
-    let postscript_name =
-        select_name_value(&face, &[name_id::POST_SCRIPT_NAME], NamePreference::Canonical);
+    let postscript_name = select_name_value(
+        &face,
+        &[name_id::POST_SCRIPT_NAME],
+        NamePreference::Canonical,
+    );
     let family_aliases = collect_family_aliases_from_face(&face);
 
     Some(ParsedFontMetadata {
@@ -230,7 +235,11 @@ fn score_language(primary_language: &str, region: &str, preference: NamePreferen
             if is_english {
                 300
             } else if is_chinese {
-                if is_simplified_chinese { 200 } else { 180 }
+                if is_simplified_chinese {
+                    200
+                } else {
+                    180
+                }
             } else {
                 100
             }

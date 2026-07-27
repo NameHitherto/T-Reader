@@ -1,6 +1,6 @@
 import { BookFormat } from '@/types/book'
 
-const SUPPORTED_FORMATS: BookFormat[] = ['epub', 'txt']
+const SUPPORTED_FORMATS: BookFormat[] = ['epub']
 
 export const detectBookFormatFromPath = (path: string): BookFormat | null => {
   const ext = path.split('.').pop()?.toLowerCase()

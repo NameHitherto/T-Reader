@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { toHttpResponseMessage } from '@/services/response/responseHandler'
 import type {
   CloudSyncApplyRequest,
   CloudSyncApplyResult,
@@ -14,24 +15,14 @@ export const EMPTY_CLOUD_SYNC_PREVIEW: CloudSyncPreviewResult = {
   downloadCount: 0,
 }
 
-export const toCloudSyncErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (typeof error === 'string') {
-    return error
-  }
-
-  return '发生未知异常'
-}
+export const toCloudSyncErrorMessage = toHttpResponseMessage
 
 export const getCloudSyncPreview = async (): Promise<CloudSyncPreviewResult> => {
   return await invoke<CloudSyncPreviewResult>('webdav_get_sync_preview')
 }
 
 export const applyCloudSyncPlan = async (
-  request: CloudSyncApplyRequest
+  request: CloudSyncApplyRequest,
 ): Promise<CloudSyncApplyResult> => {
   return await invoke<CloudSyncApplyResult>('webdav_apply_sync_plan', {
     request,
@@ -39,11 +30,9 @@ export const applyCloudSyncPlan = async (
 }
 
 export const buildDefaultCloudSyncSelectionMap = (
-  items: CloudSyncPreviewItem[]
+  items: CloudSyncPreviewItem[],
 ): Record<string, boolean> => {
-  return Object.fromEntries(
-    items.map((item) => [item.fileName, item.status === 'download'])
-  )
+  return Object.fromEntries(items.map((item) => [item.fileName, item.status === 'download']))
 }
 
 const toBookAction = (status: CloudSyncPreviewItem['status']): CloudSyncBookAction | null => {
@@ -56,7 +45,7 @@ const toBookAction = (status: CloudSyncPreviewItem['status']): CloudSyncBookActi
 
 export const buildCloudSyncApplyRequest = (
   items: CloudSyncPreviewItem[],
-  selectionMap: Record<string, boolean>
+  selectionMap: Record<string, boolean>,
 ): CloudSyncApplyRequest => {
   const bookSelections = items.flatMap((item) => {
     if (!selectionMap[item.fileName]) {

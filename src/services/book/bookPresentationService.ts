@@ -1,30 +1,13 @@
-import { BookConfig, BookFormat } from '@/types/book'
-import { BookCachePayload } from '@/services/book/bookCacheService'
-import {
-  calculateShelfProgress,
-} from '@/services/reader/progressSnapshotService'
-import {
-  isUnreadProgressSnapshot,
-  normalizeBookConfig,
-} from '@/services/book/bookConfigService'
-
-const TXT_CHAPTER_PLACEHOLDER_PATTERN = /^paragraph-\d+$/i
-
-const clampProgress = (value: number): number => {
-  if (Number.isNaN(value)) {
-    return 0
-  }
-
-  return Math.min(100, Math.max(0, value))
-}
+import { BookConfig } from '@/types/book'
+import { isUnreadProgressSnapshot, normalizeBookConfig } from '@/services/book/bookConfigService'
 
 export const normalizeDisplayedChapterTitle = (
   title?: string | null,
-  fallback = '暂无章节标题'
+  fallback = '暂无章节标题',
 ) => {
   const normalizedTitle = typeof title === 'string' ? title.trim() : ''
 
-  if (!normalizedTitle || TXT_CHAPTER_PLACEHOLDER_PATTERN.test(normalizedTitle)) {
+  if (!normalizedTitle) {
     return fallback
   }
 
@@ -32,8 +15,11 @@ export const normalizeDisplayedChapterTitle = (
 }
 
 export const buildLastReadLabel = (
-  bookConfig: Pick<BookConfig, 'durChapterIndex' | 'durChapterPos' | 'durChapterTitle' | 'durChapterTime'>,
-  progressValue: number
+  bookConfig: Pick<
+    BookConfig,
+    'durChapterIndex' | 'durChapterPos' | 'durChapterTitle' | 'durChapterTime'
+  >,
+  progressValue: number,
 ): string => {
   const snapshot = normalizeBookConfig({
     name: '',
@@ -57,7 +43,7 @@ export const buildLastReadLabel = (
   const startOfTarget = new Date(
     target.getFullYear(),
     target.getMonth(),
-    target.getDate()
+    target.getDate(),
   ).getTime()
   const diffDays = Math.floor((startOfNow - startOfTarget) / 86400000)
 
@@ -74,15 +60,6 @@ export const buildLastReadLabel = (
   }
 
   return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(
-    target.getDate()
+    target.getDate(),
   ).padStart(2, '0')}`
-}
-
-export const deriveShelfProgress = async (
-  bookConfig: BookConfig,
-  format: BookFormat,
-  cache: BookCachePayload,
-  bookData?: Uint8Array
-): Promise<number> => {
-  return clampProgress(await calculateShelfProgress(format, bookData, bookConfig, cache))
 }

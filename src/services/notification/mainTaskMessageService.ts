@@ -71,7 +71,7 @@ const formatBookLabels = (labels: string[]): string => {
 const buildBatchMessage = (
   options: CreateMainTaskBatchNotifierOptions,
   successLabels: string[],
-  failureEntries: BatchFailure[]
+  failureEntries: BatchFailure[],
 ): { type: MainTaskMessageType; title: string; message: string } | null => {
   const successCount = successLabels.length
   const failureCount = failureEntries.length
@@ -118,10 +118,12 @@ const buildBatchMessage = (
 
   const firstFailureReason = failureEntries[0]?.reason
   const failureSummary = firstFailureReason ? ` 首个失败原因：${firstFailureReason}` : ''
+
   return {
     type: 'warning',
     title: options.partialFailureTitle,
-    message: `${successCount} 本书已完成${actionLabel}，${failureCount} 本书同步失败。${failureSummary}`.trim(),
+    message:
+      `${successCount} 本书已完成${actionLabel}，${failureCount} 本书同步失败。${failureSummary}`.trim(),
   }
 }
 
@@ -138,9 +140,7 @@ const closeTaskMessageIfExists = (taskKey?: string) => {
   activeMessage.handler.close()
 }
 
-export const showMainTaskMessage = (
-  options: ShowMainTaskMessageOptions
-): MessageHandler => {
+export const showMainTaskMessage = (options: ShowMainTaskMessageOptions): MessageHandler => {
   closeTaskMessageIfExists(options.taskKey)
 
   const handler = ElMessage({
@@ -165,7 +165,7 @@ export const showMainTaskMessage = (
 }
 
 export const createMainTaskBatchNotifier = (
-  options: CreateMainTaskBatchNotifierOptions
+  options: CreateMainTaskBatchNotifierOptions,
 ): MainTaskBatchNotifier => {
   let pendingCount = 0
   let shouldFlushWhenComplete = false

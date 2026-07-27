@@ -43,6 +43,7 @@ const toNullableString = (value: unknown) => {
     return null
   }
   const trimmed = value.trim()
+
   return trimmed.length > 0 ? trimmed : null
 }
 
@@ -104,7 +105,7 @@ const getFontFamilyAliases = (font: SystemFontEntry | EnabledSystemFont) => {
 
 export const getSystemFontEntryKey = (
   font: Pick<SystemFontEntry, 'family' | 'postscriptName' | 'fullName' | 'weight' | 'faceIndex'> &
-    Partial<Pick<SystemFontEntry, 'path'>>
+    Partial<Pick<SystemFontEntry, 'path'>>,
 ) => {
   return [
     font.family.trim().toLowerCase(),
@@ -117,13 +118,13 @@ export const getSystemFontEntryKey = (
 }
 
 export const getReaderFontValue = (
-  font: Pick<SystemFontEntry, 'family' | 'postscriptName' | 'fullName'>
+  font: Pick<SystemFontEntry, 'family' | 'postscriptName' | 'fullName'>,
 ) => {
   return font.postscriptName || font.fullName || font.family
 }
 
 export const formatSystemFontLabel = (
-  font: Pick<SystemFontEntry, 'family' | 'displayFamily' | 'subfamily' | 'fullName'>
+  font: Pick<SystemFontEntry, 'family' | 'displayFamily' | 'subfamily' | 'fullName'>,
 ) => {
   if (font.fullName) {
     return font.fullName
@@ -137,7 +138,7 @@ export const formatSystemFontLabel = (
 }
 
 export const normalizeSystemFontEntry = (
-  font: Partial<SystemFontEntry> | RawSystemFontEntry | EnabledSystemFont
+  font: Partial<SystemFontEntry> | RawSystemFontEntry | EnabledSystemFont,
 ): SystemFontEntry | null => {
   const family = typeof font.family === 'string' ? font.family.trim() : ''
   if (!family) {
@@ -148,15 +149,13 @@ export const normalizeSystemFontEntry = (
     ('display_family' in font ? toNullableString(font.display_family) : null) ||
     toNullableString((font as Partial<SystemFontEntry>).displayFamily) ||
     family
-  const subfamily =
-    'subfamily' in font ? toNullableString(font.subfamily) : null
+  const subfamily = 'subfamily' in font ? toNullableString(font.subfamily) : null
   const fullName =
     ('full_name' in font ? toNullableString(font.full_name) : null) ||
     toNullableString((font as Partial<SystemFontEntry>).fullName)
   const postscriptName =
-    ('postscript_name' in font
-      ? toNullableString(font.postscript_name)
-      : null) || toNullableString((font as Partial<SystemFontEntry>).postscriptName)
+    ('postscript_name' in font ? toNullableString(font.postscript_name) : null) ||
+    toNullableString((font as Partial<SystemFontEntry>).postscriptName)
   const path =
     ('path' in font ? toNullableString(font.path) : null) ||
     toNullableString((font as Partial<SystemFontEntry>).path)
@@ -168,10 +167,10 @@ export const normalizeSystemFontEntry = (
     ...toStringArray(
       'family_aliases' in font
         ? font.family_aliases
-        : (font as Partial<SystemFontEntry>).familyAliases
+        : (font as Partial<SystemFontEntry>).familyAliases,
     ),
     displayFamily,
-    family
+    family,
   )
 
   return {
@@ -199,7 +198,7 @@ export const toEnabledSystemFont = (
     | 'path'
     | 'faceIndex'
     | 'familyAliases'
-  >
+  >,
 ): EnabledSystemFont => {
   return {
     family: font.family,
@@ -220,9 +219,7 @@ const compareFontEntries = (left: SystemFontEntry, right: SystemFontEntry) => {
     return weightCompare
   }
 
-  const subfamilyCompare = (left.subfamily || 'Regular').localeCompare(
-    right.subfamily || 'Regular'
-  )
+  const subfamilyCompare = (left.subfamily || 'Regular').localeCompare(right.subfamily || 'Regular')
   if (subfamilyCompare !== 0) {
     return subfamilyCompare
   }
@@ -271,10 +268,10 @@ export const groupSystemFontsByFamily = (fonts: SystemFontEntry[]) => {
 
 export const orderSystemFontFamilyGroups = (
   groups: SystemFontFamilyGroup[],
-  enabledFamilies: Iterable<string>
+  enabledFamilies: Iterable<string>,
 ) => {
   const enabledFamilySet = new Set(
-    Array.from(enabledFamilies, (family) => normalizeSearchText(family))
+    Array.from(enabledFamilies, (family) => normalizeSearchText(family)),
   )
   const enabledGroups: SystemFontFamilyGroup[] = []
   const disabledGroups: SystemFontFamilyGroup[] = []
@@ -290,10 +287,7 @@ export const orderSystemFontFamilyGroups = (
   return [...enabledGroups, ...disabledGroups]
 }
 
-export const doesSystemFontGroupMatchKeyword = (
-  group: SystemFontFamilyGroup,
-  keyword: string
-) => {
+export const doesSystemFontGroupMatchKeyword = (group: SystemFontFamilyGroup, keyword: string) => {
   const normalizedKeyword = normalizeSearchText(keyword)
   if (!normalizedKeyword) {
     return true
@@ -301,7 +295,7 @@ export const doesSystemFontGroupMatchKeyword = (
 
   if (
     [group.family, group.displayFamily].some((value) =>
-      normalizeSearchText(value).includes(normalizedKeyword)
+      normalizeSearchText(value).includes(normalizedKeyword),
     )
   ) {
     return true
@@ -345,7 +339,7 @@ export const findSystemFontMatch = (fontValue: string, fonts: SystemFontEntry[])
 
 export const normalizeEnabledSystemFonts = (
   fonts: unknown,
-  systemFonts: SystemFontEntry[] = []
+  systemFonts: SystemFontEntry[] = [],
 ) => {
   const items = Array.isArray(fonts) ? fonts : []
   const uniqueByFamily = new Map<string, EnabledSystemFont>()
@@ -371,7 +365,7 @@ export const normalizeEnabledSystemFonts = (
   }
 
   return Array.from(uniqueByFamily.values()).sort((left, right) =>
-    left.family.localeCompare(right.family)
+    left.family.localeCompare(right.family),
   )
 }
 
@@ -399,17 +393,15 @@ export const buildReaderFontOptions = (enabledFonts: EnabledSystemFont[]): Reade
   return options
 }
 
-export const getEnabledFontByValue = (
-  enabledFonts: EnabledSystemFont[],
-  fontValue: string
-) => {
+export const getEnabledFontByValue = (enabledFonts: EnabledSystemFont[], fontValue: string) => {
   const normalizedValue = normalizeSearchText(fontValue)
+
   return enabledFonts.find((font) => entryMatchesValue(font, normalizedValue)) || null
 }
 
 export const normalizeReaderConfig = (
   config: Partial<ReaderConfig> | null | undefined,
-  systemFonts: SystemFontEntry[]
+  systemFonts: SystemFontEntry[],
 ): ReaderConfig => {
   const backgroundPresets = normalizeReaderBackgroundPresets(config?.backgroundPresets)
   const baseConfig: ReaderConfig = {
@@ -428,6 +420,7 @@ export const normalizeReaderConfig = (
     backgroundPresets: createDefaultReaderBackgroundPresets(),
     flow: 'paginated',
     enabledSystemFonts: [],
+    loadEpubBuiltInStylesheet: false,
   }
 
   const mergedConfig = {
@@ -437,7 +430,7 @@ export const normalizeReaderConfig = (
 
   const enabledSystemFonts = normalizeEnabledSystemFonts(
     (config as Partial<ReaderConfig> | undefined)?.enabledSystemFonts,
-    systemFonts
+    systemFonts,
   )
 
   const matchedEnabledFont =

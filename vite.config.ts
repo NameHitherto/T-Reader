@@ -1,11 +1,11 @@
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import AutoImport from "unplugin-auto-import/vite";
-import Components from "unplugin-vue-components/vite";
-import {ElementPlusResolver} from "unplugin-vue-components/resolvers";
-import path from "path";
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import path from 'path'
 
-const host = process.env.TAURI_DEV_HOST;
+const host = process.env.TAURI_DEV_HOST
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -20,8 +20,8 @@ export default defineConfig(async () => ({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
-      "libs": path.resolve(__dirname, "libs")
+      '@': path.resolve(__dirname, 'src'),
+      libs: path.resolve(__dirname, 'libs'),
     },
   },
 
@@ -36,14 +36,14 @@ export default defineConfig(async () => ({
     host: '0.0.0.0',
     hmr: host
       ? {
-          protocol: "ws",
-          host ,
+          protocol: 'ws',
+          host,
           port: 1421,
         }
       : undefined,
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      ignored: ['**/src-tauri/**'],
     },
   },
   css: {
@@ -53,14 +53,16 @@ export default defineConfig(async () => ({
       },
     },
   },
-  build:{
+  build: {
     assetsInlineLimit: 0,
+    // 5. reduce chunk size warning limit to better suit Tauri's use case
+    chunkSizeWarningLimit: 1500,
     // 4. 此处进行前端多页面模板的配置
     rollupOptions: {
-      input:{
+      input: {
         main: 'index.html',
         reader: 'reader.html',
-      }
-    }
-  }
-}));
+      },
+    },
+  },
+}))

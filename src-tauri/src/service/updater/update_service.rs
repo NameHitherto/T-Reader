@@ -3,6 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use semver::Version;
+use serde::Deserialize;
 use tauri::{ipc::Channel, AppHandle, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
@@ -17,17 +19,40 @@ use crate::{
 
 const OFFICIAL_UPDATE_ENDPOINT: &str =
     "https://github.com/NameHitherto/T-Reader/releases/latest/download/latest.json";
+const GITHUB_RELEASES_API_ENDPOINT: &str =
+    "https://api.github.com/repos/NameHitherto/T-Reader/releases?per_page=100";
 const MIRROR_PROXY_BASE: &str = "https://v6.gh-proxy.org/";
 const CHECK_TIMEOUT_SECS: u64 = 12;
 const PENDING_UPDATE_EXPIRE_MS: u64 = 60 * 60 * 1000;
 static UPDATE_TOKEN_COUNTER: AtomicU64 = AtomicU64::new(1);
 
+#[derive(Debug, Deserialize)]
+struct GithubReleaseAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GithubRelease {
+    draft: bool,
+    tag_name: String,
+    assets: Vec<GithubReleaseAsset>,
+}
+
 pub fn prepare_updater_proxy() -> Result<ProxyPrepareResult, String> {
     Ok(detect_updater_proxy())
 }
 
-fn build_update_sources() -> Vec<AppUpdateSource> {
-    let mirror_endpoint = build_mirror_endpoint(OFFICIAL_UPDATE_ENDPOINT);
+fn normalize_update_channel(value: &str) -> &str {
+    if value == "preview" {
+        "preview"
+    } else {
+        "stable"
+    }
+}
+
+fn build_update_sources(official_endpoint: &str) -> Vec<AppUpdateSource> {
+    let mirror_endpoint = build_mirror_endpoint(official_endpoint);
     vec![
         AppUpdateSource {
             id: "mirror-v6-gh-proxy".to_string(),
@@ -40,10 +65,138 @@ fn build_update_sources() -> Vec<AppUpdateSource> {
             id: "official".to_string(),
             label: "官方源（GitHub Releases）".to_string(),
             kind: "official".to_string(),
-            endpoint: Some(OFFICIAL_UPDATE_ENDPOINT.to_string()),
+            endpoint: Some(official_endpoint.to_string()),
             enabled: true,
         },
     ]
+}
+
+fn select_preview_endpoint(releases: Vec<GithubRelease>) -> Result<String, String> {
+    releases
+        .into_iter()
+        .filter(|release| !release.draft)
+        .filter_map(|release| {
+            let version = Version::parse(release.tag_name.trim_start_matches('v')).ok()?;
+            let endpoint = release
+                .assets
+                .into_iter()
+                .find(|asset| asset.name == "latest.json")?
+                .browser_download_url;
+            Some((version, endpoint))
+        })
+        .max_by(|(left, _), (right, _)| left.cmp(right))
+        .map(|(_, endpoint)| endpoint)
+        .ok_or_else(|| "GitHub Releases 中没有可用的更新清单".to_string())
+}
+
+async fn discover_preview_endpoint(proxy: &AppUpdateProxyInfo) -> Result<String, String> {
+    let mut builder = reqwest::Client::builder().timeout(Duration::from_secs(CHECK_TIMEOUT_SECS));
+    if let Some(proxy_url) = proxy.proxy_url.as_ref() {
+        let request_proxy = reqwest::Proxy::all(proxy_url).map_err(|error| error.to_string())?;
+        builder = builder.proxy(request_proxy);
+    } else {
+        builder = builder.no_proxy();
+    }
+
+    let response = builder
+        .build()
+        .map_err(|error| error.to_string())?
+        .get(GITHUB_RELEASES_API_ENDPOINT)
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .header(reqwest::header::USER_AGENT, "T-Reader-Updater")
+        .send()
+        .await
+        .map_err(|error| format!("访问 GitHub Releases API 失败: {error}"))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("GitHub Releases API 返回 HTTP {status}"));
+    }
+
+    let body = response
+        .text()
+        .await
+        .map_err(|error| format!("读取 GitHub Releases API 响应失败: {error}"))?;
+    let releases = serde_json::from_str::<Vec<GithubRelease>>(&body)
+        .map_err(|error| format!("解析 GitHub Releases API 响应失败: {error}"))?;
+
+    select_preview_endpoint(releases)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        normalize_update_channel, select_preview_endpoint, GithubRelease, GithubReleaseAsset,
+    };
+
+    fn release(tag_name: &str, draft: bool, manifest_url: Option<&str>) -> GithubRelease {
+        GithubRelease {
+            draft,
+            tag_name: tag_name.to_string(),
+            assets: manifest_url
+                .map(|url| {
+                    vec![GithubReleaseAsset {
+                        name: "latest.json".to_string(),
+                        browser_download_url: url.to_string(),
+                    }]
+                })
+                .unwrap_or_default(),
+        }
+    }
+
+    #[test]
+    fn preview_channel_selects_highest_semver_across_release_types() {
+        let endpoint = select_preview_endpoint(vec![
+            release("v1.8.0", false, Some("https://example.com/stable.json")),
+            release(
+                "v1.9.0-beta.2",
+                false,
+                Some("https://example.com/preview.json"),
+            ),
+        ])
+        .expect("a valid release should be selected");
+
+        assert_eq!(endpoint, "https://example.com/preview.json");
+    }
+
+    #[test]
+    fn preview_channel_can_select_newer_stable_release() {
+        let endpoint = select_preview_endpoint(vec![
+            release(
+                "v2.0.0-rc.1",
+                false,
+                Some("https://example.com/preview.json"),
+            ),
+            release("v2.0.0", false, Some("https://example.com/stable.json")),
+        ])
+        .expect("a valid release should be selected");
+
+        assert_eq!(endpoint, "https://example.com/stable.json");
+    }
+
+    #[test]
+    fn preview_channel_ignores_unusable_releases() {
+        let endpoint = select_preview_endpoint(vec![
+            release("v9.0.0", true, Some("https://example.com/draft.json")),
+            release(
+                "not-semver",
+                false,
+                Some("https://example.com/invalid.json"),
+            ),
+            release("v8.0.0", false, None),
+            release("v1.0.0", false, Some("https://example.com/valid.json")),
+        ])
+        .expect("the usable release should be selected");
+
+        assert_eq!(endpoint, "https://example.com/valid.json");
+    }
+
+    #[test]
+    fn update_channel_defaults_to_stable() {
+        assert_eq!(normalize_update_channel("preview"), "preview");
+        assert_eq!(normalize_update_channel("stable"), "stable");
+        assert_eq!(normalize_update_channel("unknown"), "stable");
+    }
 }
 
 fn build_mirror_endpoint(target: &str) -> String {
@@ -90,6 +243,7 @@ fn purge_expired_pending_updates(map: &mut std::collections::HashMap<String, Pen
 }
 
 fn build_failed_check_result(
+    update_channel: String,
     current_version: String,
     source: AppUpdateSource,
     sources: Vec<AppUpdateSource>,
@@ -99,6 +253,7 @@ fn build_failed_check_result(
 ) -> AppUpdateCheckResult {
     AppUpdateCheckResult {
         has_update: false,
+        update_channel,
         current_version,
         latest_version: None,
         release_notes: None,
@@ -172,19 +327,65 @@ fn build_progress_event(
 }
 
 pub async fn check_app_update(
+    update_channel: String,
     app: AppHandle,
     state: State<'_, AppUpdateState>,
 ) -> Result<AppUpdateCheckResult, String> {
+    let update_channel = normalize_update_channel(&update_channel).to_string();
     let current_version = app.package_info().version.to_string();
-    let sources = build_update_sources();
+    let proxy = to_proxy_info();
+    let mut attempts: Vec<AppUpdateAttempt> = Vec::new();
+    let official_endpoint = if update_channel == "preview" {
+        let started_at = Instant::now();
+        match discover_preview_endpoint(&proxy).await {
+            Ok(endpoint) => {
+                attempts.push(AppUpdateAttempt {
+                    stage: "release-discovery".to_string(),
+                    source_id: "github-releases-api".to_string(),
+                    endpoint: GITHUB_RELEASES_API_ENDPOINT.to_string(),
+                    proxy_mode: proxy.proxy_mode.clone(),
+                    duration_ms: started_at.elapsed().as_millis() as u64,
+                    success: true,
+                    error_summary: None,
+                });
+                endpoint
+            }
+            Err(error) => {
+                attempts.push(AppUpdateAttempt {
+                    stage: "release-discovery".to_string(),
+                    source_id: "github-releases-api".to_string(),
+                    endpoint: GITHUB_RELEASES_API_ENDPOINT.to_string(),
+                    proxy_mode: proxy.proxy_mode.clone(),
+                    duration_ms: started_at.elapsed().as_millis() as u64,
+                    success: false,
+                    error_summary: Some(error.clone()),
+                });
+                let sources = build_update_sources(OFFICIAL_UPDATE_ENDPOINT);
+                let selected_source = sources
+                    .first()
+                    .cloned()
+                    .ok_or_else(|| "未找到更新源定义".to_string())?;
+                return Ok(build_failed_check_result(
+                    update_channel,
+                    current_version,
+                    selected_source,
+                    sources,
+                    proxy,
+                    attempts,
+                    error,
+                ));
+            }
+        }
+    } else {
+        OFFICIAL_UPDATE_ENDPOINT.to_string()
+    };
+    let sources = build_update_sources(&official_endpoint);
     let selected_source = sources
         .iter()
         .find(|source| source.enabled)
         .cloned()
         .or_else(|| sources.first().cloned())
         .ok_or_else(|| "未找到更新源定义".to_string())?;
-    let proxy = to_proxy_info();
-    let mut attempts: Vec<AppUpdateAttempt> = Vec::new();
     let mut no_update_source: Option<AppUpdateSource> = None;
 
     let enabled_sources: Vec<AppUpdateSource> = sources
@@ -194,6 +395,7 @@ pub async fn check_app_update(
         .collect();
     if enabled_sources.is_empty() {
         return Ok(build_failed_check_result(
+            update_channel,
             current_version,
             selected_source,
             sources,
@@ -254,6 +456,7 @@ pub async fn check_app_update(
 
                 return Ok(AppUpdateCheckResult {
                     has_update: true,
+                    update_channel,
                     current_version,
                     latest_version: Some(latest_version),
                     release_notes,
@@ -299,6 +502,7 @@ pub async fn check_app_update(
     if let Some(source) = no_update_source {
         return Ok(AppUpdateCheckResult {
             has_update: false,
+            update_channel,
             current_version: current_version.clone(),
             latest_version: Some(current_version),
             release_notes: None,
@@ -320,6 +524,7 @@ pub async fn check_app_update(
         .unwrap_or_else(|| "更新检查失败".to_string());
 
     Ok(build_failed_check_result(
+        update_channel,
         current_version,
         selected_source,
         sources,

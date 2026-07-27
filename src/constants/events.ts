@@ -1,11 +1,13 @@
 export const WINDOW_EVENTS = {
   LOAD_BOOK_KEY: 'load-book-key',
+  PREPARE_BOOK_DELETE: 'prepare-book-delete',
   BOOKSHELF_PROGRESS_SAVED: 'bookshelf-progress-saved',
   SHOW_BOOK_INFO: 'show-book-info',
-  SHOW_ASSISTANT: 'show-assistant',
   SHOW_HELP: 'show-help',
   UPDATE_APP_THEME: 'update-app-theme',
   UPDATE_READER_STYLE: 'update-reader-style',
+  READER_WINDOW_HIDE: 'reader-window-hide',
+  CLOUD_SYNC_FAILED: 'cloud-sync-failed',
 } as const
 
 export const READER_DOM_EVENTS = {

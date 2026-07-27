@@ -11,10 +11,21 @@ interface DispatchReaderEventResult {
   delivered: boolean
 }
 
+export interface PrepareReaderBookDeleteResult {
+  acknowledged: boolean
+  affected: boolean
+  messageId: string
+}
+
 export interface ReaderLoadPayload {
   bookKey: string
   cfi?: string
   messageId?: string
+}
+
+export interface PrepareBookDeletePayload {
+  bookKey: string
+  messageId: string
 }
 
 export interface BookshelfProgressSavedPayload {
@@ -43,9 +54,26 @@ export const ackReaderLoadMessage = async (messageId: string) => {
   })
 }
 
+export const prepareReaderBookDelete = async (bookKey: string) => {
+  return await invoke<PrepareReaderBookDeleteResult>('prepare_reader_book_delete', {
+    bookKey,
+  })
+}
+
+export const ackReaderBookDelete = async (messageId: string, affected: boolean) => {
+  await invoke('ack_reader_book_delete', {
+    messageId,
+    affected,
+  })
+}
+
+export const hideReaderWindow = async () => {
+  await invoke('hide_reader_window')
+}
+
 export const dispatchReaderEvent = async (
   eventName: string,
-  payload?: unknown
+  payload?: unknown,
 ): Promise<boolean> => {
   const result = await invoke<DispatchReaderEventResult>('dispatch_reader_event', {
     eventName,
@@ -55,10 +83,7 @@ export const dispatchReaderEvent = async (
   return result.delivered
 }
 
-export const dispatchMainEvent = async (
-  eventName: string,
-  payload?: unknown
-): Promise<boolean> => {
+export const dispatchMainEvent = async (eventName: string, payload?: unknown): Promise<boolean> => {
   const result = await invoke<DispatchReaderEventResult>('dispatch_main_event', {
     eventName,
     payload: payload ?? {},
@@ -75,8 +100,6 @@ export const dispatchReaderThemeUpdate = async (mode: string) => {
   return await dispatchReaderEvent(WINDOW_EVENTS.UPDATE_APP_THEME, { mode })
 }
 
-export const dispatchBookshelfProgressSaved = async (
-  payload: BookshelfProgressSavedPayload
-) => {
+export const dispatchBookshelfProgressSaved = async (payload: BookshelfProgressSavedPayload) => {
   return await dispatchMainEvent(WINDOW_EVENTS.BOOKSHELF_PROGRESS_SAVED, payload)
 }

@@ -1,34 +1,29 @@
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
+/**
+ * 绑定自定义标题栏按钮事件。
+ *
+ * 窗口操作统一通过 Rust 后端 command 执行。
+ *
+ * 返回一个清理函数，用于在组件卸载或 beforeunload 时解绑事件。
+ */
 export const bindWindowTitlebarControls = () => {
-  const appWindow = getCurrentWindow()
+  const windowLabel = getCurrentWindow().label
 
-  const toggleMaximize = async () => {
-    const isFullScreen = await appWindow.isFullscreen()
-    if (isFullScreen) {
-      await appWindow.setFullscreen(false)
-    } else {
-      const isMaximized = await appWindow.isMaximized()
-      if (isMaximized) {
-        await appWindow.unmaximize()
-      } else {
-        await appWindow.maximize()
-      }
-    }
+  const onMinimize = () => {
+    void invoke('window_minimize', { label: windowLabel })
   }
-
-  const onMinimize = () => appWindow.minimize()
   const onMaximize = () => {
-    void toggleMaximize()
+    void invoke('window_toggle_maximize', { label: windowLabel })
   }
-  const onClose = async () => {
-    if (appWindow.label === 'reader') {
-      await invoke('close_reader_window').catch(() => appWindow.close())
+  const onClose = () => {
+    if (windowLabel === 'reader') {
+      void invoke('hide_reader_window')
       return
     }
 
-    appWindow.close()
+    void invoke('app_close')
   }
 
   document.getElementById('titlebar-minimize')?.addEventListener('click', onMinimize)

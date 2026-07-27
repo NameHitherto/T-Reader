@@ -1,5 +1,6 @@
 mod api;
 mod command;
+mod database;
 mod entities;
 mod repository;
 mod service;
@@ -7,6 +8,10 @@ mod utils;
 
 use entities::{AppUpdateState, ReaderWindowState};
 use log::LevelFilter;
+use service::window::main_window_service;
+use service::window::reader_window_service;
+use std::io;
+use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use utils::logging::build_log_target;
 
@@ -40,7 +45,11 @@ pub fn run() {
         )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_denylist(&["reader"])
+                .build(),
+        )
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
@@ -48,6 +57,17 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppUpdateState::default())
         .manage(ReaderWindowState::default())
+        .setup(|app| {
+            let database_state = tauri::async_runtime::block_on(database::initialize_database())
+                .map_err(io::Error::other)?;
+            app.manage(database_state);
+
+            main_window_service::create_main_window(app.handle())
+                .map_err(|error| io::Error::other(error.to_string()))?;
+            reader_window_service::precreate_reader_window(app.handle())
+                .map_err(|error| io::Error::other(error.to_string()))?;
+            Ok(())
+        })
         .invoke_handler(command::invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

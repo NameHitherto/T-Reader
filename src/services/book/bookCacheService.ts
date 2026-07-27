@@ -1,127 +1,219 @@
-import { BookFormat } from '@/types/book'
-import { epubBookCacheHandler } from '@/services/book/epub/epubCacheService'
-import { txtBookCacheHandler } from '@/services/book/txt/txtCacheService'
-import { toBookCacheFilename } from '@/services/book/bookIdentity'
-import { createDurationLogger } from '@/utils/logger'
+import { extractEpubLocations, saveEpubCoverResource } from '@/services/book/epub/epubCacheService'
 import {
-  buildLocalFilePath,
-  LOCAL_DIRS,
-  readJsonFile,
-  writeJsonFile,
+  buildBookCacheCoverAssetUrl,
+  buildBookCacheCoverPath,
+  buildBookCacheDir,
+  buildBookCacheLocationsPath,
+} from '@/services/book/bookCachePathService'
+import { saveBookLocationsCache } from '@/services/book/bookLocationsCacheService'
+import { loadBookBinary, updateBookCover } from '@/services/book/bookRepository'
+import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
+import { createDurationLogger, logInfo, logWarn } from '@/utils/logger'
+import {
+  ensureLocalDir,
+  localPathExists,
+  readBinaryFile,
+  removeLocalDir,
+  removeLocalFile,
+  writeBinaryFile,
 } from '@/services/fileSystem/localStorageService'
 
-export interface BookCachePayload {
-  title?: string
-  cover?: string
-  locations?: string
-  paragraphCount?: number
-  progress?: number
+export interface ResolveBookCoverOptions {
+  onCoverUpdated?: (book: StoredBookRecord) => void | Promise<void>
 }
 
-const normalizeBookCachePayload = (payload: Partial<BookCachePayload> & Record<string, unknown>): BookCachePayload => {
-  return {
-    title: typeof payload.title === 'string' ? payload.title : undefined,
-    cover: typeof payload.cover === 'string' ? payload.cover : undefined,
-    locations: typeof payload.locations === 'string' ? payload.locations : undefined,
-    paragraphCount:
-      typeof payload.paragraphCount === 'number' ? payload.paragraphCount : undefined,
-    progress:
-      typeof payload.progress === 'number' && Number.isFinite(payload.progress)
-        ? Math.min(100, Math.max(0, payload.progress))
-        : undefined,
-  }
-}
+const pendingCoverParseBookKeys = new Set<string>()
 
-export const getBookCacheFilename = (bookKey: string): string => {
-  return toBookCacheFilename(bookKey)
-}
-
-export const loadBookCache = async (bookKey: string): Promise<BookCachePayload | null> => {
-  const filename = getBookCacheFilename(bookKey)
-  const finishLog = createDurationLogger('book-cache-service', 'load-book-cache', {
-    fileName: filename,
-  })
-
-  try {
-    const payload = normalizeBookCachePayload(
-      await readJsonFile<Partial<BookCachePayload> & Record<string, unknown>>(
-        buildLocalFilePath(LOCAL_DIRS.cached, filename)
-      )
-    )
-    finishLog({
-      fileName: filename,
-      hit: true,
-    })
-    return payload
-  } catch (error) {
-    finishLog({
-      fileName: filename,
-      hit: false,
-    })
-    return null
-  }
-}
-
-export const saveBookCache = async (
+export const buildBookCoverUrl = async (
   bookKey: string,
-  payload: BookCachePayload
-): Promise<BookCachePayload> => {
-  const filename = getBookCacheFilename(bookKey)
-  const finishLog = createDurationLogger('book-cache-service', 'save-book-cache', {
-    fileName: filename,
-  })
-  const currentCache = (await loadBookCache(bookKey)) || {}
-  const nextCache = normalizeBookCachePayload({
-    ...currentCache,
-    ...payload,
-  })
+  coverResource?: string | null,
+): Promise<string | undefined> => {
+  if (!coverResource) {
+    return undefined
+  }
 
-  await writeJsonFile(buildLocalFilePath(LOCAL_DIRS.cached, filename), nextCache)
+  if (!(await localPathExists(await buildBookCacheCoverPath(bookKey, coverResource)))) {
+    return undefined
+  }
 
-  finishLog({
-    fileName: filename,
-    keys: Object.keys(nextCache),
-  })
-  return nextCache
+  return await buildBookCacheCoverAssetUrl(bookKey, coverResource)
 }
 
-const BOOK_CACHE_HANDLERS = {
-  epub: epubBookCacheHandler,
-  txt: txtBookCacheHandler,
-} as const
-
-export const hasRequiredBookCache = (
-  format: BookFormat,
-  cache: BookCachePayload
-): boolean => {
-  return BOOK_CACHE_HANDLERS[format].hasRequiredCache(cache)
+export const removeBookCacheDir = async (bookKey: string): Promise<void> => {
+  await removeLocalDir(await buildBookCacheDir(bookKey))
 }
 
-export const primeBookCacheAfterImport = async (
+export const saveUploadedBookCover = async (
+  bookKey: string,
+  bytes: Uint8Array,
+  extension: 'jpg' | 'png' | 'webp',
+): Promise<string> => {
+  const coverName = `cover.${extension}`
+  await ensureLocalDir(await buildBookCacheDir(bookKey))
+  await writeBinaryFile(await buildBookCacheCoverPath(bookKey, coverName), bytes)
+  return coverName
+}
+
+export const migrateBookCache = async (
+  oldBookKey: string,
+  newBookKey: string,
+  coverName?: string | null,
+): Promise<void> => {
+  if (oldBookKey === newBookKey) {
+    return
+  }
+
+  const oldDir = await buildBookCacheDir(oldBookKey)
+  const newDir = await buildBookCacheDir(newBookKey)
+  await ensureLocalDir(newDir)
+
+  const locationsPath = await buildBookCacheLocationsPath(oldBookKey)
+  if (await localPathExists(locationsPath)) {
+    await writeBinaryFile(
+      await buildBookCacheLocationsPath(newBookKey),
+      await readBinaryFile(locationsPath),
+    )
+  }
+
+  if (coverName) {
+    const oldCoverPath = await buildBookCacheCoverPath(oldBookKey, coverName)
+    if (await localPathExists(oldCoverPath)) {
+      await writeBinaryFile(
+        await buildBookCacheCoverPath(newBookKey, coverName),
+        await readBinaryFile(oldCoverPath),
+      )
+    }
+  }
+
+  await removeLocalDir(oldDir)
+}
+
+export const removeBookCoverResource = async (
+  bookKey: string,
+  coverName?: string | null,
+): Promise<void> => {
+  if (!coverName) {
+    return
+  }
+
+  await removeLocalFile(await buildBookCacheCoverPath(bookKey, coverName))
+}
+
+export const parseBookCoverInBackground = (
+  book: StoredBookRecord,
+  options: ResolveBookCoverOptions = {},
+) => {
+  if (!book.hasCover || pendingCoverParseBookKeys.has(book.bookKey)) {
+    return
+  }
+
+  pendingCoverParseBookKeys.add(book.bookKey)
+
+  void (async () => {
+    try {
+      const loadedBook = await loadBookBinary(book.bookKey)
+      if (loadedBook.format !== 'epub') {
+        const updatedBook = await updateBookCover(book.bookKey, false, null)
+        await options.onCoverUpdated?.(updatedBook)
+        return
+      }
+
+      const fileBuffer = loadedBook.bookData.buffer.slice(
+        loadedBook.bookData.byteOffset,
+        loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength,
+      ) as ArrayBuffer
+      const coverName = await saveEpubCoverResource(book.bookKey, fileBuffer)
+      const updatedBook = await updateBookCover(book.bookKey, Boolean(coverName), coverName)
+      await options.onCoverUpdated?.(updatedBook)
+      logInfo('book-cache-service', 'parse-book-cover:done', {
+        bookKey: book.bookKey,
+        hasCover: Boolean(coverName),
+        coverName,
+      })
+    } catch (error) {
+      logWarn('book-cache-service', 'parse-book-cover failed', {
+        bookKey: book.bookKey,
+        error,
+      })
+    } finally {
+      pendingCoverParseBookKeys.delete(book.bookKey)
+    }
+  })()
+}
+
+export const resolveBookCoverForDisplay = async (
+  book: StoredBookRecord,
+  defaultCover: string,
+  options: ResolveBookCoverOptions = {},
+): Promise<string> => {
+  if (!book.hasCover) {
+    return defaultCover
+  }
+
+  if (book.coverName) {
+    try {
+      const coverUrl = await buildBookCoverUrl(book.bookKey, book.coverName)
+      if (coverUrl) {
+        return coverUrl
+      }
+    } catch (error) {
+      logWarn('book-cache-service', 'resolve-book-cover-url failed', {
+        bookKey: book.bookKey,
+        coverName: book.coverName,
+        error,
+      })
+    }
+  }
+
+  parseBookCoverInBackground(book, options)
+  return defaultCover
+}
+
+export const primeBookLocationsAfterImport = async (
   bookKey: string,
   fileBuffer: ArrayBuffer,
-  format: BookFormat,
-  originalFileName: string
-): Promise<BookCachePayload> => {
-  const finishLog = createDurationLogger('book-cache-service', 'prime-book-cache-after-import', {
-    fileName: originalFileName,
-    format,
+  originalFileName: string,
+): Promise<void> => {
+  const finishLog = createDurationLogger(
+    'book-cache-service',
+    'prime-book-locations-after-import',
+    {
+      fileName: originalFileName,
+    },
+  )
+  const locationsStatus = 'building' as const
+  await saveBookLocationsCache(bookKey, {
+    status: locationsStatus,
   })
-  const currentCache = await loadBookCache(bookKey)
-  const nextPayload = await BOOK_CACHE_HANDLERS[format].buildCachePayload({
-    fileBuffer,
-    originalFileName,
-    currentCache: currentCache || {},
-  })
-  const payload = await saveBookCache(bookKey, nextPayload)
+
+  // 在后台异步生成 locations，避免阻塞导入流程
+  void (async () => {
+    try {
+      const locations = await extractEpubLocations(fileBuffer)
+      await saveBookLocationsCache(bookKey, {
+        status: 'ready',
+        locations,
+      })
+    } catch (error) {
+      logWarn('book-cache-service', 'prime-epub-locations-cache failed', {
+        fileName: originalFileName,
+        error,
+      })
+      try {
+        await saveBookLocationsCache(bookKey, {
+          status: 'failed',
+        })
+      } catch (saveError) {
+        logWarn('book-cache-service', 'mark-epub-locations-cache failed-status failed', {
+          fileName: originalFileName,
+          error: saveError,
+        })
+      }
+    }
+  })()
 
   finishLog({
     fileName: originalFileName,
-    format,
-    hasCover: Boolean(payload.cover),
-    hasLocations: Boolean(payload.locations),
-    paragraphCount: payload.paragraphCount,
-    progress: payload.progress,
+    locationsStatus,
   })
-  return payload
 }

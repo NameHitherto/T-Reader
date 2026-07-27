@@ -8,19 +8,6 @@ const normalizeIndex = (value: unknown): number => {
   return Math.max(0, Math.floor(parsed))
 }
 
-export const buildTxtProgressSnapshot = (
-  paragraphIndex: number,
-  timestamp = Date.now()
-): BookProgressSnapshot => {
-  const safeIndex = normalizeIndex(paragraphIndex)
-  return {
-    durChapterIndex: safeIndex,
-    durChapterPos: 0,
-    durChapterTitle: `paragraph-${safeIndex}`,
-    durChapterTime: timestamp,
-  }
-}
-
 export const normalizeBookConfig = (raw: Partial<BookConfig>): BookConfig => {
   return {
     name: String(raw.name || ''),

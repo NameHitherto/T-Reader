@@ -1,8 +1,8 @@
 # T-Reader
 
-T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、AI 阅读助手与应用内更新能力。
+T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、自动更新能力。
 
-![version](https://img.shields.io/badge/version-1.0.0-blue)
+![version](https://img.shields.io/badge/version-1.6.0-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 ## 核心能力
@@ -11,12 +11,27 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 书架支持列表 / 网格双视图，并展示封面、格式、最近阅读与进度
 - 独立阅读器窗口支持目录、翻页、滚动、快捷键与沉浸式阅读
 - 支持 EPUB 书签、高亮和个人笔记，笔记页可统一浏览与跳转
-- 阅读样式支持字体、字号、字重、行距、段距、页边距、栏数、翻页模式调节
-- 支持 WebDAV 云同步，云端与本地进度按时间戳择优合并
-- 支持 AI 阅读助手，可基于当前书籍内容进行问答
-- 支持缓存封面、EPUB locations、TXT 段落统计，减少重复加载开销
-- 支持应用内检查更新、下载更新并重启安装
-- 主流程带通知反馈与前后端日志，便于排查问题
+- 阅读界面清爽简洁，书籍字体可选择Windows系统内置字体
+- 阅读样式支持字号、字重、行距、段距、页边距、栏数、翻页模式调节
+- 支持 WebDAV 云同步，目前已适配第三方开源移动端阅读器Legado
+- 支持应用内检查更新、下载更新
+
+## UI界面预览
+
+### 书架
+
+![书架](./docs/images/bookshelf.png)
+
+### 书架（列表模式）
+
+![书架列表视图](./docs/images/listview.png)
+
+### 阅读器与样式设置
+
+![阅读器与样式设置](./docs/images/reader.jpg)
+
+### 云同步
+![云同步](./docs/images/webdav.png)
 
 ## 技术栈
 
@@ -25,14 +40,15 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 后端：`Rust`
 - 状态管理：`Pinia`
 - UI：`Element Plus`
-- 阅读引擎：二次开发的 [`libs/epub.js`](./libs/epub.js)
+- 阅读引擎：二次开发的 [`libs/epub.js`](https://github.com/NameHitherto/epub.js)
 
 ## 项目结构
 
 ```text
 T-Reader/
 ├─ src/                  # Vue 前端
-│  ├─ components/        # 主窗口、阅读器与弹窗组件
+│  ├─ views/             # App 主窗口路由视图组件
+│  ├─ components/        # 可复用组件、阅读器组件与弹窗
 │  ├─ types/             # 共享类型定义
 │  ├─ utils/             # 通用工具
 │  ├─ services/          # book / reader / fileSystem / notification
@@ -74,7 +90,7 @@ T-Reader/
 ## 开发环境
 
 - `Rust 1.89.0`
-- 主项目 `Node.js v22.17.1`
+- 主项目建议使用最新稳定版 `Node.js v24`
 - `libs/epub.js` 建议使用 `Node.js v16.20.2`
 
 开始前请先确认本机已满足 Tauri 官方前置环境要求：
@@ -119,57 +135,11 @@ npm run build
 npm run preview
 npm run tauri dev
 npm run tauri build
-npm run release -- v1.0.1
+node scripts/bump-version.js --tag v1.7.0
+node scripts/bump-version.js --tag v1.7.0 --branch develop
 ```
-
-`npm run release` 只会更新并推送 `release` 分支，不再操作 `develop` 分支。
-
-## 开发说明
-
-- 主窗口入口：`index.html` + `src/main.ts`
-- 阅读器入口：`reader.html` + `src/readerMain.ts`
-- 主窗口路由：
-  - `/` 书架
-  - `/bookmark` 笔记
-  - `/about` 关于 / 更新
-  - `/experiment` 实验页占位
-- 阅读器窗口事件统一定义在 `src/constants/events.ts`
-- 窗口标题栏初始化位于 `src/services/window/windowTitlebarService.ts`
-
-## 常见问题
-
-### 1. 开发端口冲突
-
-若启动时出现 `1420` 端口占用，需要同时修改：
-
-- `vite.config.ts`
-- `src-tauri/tauri.conf.json` 中的 `devUrl`
-
-### 2. Rust 下载慢
-
-可先配置镜像源：
-
-```bash
-$env:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
-```
-
-### 3. 子模块依赖安装异常
-
-若 `libs/epub.js` 安装依赖时遇到 `phantomjs` 下载失败，可尝试：
-
-```bash
-$env:PHANTOMJS_CDNURL='https://npmmirror.com/mirrors/phantomjs'
-npm install
-```
-
-## 相关文档
-
-- [项目全景摘要](./docs/PROJECT_OVERVIEW.md)
-- [模块架构规范](./docs/module-architecture-spec.md)
-- [图标管理规范](./docs/icon-management-spec.md)
-- [发布说明](./RELEASE_NOTES.md)
 
 ## 相关仓库
 
 - 桌面端仓库：https://github.com/NameHitherto/T-Reader
-- 移动端仓库：https://github.com/NameHitherto/T-Reader-Mobile
+- ~~移动端仓库：https://github.com/NameHitherto/T-Reader-Mobile~~

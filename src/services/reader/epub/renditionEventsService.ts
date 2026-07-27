@@ -1,95 +1,34 @@
-interface ReaderContextMenuItem {
-  label: string
-  type?: string
-  onClick?: () => void
-}
+import type { EpubContentsLike, EpubLocationLike, EpubRenditionLike } from '@/types/epub'
 
 interface BindRenditionEventsArgs {
-  onRelocated: (location: any) => void
+  onRelocated: (location: EpubLocationLike) => void
   onSelected: (cfiRange: string, selectedText: string) => void
-  onKeyNavigatePrev: () => void
-  onKeyNavigateNext: () => void
-  onToggleFullscreen: () => void
-  onReaderClick: () => void
   onMarkClicked: (markId: string) => void
-  openContextMenu: (x: number, y: number, menuItems: ReaderContextMenuItem[]) => void
-  buildContextMenuItems: () => ReaderContextMenuItem[]
 }
 
-export const bindRenditionEvents = (rendition: any, args: BindRenditionEventsArgs) => {
+export const bindRenditionEvents = (
+  rendition: EpubRenditionLike | null,
+  args: BindRenditionEventsArgs,
+) => {
   if (!rendition) {
     return
   }
 
-  rendition.on('relocated', (location: any) => {
-    args.onRelocated(location)
+  rendition.on('relocated', (location: unknown) => {
+    args.onRelocated(location as EpubLocationLike)
   })
 
-  rendition.on('selected', (cfiRange: string, contents: any) => {
-    const selectedText = contents.window.getSelection().toString()
-    args.onSelected(cfiRange, selectedText)
+  rendition.on('selected', (cfiRange: unknown, contents: unknown) => {
+    const cfi = typeof cfiRange === 'string' ? cfiRange : ''
+    const readerContents = contents as EpubContentsLike
+    const selectedText = readerContents.window.getSelection()?.toString() || ''
+    args.onSelected(cfi, selectedText)
   })
 
-  rendition.on('keydown', (event: KeyboardEvent) => {
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      args.onKeyNavigatePrev()
-    } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      args.onKeyNavigateNext()
-    } else if (event.key === 'F11') {
-      args.onToggleFullscreen()
+  rendition.on('markClicked', (_cfiRange: unknown, data: unknown) => {
+    const markId = (data as { markId?: string })?.markId
+    if (markId) {
+      args.onMarkClicked(markId)
     }
-  })
-
-  rendition.on('click', () => {
-    args.onReaderClick()
-  })
-
-  rendition.on('markClicked', (_cfiRange: string, data: any) => {
-    args.onMarkClicked(data.markId)
-  })
-
-  rendition.hooks.content.register((contents: any) => {
-    contents.document.addEventListener('contextmenu', (event: PointerEvent) => {
-      event.preventDefault()
-      const selection = contents.window.getSelection()
-      if (!selection.toString()) {
-        return
-      }
-
-      const range = selection.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-      if (
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom
-      ) {
-        return
-      }
-
-      const iframeWindow = contents.window
-      let targetIframe: HTMLIFrameElement | null = null
-      const iframes = document.querySelectorAll('iframe')
-
-      for (let i = 0; i < iframes.length; i++) {
-        const iframe = iframes[i] as HTMLIFrameElement
-        if (iframe.contentWindow === iframeWindow) {
-          targetIframe = iframe
-          break
-        }
-      }
-
-      if (!targetIframe) {
-        return
-      }
-
-      const iframeRect = targetIframe.getBoundingClientRect()
-      const absoluteX = iframeRect.left + event.clientX
-      const absoluteY = iframeRect.top + event.clientY
-
-      args.openContextMenu(absoluteX, absoluteY, args.buildContextMenuItems())
-    })
-
-    return contents
   })
 }

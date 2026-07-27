@@ -1,12 +1,10 @@
+import { invoke } from '@tauri-apps/api/core'
 import { logWarn } from '@/utils/logger'
-import {
-  buildLocalFilePath,
-  LOCAL_DIRS,
-  readJsonFile,
-  writeJsonFile,
-} from '@/services/fileSystem/localStorageService'
+import { MODEL_PURPOSES } from '@/types/model'
+import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/types/model'
 
 export type AppThemeMode = 'light' | 'dark'
+export type UpdateChannel = 'stable' | 'preview'
 
 export interface AppSettings {
   webdavUrlRoot: string
@@ -14,15 +12,44 @@ export interface AppSettings {
   webdavUrl: string
   webdavUser: string
   webdavPass: string
-  isAiEnabled: string
-  modelName: string
-  modelUrl: string
-  modelApiKey: string
+  modelProviders: ModelProviderMap
   themeMode: AppThemeMode
+  updateChannel: UpdateChannel
 }
 
 export const normalizeAppThemeMode = (value: unknown): AppThemeMode => {
   return value === 'dark' ? 'dark' : 'light'
+}
+
+export const normalizeUpdateChannel = (value: unknown): UpdateChannel => {
+  return value === 'preview' ? 'preview' : 'stable'
+}
+
+const emptyModelProviders = (): ModelProviderMap => ({
+  chat: null,
+  image: null,
+  embedding: null,
+  rerank: null,
+})
+
+const normalizeModelProviders = (value: unknown): ModelProviderMap => {
+  const providers = emptyModelProviders()
+  if (!value || typeof value !== 'object') {
+    return providers
+  }
+
+  const rawProviders = value as Partial<Record<ModelPurpose, ModelProvider | null>>
+  for (const purpose of MODEL_PURPOSES) {
+    providers[purpose] = rawProviders[purpose] ?? null
+  }
+
+  return providers
+}
+
+const compactModelProviders = (providers: ModelProviderMap) => {
+  return Object.fromEntries(
+    Object.entries(providers).filter(([, provider]) => provider !== null),
+  ) as Partial<Record<ModelPurpose, ModelProvider>>
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -31,28 +58,27 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   webdavUrl: '',
   webdavUser: '',
   webdavPass: '',
-  isAiEnabled: 'false',
-  modelName: '',
-  modelUrl: '',
-  modelApiKey: '',
+  modelProviders: emptyModelProviders(),
   themeMode: 'light',
+  updateChannel: 'stable',
 }
 
 export const normalizeAppSettings = (
-  settings: Partial<AppSettings> | null | undefined
+  settings: Partial<AppSettings> | null | undefined,
 ): AppSettings => {
   return {
     ...DEFAULT_APP_SETTINGS,
     ...(settings || {}),
     themeMode: normalizeAppThemeMode(settings?.themeMode),
+    updateChannel: normalizeUpdateChannel(settings?.updateChannel),
+    modelProviders: normalizeModelProviders(settings?.modelProviders),
   }
 }
 
 export const loadAppSettings = async (): Promise<AppSettings> => {
   try {
-    const loadedSettings = await readJsonFile<Partial<AppSettings>>(
-      buildLocalFilePath(LOCAL_DIRS.system, 'setting.json')
-    )
+    const loadedSettings = await invoke<Partial<AppSettings>>('load_app_settings')
+
     return normalizeAppSettings(loadedSettings)
   } catch (error) {
     logWarn('appSettings', '加载应用设置失败，已回退到默认设置', error)
@@ -62,27 +88,19 @@ export const loadAppSettings = async (): Promise<AppSettings> => {
 
 export const saveAppSettings = async (settings: Partial<AppSettings>) => {
   const entries = Object.entries(settings).filter(([, value]) => value !== undefined)
-  const payload = Object.fromEntries(entries) as Partial<AppSettings>
+  const payload: Record<string, unknown> = Object.fromEntries(entries)
 
   if ('themeMode' in payload) {
     payload.themeMode = normalizeAppThemeMode(payload.themeMode)
   }
 
-  let currentSettings: Record<string, unknown> = {}
-
-  try {
-    currentSettings = await readJsonFile<Record<string, unknown>>(
-      buildLocalFilePath(LOCAL_DIRS.system, 'setting.json')
-    )
-  } catch (error) {
-    currentSettings = {}
+  if ('updateChannel' in payload) {
+    payload.updateChannel = normalizeUpdateChannel(payload.updateChannel)
   }
 
-  await writeJsonFile(
-    buildLocalFilePath(LOCAL_DIRS.system, 'setting.json'),
-    {
-      ...currentSettings,
-      ...payload,
-    }
-  )
+  if ('modelProviders' in payload) {
+    payload.modelProviders = compactModelProviders(normalizeModelProviders(payload.modelProviders))
+  }
+
+  await invoke<AppSettings>('save_app_settings', { request: payload })
 }

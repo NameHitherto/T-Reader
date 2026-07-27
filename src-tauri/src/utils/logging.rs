@@ -45,7 +45,7 @@ pub fn log_error(scope: &str, message: &str) {
 }
 
 pub fn start_timer(scope: &str, message: &str) -> Instant {
-    log_info(scope, &format!("{}:start", message));
+    log_info(scope, &format!("══════════ {}:start ═════════", message));
     Instant::now()
 }
 
@@ -56,7 +56,7 @@ pub fn finish_timer(scope: &str, message: &str, started_at: Instant) {
         build_scoped_message(
             "n/a",
             scope,
-            &format!("{}:done durationMs={}", message, started_at.elapsed().as_millis()),
+            &format!("══════════ {}:done ═════════ durationMs={} ═════════", message, started_at.elapsed().as_millis()),
         )
     );
 }

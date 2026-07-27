@@ -12,11 +12,12 @@ export const formatDateToNumber = (date: string) => {
   const dateArr = date.split(' ')
   const [year, month, day] = dateArr[0].split('-')
   const [hours, minutes] = dateArr[1].split(':')
+
   return new Date(
     Number(year),
     Number(month) - 1,
     Number(day),
     Number(hours),
-    Number(minutes)
+    Number(minutes),
   ).getTime()
 }

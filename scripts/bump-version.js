@@ -1,20 +1,96 @@
 import fs from 'fs'
 import path from 'path'
-import { execSync } from 'child_process'
+import { execFileSync, execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const RELEASE_BRANCH = 'release'
+const DEFAULT_RELEASE_BRANCH = 'release'
+const SEMVER_TAG_PATTERN =
+  /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
 
-const versionArg = process.argv[2]
-if (!versionArg) {
-  console.error('Please specify a version, e.g. npm run release -- v1.0.1')
-  process.exit(1)
+const printUsage = () => {
+  console.log('Usage: npm run release -- --tag <tag> [--branch <branch>]')
+  console.log('Example: npm run release -- --tag v2.0.0-rc --branch develop/2.0.0')
 }
 
-const cleanVersion = versionArg.replace(/^v/, '')
-const tagName = `v${cleanVersion}`
+const parseArgs = (args) => {
+  let branchName = DEFAULT_RELEASE_BRANCH
+  let tagName
+  let branchSpecified = false
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+
+    if (arg === '--help' || arg === '-h') {
+      printUsage()
+      process.exit(0)
+    }
+
+    if (arg === '--branch' || arg.startsWith('--branch=')) {
+      if (branchSpecified) {
+        throw new Error('--branch can only be specified once.')
+      }
+
+      branchSpecified = true
+      const inlineValue = arg.startsWith('--branch=') ? arg.slice('--branch='.length) : undefined
+      const nextValue = args[index + 1]
+      if (inlineValue !== undefined) {
+        branchName = inlineValue || DEFAULT_RELEASE_BRANCH
+      } else if (nextValue && !nextValue.startsWith('--')) {
+        branchName = nextValue
+        index += 1
+      }
+      continue
+    }
+
+    if (arg === '--tag' || arg.startsWith('--tag=')) {
+      if (tagName !== undefined) {
+        throw new Error('--tag can only be specified once.')
+      }
+
+      const inlineValue = arg.startsWith('--tag=') ? arg.slice('--tag='.length) : undefined
+      const nextValue = args[index + 1]
+      if (inlineValue !== undefined) {
+        tagName = inlineValue
+      } else if (nextValue && !nextValue.startsWith('--')) {
+        tagName = nextValue
+        index += 1
+      } else {
+        throw new Error('--tag requires a value.')
+      }
+      continue
+    }
+
+    throw new Error(`Unknown argument: ${arg}`)
+  }
+
+  if (!tagName) {
+    throw new Error('Please specify a tag, e.g. npm run release -- --tag v2.0.0')
+  }
+
+  if (!SEMVER_TAG_PATTERN.test(tagName)) {
+    throw new Error(`Invalid tag '${tagName}'. Expected a semantic version prefixed with 'v'.`)
+  }
+
+  return { branchName, tagName }
+}
+
+const getReleaseOptions = () => {
+  try {
+    return parseArgs(process.argv.slice(2))
+  } catch (error) {
+    console.error('Release script failed.')
+    if (error instanceof Error && error.message) {
+      console.error(error.message)
+    }
+    printUsage()
+    process.exit(1)
+  }
+}
+
+const { branchName, tagName } = getReleaseOptions()
+const cleanVersion = tagName.slice(1)
 
 const run = (command, options = {}) => {
   execSync(command, {
@@ -28,6 +104,29 @@ const runText = (command, options = {}) => {
     encoding: 'utf8',
     ...options,
   }).trim()
+}
+
+const runGit = (args, options = {}) => {
+  execFileSync('git', args, {
+    stdio: 'inherit',
+    ...options,
+  })
+}
+
+const runGitText = (args, options = {}) => {
+  return execFileSync('git', args, {
+    encoding: 'utf8',
+    ...options,
+  }).trim()
+}
+
+const validateGitRefs = () => {
+  try {
+    execFileSync('git', ['check-ref-format', '--branch', branchName], { stdio: 'pipe' })
+    execFileSync('git', ['check-ref-format', `refs/tags/${tagName}`], { stdio: 'pipe' })
+  } catch {
+    throw new Error(`Invalid branch or tag name: branch='${branchName}', tag='${tagName}'.`)
+  }
 }
 
 const updateJsonVersion = (filePath) => {
@@ -49,7 +148,7 @@ const updateVersions = () => {
   const cargoToml = fs.readFileSync(cargoTomlPath, 'utf8')
   const updatedCargoToml = cargoToml.replace(
     /^version\s*=\s*".*?"$/m,
-    `version = "${cleanVersion}"`
+    `version = "${cleanVersion}"`,
   )
 
   if (cargoToml === updatedCargoToml) {
@@ -69,27 +168,19 @@ const syncLocks = () => {
 }
 
 const ensureReleaseBranch = () => {
-  const currentBranch = runText('git branch --show-current')
-  if (currentBranch === RELEASE_BRANCH) {
-    console.log(`Already on '${RELEASE_BRANCH}' branch.`)
+  const currentBranch = runGitText(['branch', '--show-current'])
+  if (currentBranch === branchName) {
+    console.log(`Already on '${branchName}' branch.`)
     return
   }
 
-  console.log(`Switching from '${currentBranch}' to '${RELEASE_BRANCH}'...`)
-  run(`git checkout ${RELEASE_BRANCH}`)
+  console.log(`Switching from '${currentBranch || 'detached HEAD'}' to '${branchName}'...`)
+  runGit(['checkout', branchName])
 }
 
 const ensureTagDoesNotExist = () => {
-  try {
-    runText(`git rev-parse --verify ${tagName}`)
+  if (runGitText(['tag', '--list', tagName]) === tagName) {
     throw new Error(`Tag ${tagName} already exists locally.`)
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === `Tag ${tagName} already exists locally.`
-    ) {
-      throw error
-    }
   }
 }
 
@@ -102,19 +193,20 @@ const commitRelease = () => {
     return false
   }
 
-  run(`git commit -m "release: ${tagName}"`)
+  runGit(['commit', '-m', `release: ${tagName}`])
   return true
 }
 
 const pushRelease = () => {
-  run(`git tag ${tagName}`)
-  run(`git push origin ${RELEASE_BRANCH}`)
-  run(`git push origin ${tagName}`)
+  runGit(['tag', tagName])
+  runGit(['push', 'origin', branchName])
+  runGit(['push', 'origin', tagName])
 }
 
 const main = () => {
-  console.log(`Preparing ${tagName} on '${RELEASE_BRANCH}' branch...`)
+  console.log(`Preparing ${tagName} on '${branchName}' branch...`)
 
+  validateGitRefs()
   ensureReleaseBranch()
   ensureTagDoesNotExist()
   updateVersions()
@@ -124,11 +216,13 @@ const main = () => {
   pushRelease()
 
   if (hasCommit) {
-    console.log(`Release ${tagName} committed and pushed from '${RELEASE_BRANCH}'.`)
+    console.log(`Release ${tagName} committed and pushed from '${branchName}'.`)
     return
   }
 
-  console.log(`No new commit was needed. Existing '${RELEASE_BRANCH}' state was tagged and pushed as ${tagName}.`)
+  console.log(
+    `No new commit was needed. Existing '${branchName}' state was tagged and pushed as ${tagName}.`,
+  )
 }
 
 try {

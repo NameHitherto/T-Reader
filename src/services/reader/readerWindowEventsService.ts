@@ -2,52 +2,51 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { normalizeAppThemeMode, type AppThemeMode } from '@/services/settings/appSettingsService'
-import type { ReaderLoadPayload } from '@/services/reader/readerWindowBridgeService'
+import type {
+  PrepareBookDeletePayload,
+  ReaderLoadPayload,
+} from '@/services/reader/readerWindowBridgeService'
 
 interface RegisterReaderWindowEventsArgs {
   onLoadBookKey: (event: { payload: ReaderLoadPayload }) => Promise<void> | void
+  onPrepareBookDelete: (event: { payload: PrepareBookDeletePayload }) => Promise<void> | void
   onShowBookInfo: () => void
-  onShowAssistant: () => void
   onShowHelp: () => void
   onUpdateAppTheme: (mode: AppThemeMode) => Promise<void> | void
   onUpdateReaderStyle: () => Promise<void> | void
+  onWindowHide: () => Promise<void>
   onCloseRequested: () => Promise<void>
 }
 
 interface ReaderWindowEventUnlisteners {
   unlistenBook: UnlistenFn
+  unlistenPrepareBookDelete: UnlistenFn
   unlistenStyle: UnlistenFn
   unlistenTheme: UnlistenFn
+  unlistenWindowHide: UnlistenFn
   unlistenClose: UnlistenFn
   unlistenShowBookInfo: UnlistenFn
-  unlistenShowAssistant: UnlistenFn
   unlistenShowHelp: UnlistenFn
 }
 
 export const registerReaderWindowEvents = async (
-  args: RegisterReaderWindowEventsArgs
+  args: RegisterReaderWindowEventsArgs,
 ): Promise<ReaderWindowEventUnlisteners> => {
   const unlistenBook = await listen<ReaderLoadPayload>(
     WINDOW_EVENTS.LOAD_BOOK_KEY,
-    args.onLoadBookKey
+    args.onLoadBookKey,
   )
-  const unlistenShowBookInfo = await listen(
-    WINDOW_EVENTS.SHOW_BOOK_INFO,
-    args.onShowBookInfo
+  const unlistenPrepareBookDelete = await listen<PrepareBookDeletePayload>(
+    WINDOW_EVENTS.PREPARE_BOOK_DELETE,
+    args.onPrepareBookDelete,
   )
-  const unlistenShowAssistant = await listen(
-    WINDOW_EVENTS.SHOW_ASSISTANT,
-    args.onShowAssistant
-  )
+  const unlistenShowBookInfo = await listen(WINDOW_EVENTS.SHOW_BOOK_INFO, args.onShowBookInfo)
   const unlistenShowHelp = await listen(WINDOW_EVENTS.SHOW_HELP, args.onShowHelp)
-  const unlistenTheme = await listen<{ mode?: string }>(
-    WINDOW_EVENTS.UPDATE_APP_THEME,
-    (event) => args.onUpdateAppTheme(normalizeAppThemeMode(event.payload?.mode))
+  const unlistenTheme = await listen<{ mode?: string }>(WINDOW_EVENTS.UPDATE_APP_THEME, (event) =>
+    args.onUpdateAppTheme(normalizeAppThemeMode(event.payload?.mode)),
   )
-  const unlistenStyle = await listen(
-    WINDOW_EVENTS.UPDATE_READER_STYLE,
-    args.onUpdateReaderStyle
-  )
+  const unlistenStyle = await listen(WINDOW_EVENTS.UPDATE_READER_STYLE, args.onUpdateReaderStyle)
+  const unlistenWindowHide = await listen(WINDOW_EVENTS.READER_WINDOW_HIDE, args.onWindowHide)
 
   const unlistenClose = await getCurrentWindow().onCloseRequested(async () => {
     await args.onCloseRequested()
@@ -55,11 +54,12 @@ export const registerReaderWindowEvents = async (
 
   return {
     unlistenBook,
+    unlistenPrepareBookDelete,
     unlistenStyle,
     unlistenTheme,
+    unlistenWindowHide,
     unlistenClose,
     unlistenShowBookInfo,
-    unlistenShowAssistant,
     unlistenShowHelp,
   }
 }

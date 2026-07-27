@@ -81,7 +81,13 @@
   }
 }
 
-.el-button:not(.is-text):not(.is-link):not(.el-button--primary):not(.el-button--danger):not(.el-button--success) {
+.el-button + .el-button {
+  margin-left: 0;
+}
+
+.el-button:not(.is-text):not(.is-link):not(.el-button--primary):not(.el-button--danger):not(
+    .el-button--success
+  ) {
   border-color: var(--border-emphasis);
   background: var(--surface-strong);
   color: var(--text-secondary);
@@ -116,7 +122,9 @@
 
 .el-input-number {
   overflow: hidden;
-  box-shadow: 0 0 0 1px var(--border-default) inset, var(--shadow-sm) !important;
+  box-shadow:
+    0 0 0 1px var(--border-default) inset,
+    var(--shadow-sm) !important;
 }
 
 .el-input-number__decrease,

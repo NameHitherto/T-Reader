@@ -1,10 +1,6 @@
 <template>
   <span class="app-icon" :style="wrapperStyle" :aria-label="ariaLabel">
-    <span
-      v-if="icon.mode === 'mask'"
-      class="app-icon-mask"
-      :style="maskStyle"
-    />
+    <span v-if="icon.mode === 'mask'" class="app-icon-mask" :style="maskStyle" />
     <img v-else class="app-icon-img" :src="icon.src" :alt="ariaLabel || 'icon'" />
   </span>
 </template>

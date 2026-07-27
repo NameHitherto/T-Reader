@@ -27,8 +27,17 @@ dist-ssr
 # .trae
 .trae
 
+# .codex
+.codex
+AGENTS.md
+
 # .claude
 .claude
+CLAUDE.md
+docs/superpowers
+
+# .deepseek
+.deepseek
 
 # agent plan
 plan

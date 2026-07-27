@@ -11,9 +11,7 @@ interface BuildContextMenuArgs {
   theme?: 'light' | 'dark'
 }
 
-export const buildContextMenuData = (
-  args: BuildContextMenuArgs
-): ContextMenuData => {
+export const buildContextMenuData = (args: BuildContextMenuArgs): ContextMenuData => {
   const {
     x,
     y,

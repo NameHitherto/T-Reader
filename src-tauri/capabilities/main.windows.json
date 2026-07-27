@@ -1,0 +1,102 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-windows",
+  "description": "Windows-only capability for the main bookshelf window",
+  "windows": [
+    "main"
+  ],
+  "platforms": [
+    "windows"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-create",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "core:window:allow-hide",
+    "core:window:allow-set-size",
+    "core:window:allow-show",
+    "core:window:allow-start-dragging",
+    "core:webview:allow-create-webview",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-set-webview-size",
+    "core:webview:allow-webview-close",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "shell:allow-open",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-remove",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "window-state:default",
+    "window-state:allow-restore-state",
+    "window-state:allow-save-window-state",
+    "log:default",
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader"
+        },
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader"
+        },
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        {
+          "path": "$DOCUMENT/T-Reader"
+        },
+        {
+          "path": "$DOCUMENT/T-Reader/**"
+        }
+      ]
+    },
+    "dialog:default",
+    "os:default",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install"
+  ]
+}

@@ -1,9 +1,5 @@
 <template>
-  <div
-    ref="menuElement"
-    class="menu"
-    :style="menuStyle"
-  >
+  <div ref="menuElement" class="menu" :style="menuStyle">
     <div class="menu-hero">
       <div class="menu-title">阅读样式</div>
       <div class="menu-theme">
@@ -65,11 +61,7 @@
     </div>
 
     <div class="basic-section section">
-      <div
-        v-for="(setting, index) in settings"
-        :key="index"
-        class="adjust-option"
-      >
+      <div v-for="(setting, index) in settings" :key="index" class="adjust-option">
         <label>{{ setting.label }}</label>
         <el-input-number
           v-model="setting.value"
@@ -96,11 +88,20 @@
           @change="switchFlow"
         />
       </div>
+      <div class="epub-stylesheet-option">
+        <label>EPUB 内置样式</label>
+        <BubbleToggle
+          v-model="epubBuiltInStylesheet"
+          class="style-menu-epub-stylesheet-toggle"
+          :options="epubBuiltInStylesheetOptions"
+          aria-label="EPUB 内置样式切换"
+          @change="switchEpubBuiltInStylesheet"
+        />
+      </div>
+      <p class="epub-stylesheet-tip">切换后在下次打开书籍时生效</p>
     </div>
 
-    <button class="menu-reset-button app-secondary-button" @click="resetStyle">
-      恢复默认样式
-    </button>
+    <button class="menu-reset-button app-secondary-button" @click="resetStyle">恢复默认样式</button>
   </div>
 </template>
 
@@ -166,6 +167,7 @@ export default defineComponent({
   emits: ['open-font-dialog'],
   setup(props, { emit }) {
     type ReaderFlowToggleValue = 'paginated' | 'scrolled'
+    type EpubBuiltInStylesheetToggleValue = 'disabled' | 'enabled'
 
     const readerConfigStore = useReaderConfigStore()
     const { readerConfig } = storeToRefs(readerConfigStore)
@@ -268,17 +270,36 @@ export default defineComponent({
     const normalizeFlowToggleValue = (value: string): ReaderFlowToggleValue => {
       return value === 'paginated' ? 'paginated' : 'scrolled'
     }
+    const normalizeEpubBuiltInStylesheetToggleValue = (
+      value: boolean,
+    ): EpubBuiltInStylesheetToggleValue => {
+      return value ? 'enabled' : 'disabled'
+    }
+    const resolveEpubBuiltInStylesheetToggleValue = (
+      value?: EpubBuiltInStylesheetToggleValue,
+    ): boolean => {
+      return value === 'enabled'
+    }
 
     const flowOptions = [
       { label: '分页翻页', value: 'paginated' },
       { label: '滚动翻页', value: 'scrolled' },
     ] as { label: string; value: ReaderFlowToggleValue }[]
+    const epubBuiltInStylesheetOptions = [
+      { label: '关闭', value: 'disabled' },
+      { label: '开启', value: 'enabled' },
+    ] as { label: string; value: EpubBuiltInStylesheetToggleValue }[]
 
     const currentThemeMode = computed<AppThemeMode>(() => {
       return props.themeMode || getAppliedAppThemeMode()
     })
     const flow = ref<ReaderFlowToggleValue>(normalizeFlowToggleValue(readerConfig.value.flow))
-    const fontOptions = computed(() => buildReaderFontOptions(readerConfig.value.enabledSystemFonts))
+    const epubBuiltInStylesheet = ref<EpubBuiltInStylesheetToggleValue>(
+      normalizeEpubBuiltInStylesheetToggleValue(readerConfig.value.loadEpubBuiltInStylesheet),
+    )
+    const fontOptions = computed(() =>
+      buildReaderFontOptions(readerConfig.value.enabledSystemFonts),
+    )
     const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
     const themeModeLabel = computed(() => {
       return currentThemeMode.value === 'dark' ? '黑夜模式' : '白天模式'
@@ -306,6 +327,9 @@ export default defineComponent({
       })
       selectedFont.value = readerConfig.value.font
       flow.value = normalizeFlowToggleValue(readerConfig.value.flow)
+      epubBuiltInStylesheet.value = normalizeEpubBuiltInStylesheetToggleValue(
+        readerConfig.value.loadEpubBuiltInStylesheet,
+      )
     }
 
     const emitStyleApplication = () => {
@@ -313,7 +337,7 @@ export default defineComponent({
     }
 
     const buildBackgroundPresetsForCurrentTheme = (
-      preset: ReaderBackgroundPreset
+      preset: ReaderBackgroundPreset,
     ): ReaderBackgroundPresets => {
       if (currentThemeMode.value === 'dark') {
         return {
@@ -330,7 +354,7 @@ export default defineComponent({
 
     const syncCurrentThemeCompatColors = () => {
       readerConfigStore.setReaderConfig(
-        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value)
+        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value),
       )
     }
 
@@ -353,7 +377,7 @@ export default defineComponent({
     const selectBackgroundPreset = (preset: ReaderBackgroundPreset) => {
       readerConfigStore.changeState(
         'backgroundPresets',
-        buildBackgroundPresetsForCurrentTheme(preset)
+        buildBackgroundPresetsForCurrentTheme(preset),
       )
       syncCurrentThemeCompatColors()
       emitStyleApplication()
@@ -374,6 +398,11 @@ export default defineComponent({
       readerConfigStore.changeState('flow', nextFlow)
       emitStyleApplication()
     }
+    const switchEpubBuiltInStylesheet = (value?: EpubBuiltInStylesheetToggleValue) => {
+      const enabled = resolveEpubBuiltInStylesheetToggleValue(value || epubBuiltInStylesheet.value)
+      epubBuiltInStylesheet.value = normalizeEpubBuiltInStylesheetToggleValue(enabled)
+      readerConfigStore.changeState('loadEpubBuiltInStylesheet', enabled)
+    }
 
     const adjustSetting = (key: NumericSettingKey, value: number) => {
       readerConfigStore.changeState(key, value)
@@ -389,7 +418,7 @@ export default defineComponent({
       () => readerConfig.value.font,
       (font) => {
         selectedFont.value = font
-      }
+      },
     )
 
     return {
@@ -397,6 +426,8 @@ export default defineComponent({
       adjustSetting,
       backgroundPresetOptions,
       enabledFontCount,
+      epubBuiltInStylesheet,
+      epubBuiltInStylesheetOptions,
       flow,
       flowOptions,
       fontOptions,
@@ -410,6 +441,7 @@ export default defineComponent({
       selectedFont,
       settings,
       switchFlow,
+      switchEpubBuiltInStylesheet,
       themeModeLabel,
     }
   },
@@ -635,6 +667,38 @@ label {
         --bubble-toggle-text: var(--text-secondary);
         --bubble-toggle-active-text: var(--brand-primary);
       }
+    }
+
+    .epub-stylesheet-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+
+      label {
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .style-menu-epub-stylesheet-toggle {
+        --bubble-toggle-shell-padding: 5px 10px;
+        --bubble-toggle-shell-bg: var(--surface-brand-gradient);
+        --bubble-toggle-shell-border: var(--border-brand);
+        --bubble-toggle-shell-shadow: var(--shadow-xs);
+        --bubble-toggle-focus-ring: var(--ring-brand-soft);
+        --bubble-toggle-font-size: 12px;
+        --bubble-toggle-font-weight: 700;
+        --bubble-toggle-text: var(--text-secondary);
+        --bubble-toggle-active-text: var(--brand-primary);
+      }
+    }
+
+    .epub-stylesheet-tip {
+      margin: 8px 0 0;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 1.4;
     }
   }
 

@@ -69,11 +69,8 @@
 <script>
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
-import {
-  ensureBookCache,
-  loadBookBinary,
-  loadBookConfig,
-} from '@/services/book/bookRepository'
+import { getStoredBookByKey, loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
+import { resolveBookCoverForDisplay } from '@/services/book/bookCacheService'
 import { logWarn } from '@/utils/logger'
 
 export default {
@@ -123,10 +120,16 @@ export default {
       this.resetFields()
 
       const bookConfig = await loadBookConfig(this.bookKey)
-      const bookCache = await ensureBookCache(this.bookKey)
-      this.bookCover = bookCache?.cover || this.defaultCover
+      const storedBook = await getStoredBookByKey(this.bookKey)
+      this.bookCover = storedBook
+        ? await resolveBookCoverForDisplay(storedBook, this.defaultCover, {
+            onCoverUpdated: async (book) => {
+              this.bookCover = await resolveBookCoverForDisplay(book, this.defaultCover)
+            },
+          })
+        : this.defaultCover
       this.creator = bookConfig.author || ''
-      this.title = bookCache?.title || ''
+      this.title = storedBook?.title || bookConfig.name || ''
 
       const loadedBook = await loadBookBinary(this.bookKey)
       if (loadedBook.format !== 'epub') {
@@ -135,13 +138,11 @@ export default {
 
       const arrayBuffer = loadedBook.bookData.buffer.slice(
         loadedBook.bookData.byteOffset,
-        loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength
+        loadedBook.bookData.byteOffset + loadedBook.bookData.byteLength,
       )
       const epub = ePub(arrayBuffer)
 
       try {
-        const cover = await epub.coverUrl()
-        this.bookCover = cover ?? this.bookCover
         const metadata = await epub.loaded.metadata
         this.creator = metadata.creator || this.creator
         this.description = metadata.description || ''

@@ -15,7 +15,7 @@
               <div class="col col-desc">功能</div>
               <div class="col col-keys">快捷键</div>
             </div>
-            <div class="row" v-for="item in groupedShortcuts" :key="item.description">
+            <div v-for="item in groupedShortcuts" :key="item.description" class="row">
               <div class="col col-desc">{{ item.description }}</div>
               <div class="col col-keys">
                 <template v-for="(variant, vi) in item.variants" :key="vi">
@@ -45,9 +45,7 @@
             <div class="font-panel-head">
               <div class="font-panel-copy">
                 <div class="font-panel-subtitle">当前可在样式菜单中选择的系统字体</div>
-                <div class="font-panel-description">
-                  没有启用时，阅读器只会使用系统默认 Serif。
-                </div>
+                <div class="font-panel-description">没有启用时，阅读器只会使用系统默认 Serif。</div>
               </div>
               <el-button class="font-panel-button" @click="fontDialogVisible = true">
                 自定义系统字体
@@ -103,7 +101,6 @@ export default defineComponent({
       { description: '下一页', key: ['↓'] },
       { description: '下一页', key: ['→'] },
       { description: '沉浸阅读', key: ['F11'] },
-      { description: '测试', key: ['Ctrl', 'Alt', 'T'] },
     ]
 
     const groupedShortcuts = computed(() => {

@@ -12,10 +12,11 @@ pub fn prepare_updater_proxy() -> Result<ProxyPrepareResult, String> {
 
 #[tauri::command]
 pub async fn check_app_update(
+    update_channel: String,
     app: AppHandle,
     state: State<'_, AppUpdateState>,
 ) -> Result<AppUpdateCheckResult, String> {
-    update_service::check_app_update(app, state).await
+    update_service::check_app_update(update_channel, app, state).await
 }
 
 #[tauri::command]

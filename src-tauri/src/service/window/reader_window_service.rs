@@ -1,3 +1,4 @@
+use log::info;
 use serde_json::{json, Value};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
@@ -8,8 +9,8 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder
 
 use crate::{
     entities::{
-        DispatchReaderEventResult, OpenReaderWindowResult, PendingLoadMessage, ReaderWindowRuntime,
-        ReaderWindowState,
+        DispatchReaderEventResult, OpenReaderWindowResult, PendingBookDeleteMessage,
+        PendingLoadMessage, PrepareReaderBookDeleteResult, ReaderWindowRuntime, ReaderWindowState,
     },
     utils::time::now_millis,
 };
@@ -17,9 +18,16 @@ use crate::{
 const READER_LABEL: &str = "reader";
 const MAIN_LABEL: &str = "main";
 const LOAD_BOOK_EVENT: &str = "load-book-key";
+const READER_WINDOW_HIDE_EVENT: &str = "reader-window-hide";
+const PREPARE_BOOK_DELETE_EVENT: &str = "prepare-book-delete";
 const OPEN_TIMEOUT_MS: u64 = 7000;
+const BOOK_DELETE_TIMEOUT_MS: u64 = 7000;
 const ACK_RETRY_WAIT_MS: u64 = 1800;
 const ACK_RETRY_LIMIT: u8 = 1;
+const MIN_WINDOW_WIDTH: f64 = 880.0;
+const MIN_WINDOW_HEIGHT: f64 = 660.0;
+const INITIAL_WINDOW_WIDTH: f64 = 1280.0;
+const INITIAL_WINDOW_HEIGHT: f64 = 960.0;
 
 static READER_MESSAGE_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -28,10 +36,38 @@ fn next_reader_message_id() -> String {
     format!("reader-message-{}-{}", now_millis(), sequence)
 }
 
+/// 启动时预创建 reader 窗口（隐藏状态），生命周期贯穿整个应用会话。
+pub fn precreate_reader_window(app: &AppHandle) -> Result<(), String> {
+    info!("[reader][window] 预创建阅读器窗口（隐藏）");
+
+    let window =
+        WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
+            .title("阅读")
+            .decorations(false)
+            .min_inner_size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
+            .inner_size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT)
+            .focused(false)
+            .visible(false)
+            .build()
+            .map_err(|error| format!("failed to pre-create reader window: {:?}", error))?;
+
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Destroyed = event {
+            info!("[reader][window] 阅读器窗口已销毁");
+        }
+    });
+
+    info!("[reader][window] 阅读器窗口预创建完成（隐藏状态）");
+    Ok(())
+}
+
 fn reset_runtime(runtime: &mut ReaderWindowRuntime) {
     runtime.is_ready = false;
     runtime.pending_load = None;
     runtime.awaiting_message_id = None;
+    runtime.pending_book_delete = None;
+    runtime.awaiting_book_delete_message_id = None;
+    runtime.last_book_delete_affected = None;
     runtime.last_seen_at = now_millis();
 }
 
@@ -48,20 +84,78 @@ fn emit_pending_load(app: &AppHandle, payload: &PendingLoadMessage) -> Result<()
     .map_err(|error| format!("failed to emit pending load event: {:?}", error))
 }
 
+fn emit_pending_book_delete(
+    app: &AppHandle,
+    payload: &PendingBookDeleteMessage,
+) -> Result<(), String> {
+    app.emit_to(
+        READER_LABEL,
+        PREPARE_BOOK_DELETE_EVENT,
+        json!({
+            "bookKey": payload.book_key,
+            "messageId": payload.message_id,
+        }),
+    )
+    .map_err(|error| format!("failed to emit reader book delete event: {:?}", error))
+}
+
 fn ensure_reader_window_exists(
     app: &AppHandle,
     state: &State<'_, ReaderWindowState>,
 ) -> Result<bool, String> {
     if app.get_webview_window(READER_LABEL).is_some() {
+        // 窗口已存在，确保可见
+        if let Some(window) = app.get_webview_window(READER_LABEL) {
+            let visible = window
+                .is_visible()
+                .map_err(|e| format!("检查窗口可见性失败: {:?}", e))?;
+            if !visible {
+                window
+                    .show()
+                    .map_err(|e| format!("显示阅读器窗口失败: {:?}", e))?;
+                window
+                    .set_focus()
+                    .map_err(|e| format!("聚焦阅读器窗口失败: {:?}", e))?;
+                info!("[reader][window] 阅读器窗口已显示");
+            } else {
+                window
+                    .set_focus()
+                    .map_err(|e| format!("聚焦阅读器窗口失败: {:?}", e))?;
+            }
+        }
         return Ok(false);
     }
 
-    WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
-        .title("阅读")
-        .decorations(false)
-        .min_inner_size(880.0, 660.0)
-        .build()
-        .map_err(|error| format!("failed to create reader window: {:?}", error))?;
+    // 兜底：窗口被意外销毁后重新创建
+    info!("[reader][window] 阅读器窗口不存在，重新创建中");
+
+    let app_handle = app.clone();
+    let window =
+        WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
+            .title("阅读")
+            .decorations(false)
+            .min_inner_size(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
+            .inner_size(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT)
+            .build()
+            .map_err(|error| format!("failed to create reader window: {:?}", error))?;
+    window
+        .set_focus()
+        .map_err(|error| format!("failed to focus reader window: {:?}", error))?;
+
+    window.on_window_event(move |event| {
+        use tauri::WindowEvent;
+        if let WindowEvent::CloseRequested { .. } = event {
+            if let Some(state) = app_handle.try_state::<crate::entities::ReaderWindowState>() {
+                if let Ok(mut runtime) = state.inner.lock() {
+                    reset_runtime(&mut runtime);
+                }
+            }
+            info!("[reader][window] 阅读器窗口收到关闭请求，重置运行时状态");
+        }
+        if let WindowEvent::Destroyed = event {
+            info!("[reader][window] 阅读器窗口已销毁");
+        }
+    });
 
     let mut runtime = state
         .inner
@@ -69,6 +163,11 @@ fn ensure_reader_window_exists(
         .map_err(|_| "failed to lock reader window state".to_string())?;
     runtime.is_ready = false;
     runtime.last_seen_at = now_millis();
+
+    info!(
+        "[reader][window] 阅读器窗口创建成功 (标签={}, 尺寸=880x660)",
+        READER_LABEL
+    );
 
     Ok(true)
 }
@@ -139,6 +238,7 @@ pub async fn open_reader_window(
 ) -> Result<OpenReaderWindowResult, String> {
     let created = ensure_reader_window_exists(&app, &state)?;
     let message_id = next_reader_message_id();
+    let book_key_for_log = book_key.clone();
 
     {
         let mut runtime = state
@@ -154,6 +254,10 @@ pub async fn open_reader_window(
         runtime.last_seen_at = now_millis();
     }
 
+    info!(
+        "[reader][window] 打开阅读器窗口 (bookKey={}, created={})",
+        book_key_for_log, created
+    );
     let acknowledged = wait_reader_load_ack(&app, &state).await?;
 
     Ok(OpenReaderWindowResult {
@@ -170,6 +274,8 @@ pub fn reader_window_ready(state: State<'_, ReaderWindowState>) -> Result<(), St
         .map_err(|_| "failed to lock reader window state".to_string())?;
     runtime.is_ready = true;
     runtime.last_seen_at = now_millis();
+
+    info!("[reader][window] 阅读器前端就绪");
     Ok(())
 }
 
@@ -187,27 +293,174 @@ pub fn ack_reader_load(
     if runtime.awaiting_message_id.as_deref() == Some(message_id.as_str()) {
         runtime.awaiting_message_id = None;
         runtime.pending_load = None;
-        runtime.last_acked_message_id = Some(message_id);
+        runtime.last_acked_message_id = Some(message_id.clone());
     }
+
+    info!(
+        "[reader][window] 阅读器确认书籍加载 (messageId={})",
+        message_id
+    );
 
     Ok(())
 }
 
-pub fn close_reader_window(
+pub async fn prepare_reader_book_delete(
+    app: AppHandle,
+    state: State<'_, ReaderWindowState>,
+    book_key: String,
+) -> Result<PrepareReaderBookDeleteResult, String> {
+    let message_id = next_reader_message_id();
+
+    if app.get_webview_window(READER_LABEL).is_none() {
+        return Ok(PrepareReaderBookDeleteResult {
+            acknowledged: true,
+            affected: false,
+            message_id,
+        });
+    }
+
+    let payload = {
+        let mut runtime = state
+            .inner
+            .lock()
+            .map_err(|_| "failed to lock reader window state".to_string())?;
+
+        if !runtime.is_ready {
+            return Err("reader 尚未就绪，无法确认书籍清理".to_string());
+        }
+        if runtime.awaiting_book_delete_message_id.is_some() {
+            return Err("reader 正在处理另一项书籍清理请求".to_string());
+        }
+
+        let payload = PendingBookDeleteMessage {
+            book_key,
+            message_id: message_id.clone(),
+        };
+        runtime.pending_book_delete = Some(payload.clone());
+        runtime.awaiting_book_delete_message_id = Some(message_id.clone());
+        runtime.last_book_delete_affected = None;
+        runtime.last_seen_at = now_millis();
+        payload
+    };
+
+    if let Err(error) = emit_pending_book_delete(&app, &payload) {
+        let mut runtime = state
+            .inner
+            .lock()
+            .map_err(|_| "failed to lock reader window state".to_string())?;
+        if runtime.awaiting_book_delete_message_id.as_deref() == Some(message_id.as_str()) {
+            runtime.pending_book_delete = None;
+            runtime.awaiting_book_delete_message_id = None;
+            runtime.last_book_delete_affected = None;
+        }
+        return Err(error);
+    }
+    let start = Instant::now();
+    let timeout = Duration::from_millis(BOOK_DELETE_TIMEOUT_MS);
+
+    loop {
+        if start.elapsed() >= timeout {
+            let mut runtime = state
+                .inner
+                .lock()
+                .map_err(|_| "failed to lock reader window state".to_string())?;
+            if runtime.awaiting_book_delete_message_id.as_deref() == Some(message_id.as_str()) {
+                runtime.pending_book_delete = None;
+                runtime.awaiting_book_delete_message_id = None;
+                runtime.last_book_delete_affected = None;
+            }
+            return Err("reader 书籍清理超时，删除操作已中止".to_string());
+        }
+
+        if app.get_webview_window(READER_LABEL).is_none() {
+            let mut runtime = state
+                .inner
+                .lock()
+                .map_err(|_| "failed to lock reader window state".to_string())?;
+            reset_runtime(&mut runtime);
+            return Err("reader 窗口在书籍清理期间不可用".to_string());
+        }
+
+        let acknowledged_result = {
+            let runtime = state
+                .inner
+                .lock()
+                .map_err(|_| "failed to lock reader window state".to_string())?;
+
+            if runtime.awaiting_book_delete_message_id.is_none() {
+                runtime.last_book_delete_affected
+            } else {
+                None
+            }
+        };
+
+        if let Some(affected) = acknowledged_result {
+            if affected {
+                if let Some(window) = app.get_webview_window(READER_LABEL) {
+                    window
+                        .hide()
+                        .map_err(|error| format!("隐藏阅读器窗口失败: {:?}", error))?;
+                }
+            }
+
+            info!(
+                "[reader][window] 阅读器确认删除前清理 (messageId={}, affected={})",
+                message_id, affected
+            );
+            return Ok(PrepareReaderBookDeleteResult {
+                acknowledged: true,
+                affected,
+                message_id,
+            });
+        }
+
+        thread::sleep(Duration::from_millis(80));
+    }
+}
+
+pub fn ack_reader_book_delete(
+    state: State<'_, ReaderWindowState>,
+    message_id: String,
+    affected: bool,
+) -> Result<(), String> {
+    let mut runtime = state
+        .inner
+        .lock()
+        .map_err(|_| "failed to lock reader window state".to_string())?;
+
+    runtime.last_seen_at = now_millis();
+    if runtime.awaiting_book_delete_message_id.as_deref() != Some(message_id.as_str()) {
+        return Err("reader 书籍清理确认消息已过期".to_string());
+    }
+
+    runtime.pending_book_delete = None;
+    runtime.awaiting_book_delete_message_id = None;
+    runtime.last_book_delete_affected = Some(affected);
+    Ok(())
+}
+
+pub fn hide_reader_window(
     app: AppHandle,
     state: State<'_, ReaderWindowState>,
 ) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(READER_LABEL) {
+        app.emit_to(READER_LABEL, READER_WINDOW_HIDE_EVENT, json!({}))
+            .map_err(|error| format!("发送阅读器隐藏事件失败: {:?}", error))?;
         window
-            .close()
-            .map_err(|error| format!("failed to close reader window: {:?}", error))?;
+            .hide()
+            .map_err(|error| format!("隐藏阅读器窗口失败: {:?}", error))?;
     }
+    info!("[reader][window] 阅读器窗口已隐藏");
 
     let mut runtime = state
         .inner
         .lock()
         .map_err(|_| "failed to lock reader window state".to_string())?;
-    reset_runtime(&mut runtime);
+    // 隐藏时不重置 runtime，前端仍在运行，保留 ready 状态
+    runtime.pending_load = None;
+    runtime.awaiting_message_id = None;
+    runtime.last_acked_message_id = None;
+    runtime.last_seen_at = now_millis();
 
     Ok(())
 }
@@ -265,5 +518,6 @@ pub fn dispatch_main_event(
     )
     .map_err(|error| format!("failed to dispatch main event: {:?}", error))?;
 
+    info!("[main][window] 分发事件到主窗口完成 (event={})", event_name);
     Ok(DispatchReaderEventResult { delivered: true })
 }

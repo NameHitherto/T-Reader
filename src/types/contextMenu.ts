@@ -3,6 +3,7 @@ type ContextMenuIconType =
   | 'upload'
   | 'delete'
   | 'info'
+  | 'edit'
   | 'goBack'
   | 'bookmark'
   | 'delBookMark'

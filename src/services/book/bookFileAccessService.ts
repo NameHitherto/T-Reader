@@ -24,7 +24,7 @@ export const readLocalBookFile = async (fileName: string): Promise<Uint8Array> =
 
 export const writeLocalBookFile = async (
   fileName: string,
-  contents: Uint8Array | number[]
+  contents: Uint8Array | number[],
 ): Promise<void> => {
   await writeBinaryFile(getLocalBookRelativePath(fileName), contents)
 }

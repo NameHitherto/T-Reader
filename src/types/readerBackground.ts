@@ -1,12 +1,8 @@
-export type ReaderLightBackgroundPreset =
-  | 'default'
-  | 'warm-yellow'
+export type ReaderLightBackgroundPreset = 'default' | 'warm-yellow'
 
 export type ReaderDarkBackgroundPreset = 'default' | 'ide-dark'
 
-export type ReaderBackgroundPreset =
-  | ReaderLightBackgroundPreset
-  | ReaderDarkBackgroundPreset
+export type ReaderBackgroundPreset = ReaderLightBackgroundPreset | ReaderDarkBackgroundPreset
 
 export interface ReaderBackgroundPresets {
   light: ReaderLightBackgroundPreset

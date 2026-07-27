@@ -45,6 +45,7 @@ pub struct AppUpdateAttempt {
 #[serde(rename_all = "camelCase")]
 pub struct AppUpdateCheckResult {
     pub has_update: bool,
+    pub update_channel: String,
     pub current_version: String,
     pub latest_version: Option<String>,
     pub release_notes: Option<String>,

@@ -111,3 +111,19 @@
   display: grid;
   gap: 16px;
 }
+
+.app-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.app-status-pill--danger {
+  color: var(--text-on-brand);
+  background: var(--danger);
+}
