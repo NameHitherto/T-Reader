@@ -176,10 +176,7 @@ import {
   createMainTaskBatchNotifier,
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
-import {
-  toHttpResponseResult,
-  toSettledResponseResult,
-} from '@/services/response/responseHandler'
+import { toHttpResponseResult, toSettledResponseResult } from '@/services/response/responseHandler'
 import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
 import {
   prepareReaderBookDelete,
@@ -506,7 +503,10 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     })
 
     // 检查批量去重和书架重复
-    if (batchContext.reservedBookKeys.has(result.bookKey) || shelfBooks.hasShelfBook(result.bookKey)) {
+    if (
+      batchContext.reservedBookKeys.has(result.bookKey) ||
+      shelfBooks.hasShelfBook(result.bookKey)
+    ) {
       logWarn('bookshelf', 'duplicate-book-detected', {
         bookKey: result.bookKey,
         fileName: result.fileName,
@@ -662,9 +662,10 @@ const deleteBook = async (bookKey: string) => {
             showMainTaskMessage({
               type: response.type,
               title: response.type === 'success' ? '删除完成' : '云端清理失败',
-              message: response.type === 'success'
-                ? `本地已删除书籍，云端文件不存在，无需清理。`
-                : `本地已删除书籍，但云端清理失败：${response.message}`,
+              message:
+                response.type === 'success'
+                  ? `本地已删除书籍，云端文件不存在，无需清理。`
+                  : `本地已删除书籍，但云端清理失败：${response.message}`,
               taskKey: `bookshelf-delete:${bookKey}`,
             })
           }

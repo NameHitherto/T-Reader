@@ -57,7 +57,11 @@
       </template>
       <div v-if="detailImage" class="gallery-detail">
         <div class="gallery-detail-image">
-          <img v-if="assetUrls[detailImage.imagePath]" :src="assetUrls[detailImage.imagePath]" alt="" />
+          <img
+            v-if="assetUrls[detailImage.imagePath]"
+            :src="assetUrls[detailImage.imagePath]"
+            alt=""
+          />
         </div>
         <div class="gallery-detail-fields">
           <div class="gallery-detail-field">
@@ -72,7 +76,9 @@
             <span class="gallery-detail-label">模型</span>
             <span class="gallery-detail-value">
               {{ detailImage.modelId || '未知' }}
-              <template v-if="detailImage.providerType">（{{ detailImage.providerType }}）</template>
+              <template v-if="detailImage.providerType"
+                >（{{ detailImage.providerType }}）</template
+              >
             </span>
           </div>
           <div class="gallery-detail-field">
@@ -93,7 +99,9 @@
         </div>
       </div>
       <template #footer>
-        <el-button type="danger" plain style="margin-right: 6px;" @click="deleteDetailImage">删除</el-button>
+        <el-button type="danger" plain style="margin-right: 6px" @click="deleteDetailImage"
+          >删除</el-button
+        >
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>

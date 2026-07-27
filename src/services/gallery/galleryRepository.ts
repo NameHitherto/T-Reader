@@ -34,10 +34,7 @@ export const generateGalleryImage = async (
  * （与后端 gallery 记录的路径口径一致）。
  * 生成命令会把暂存文件移动到对应图片目录并清理。
  */
-export const stageReferenceImage = async (
-  bytes: Uint8Array,
-  mimeType: string,
-): Promise<string> => {
+export const stageReferenceImage = async (bytes: Uint8Array, mimeType: string): Promise<string> => {
   const extension = EXTENSION_BY_MIME[mimeType] ?? 'png'
   const filename = `${generateID(8)}.${extension}`
 

@@ -73,7 +73,9 @@
 
     <template #footer>
       <span v-if="isGenerating" class="draw-footer-hint">已有生成任务进行中…</span>
-      <el-button style="margin-right: 6px;" @click="emit('update:modelValue', false)">关闭</el-button>
+      <el-button style="margin-right: 6px" @click="emit('update:modelValue', false)"
+        >关闭</el-button
+      >
       <el-button
         type="primary"
         :loading="isGenerating"
