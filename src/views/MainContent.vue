@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Teleport to="#titlebar-page-actions">
     <div class="titlebar-shelf-actions">
       <button
@@ -78,7 +78,7 @@
                 :class="{ 'shelf-list-author--missing': isBookMissing(book) }"
                 :title="book.author"
               >
-                {{ book.author }}
+                <span class="shelf-list-author-name">{{ book.author }}</span>
               </div>
               <div class="shelf-list-title" :title="book.displayTitle">
                 <span>{{ book.displayTitle }}</span>
@@ -1220,37 +1220,31 @@ onUnmounted(() => {
 
       .shelf-list-author {
         position: absolute;
-        top: 12px;
-        right: 12px;
+        top: 16px;
+        right: 16px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        max-width: 64px;
-        padding: 2px 8px;
-        border-radius: 999px;
+        box-sizing: border-box;
+        max-width: 72px;
+        padding: 4px 10px;
+        border-radius: 12px;
         background: var(--brand-primary);
         color: var(--text-on-brand);
-        font-size: 11px;
-        white-space: nowrap;
+        font-size: 12px;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+      }
+
+      .shelf-list-author-name {
+        display: block;
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
-        transition:
-          transform 0.2s ease,
-          background-color 0.2s ease,
-          top 0.28s ease,
-          right 0.28s ease,
-          max-width 0.28s ease,
-          padding 0.28s ease,
-          font-size 0.28s ease;
+        white-space: nowrap;
       }
 
       .shelf-list-author--missing {
         top: 38px;
-      }
-
-      .shelf-list-author:hover {
-        transform: translateY(-1px);
-        background: var(--brand-primary-hover);
       }
 
       .shelf-list-title {
@@ -1494,9 +1488,15 @@ onUnmounted(() => {
       @media (prefers-reduced-motion: reduce) {
         .bookcase-body--grid,
         .shelf-grid-card,
-        .shelf-grid-cover {
+        .shelf-grid-cover,
+        .shelf-list-author {
           transition: none;
           animation: none;
+        }
+
+        .shelf-list-author:hover,
+        .shelf-list-author:active {
+          transform: none;
         }
       }
 
@@ -1523,14 +1523,6 @@ onUnmounted(() => {
 
         .bookcase-body--list .shelf-list-title {
           font-size: 18px;
-        }
-
-        .bookcase-body--list .shelf-list-author {
-          top: 16px;
-          right: 16px;
-          max-width: 72px;
-          padding: 2px 8px;
-          font-size: 12px;
         }
 
         .bookcase-body--list .shelf-list-missing-badge {
