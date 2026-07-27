@@ -93,7 +93,7 @@
         </div>
       </div>
       <template #footer>
-        <el-button type="danger" plain @click="deleteDetailImage">删除</el-button>
+        <el-button type="danger" plain style="margin-right: 6px;" @click="deleteDetailImage">删除</el-button>
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
