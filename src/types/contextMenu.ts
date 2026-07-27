@@ -8,6 +8,7 @@ type ContextMenuIconType =
   | 'bookmark'
   | 'delBookMark'
   | 'comment'
+  | 'draw'
 
 type ContextMenuThemeType = 'light' | 'dark'
 

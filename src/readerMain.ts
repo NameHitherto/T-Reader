@@ -35,6 +35,9 @@ const bootstrap = async () => {
   const onStyleMenuClick = () => {
     window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.TOGGLE_STYLE_MENU))
   }
+  const onDrawDialogClick = () => {
+    window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG))
+  }
   const onShowBookInfoClick = () => {
     webviewWindow.emit(WINDOW_EVENTS.SHOW_BOOK_INFO)
   }
@@ -44,6 +47,8 @@ const bootstrap = async () => {
 
   // 样式调整菜单
   document.getElementById('titlebar-customer')?.addEventListener('click', onStyleMenuClick)
+  // AI绘画弹窗
+  document.getElementById('titlebar-draw')?.addEventListener('click', onDrawDialogClick)
   // 关于本书信息
   document.getElementById('titlebar-about')?.addEventListener('click', onShowBookInfoClick)
   // 帮助
@@ -51,6 +56,7 @@ const bootstrap = async () => {
 
   window.addEventListener('beforeunload', () => {
     document.getElementById('titlebar-customer')?.removeEventListener('click', onStyleMenuClick)
+    document.getElementById('titlebar-draw')?.removeEventListener('click', onDrawDialogClick)
     document.getElementById('titlebar-about')?.removeEventListener('click', onShowBookInfoClick)
     document.getElementById('titlebar-help')?.removeEventListener('click', onShowHelpClick)
     unlistenTheme()

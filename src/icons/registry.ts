@@ -5,6 +5,7 @@ import listViewIcon from '@/assets/icons/list-view.svg'
 import gridViewIcon from '@/assets/icons/grid-view.svg'
 import sidebarBookshelfIcon from '@/assets/icons/sidebar-bookshelf.svg'
 import sidebarNoteIcon from '@/assets/icons/sidebar-note.svg'
+import sidebarGalleryIcon from '@/assets/icons/sidebar-gallery.svg'
 import sidebarAboutIcon from '@/assets/icons/sidebar-about.svg'
 import contactBilibiliIcon from '@/assets/icons/contact-bilibili.svg'
 import contactGithubIcon from '@/assets/icons/contact-github.svg'
@@ -19,6 +20,7 @@ import editIcon from '@/components/ContextMenu/assets/edit.svg'
 import bookmarkIcon from '@/components/ContextMenu/assets/bookmark.svg'
 import delBookMarkIcon from '@/components/ContextMenu/assets/delBookMark.svg'
 import commentIcon from '@/components/ContextMenu/assets/comment.svg'
+import drawIcon from '@/components/ContextMenu/assets/draw.svg'
 import defaultIcon from '@/components/ContextMenu/assets/default.svg'
 
 export type IconRenderMode = 'mask' | 'image'
@@ -31,6 +33,7 @@ export type IconName =
   | 'gridView'
   | 'sidebarBookshelf'
   | 'sidebarNote'
+  | 'sidebarGallery'
   | 'sidebarAbout'
   | 'contactBilibili'
   | 'contactGithub'
@@ -44,6 +47,7 @@ export type IconName =
   | 'bookmark'
   | 'delBookMark'
   | 'comment'
+  | 'draw'
   | 'default'
 
 export interface IconDefinition {
@@ -59,6 +63,7 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   gridView: { src: gridViewIcon, mode: 'mask' },
   sidebarBookshelf: { src: sidebarBookshelfIcon, mode: 'mask' },
   sidebarNote: { src: sidebarNoteIcon, mode: 'mask' },
+  sidebarGallery: { src: sidebarGalleryIcon, mode: 'mask' },
   sidebarAbout: { src: sidebarAboutIcon, mode: 'mask' },
   contactBilibili: { src: contactBilibiliIcon, mode: 'mask' },
   contactGithub: { src: contactGithubIcon, mode: 'mask' },
@@ -72,6 +77,7 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   bookmark: { src: bookmarkIcon, mode: 'mask' },
   delBookMark: { src: delBookMarkIcon, mode: 'mask' },
   comment: { src: commentIcon, mode: 'mask' },
+  draw: { src: drawIcon, mode: 'mask' },
   default: { src: defaultIcon, mode: 'mask' },
 }
 
