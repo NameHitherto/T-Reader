@@ -69,12 +69,12 @@
 
   &--warning {
     border-color: var(--border-warning);
-    background: var(--surface-warning-gradient);
+    background: var(--surface-warning-soft);
   }
 
   &--error {
     border-color: var(--border-danger);
-    background: var(--surface-danger-gradient);
+    background: var(--surface-danger-soft);
   }
 }
 

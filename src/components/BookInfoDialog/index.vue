@@ -260,7 +260,7 @@ export default {
           flex-direction: column;
           padding: 12px 14px;
           border-radius: var(--radius-md);
-          background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+          background: var(--surface-card-muted);
           box-shadow: var(--shadow-sm);
           position: relative;
           color: var(--text-primary);

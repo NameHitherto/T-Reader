@@ -222,7 +222,7 @@ export default defineComponent({
 
     .bookmark-view-toggle {
       --bubble-toggle-shell-padding: 6px;
-      --bubble-toggle-shell-bg: var(--surface-warning-gradient);
+      --bubble-toggle-shell-bg: var(--surface-warning-soft);
       --bubble-toggle-shell-border: var(--border-warning);
       --bubble-toggle-shell-shadow: var(--shadow-sm);
       --bubble-toggle-focus-ring: var(--surface-warning-soft-strong);

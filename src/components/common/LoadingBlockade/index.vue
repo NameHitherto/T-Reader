@@ -80,7 +80,7 @@ export default {
       span {
         animation: HorseRacelamp_move_1 60s linear infinite;
         animation-delay: -60s;
-        background: var(--loading-stripe-gradient);
+        background: var(--brand-secondary);
         color: var(--text-on-warning);
         font-family: var(--font-family-base) !important;
         font-size: 26px;

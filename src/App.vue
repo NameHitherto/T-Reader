@@ -146,7 +146,7 @@ onUnmounted(() => {
   height: 44px;
   padding: 3px;
   overflow: hidden;
-  background: var(--surface-logo-gradient);
+  background: var(--surface-brand-soft-strong);
   border: 1px solid var(--border-default);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);

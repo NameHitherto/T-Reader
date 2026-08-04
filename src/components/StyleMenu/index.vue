@@ -658,7 +658,7 @@ label {
 
       .style-menu-flow-toggle {
         --bubble-toggle-shell-padding: 5px 10px;
-        --bubble-toggle-shell-bg: var(--surface-brand-gradient);
+        --bubble-toggle-shell-bg: var(--surface-brand-soft);
         --bubble-toggle-shell-border: var(--border-brand);
         --bubble-toggle-shell-shadow: var(--shadow-xs);
         --bubble-toggle-focus-ring: var(--ring-brand-soft);
@@ -683,7 +683,7 @@ label {
 
       .style-menu-epub-stylesheet-toggle {
         --bubble-toggle-shell-padding: 5px 10px;
-        --bubble-toggle-shell-bg: var(--surface-brand-gradient);
+        --bubble-toggle-shell-bg: var(--surface-brand-soft);
         --bubble-toggle-shell-border: var(--border-brand);
         --bubble-toggle-shell-shadow: var(--shadow-xs);
         --bubble-toggle-focus-ring: var(--ring-brand-soft);

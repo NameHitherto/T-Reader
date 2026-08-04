@@ -79,7 +79,7 @@ export default defineComponent({
 .bubble-toggle {
   --bubble-toggle-shell-padding: 6px 10px;
   --bubble-toggle-radius: var(--radius-sm);
-  --bubble-toggle-shell-bg: var(--surface-brand-gradient);
+  --bubble-toggle-shell-bg: var(--surface-brand-soft);
   --bubble-toggle-shell-border: var(--border-brand);
   --bubble-toggle-shell-shadow: var(--shadow-sm);
   --bubble-toggle-focus-ring: var(--ring-brand-soft);
