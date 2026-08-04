@@ -39,7 +39,7 @@
       </el-alert>
     </el-form>
     <template #footer>
-      <el-button class="first" :disabled="saving" @click="visible = false">取消</el-button>
+      <el-button :disabled="saving" @click="visible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </el-dialog>
@@ -304,15 +304,16 @@ const save = async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  :deep(.el-button + .el-button) {
+    // 垂直排列时水平间距由容器 gap 控制，抵消全局相邻按钮 margin
+    margin-left: 0;
+  }
 }
 
 .cover-hint {
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 1.5;
-}
-
-.first {
-  margin-right: 8px;
 }
 </style>

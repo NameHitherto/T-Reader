@@ -565,7 +565,7 @@ onMounted(async () => {
 
 .hero-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px 0; // 水平间距由全局按钮规则控制，仅保留换行时的垂直间距
   flex-wrap: wrap;
 }
 

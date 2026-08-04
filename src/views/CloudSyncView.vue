@@ -420,7 +420,6 @@ export default defineComponent({
 .cloud-sync-page-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
   flex-shrink: 0;
 }
 

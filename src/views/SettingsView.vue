@@ -125,7 +125,7 @@
 
                 <div v-else class="model-empty">
                   <span>暂无{{ purposeLabel }}模型配置</span>
-                  <el-button type="primary" size="small" style="width: 55px;" @click="startAdd">添加</el-button>
+                  <el-button type="primary" size="small" @click="startAdd">添加</el-button>
                 </div>
               </template>
 
@@ -659,6 +659,11 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 8px;
+
+    :deep(.el-button + .el-button) {
+      // 垂直排列时水平间距由容器 gap 控制，抵消全局相邻按钮 margin
+      margin-left: 0;
+    }
   }
 
   .model-empty {

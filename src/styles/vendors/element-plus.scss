@@ -76,8 +76,9 @@
     color var(--duration-fast) var(--easing-standard);
 }
 
+// 相邻按钮统一间距：各视图不应再手动设置按钮间距，特殊视觉需求除外
 .el-button + .el-button {
-  margin-left: 0;
+  margin-left: 8px;
 }
 
 .el-button:not(.is-text):not(.is-link):not(.el-button--primary):not(.el-button--danger):not(

@@ -761,7 +761,6 @@ export default defineComponent({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
 }
 
 @media (max-width: 720px) {
