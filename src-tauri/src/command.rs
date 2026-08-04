@@ -47,6 +47,9 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::note::load_notes_by_book_key,
         crate::api::note::replace_notes_for_book,
         crate::api::note::save_all_notes,
-        crate::api::note::remove_notes_by_book_key
+        crate::api::note::remove_notes_by_book_key,
+        crate::api::gallery::list_gallery_images,
+        crate::api::gallery::delete_gallery_image,
+        crate::api::gallery::generate_gallery_image
     ]
 }

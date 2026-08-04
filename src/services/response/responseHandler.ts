@@ -34,10 +34,7 @@ export const toHttpResponseType = (
 }
 
 // 根据状态码返回用户友好的消息
-export const toHttpResponseMessage = (
-  error: unknown,
-  context?: string,
-): string => {
+export const toHttpResponseMessage = (error: unknown, context?: string): string => {
   if (!isWebDavError(error)) {
     return toLegacyErrorMessage(error)
   }

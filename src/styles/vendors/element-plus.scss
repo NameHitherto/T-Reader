@@ -70,19 +70,15 @@
 .el-button {
   border-radius: var(--radius-sm);
   transition:
-    transform var(--duration-fast) var(--easing-standard),
     box-shadow var(--duration-fast) var(--easing-standard),
     border-color var(--duration-fast) var(--easing-standard),
     background-color var(--duration-fast) var(--easing-standard),
     color var(--duration-fast) var(--easing-standard);
-
-  &:hover {
-    transform: translateY(-1px);
-  }
 }
 
+// 相邻按钮统一间距：各视图不应再手动设置按钮间距，特殊视觉需求除外
 .el-button + .el-button {
-  margin-left: 0;
+  margin-left: 8px;
 }
 
 .el-button:not(.is-text):not(.is-link):not(.el-button--primary):not(.el-button--danger):not(
@@ -100,31 +96,38 @@
   box-shadow: var(--shadow-sm);
 }
 
+// —— 输入类控件（el-input / el-select / el-textarea / el-input-number）——
+// 简洁语言：白底 + 细边框 + hover 加深一档 + focus 品牌色边框与克制的光晕，
+// 与 el-button 的视觉语言保持一致（不要用 !important 压死 element-plus 的状态反馈）
 .el-input__wrapper,
 .el-select__wrapper,
 .el-textarea__inner,
-.el-input-number,
-.el-message-box__input input {
-  background: var(--surface-strong) !important;
+.el-input-number {
+  background: var(--surface-strong);
   color: var(--text-primary);
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px var(--border-default) inset !important;
+  box-shadow: 0 0 0 1px var(--border-emphasis) inset;
+  transition:
+    box-shadow var(--duration-fast) var(--easing-standard),
+    background-color var(--duration-fast) var(--easing-standard);
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper.is-hovering:not(.is-focused),
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--border-strong) inset;
 }
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper.is-focused,
-.el-textarea__inner:focus,
-.el-message-box__input input:focus {
+.el-textarea__inner:focus {
   box-shadow:
-    0 0 0 1px var(--ring-brand-strong) inset,
-    0 0 0 4px var(--ring-brand-subtle) !important;
+    0 0 0 1px var(--brand-primary) inset,
+    0 0 0 3px var(--ring-brand-subtle);
 }
 
 .el-input-number {
   overflow: hidden;
-  box-shadow:
-    0 0 0 1px var(--border-default) inset,
-    var(--shadow-sm) !important;
 }
 
 .el-input-number__decrease,

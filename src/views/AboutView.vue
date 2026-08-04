@@ -94,9 +94,7 @@ const channelOptions = [
 ]
 
 const channelDescription = computed(() => {
-  return updateChannel.value === 'preview'
-    ? '接收正式版与抢先体验版本'
-    : '仅接收正式发布版本'
+  return updateChannel.value === 'preview' ? '接收正式版与抢先体验版本' : '仅接收正式发布版本'
 })
 
 interface ContactItem {
@@ -329,8 +327,10 @@ onMounted(async () => {
         <div class="hero-copy">
           <h2>更新中心</h2>
           <div class="hero-subtitle">
-            <span>当前版本：<strong>v{{ version }}</strong></span>
-            <el-tag v-if="isPreviewBuild" type="warning" effect="dark" size="small">
+            <span
+              >当前版本：<strong>v{{ version }}</strong></span
+            >
+            <el-tag v-if="isPreviewBuild" type="warning" effect="dark" size="small" disable-transitions="true">
               抢先体验
             </el-tag>
           </div>
@@ -565,7 +565,7 @@ onMounted(async () => {
 
 .hero-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px 0; // 水平间距由全局按钮规则控制，仅保留换行时的垂直间距
   flex-wrap: wrap;
 }
 

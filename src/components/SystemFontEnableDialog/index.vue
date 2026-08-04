@@ -638,7 +638,7 @@ export default defineComponent({
     padding: 18px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-default);
-    background: linear-gradient(180deg, var(--surface-strong), var(--surface-card-soft));
+    background: var(--surface-card-soft);
   }
 
   .font-preview-caption {
@@ -761,7 +761,6 @@ export default defineComponent({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
 }
 
 @media (max-width: 720px) {

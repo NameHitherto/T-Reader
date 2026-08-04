@@ -4,6 +4,7 @@
     <div v-if="!isLast" class="tag-tail-right"></div>
     <div class="tag-node"></div>
     <div class="tag-link"></div>
+
     <div class="tag-body" @click="handleOptions">
       <div class="tag-inner">
         <div class="front">
@@ -17,60 +18,71 @@
           </div>
         </div>
       </div>
-      <div class="tag-options">
-        <el-tooltip
-          class="tag-tooltip"
-          content="跳转到笔记处"
-          effect="light"
-          placement="right-start"
-        >
-          <span class="tag-option first" @click="jumpToRead">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16">
-              <g fill="currentColor" fill-rule="evenodd">
-                <path
-                  d="M1.711 15.919a1.707 1.707 0 0 1-.529-3.332l.32-.107l-.096-.321c-.281-.949-.081-1.882.534-2.494l.63-.627l.912.906l-.425.422c-.714.711-.655 1.583.159 2.396q.653.646 1.31.648c.389 0 .743-.165 1.086-.504l3.889-3.872l.914.909l-4.098 4.076c-.422.42-.989.642-1.645.642q-.443 0-.894-.138l-.324-.099l-.11.319q-.136.396-.408.669a1.72 1.72 0 0 1-1.225.507m10.836-9.892l.195-.195c.24-.237.429-.66.481-1.078c.071-.562-.099-1.078-.479-1.457c-.333-.334-.777-.51-1.279-.51s-1.043.189-1.315.463L6.485 6.895l-.93-.925l4.076-4.055c.428-.424 1.004-.648 1.665-.648q.454 0 .915.142l.328.101l.107-.323q.133-.4.412-.678a1.73 1.73 0 0 1 2.438-.008a1.71 1.71 0 0 1-.008 2.426a1.7 1.7 0 0 1-.674.407l-.324.108l.102.327c.315.991.125 1.956-.502 2.582l-.609.605z"
-                />
-                <path
-                  d="M1.93 6.23c-.607-.605-.815-1.521-.554-2.452l.087-.313l-.308-.108A1.696 1.696 0 0 1 .529.537A1.727 1.727 0 0 1 2.967.529q.261.26.393.626l.111.31l.316-.091q.426-.125.85-.126c.655 0 1.227.224 1.652.646l.689.688l-.903.9l-.381-.381c-.161-.159-.6-.53-1.222-.53c-.467 0-.911.208-1.322.618c-.605.602-.652 1.169-.584 1.538c.08.431.334.758.533.956l3.803 3.783l-.86.854zm12.318 9.683c-.459 0-.889-.178-1.213-.498a1.7 1.7 0 0 1-.414-.698l-.102-.325l-.328.094a3 3 0 0 1-.801.113c-.66 0-1.266-.241-1.705-.678l-.58-.579l.857-.852l.216.216c.249.247.76.412 1.269.412c.494 0 .928-.158 1.217-.447c.305-.303.473-.765.473-1.302c0-.509-.152-.988-.389-1.221l-3.667-3.65l.901-.897l4.035 4.013c.617.615.816 1.56.53 2.523l-.097.33l.33.103a1.68 1.68 0 0 1 1.203 1.617c0 .461-.184.894-.511 1.221a1.73 1.73 0 0 1-1.224.505"
-                />
-              </g>
+
+      <!-- 胶囊操作栏：默认隐藏，点击书签体展开 / 收起 -->
+      <div class="action-dock">
+        <el-tooltip content="跳转阅读" effect="light" placement="right" :show-after="150">
+          <button class="dock-btn jump-btn" aria-label="跳转阅读" @click.stop="jumpToRead">
+            <svg
+              class="dock-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
-          </span>
+          </button>
         </el-tooltip>
-        <el-tooltip class="tag-tooltip" content="删除此笔记" effect="light" placement="right-start">
-          <span class="tag-option second" @click="deleteBookMark">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5v14m-6-8h6m-6 4h6m4.506-1.494L15.012 12m0 0l1.506-1.506M15.012 12l1.506 1.506M15.012 12l-1.506-1.506M20 19H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1"
-              />
+
+        <el-tooltip content="删除此笔记" effect="light" placement="right" :show-after="150">
+          <button class="dock-btn delete-btn" aria-label="删除笔记" @click.stop="deleteBookMark">
+            <svg
+              class="dock-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
             </svg>
-          </span>
+          </button>
         </el-tooltip>
-        <el-tooltip class="tag-tooltip" content="标为重要" effect="light" placement="right-start">
-          <span class="tag-option third">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-dasharray="36"
-                stroke-dashoffset="36"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 3l-2.35 5.76l-6.21 0.46l4.76 4.02l-1.49 6.04l5.29 -3.28M12 3l2.35 5.76l6.21 0.46l-4.76 4.02l1.49 6.04l-5.29 -3.28"
-              >
-                <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="36;0" />
-              </path>
+
+        <el-tooltip content="标为重要" effect="light" placement="right" :show-after="150">
+          <button
+            class="dock-btn star-btn"
+            :class="{ 'is-starred': isStarred }"
+            aria-label="标为重要"
+            @click.stop="toggleStar"
+          >
+            <svg
+              class="dock-icon"
+              viewBox="0 0 24 24"
+              :fill="isStarred ? 'currentColor' : 'none'"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+              ></polygon>
             </svg>
-          </span>
+          </button>
         </el-tooltip>
       </div>
     </div>
+
     <div class="tag-footer">
       <span class="tag-time">{{ bookMark.createTime }}</span>
     </div>
@@ -99,7 +111,10 @@ export default defineComponent({
   },
   emits: ['jump', 'delete'],
   data() {
-    return {}
+    return {
+      // 标为重要：仅组件内视觉状态，不持久化（与既有行为一致）
+      isStarred: false,
+    }
   },
   computed: {},
   watch: {},
@@ -113,31 +128,21 @@ export default defineComponent({
   },
   methods: {
     handleOptions(event: MouseEvent) {
-      // 只处理点击的元素的子元素
+      // 点击书签体：展开 / 收起当前操作栏，并互斥收起其他书签的操作栏
       const target = event.currentTarget as HTMLElement
-      const children = target.children
-      Array.from(children).forEach((child) => {
-        if (child.classList.contains('tag-options')) {
-          const options = child.children
-          if (options.length !== 0 && options[0].classList.contains('show')) {
-            document.querySelectorAll('.tag-option').forEach((option) => {
-              option.classList.remove('show')
-            })
-          } else {
-            document.querySelectorAll('.tag-option').forEach((option) => {
-              option.classList.remove('show')
-            })
-            Array.from(options).forEach((option) => {
-              if (option.classList.contains('show')) {
-                option.classList.remove('show')
-              } else {
-                option.classList.add('show')
-              }
-            })
-          }
-          return
-        }
+      const dock = target.querySelector('.action-dock')
+      if (!dock) {
+        return
+      }
+
+      const isShown = dock.classList.contains('show')
+      document.querySelectorAll('.action-dock').forEach((item) => {
+        item.classList.remove('show')
       })
+
+      if (!isShown) {
+        dock.classList.add('show')
+      }
     },
     jumpToRead() {
       // 跳转到笔记处
@@ -146,6 +151,10 @@ export default defineComponent({
     deleteBookMark() {
       // 删除此笔记
       this.$emit('delete')
+    },
+    toggleStar() {
+      // 切换"标为重要"视觉状态
+      this.isStarred = !this.isStarred
     },
   },
 })
@@ -194,9 +203,14 @@ export default defineComponent({
     backdrop-filter: blur(2px);
     cursor: var(--t-mouse-cursor-link), default;
     background-color: transparent;
+    transition: transform var(--duration-base) var(--easing-standard);
 
-    &:hover .tag-inner {
-      transform: rotateY(180deg);
+    &:hover {
+      transform: translateY(-2px);
+
+      .tag-inner {
+        transform: rotateY(180deg);
+      }
     }
 
     .tag-inner {
@@ -273,101 +287,101 @@ export default defineComponent({
       }
     }
 
-    .tag-options {
+    /* 胶囊操作栏：默认隐藏，点击书签体后展开；明确边框与阴影保证轮廓清晰 */
+    .action-dock {
       position: absolute;
-      display: inline-flex;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-8px);
+      display: flex;
       flex-direction: column;
-      left: 112px;
-      top: 50px;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-default);
+      background: var(--surface-card);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow-md);
+      z-index: 3;
+      opacity: 0;
+      visibility: hidden;
       pointer-events: none;
+      transition:
+        opacity var(--duration-fast) var(--easing-standard),
+        transform var(--duration-fast) var(--easing-standard),
+        visibility var(--duration-fast) var(--easing-standard);
 
-      .tag-option {
+      &.show {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(-50%) translateX(0);
+      }
+
+      .dock-btn {
         display: inline-flex;
-        position: relative;
-        width: 36px;
-        height: 36px;
         align-items: center;
         justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
         border-radius: 50%;
-        background: var(--surface-card-soft);
-        transition: all 0.3s ease-in-out;
-        opacity: 0;
+        border: 1px solid var(--border-soft);
+        background: var(--surface-strong);
         color: var(--text-tertiary);
+        cursor: var(--t-mouse-cursor-link), pointer;
+        outline: none;
+        opacity: 0;
+        transform: translateY(6px);
+        transition:
+          transform var(--duration-fast) var(--easing-standard),
+          border-color var(--duration-fast) var(--easing-standard),
+          background var(--duration-fast) var(--easing-standard),
+          color var(--duration-fast) var(--easing-standard),
+          box-shadow var(--duration-fast) var(--easing-standard),
+          opacity var(--duration-fast) var(--easing-standard);
 
-        &:hover {
-          background: var(--t-color-light-yellow);
-
-          &::before {
-            border-color: var(--t-color-light-yellow);
-          }
+        .dock-icon {
+          width: 14px;
+          height: 14px;
         }
 
-        svg path,
-        svg g {
-          fill: currentColor;
-          stroke: currentColor;
+        &:hover,
+        &:focus-visible {
+          transform: translateY(-1px);
+          border-color: var(--border-brand);
+          background: var(--surface-brand-soft);
+          color: var(--brand-primary);
+          box-shadow: var(--shadow-xs);
         }
 
-        &::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          border: 3px solid var(--surface-card-soft);
-          background: transparent;
-          transform: translate(-50%, -50%);
+        &:active {
+          transform: scale(0.92);
         }
 
-        &.first {
-          top: 10px;
-
-          &.show {
-            opacity: 1;
-            pointer-events: all;
-          }
-
-          &:hover {
-            svg g {
-              fill: var(--text-on-brand);
-            }
-          }
+        &.star-btn.is-starred {
+          border-color: var(--border-warning);
+          background: var(--surface-warning-soft);
+          color: var(--warning);
         }
-        &.second {
-          top: 120px;
-          scale: 0.8;
+      }
 
-          &.show {
-            opacity: 1;
-            top: 30px;
-            scale: 1;
-            pointer-events: all;
-          }
+      /* 展开时按钮依次浮现 */
+      &.show .dock-btn {
+        opacity: 1;
+        transform: translateY(0);
 
-          &:hover {
-            svg path {
-              stroke: var(--text-on-brand);
-            }
-          }
+        &:nth-child(1) {
+          transition-delay: 0.03s;
         }
-        &.third {
-          top: 230px;
-          scale: 0.6;
 
-          &.show {
-            opacity: 1;
-            top: 50px;
-            scale: 1;
-            pointer-events: all;
-          }
+        &:nth-child(2) {
+          transition-delay: 0.07s;
+        }
 
-          &:hover {
-            svg path {
-              stroke: var(--text-on-brand);
-            }
-          }
+        &:nth-child(3) {
+          transition-delay: 0.11s;
         }
       }
     }

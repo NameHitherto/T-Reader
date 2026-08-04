@@ -70,6 +70,7 @@ const route = useRoute()
 const primaryNavigation: NavigationItem[] = [
   { name: 'Home', path: '/', label: '书架', icon: 'sidebarBookshelf' },
   { name: 'Bookmark', path: '/bookmark', label: '笔记', icon: 'sidebarNote' },
+  { name: 'Gallery', path: '/gallery', label: '画廊', icon: 'sidebarGallery' },
   { name: 'Sync', path: '/sync', label: '云同步', icon: 'refresh' },
 ]
 
@@ -145,7 +146,7 @@ onUnmounted(() => {
   height: 44px;
   padding: 3px;
   overflow: hidden;
-  background: var(--surface-logo-gradient);
+  background: var(--surface-brand-soft-strong);
   border: 1px solid var(--border-default);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);

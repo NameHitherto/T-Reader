@@ -3,160 +3,191 @@
     <div class="settings-page-scroll">
       <div class="settings-content">
         <div class="dialog-content">
-          <section class="section section--theme">
-            <el-divider class="divider" content-position="left">界面主题</el-divider>
-            <div class="theme-mode-group">
-              <button
-                type="button"
-                class="theme-mode-card"
-                :class="{ 'is-active': themeMode === 'light' }"
-                @click="themeMode = 'light'"
-              >
-                <span class="theme-mode-title">白天模式☀️</span>
-              </button>
-              <button
-                type="button"
-                class="theme-mode-card"
-                :class="{ 'is-active': themeMode === 'dark' }"
-                @click="themeMode = 'dark'"
-              >
-                <span class="theme-mode-title">黑夜模式🌙</span>
-              </button>
+          <!-- 界面主题 -->
+          <section class="setting-group">
+            <h3 class="setting-group__title">界面主题</h3>
+            <div class="setting-card">
+              <div class="setting-item">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">黑夜模式</span>
+                  <span class="setting-item__subtitle">开启后切换为深色视觉主题</span>
+                </div>
+                <el-switch
+                  :model-value="themeMode === 'dark'"
+                  class="theme-switch"
+                  :aria-label="themeMode === 'dark' ? '切换到白天模式' : '切换到黑夜模式'"
+                  @change="onThemeSwitchChange"
+                >
+                  <template #active-action>
+                    <AppIcon name="moon" :size="14" />
+                  </template>
+                  <template #inactive-action>
+                    <AppIcon name="sun" :size="14" />
+                  </template>
+                </el-switch>
+              </div>
             </div>
           </section>
 
-          <section class="section">
-            <el-divider class="divider" content-position="left">云同步</el-divider>
-            <div class="select-container">
-              <label class="field-label">云同步平台</label>
-              <el-select v-model="webdavUrlRoot" placeholder="请选择">
-                <el-option
-                  v-for="item in platformList"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
+          <!-- 云同步 -->
+          <section class="setting-group">
+            <h3 class="setting-group__title">云同步</h3>
+            <div class="setting-card">
+              <div class="setting-item setting-item--input">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">云同步平台</span>
+                  <span class="setting-item__subtitle">选择 WebDAV 服务商</span>
+                </div>
+                <div class="setting-item__control">
+                  <el-select v-model="webdavUrlRoot" placeholder="请选择">
+                    <el-option
+                      v-for="item in platformList"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </div>
+              </div>
+              <div class="setting-item setting-item--input">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">文件目录</span>
+                  <span class="setting-item__subtitle">云同步的根目录</span>
+                </div>
+                <div class="setting-item__control">
+                  <el-input v-model="webdavUrlFolder" placeholder="请输入云同步的目录">
+                    <template #prepend>({{ webdavUrlRoot }})</template>
+                  </el-input>
+                </div>
+              </div>
+              <div class="setting-item setting-item--input">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">用户名</span>
+                  <span class="setting-item__subtitle">WebDAV 账号用户名</span>
+                </div>
+                <div class="setting-item__control">
+                  <el-input v-model="webdavUsername" placeholder="请输入用户名" />
+                </div>
+              </div>
+              <div class="setting-item setting-item--input">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">密码</span>
+                  <span class="setting-item__subtitle">应用密码（授权码）</span>
+                </div>
+                <div class="setting-item__control">
+                  <el-input
+                    v-model="webdavPassword"
+                    type="password"
+                    placeholder="请输入密码"
+                    show-password
+                  />
+                </div>
+              </div>
             </div>
-            <div class="input-container">
-              <label class="field-label">文件目录</label>
-              <el-input v-model="webdavUrlFolder" placeholder="请输入云同步的目录">
-                <template #prepend>({{ webdavUrlRoot }})</template>
-              </el-input>
-            </div>
-            <div class="input-container">
-              <label class="field-label">用户名</label>
-              <el-input v-model="webdavUsername" placeholder="请输入用户名" />
-            </div>
-            <div class="input-container">
-              <label class="field-label">密码</label>
-              <el-input
-                v-model="webdavPassword"
-                type="password"
-                placeholder="请输入密码"
-                show-password
+          </section>
+
+          <!-- AI大模型 -->
+          <section class="setting-group">
+            <h3 class="setting-group__title">AI大模型</h3>
+            <div class="setting-card">
+              <template v-if="!isEditing">
+                <div class="purpose-tabs">
+                  <el-radio-group v-model="activePurpose" size="small">
+                    <el-radio-button value="chat">对话</el-radio-button>
+                    <el-radio-button value="image">图像</el-radio-button>
+                    <el-radio-button value="embedding">嵌入</el-radio-button>
+                    <el-radio-button value="rerank">重排序</el-radio-button>
+                  </el-radio-group>
+                </div>
+
+                <div v-if="currentProvider" class="model-card">
+                  <div class="model-card-body">
+                    <div class="model-card-field">
+                      <span class="model-card-label">API格式</span>
+                      <span class="model-card-value">{{ currentProvider.providerType }}</span>
+                    </div>
+                    <div class="model-card-field">
+                      <span class="model-card-label">模型ID</span>
+                      <span class="model-card-value">{{ currentProvider.modelId }}</span>
+                    </div>
+                    <div class="model-card-field">
+                      <span class="model-card-label">请求地址</span>
+                      <span class="model-card-value"
+                        >{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="model-card-actions">
+                    <el-button size="small" @click="startEdit">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteProvider">删除</el-button>
+                  </div>
+                </div>
+
+                <div v-else class="model-empty">
+                  <span>暂无{{ purposeLabel }}模型配置</span>
+                  <el-button type="primary" size="small" @click="startAdd">添加</el-button>
+                </div>
+              </template>
+
+              <!-- Edit state -->
+              <ModelProviderForm
+                v-else
+                :provider="editingProvider"
+                :readonly-purpose="!isAdding"
+                @submit="handleFormSubmit"
+                @cancel="handleFormCancel"
               />
             </div>
           </section>
 
-          <!-- 暂无应用实现，临时隐藏。 -->
-          <section v-show="false" class="section">
-            <el-divider class="divider" content-position="left">AI大模型</el-divider>
-
-            <template v-if="!isEditing">
-              <div class="purpose-tabs">
-                <el-radio-group v-model="activePurpose" size="small">
-                  <el-radio-button value="chat">对话</el-radio-button>
-                  <el-radio-button value="image">图像</el-radio-button>
-                  <el-radio-button value="embedding">嵌入</el-radio-button>
-                  <el-radio-button value="rerank">重排序</el-radio-button>
-                </el-radio-group>
-              </div>
-
-              <div v-if="currentProvider" class="model-card">
-                <div class="model-card-body">
-                  <div class="model-card-field">
-                    <span class="model-card-label">API格式</span>
-                    <span class="model-card-value">{{ currentProvider.providerType }}</span>
-                  </div>
-                  <div class="model-card-field">
-                    <span class="model-card-label">模型ID</span>
-                    <span class="model-card-value">{{ currentProvider.modelId }}</span>
-                  </div>
-                  <div class="model-card-field">
-                    <span class="model-card-label">请求地址</span>
-                    <span class="model-card-value"
-                      >{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span
+          <!-- TXT分章规则 -->
+          <section class="setting-group">
+            <h3 class="setting-group__title">TXT分章规则</h3>
+            <div class="setting-card">
+              <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">暂无可展示规则</div>
+              <div v-else class="txt-toc-rule-list">
+                <article
+                  v-for="(rule, index) in txtTocRules"
+                  :key="rule.id"
+                  class="setting-item txt-toc-rule"
+                >
+                  <div class="txt-toc-rule__priority">
+                    <button
+                      type="button"
+                      class="txt-toc-rule__order-btn"
+                      title="上移优先级"
+                      :disabled="index === 0"
+                      @click="moveRule(index, -1)"
                     >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      class="txt-toc-rule__order-btn"
+                      title="下移优先级"
+                      :disabled="index === txtTocRules.length - 1"
+                      @click="moveRule(index, 1)"
+                    >
+                      ↓
+                    </button>
                   </div>
-                </div>
-                <div class="model-card-actions">
-                  <el-button size="small" @click="startEdit">编辑</el-button>
-                  <el-button size="small" type="danger" @click="deleteProvider">删除</el-button>
-                </div>
+
+                  <div class="txt-toc-rule__content">
+                    <div class="txt-toc-rule__header">
+                      <span class="txt-toc-rule__name">{{ rule.name }}</span>
+                      <el-switch v-model="rule.enable" size="small" />
+                    </div>
+                    <div class="txt-toc-rule__field">
+                      <span class="txt-toc-rule__label">样例</span>
+                      <p class="txt-toc-rule__example">{{ rule.example }}</p>
+                    </div>
+                    <div class="txt-toc-rule__field">
+                      <span class="txt-toc-rule__label">规则</span>
+                      <pre class="txt-toc-rule__regex">{{ rule.rule }}</pre>
+                    </div>
+                  </div>
+                </article>
               </div>
-
-              <div v-else class="model-empty">
-                <p>暂无{{ purposeLabel }}模型配置</p>
-                <el-button type="primary" size="small" @click="startAdd">添加</el-button>
-              </div>
-            </template>
-
-            <!-- Edit state -->
-            <ModelProviderForm
-              v-else
-              :provider="editingProvider"
-              :readonly-purpose="!isAdding"
-              @submit="handleFormSubmit"
-              @cancel="handleFormCancel"
-            />
-          </section>
-
-          <section class="section">
-            <el-divider class="divider" content-position="left">TXT分章规则</el-divider>
-            <div v-if="txtTocRules.length === 0" class="txt-toc-rule-empty">暂无可展示规则</div>
-            <div v-else class="txt-toc-rule-list">
-              <article
-                v-for="(rule, index) in txtTocRules"
-                :key="rule.id"
-                class="txt-toc-rule-card"
-              >
-                <div class="txt-toc-rule-priority-actions">
-                  <button
-                    type="button"
-                    class="txt-toc-rule-order-btn"
-                    title="上移优先级"
-                    :disabled="index === 0"
-                    @click="moveRule(index, -1)"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    class="txt-toc-rule-order-btn"
-                    title="下移优先级"
-                    :disabled="index === txtTocRules.length - 1"
-                    @click="moveRule(index, 1)"
-                  >
-                    ↓
-                  </button>
-                </div>
-
-                <div class="txt-toc-rule-content">
-                  <div class="txt-toc-rule-header">
-                    <span class="txt-toc-rule-name">{{ rule.name }}</span>
-                    <el-switch v-model="rule.enable" />
-                  </div>
-                  <div class="txt-toc-rule-field">
-                    <span class="txt-toc-rule-label">样例</span>
-                    <p class="txt-toc-rule-example">{{ rule.example }}</p>
-                  </div>
-                  <div class="txt-toc-rule-field">
-                    <span class="txt-toc-rule-label">规则</span>
-                    <pre class="txt-toc-rule-regex">{{ rule.rule }}</pre>
-                  </div>
-                </div>
-              </article>
             </div>
           </section>
         </div>
@@ -175,13 +206,14 @@ import {
 import { emitAppThemeUpdate } from '@/services/theme/themeService'
 import { PURPOSE_LABELS } from '@/types/model'
 import ModelProviderForm from '@/components/SettingDialog/ModelProviderForm.vue'
+import AppIcon from '@/components/common/AppIcon/index.vue'
 import { logWarn } from '@/utils/logger'
 
 const AUTO_SAVE_DELAY_MS = 200
 
 export default {
   name: 'SettingsView',
-  components: { ModelProviderForm },
+  components: { ModelProviderForm, AppIcon },
   data() {
     return {
       settings: {},
@@ -389,6 +421,9 @@ export default {
         [this.activePurpose]: null,
       }
     },
+    onThemeSwitchChange(value) {
+      this.themeMode = value ? 'dark' : 'light'
+    },
     moveRule(currentIndex, offset) {
       const targetIndex = currentIndex + offset
       if (targetIndex < 0 || targetIndex >= this.txtTocRules.length) {
@@ -444,108 +479,109 @@ export default {
   .dialog-content {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 20px;
     padding: 0 4px 24px 0;
   }
 
-  .section {
-    padding: 0 14px 14px;
-    margin-top: 10px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--surface-card);
-
-    &--theme {
-      background: var(--surface-card);
-    }
+  // Group：独立标题 + 通栏卡片
+  .setting-group__title {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
   }
 
-  .divider {
-    margin-top: 0;
+  .setting-card {
+    padding: 0 16px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-xs);
+  }
 
-    & :deep(.el-divider__text) {
-      font-size: 16px;
-      font-weight: 700;
+  // Item：左侧信息 + 右侧控件
+  .setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    & + & {
+      border-top: 1px solid var(--border-soft);
+    }
+
+    &__info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    &__title {
+      font-size: 14px;
+      font-weight: 500;
       color: var(--text-primary);
     }
-  }
 
-  .field-label {
-    display: inline-flex;
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-weight: 700;
-  }
-
-  .input-container,
-  .select-container {
-    margin-top: 12px;
-  }
-
-  .switch-container {
-    margin-top: 12px;
-    display: inline-flex;
-    gap: 12px;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .theme-mode-group {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .theme-mode-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--surface-strong);
-    box-shadow: var(--shadow-sm);
-    color: var(--text-secondary);
-    text-align: left;
-    transition:
-      transform var(--duration-fast) var(--easing-standard),
-      box-shadow var(--duration-fast) var(--easing-standard),
-      border-color var(--duration-fast) var(--easing-standard),
-      background-color var(--duration-fast) var(--easing-standard);
-
-    &:hover {
-      transform: translateY(-2px);
-      border-color: var(--border-brand);
-      box-shadow: var(--shadow-md);
+    &__subtitle {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
     }
 
-    &.is-active {
-      border-color: var(--brand-primary);
-      background: var(--surface-brand-soft);
-      box-shadow:
-        var(--shadow-md),
-        0 0 0 1px var(--ring-brand-soft) inset;
+    // 输入型：标题在上、控件占满卡片宽度
+    &--input {
+      display: block;
+
+      .setting-item__info {
+        margin-bottom: 10px;
+      }
+
+      .setting-item__control {
+        width: 100%;
+
+        :deep(.el-select) {
+          width: 100%;
+        }
+      }
     }
   }
 
-  .theme-mode-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary);
+  // 主题 Switch（基于 el-switch，带日/月图标）
+  .theme-switch {
+    --el-switch-on-color: var(--brand-primary);
+    --el-switch-off-color: var(--surface-inset);
+    flex-shrink: 0;
+
+    :deep(.el-switch__core) {
+      min-width: 48px;
+      height: 26px;
+      border-radius: var(--radius-pill);
+    }
+
+    :deep(.el-switch__action) {
+      width: 22px;
+      height: 22px;
+      background: #ffffff;
+      color: var(--brand-secondary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    &.is-checked :deep(.el-switch__action) {
+      left: calc(100% - 23px);
+      color: var(--brand-primary);
+    }
   }
 
-  .dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-  }
-
-  // Model provider styles
+  // AI 模型
   .purpose-tabs {
-    position: relative;
-    margin-bottom: 12px;
-    top: -6px;
+    padding: 14px 0 12px;
+    border-bottom: 1px solid var(--border-soft);
 
     :deep(.el-radio-group) {
       background-color: var(--surface-inset);
@@ -584,11 +620,9 @@ export default {
 
   .model-card {
     display: flex;
-    gap: 10px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-md);
-    background: var(--surface-strong);
-    padding: 10px;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
   }
 
   .model-card-body {
@@ -596,159 +630,149 @@ export default {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .model-card-field {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
   }
 
   .model-card-label {
+    flex-shrink: 0;
+    width: 64px;
     font-size: 12px;
     font-weight: 700;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
   }
 
   .model-card-value {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-primary);
     word-break: break-all;
   }
 
   .model-card-actions {
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    align-self: center;
+
+    :deep(.el-button + .el-button) {
+      // 垂直排列时水平间距由容器 gap 控制，抵消全局相邻按钮 margin
+      margin-left: 0;
+    }
   }
 
   .model-empty {
-    margin-top: 12px;
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 8px;
+    padding: 12px 0;
     color: var(--text-secondary);
     font-size: 13px;
   }
 
-  // TXT TOC rules
+  // TXT 分章规则
   .txt-toc-rule-empty {
-    margin-top: 12px;
-    color: var(--text-secondary);
+    padding: 14px 0;
+    color: var(--text-tertiary);
     font-size: 13px;
   }
 
   .txt-toc-rule-list {
-    margin-top: 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
   }
 
-  .txt-toc-rule-card {
-    display: flex;
-    gap: 10px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-md);
-    background: var(--surface-strong);
-    padding: 10px;
-    transition:
-      border-color var(--duration-fast) var(--easing-standard),
-      box-shadow var(--duration-fast) var(--easing-standard);
-  }
+  .txt-toc-rule {
+    align-items: flex-start;
+    justify-content: flex-start;
 
-  .txt-toc-rule-priority-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-self: center;
-  }
-
-  .txt-toc-rule-order-btn {
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background: var(--surface-card);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition:
-      border-color var(--duration-fast) var(--easing-standard),
-      background-color var(--duration-fast) var(--easing-standard);
-
-    &:hover:not(:disabled) {
-      border-color: var(--border-brand);
-      background: var(--surface-brand-soft);
+    &__priority {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 2px;
     }
 
-    &:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
+    &__order-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition:
+        border-color var(--duration-fast) var(--easing-standard),
+        background-color var(--duration-fast) var(--easing-standard);
+
+      &:hover:not(:disabled) {
+        border-color: var(--border-brand);
+        background: var(--surface-brand-soft);
+      }
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
     }
-  }
 
-  .txt-toc-rule-content {
-    min-width: 0;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+    &__content {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-  .txt-toc-rule-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
 
-  .txt-toc-rule-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
+    &__name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
 
-  .txt-toc-rule-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-  }
+    &__field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
 
-  .txt-toc-rule-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-secondary);
-  }
+    &__label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+    }
 
-  .txt-toc-rule-example {
-    margin: 0;
-    font-size: 12px;
-    color: var(--text-secondary);
-    word-break: break-word;
-  }
+    &__example {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      word-break: break-word;
+    }
 
-  .txt-toc-rule-regex {
-    margin: 0;
-    padding: 8px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-default);
-    background: var(--surface-card);
-    color: var(--text-primary);
-    font-size: 12px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-}
-
-@media (max-width: 720px) {
-  .settings-content {
-    .theme-mode-group {
-      grid-template-columns: 1fr;
+    &__regex {
+      margin: 0;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-soft);
+      background: var(--surface-card-soft);
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-all;
     }
   }
 }

@@ -15,9 +15,39 @@
       <div v-if="previewLoading" class="dialog-loading">正在读取云端与本地文件差异...</div>
 
       <div v-else-if="loadError" class="dialog-error-panel">
+        <div class="error-icon-wrapper">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+
         <div class="dialog-error-title">读取同步信息失败</div>
         <div class="dialog-error-text">{{ loadError }}</div>
-        <el-button type="primary" @click="loadPreview">重新加载</el-button>
+
+        <el-button class="error-retry-btn" @click="loadPreview">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="btn-icon"
+          >
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          重新加载
+        </el-button>
       </div>
 
       <template v-else>
@@ -390,7 +420,6 @@ export default defineComponent({
 .cloud-sync-page-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -457,7 +486,6 @@ export default defineComponent({
   }
 
   .dialog-loading,
-  .dialog-error-panel,
   .sync-empty-state {
     min-height: 260px;
     display: flex;
@@ -473,22 +501,82 @@ export default defineComponent({
   }
 
   .dialog-error-panel {
-    padding: 24px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 24px;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-danger);
-    background: var(--surface-danger-gradient);
+    border: 1px solid var(--border-default);
+    background: var(--surface-strong);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .error-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    background: var(--surface-danger-soft);
+    color: var(--text-danger);
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
   }
 
   .dialog-error-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-danger);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 4px;
   }
 
   .dialog-error-text {
-    color: var(--text-secondary);
+    font-size: 13px;
+    color: var(--text-tertiary);
     text-align: center;
+    max-width: 360px;
     line-height: 1.6;
+    margin-bottom: 8px;
+  }
+
+  .error-retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: var(--surface-strong);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all var(--duration-fast) var(--easing-standard);
+
+    .btn-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--text-secondary);
+    }
+
+    &:hover,
+    &:focus {
+      background: var(--surface-card);
+      border-color: var(--border-emphasis);
+      color: var(--brand-primary);
+
+      .btn-icon {
+        color: var(--brand-primary);
+      }
+    }
   }
 
   .sync-scrollbar {
@@ -515,7 +603,7 @@ export default defineComponent({
     padding: 20px 24px;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-default);
-    background: linear-gradient(180deg, var(--surface-strong), var(--surface-card-soft));
+    background: var(--surface-strong);
     box-shadow: var(--shadow-xs);
     transition:
       box-shadow var(--duration-fast) var(--easing-standard),

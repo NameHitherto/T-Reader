@@ -31,6 +31,7 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 ![阅读器与样式设置](./docs/images/reader.jpg)
 
 ### 云同步
+
 ![云同步](./docs/images/webdav.png)
 
 ## 技术栈

@@ -12,11 +12,23 @@ export interface EpubNavigationItem {
   subitems?: EpubNavigationItem[]
 }
 
+export interface EpubManifestItem {
+  href: string
+  type?: string
+}
+
 export interface EpubBookLike {
   ready?: Promise<unknown>
   loaded?: {
     metadata?: Promise<{ title?: string }>
   }
+  packaging?: {
+    manifest?: Record<string, EpubManifestItem>
+  }
+  archive?: {
+    getBlob?: (url: string, mimeType?: string) => Promise<Blob>
+  }
+  resolve?: (path: string) => string
   navigation?: {
     toc?: EpubTocItem[]
     get?: (target: string) => EpubNavigationItem | undefined

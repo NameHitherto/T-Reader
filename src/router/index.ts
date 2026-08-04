@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router'
 import MainContent from '@/views/MainContent.vue'
 import BookMark from '@/views/BookMark.vue'
+import GalleryView from '@/views/GalleryView.vue'
 import CloudSyncView from '@/views/CloudSyncView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import AboutView from '@/views/AboutView.vue'
@@ -17,6 +18,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Bookmark',
     component: BookMark,
     meta: { title: '笔记' },
+  },
+  {
+    path: '/gallery',
+    name: 'Gallery',
+    component: GalleryView,
+    meta: { title: '画廊' },
   },
   {
     path: '/sync',
