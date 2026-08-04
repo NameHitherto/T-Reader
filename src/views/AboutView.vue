@@ -330,7 +330,7 @@ onMounted(async () => {
             <span
               >当前版本：<strong>v{{ version }}</strong></span
             >
-            <el-tag v-if="isPreviewBuild" type="warning" effect="dark" size="small">
+            <el-tag v-if="isPreviewBuild" type="warning" effect="dark" size="small" disable-transitions="true">
               抢先体验
             </el-tag>
           </div>
