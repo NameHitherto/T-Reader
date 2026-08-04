@@ -70,15 +70,10 @@
 .el-button {
   border-radius: var(--radius-sm);
   transition:
-    transform var(--duration-fast) var(--easing-standard),
     box-shadow var(--duration-fast) var(--easing-standard),
     border-color var(--duration-fast) var(--easing-standard),
     background-color var(--duration-fast) var(--easing-standard),
     color var(--duration-fast) var(--easing-standard);
-
-  &:hover {
-    transform: translateY(-1px);
-  }
 }
 
 .el-button + .el-button {

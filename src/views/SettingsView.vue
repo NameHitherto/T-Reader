@@ -125,7 +125,7 @@
 
                 <div v-else class="model-empty">
                   <span>暂无{{ purposeLabel }}模型配置</span>
-                  <el-button type="primary" size="small" @click="startAdd">添加</el-button>
+                  <el-button type="primary" size="small" style="width: 55px;" @click="startAdd">添加</el-button>
                 </div>
               </template>
 

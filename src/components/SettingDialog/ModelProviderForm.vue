@@ -132,7 +132,7 @@ export default {
   .button-group {
     display: flex;
     gap: 12px;
-    margin-top: 16px;
+    margin: 16px 0 6px 0;
   }
 }
 </style>
