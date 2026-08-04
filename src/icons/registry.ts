@@ -10,6 +10,8 @@ import sidebarAboutIcon from '@/assets/icons/sidebar-about.svg'
 import contactBilibiliIcon from '@/assets/icons/contact-bilibili.svg'
 import contactGithubIcon from '@/assets/icons/contact-github.svg'
 import contactEmailIcon from '@/assets/icons/contact-email.svg'
+import sunIcon from '@/assets/icons/sun.svg'
+import moonIcon from '@/assets/icons/moon.svg'
 
 import bookOpenIcon from '@/components/ContextMenu/assets/book-open.svg'
 import uploadIcon from '@/components/ContextMenu/assets/upload.svg'
@@ -38,6 +40,8 @@ export type IconName =
   | 'contactBilibili'
   | 'contactGithub'
   | 'contactEmail'
+  | 'sun'
+  | 'moon'
   | 'bookOpen'
   | 'upload'
   | 'delete'
@@ -68,6 +72,8 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   contactBilibili: { src: contactBilibiliIcon, mode: 'mask' },
   contactGithub: { src: contactGithubIcon, mode: 'mask' },
   contactEmail: { src: contactEmailIcon, mode: 'mask' },
+  sun: { src: sunIcon, mode: 'mask' },
+  moon: { src: moonIcon, mode: 'mask' },
   bookOpen: { src: bookOpenIcon, mode: 'mask' },
   upload: { src: uploadIcon, mode: 'mask' },
   delete: { src: deleteIcon, mode: 'mask' },
