@@ -1,10 +1,10 @@
 <template>
-  <div class="book-sort">
+  <div class="shelf-menu">
     <button
       ref="triggerElement"
       type="button"
-      class="book-sort-trigger"
-      :class="{ 'book-sort-trigger--active': show }"
+      class="shelf-menu-trigger"
+      :class="{ 'shelf-menu-trigger--active': show }"
       :title="triggerTitle"
       :aria-label="triggerTitle"
       aria-haspopup="true"
@@ -15,35 +15,57 @@
     </button>
 
     <Teleport to="body">
-      <Transition name="book-sort-menu">
+      <Transition name="shelf-menu">
         <div
           v-if="show"
           ref="panelElement"
-          class="book-sort-menu"
+          class="shelf-menu-panel"
           :style="panelStyle"
           role="menu"
           tabindex="-1"
           @click.stop
         >
-          <div class="book-sort-menu-head">
-            <span class="book-sort-menu-title">排序方式</span>
-            <span class="book-sort-menu-summary"
+          <div class="shelf-menu-head">
+            <span class="shelf-menu-title">书架显示</span>
+            <span class="shelf-menu-summary"
               >{{ currentOption.label }} · {{ currentOrderLabel }}</span
             >
           </div>
-          <div class="book-sort-menu-grid">
-            <button
-              v-for="option in sortOptions"
-              :key="option.key"
-              type="button"
-              class="sort-tag"
-              :class="{ 'sort-tag--active': option.key === sortKey }"
-              :aria-pressed="option.key === sortKey"
-              @click="handleTagClick(option)"
-            >
-              <span class="sort-tag-label">{{ option.label }}</span>
-              <AppIcon class="sort-tag-icon" :name="tagIconName(option)" :size="14" />
-            </button>
+
+          <div class="shelf-menu-section">
+            <span class="shelf-menu-section-title">排序方式</span>
+            <div class="shelf-menu-grid">
+              <button
+                v-for="option in sortOptions"
+                :key="option.key"
+                type="button"
+                class="shelf-menu-tag"
+                :class="{ 'shelf-menu-tag--active': option.key === sortKey }"
+                :aria-pressed="option.key === sortKey"
+                @click="handleTagClick(option)"
+              >
+                <span class="shelf-menu-tag-label">{{ option.label }}</span>
+                <AppIcon class="shelf-menu-tag-icon" :name="tagIconName(option)" :size="14" />
+              </button>
+            </div>
+          </div>
+
+          <div class="shelf-menu-section">
+            <span class="shelf-menu-section-title">视图模式</span>
+            <div class="shelf-menu-grid">
+              <button
+                v-for="view in viewOptions"
+                :key="view.mode"
+                type="button"
+                class="shelf-menu-tag"
+                :class="{ 'shelf-menu-tag--active': view.mode === viewMode }"
+                :aria-pressed="view.mode === viewMode"
+                @click="handleViewClick(view.mode)"
+              >
+                <span class="shelf-menu-tag-label">{{ view.label }}</span>
+                <AppIcon class="shelf-menu-tag-icon" :name="view.icon" :size="14" />
+              </button>
+            </div>
           </div>
         </div>
       </Transition>
@@ -63,8 +85,19 @@ import {
 } from '@/services/book/bookSortService'
 
 defineOptions({
-  name: 'BookSortMenu',
+  name: 'ShelfMenu',
 })
+
+// ============================================================
+// 类型声明
+// ============================================================
+export type ShelfViewMode = 'list' | 'grid'
+
+interface ShelfViewOption {
+  mode: ShelfViewMode
+  label: string
+  icon: IconName
+}
 
 // ============================================================
 // Props / Emits
@@ -73,11 +106,13 @@ const props = defineProps<{
   show: boolean
   sortKey: BookSortKey
   sortOrder: BookSortOrder
+  viewMode: ShelfViewMode
 }>()
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
   change: [payload: { key: BookSortKey; order: BookSortOrder }]
+  'view-change': [mode: ShelfViewMode]
 }>()
 
 // ============================================================
@@ -89,14 +124,22 @@ const panelStyle = ref<{ top: string; right: string } | null>(null)
 
 const sortOptions = BOOK_SORT_OPTIONS
 
+const viewOptions: readonly ShelfViewOption[] = [
+  { mode: 'list', label: '列表', icon: 'listView' },
+  { mode: 'grid', label: '网格', icon: 'gridView' },
+]
+
 const currentOption = computed<BookSortOption>(
   () => BOOK_SORT_OPTIONS.find((option) => option.key === props.sortKey) ?? BOOK_SORT_OPTIONS[0],
 )
 
 const currentOrderLabel = computed<string>(() => (props.sortOrder === 'asc' ? '升序' : '降序'))
 
+const viewModeLabel = computed<string>(() => (props.viewMode === 'list' ? '列表视图' : '网格视图'))
+
 const triggerTitle = computed<string>(
-  () => `排序方式：${currentOption.value.label} · ${currentOrderLabel.value}`,
+  () =>
+    `书架显示：${viewModeLabel.value} · ${currentOption.value.label} · ${currentOrderLabel.value}`,
 )
 
 // ============================================================
@@ -143,6 +186,10 @@ const handleTagClick = (option: BookSortOption) => {
     key: option.key,
     order: option.defaultOrder,
   })
+}
+
+const handleViewClick = (mode: ShelfViewMode) => {
+  emit('view-change', mode)
 }
 
 const tagIconName = (option: BookSortOption): IconName => {
@@ -208,12 +255,12 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.book-sort {
+.shelf-menu {
   display: inline-flex;
   position: relative;
 }
 
-.book-sort-trigger {
+.shelf-menu-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -250,7 +297,7 @@ onUnmounted(() => {
   }
 }
 
-.book-sort-menu {
+.shelf-menu-panel {
   position: fixed;
   z-index: 4800;
   width: 264px;
@@ -262,20 +309,20 @@ onUnmounted(() => {
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(12px);
 
-  .book-sort-menu-head {
+  .shelf-menu-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 4px 6px 10px;
 
-    .book-sort-menu-title {
+    .shelf-menu-title {
       font-size: 14px;
       font-weight: 700;
       color: var(--text-primary);
     }
 
-    .book-sort-menu-summary {
+    .shelf-menu-summary {
       font-size: 12px;
       color: var(--text-tertiary);
       white-space: nowrap;
@@ -284,13 +331,30 @@ onUnmounted(() => {
     }
   }
 
-  .book-sort-menu-grid {
+  .shelf-menu-section {
+    padding-top: 10px;
+
+    & + .shelf-menu-section {
+      margin-top: 4px;
+      border-top: 1px dashed var(--border-soft);
+    }
+
+    .shelf-menu-section-title {
+      display: block;
+      padding: 0 6px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+    }
+  }
+
+  .shelf-menu-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .sort-tag {
+  .shelf-menu-tag {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
@@ -310,13 +374,13 @@ onUnmounted(() => {
       box-shadow var(--duration-fast) var(--easing-standard),
       transform var(--duration-fast) var(--easing-standard);
 
-    .sort-tag-label {
+    .shelf-menu-tag-label {
       font-size: 13px;
       font-weight: 600;
       white-space: nowrap;
     }
 
-    .sort-tag-icon {
+    .shelf-menu-tag-icon {
       flex-shrink: 0;
       opacity: 0.5;
       transition: opacity var(--duration-fast) var(--easing-standard);
@@ -340,35 +404,35 @@ onUnmounted(() => {
       background: var(--surface-brand-soft);
       box-shadow: 0 0 0 2px var(--ring-brand-subtle);
 
-      .sort-tag-icon {
+      .shelf-menu-tag-icon {
         opacity: 1;
       }
     }
   }
 }
 
-.book-sort-menu-enter-active,
-.book-sort-menu-leave-active {
+.shelf-menu-enter-active,
+.shelf-menu-leave-active {
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
 }
 
-.book-sort-menu-enter-from,
-.book-sort-menu-leave-to {
+.shelf-menu-enter-from,
+.shelf-menu-leave-to {
   opacity: 0;
   transform: translateY(-6px) scale(0.98);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .book-sort-trigger,
-  .book-sort-menu,
-  .sort-tag {
+  .shelf-menu-trigger,
+  .shelf-menu-panel,
+  .shelf-menu-tag {
     transition: none;
   }
 
-  .book-sort-menu-enter-active,
-  .book-sort-menu-leave-active {
+  .shelf-menu-enter-active,
+  .shelf-menu-leave-active {
     transition: none;
   }
 }

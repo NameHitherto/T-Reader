@@ -1,20 +1,13 @@
 ﻿<template>
   <Teleport to="#titlebar-page-actions">
     <div class="titlebar-shelf-actions">
-      <button
-        type="button"
-        class="titlebar-shelf-button titlebar-shelf-button--icon"
-        :title="shelfViewMode === 'list' ? '切换为网格视图' : '切换为列表视图'"
-        :aria-label="shelfViewMode === 'list' ? '切换为网格视图' : '切换为列表视图'"
-        @click="toggleShelfViewMode"
-      >
-        <AppIcon :name="shelfViewMode === 'list' ? 'gridView' : 'listView'" :size="18" />
-      </button>
-      <BookSortMenu
-        v-model:show="sortMenuVisible"
+      <ShelfMenu
+        v-model:show="shelfMenuVisible"
         :sort-key="sortKey"
         :sort-order="sortOrder"
+        :view-mode="shelfViewMode"
         @change="handleBookSortChange"
+        @view-change="handleViewModeChange"
       />
       <button
         type="button"
@@ -165,7 +158,7 @@ import {
   type BookSortKey,
   type BookSortOrder,
 } from '@/services/book/bookSortService'
-import BookSortMenu from '@/components/BookSortMenu/index.vue'
+import ShelfMenu from '@/components/ShelfMenu/index.vue'
 import {
   invalidateBookFileCache,
   loadBookConfigs,
@@ -250,9 +243,9 @@ const loadingText = ref(
 const activeLoadingTasks = ref(0)
 
 // ============================================================
-// 排序面板状态
+// 书架显示面板状态
 // ============================================================
-const sortMenuVisible = ref(false)
+const shelfMenuVisible = ref(false)
 
 const handleBookSortChange = (payload: { key: BookSortKey; order: BookSortOrder }) => {
   setBookSort(payload.key, payload.order)
@@ -330,9 +323,9 @@ const endLoading = () => {
 // ============================================================
 // 书架视图控制
 // ============================================================
-const toggleShelfViewMode = () => {
-  shelfViewMode.value = shelfViewMode.value === 'list' ? 'grid' : 'list'
-  localStorage.setItem('shelfViewMode', shelfViewMode.value)
+const handleViewModeChange = (mode: ShelfViewMode) => {
+  shelfViewMode.value = mode
+  localStorage.setItem('shelfViewMode', mode)
 }
 
 // ============================================================
@@ -966,11 +959,6 @@ onUnmounted(() => {
     outline: 2px solid var(--brand-primary);
     outline-offset: 2px;
   }
-}
-
-.titlebar-shelf-button--icon {
-  width: 34px;
-  padding: 0;
 }
 
 .titlebar-shelf-button--primary {
