@@ -68,7 +68,7 @@
 }
 
 .el-button {
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   transition:
     box-shadow var(--duration-fast) var(--easing-standard),
     border-color var(--duration-fast) var(--easing-standard),
@@ -105,7 +105,7 @@
 .el-input-number {
   background: var(--surface-strong);
   color: var(--text-primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   box-shadow: 0 0 0 1px var(--border-emphasis) inset;
   transition:
     box-shadow var(--duration-fast) var(--easing-standard),
@@ -146,10 +146,14 @@
 
 .el-select__popper.el-popper,
 .el-select-dropdown {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xs);
   border: 1px solid var(--border-default);
   background: var(--surface-strong);
   box-shadow: var(--shadow-lg);
+}
+
+.el-select-dropdown__list {
+  padding: 0;
 }
 
 .el-select-dropdown__wrap,
@@ -164,7 +168,7 @@
 
 .el-select-dropdown__item {
   margin: 4px 6px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   color: var(--text-secondary);
   font-weight: 500;
   transition:

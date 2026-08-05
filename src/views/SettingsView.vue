@@ -33,7 +33,7 @@
           <section class="setting-group">
             <h3 class="setting-group__title">云同步</h3>
             <div class="setting-card">
-              <div class="setting-item setting-item--input">
+              <div class="setting-item setting-item--select">
                 <div class="setting-item__info">
                   <span class="setting-item__title">云同步平台</span>
                   <span class="setting-item__subtitle">选择 WebDAV 服务商</span>
@@ -511,10 +511,6 @@ export default {
       border-bottom: 1px solid var(--border-soft);
     }
 
-    & + & {
-      border-top: 1px solid var(--border-soft);
-    }
-
     &__info {
       display: flex;
       flex-direction: column;
@@ -544,6 +540,24 @@ export default {
 
       .setting-item__control {
         width: 100%;
+
+        :deep(.el-select) {
+          width: 100%;
+        }
+      }
+    }
+
+    // 选择型：标题在左、控件在右
+    &--select {
+      flex-direction: row;
+
+      .setting-item__info {
+        flex: 1;
+      }
+
+      .setting-item__control {
+        flex-shrink: 0;
+        min-width: 160px;
 
         :deep(.el-select) {
           width: 100%;
