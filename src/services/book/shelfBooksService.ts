@@ -1,5 +1,12 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { BookConfig, BookFormat } from '@/types/book'
+import {
+  createBookComparator,
+  loadPersistedBookSort,
+  persistBookSort,
+  type BookSortKey,
+  type BookSortOrder,
+} from '@/services/book/bookSortService'
 
 export type ShelfBookFormat = BookFormat | 'unknown'
 
@@ -10,11 +17,15 @@ export type ShelfBook = BookConfig & {
   format: ShelfBookFormat
   progressValue: number
   lastReadLabel: string
+  createdAt: number
 }
 
 export interface ShelfBooksService {
   books: ComputedRef<ShelfBook[]>
   isBooksEmpty: ComputedRef<boolean>
+  sortKey: Ref<BookSortKey>
+  sortOrder: Ref<BookSortOrder>
+  setBookSort: (key: BookSortKey, order: BookSortOrder) => void
   setShelfBooks: (list: ShelfBook[]) => void
   hasShelfBook: (bookKey: string) => boolean
   getShelfBook: (bookKey: string) => ShelfBook | undefined
@@ -23,32 +34,17 @@ export interface ShelfBooksService {
   refreshBookOrder: () => void
 }
 
-const normalizeDurChapterTime = (value: unknown): number => {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0
-}
-
-const compareShelfBooks = (left: ShelfBook, right: ShelfBook): number => {
-  const timeDiff =
-    normalizeDurChapterTime(right.durChapterTime) - normalizeDurChapterTime(left.durChapterTime)
-  if (timeDiff !== 0) {
-    return timeDiff
-  }
-
-  const titleDiff = left.displayTitle.localeCompare(right.displayTitle)
-  if (titleDiff !== 0) {
-    return titleDiff
-  }
-
-  return left.bookKey.localeCompare(right.bookKey)
-}
-
 export const useShelfBooksService = (): ShelfBooksService => {
   const booksByKey: Ref<Map<string, ShelfBook>> = ref(new Map())
   const bookOrder = ref<string[]>([])
+  const persistedSort = loadPersistedBookSort()
+  const sortKey = ref<BookSortKey>(persistedSort.key)
+  const sortOrder = ref<BookSortOrder>(persistedSort.order)
 
   const refreshBookOrder = () => {
+    const comparator = createBookComparator(sortKey.value, sortOrder.value)
     bookOrder.value = Array.from(booksByKey.value.values())
-      .sort(compareShelfBooks)
+      .sort(comparator)
       .map((book) => book.bookKey)
   }
 
@@ -78,6 +74,13 @@ export const useShelfBooksService = (): ShelfBooksService => {
     refreshBookOrder()
   }
 
+  const setBookSort = (key: BookSortKey, order: BookSortOrder) => {
+    sortKey.value = key
+    sortOrder.value = order
+    persistBookSort({ key, order })
+    refreshBookOrder()
+  }
+
   const removeShelfBook = (bookKey: string) => {
     booksByKey.value.delete(bookKey)
     bookOrder.value = bookOrder.value.filter((orderedBookKey) => orderedBookKey !== bookKey)
@@ -86,6 +89,9 @@ export const useShelfBooksService = (): ShelfBooksService => {
   return {
     books,
     isBooksEmpty,
+    sortKey,
+    sortOrder,
+    setBookSort,
     setShelfBooks,
     hasShelfBook,
     getShelfBook,

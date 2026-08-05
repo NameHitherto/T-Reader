@@ -3,6 +3,9 @@ import refreshIcon from '@/assets/refresh.svg?raw'
 import settingIcon from '@/assets/setting.svg?raw'
 import listViewIcon from '@/assets/icons/list-view.svg?raw'
 import gridViewIcon from '@/assets/icons/grid-view.svg?raw'
+import sortAscIcon from '@/assets/icons/sort-asc.svg?raw'
+import sortDescIcon from '@/assets/icons/sort-desc.svg?raw'
+import sortListIcon from '@/assets/icons/sort-list.svg?raw'
 import sidebarBookshelfIcon from '@/assets/icons/sidebar-bookshelf.svg?raw'
 import sidebarNoteIcon from '@/assets/icons/sidebar-note.svg?raw'
 import sidebarGalleryIcon from '@/assets/icons/sidebar-gallery.svg?raw'
@@ -33,6 +36,9 @@ export type IconName =
   | 'setting'
   | 'listView'
   | 'gridView'
+  | 'sortAsc'
+  | 'sortDesc'
+  | 'sortList'
   | 'sidebarBookshelf'
   | 'sidebarNote'
   | 'sidebarGallery'
@@ -72,6 +78,9 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   setting: { src: toDataUri(settingIcon), mode: 'mask' },
   listView: { src: toDataUri(listViewIcon), mode: 'mask' },
   gridView: { src: toDataUri(gridViewIcon), mode: 'mask' },
+  sortAsc: { src: toDataUri(sortAscIcon), mode: 'mask' },
+  sortDesc: { src: toDataUri(sortDescIcon), mode: 'mask' },
+  sortList: { src: toDataUri(sortListIcon), mode: 'mask' },
   sidebarBookshelf: { src: toDataUri(sidebarBookshelfIcon), mode: 'mask' },
   sidebarNote: { src: toDataUri(sidebarNoteIcon), mode: 'mask' },
   sidebarGallery: { src: toDataUri(sidebarGalleryIcon), mode: 'mask' },

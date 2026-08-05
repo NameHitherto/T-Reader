@@ -16,6 +16,7 @@ declare module 'vue' {
     BookMarkDialog: typeof import('./src/components/BookMark/bookMarkDialog.vue')['default']
     BookMarkTag: typeof import('./src/components/BookMark/bookMarkTag.vue')['default']
     BookMetadataEditDialog: typeof import('./src/components/BookMetadataEditDialog.vue')['default']
+    BookSortMenu: typeof import('./src/components/BookSortMenu/index.vue')['default']
     BubbleToggle: typeof import('./src/components/common/BubbleToggle/index.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
     DrawDialog: typeof import('./src/components/DrawDialog/index.vue')['default']

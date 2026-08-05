@@ -10,6 +10,12 @@
       >
         <AppIcon :name="shelfViewMode === 'list' ? 'gridView' : 'listView'" :size="18" />
       </button>
+      <BookSortMenu
+        v-model:show="sortMenuVisible"
+        :sort-key="sortKey"
+        :sort-order="sortOrder"
+        @change="handleBookSortChange"
+      />
       <button
         type="button"
         class="titlebar-shelf-button titlebar-shelf-button--primary"
@@ -155,6 +161,12 @@ import {
   type ShelfBookFormat,
 } from '@/services/book/shelfBooksService'
 import {
+  parseBookCreatedAt,
+  type BookSortKey,
+  type BookSortOrder,
+} from '@/services/book/bookSortService'
+import BookSortMenu from '@/components/BookSortMenu/index.vue'
+import {
   invalidateBookFileCache,
   loadBookConfigs,
   removeStoredBook,
@@ -225,7 +237,7 @@ const IMPORT_LOADING_TEXT = {
 // 核心数据状态
 // ============================================================
 const shelfBooks = useShelfBooksService()
-const { books, isBooksEmpty } = shelfBooks
+const { books, isBooksEmpty, sortKey, sortOrder, setBookSort } = shelfBooks
 const booksLoading = ref(true)
 
 // ============================================================
@@ -236,6 +248,15 @@ const loadingText = ref(
   'Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross - Police line do not cross',
 )
 const activeLoadingTasks = ref(0)
+
+// ============================================================
+// 排序面板状态
+// ============================================================
+const sortMenuVisible = ref(false)
+
+const handleBookSortChange = (payload: { key: BookSortKey; order: BookSortOrder }) => {
+  setBookSort(payload.key, payload.order)
+}
 
 // ============================================================
 // 弹窗状态
@@ -352,6 +373,7 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       format,
       progressValue,
       lastReadLabel: buildLastReadLabel(book, progressValue),
+      createdAt: parseBookCreatedAt(record.createdAt),
     }
 
     logInfo('bookshelf', 'build-shelf-book:done', {
@@ -376,6 +398,7 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       format: 'unknown' as ShelfBookFormat,
       progressValue: clampProgressValue(record.progress),
       lastReadLabel: '',
+      createdAt: parseBookCreatedAt(record.createdAt),
     }
 
     logInfo('bookshelf', 'build-shelf-book:done', {
@@ -530,6 +553,7 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       format: 'epub',
       progressValue: 0,
       lastReadLabel: '未读',
+      createdAt: parseBookCreatedAt(result.createdRecord.createdAt),
     })
 
     // 后台解析封面
