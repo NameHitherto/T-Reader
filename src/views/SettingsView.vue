@@ -36,10 +36,10 @@
               <div class="setting-item setting-item--select">
                 <div class="setting-item__info">
                   <span class="setting-item__title">云同步平台</span>
-                  <span class="setting-item__subtitle">选择 WebDAV 服务商，或选择自定义服务器</span>
+                  <span class="setting-item__subtitle">选择 WebDAV 服务商</span>
                 </div>
                 <div class="setting-item__control">
-                  <el-select v-model="webdavUrlRoot" placeholder="请选择">
+                  <el-select v-model="webdavProvider" placeholder="请选择">
                     <el-option
                       v-for="item in platformList"
                       :key="item.value"
@@ -50,16 +50,16 @@
                 </div>
               </div>
               <div
-                v-if="webdavUrlRoot === customWebdavRootMark"
+                v-if="webdavProvider === 'custom'"
                 class="setting-item setting-item--input"
               >
                 <div class="setting-item__info">
                   <span class="setting-item__title">服务器地址</span>
-                  <span class="setting-item__subtitle">完整 WebDAV 地址，例如 https://example.com/dav/（建议启用 HTTPS）</span>
+                  <span class="setting-item__subtitle">WebDAV 地址</span>
                 </div>
                 <div class="setting-item__control">
                   <el-input
-                    v-model="webdavCustomUrl"
+                    v-model="webdavUrlRoot"
                     placeholder="https://example.com/dav/"
                   />
                 </div>
@@ -248,16 +248,16 @@ export default {
     return {
       settings: {},
       themeMode: 'light',
+      webdavProvider: 'custom',
       webdavUrlRoot: '',
-      webdavCustomUrl: '',
-      customWebdavRootMark: '__custom__',
+      presetWebdavRoot: 'https://dav.jianguoyun.com/dav/',
       webdavUrlFolder: '',
       webdavUsername: '',
       webdavPassword: '',
       webdavTimeoutSeconds: 30,
       platformList: [
-        { value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' },
-        { value: '__custom__', label: '自定义服务器' },
+        { value: 'preset', label: '坚果云' },
+        { value: 'custom', label: '自定义服务器' },
       ],
       modelProviders: {
         chat: null,
@@ -298,14 +298,13 @@ export default {
     themeMode() {
       this.scheduleAutoSave()
     },
-    webdavUrlRoot(newValue, oldValue) {
-      if (
-        newValue === this.customWebdavRootMark &&
-        oldValue !== this.customWebdavRootMark &&
-        oldValue
-      ) {
-        this.webdavCustomUrl = oldValue
+    webdavProvider(newValue) {
+      if (newValue === 'preset') {
+        this.webdavUrlRoot = this.presetWebdavRoot
       }
+      this.scheduleAutoSave()
+    },
+    webdavUrlRoot() {
       this.scheduleAutoSave()
     },
     webdavUrlFolder() {
@@ -351,13 +350,9 @@ export default {
         const loadedSettings = await loadAppSettings()
         this.settings = loadedSettings
         this.themeMode = loadedSettings.themeMode
-        const isPresetWebdavRoot = this.platformList.some(
-          (item) => item.value === loadedSettings.webdavUrlRoot,
-        )
-        this.webdavUrlRoot = isPresetWebdavRoot
-          ? loadedSettings.webdavUrlRoot
-          : this.customWebdavRootMark
-        this.webdavCustomUrl = isPresetWebdavRoot ? '' : loadedSettings.webdavUrlRoot
+        this.webdavProvider =
+          loadedSettings.webdavUrlRoot === this.presetWebdavRoot ? 'preset' : 'custom'
+        this.webdavUrlRoot = loadedSettings.webdavUrlRoot
         this.webdavUrlFolder = loadedSettings.webdavUrlFolder
         this.webdavUsername = loadedSettings.webdavUser
         this.webdavPassword = loadedSettings.webdavPass
@@ -375,10 +370,7 @@ export default {
     },
     buildNextSettings() {
       return {
-        webdavUrlRoot:
-          this.webdavUrlRoot === this.customWebdavRootMark
-            ? this.webdavCustomUrl
-            : this.webdavUrlRoot,
+        webdavUrlRoot: this.webdavUrlRoot,
         webdavUrlFolder: this.webdavUrlFolder,
         webdavUrl: this.webdavUrl,
         webdavUser: this.webdavUsername,
