@@ -36,7 +36,7 @@
               <div class="setting-item setting-item--select">
                 <div class="setting-item__info">
                   <span class="setting-item__title">云同步平台</span>
-                  <span class="setting-item__subtitle">选择 WebDAV 服务商</span>
+                  <span class="setting-item__subtitle">选择 WebDAV 服务商，或选择自定义服务器</span>
                 </div>
                 <div class="setting-item__control">
                   <el-select v-model="webdavUrlRoot" placeholder="请选择">
@@ -47,6 +47,21 @@
                       :value="item.value"
                     />
                   </el-select>
+                </div>
+              </div>
+              <div
+                v-if="webdavUrlRoot === customWebdavRootMark"
+                class="setting-item setting-item--input"
+              >
+                <div class="setting-item__info">
+                  <span class="setting-item__title">服务器地址</span>
+                  <span class="setting-item__subtitle">完整 WebDAV 地址，例如 https://example.com/dav/（建议启用 HTTPS）</span>
+                </div>
+                <div class="setting-item__control">
+                  <el-input
+                    v-model="webdavCustomUrl"
+                    placeholder="https://example.com/dav/"
+                  />
                 </div>
               </div>
               <div class="setting-item setting-item--input">
@@ -219,10 +234,15 @@ export default {
       settings: {},
       themeMode: 'light',
       webdavUrlRoot: '',
+      webdavCustomUrl: '',
+      customWebdavRootMark: '__custom__',
       webdavUrlFolder: '',
       webdavUsername: '',
       webdavPassword: '',
-      platformList: [{ value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' }],
+      platformList: [
+        { value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' },
+        { value: '__custom__', label: '自定义服务器' },
+      ],
       modelProviders: {
         chat: null,
         image: null,
@@ -262,7 +282,14 @@ export default {
     themeMode() {
       this.scheduleAutoSave()
     },
-    webdavUrlRoot() {
+    webdavUrlRoot(newValue, oldValue) {
+      if (
+        newValue === this.customWebdavRootMark &&
+        oldValue !== this.customWebdavRootMark &&
+        oldValue
+      ) {
+        this.webdavCustomUrl = oldValue
+      }
       this.scheduleAutoSave()
     },
     webdavUrlFolder() {
@@ -305,7 +332,13 @@ export default {
         const loadedSettings = await loadAppSettings()
         this.settings = loadedSettings
         this.themeMode = loadedSettings.themeMode
-        this.webdavUrlRoot = loadedSettings.webdavUrlRoot
+        const isPresetWebdavRoot = this.platformList.some(
+          (item) => item.value === loadedSettings.webdavUrlRoot,
+        )
+        this.webdavUrlRoot = isPresetWebdavRoot
+          ? loadedSettings.webdavUrlRoot
+          : this.customWebdavRootMark
+        this.webdavCustomUrl = isPresetWebdavRoot ? '' : loadedSettings.webdavUrlRoot
         this.webdavUrlFolder = loadedSettings.webdavUrlFolder
         this.webdavUsername = loadedSettings.webdavUser
         this.webdavPassword = loadedSettings.webdavPass
@@ -322,7 +355,10 @@ export default {
     },
     buildNextSettings() {
       return {
-        webdavUrlRoot: this.webdavUrlRoot,
+        webdavUrlRoot:
+          this.webdavUrlRoot === this.customWebdavRootMark
+            ? this.webdavCustomUrl
+            : this.webdavUrlRoot,
         webdavUrlFolder: this.webdavUrlFolder,
         webdavUrl: this.webdavUrl,
         webdavUser: this.webdavUsername,
