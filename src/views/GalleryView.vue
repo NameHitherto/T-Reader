@@ -110,8 +110,6 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import 'element-plus/es/components/message/style/css'
-import 'element-plus/es/components/message-box/style/css'
 import { GalleryImage, parseGalleryReferencePaths } from '@/types/gallery'
 import { deleteGalleryImage, listGalleryImages } from '@/services/gallery/galleryRepository'
 import { buildGalleryAssetUrl } from '@/services/gallery/galleryAssetService'

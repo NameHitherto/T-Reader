@@ -128,13 +128,29 @@
 
 .el-input-number {
   overflow: hidden;
-}
 
-.el-input-number__decrease,
-.el-input-number__increase {
-  background: var(--surface-card-soft);
-  color: var(--text-secondary);
-  border-left-color: var(--border-default);
+  &__decrease,
+  &__increase {
+    background: var(--surface-card-soft);
+    color: var(--text-secondary);
+    border-left-color: var(--border-default);
+  }
+
+  &__decrease {
+    border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  }
+  &__increase {
+    border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  }
+
+  &.is-controls-right {
+    .el-input-number__decrease {
+      border-radius: 0 0 var(--radius-xs) 0;
+    }
+    .el-input-number__increase {
+      border-radius: 0 var(--radius-xs) 0 0;
+    }
+  }
 }
 
 .el-input-group__prepend,

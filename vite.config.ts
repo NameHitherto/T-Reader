@@ -8,14 +8,17 @@ import path from 'path'
 const host = process.env.TAURI_DEV_HOST
 
 // https://vitejs.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig({
   plugins: [
     vue(),
     AutoImport({
-      resolvers: [ElementPlusResolver()],
+      // importStyle: false —— 关闭按需自动引入组件样式,
+      // element-plus 全量样式改由 src/styles/index.scss 显式引入,
+      // 确保其永远位于 vendors/element-plus.scss 覆盖样式之前(构建产物中顺序可控)
+      resolvers: [ElementPlusResolver({ importStyle: false })],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver({ importStyle: false })],
     }),
   ],
   resolve: {
@@ -65,4 +68,4 @@ export default defineConfig(async () => ({
       },
     },
   },
-}))
+})

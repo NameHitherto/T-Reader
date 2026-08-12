@@ -91,7 +91,6 @@ import { computed, ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ElMessage } from 'element-plus'
-import 'element-plus/es/components/message/style/css'
 import { EpubRenditionLike } from '@/types/epub'
 import { stageReferenceImage } from '@/services/gallery/galleryRepository'
 import {

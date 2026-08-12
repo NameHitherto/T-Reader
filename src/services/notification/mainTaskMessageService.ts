@@ -1,7 +1,6 @@
 import { h } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { MessageHandler } from 'element-plus'
-import 'element-plus/es/components/message/style/css'
 
 export type MainTaskMessageType = 'success' | 'warning' | 'info' | 'error'
 

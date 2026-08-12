@@ -1,6 +1,10 @@
 @use './theme/tokens';
 @use './global/reset';
 @use './global/base';
+// element-plus 全量样式必须显式引入且位于覆盖样式之前:
+// 按需自动引入的样式会被 Vite 拆进不同 chunk,加载顺序不可控,
+// 导致 element-plus 原始样式后加载并压掉 vendors/element-plus.scss 中的覆盖
+@use 'element-plus/theme-chalk/index.css';
 @use './vendors/element-plus';
 @use './common/titlebar';
 @use './common/dialogs';

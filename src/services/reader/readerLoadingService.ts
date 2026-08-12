@@ -1,5 +1,4 @@
 import { ElLoading } from 'element-plus'
-import 'element-plus/es/components/loading/style/css'
 import { getAppThemePalette, getAppliedAppThemeMode } from '@/services/theme/themeService'
 
 interface ReaderLoadingOptions {
