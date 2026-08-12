@@ -49,7 +49,7 @@ pub async fn webdav_upload_file(
         resource: format!("{}/{}", subdir, filename),
         message: error,
     })?;
-    let client = build_webdav_client();
+    let client = build_webdav_client(settings.webdav_timeout_seconds);
     let result = retry_once("webdav-upload", || async {
         upload_remote_file(&client, &settings, subdir, filename, contents.clone()).await
     })
@@ -72,7 +72,7 @@ pub async fn webdav_get_file(
         resource: format!("{}/{}", subdir, filename),
         message: error,
     })?;
-    let client = build_webdav_client();
+    let client = build_webdav_client(settings.webdav_timeout_seconds);
     let result = retry_once("webdav-get", || async {
         download_remote_file(&client, &settings, subdir, filename).await
     })
@@ -94,7 +94,7 @@ pub async fn webdav_file_exists(
         resource: format!("{}/{}", subdir, filename),
         message: error,
     })?;
-    let client = build_webdav_client();
+    let client = build_webdav_client(settings.webdav_timeout_seconds);
     remote_file_exists(&client, &settings, subdir, filename).await
 }
 
@@ -109,6 +109,6 @@ pub async fn webdav_delete_file(
         resource: format!("{}/{}", subdir, filename),
         message: error,
     })?;
-    let client = build_webdav_client();
+    let client = build_webdav_client(settings.webdav_timeout_seconds);
     delete_remote_file(&client, &settings, subdir, filename).await
 }

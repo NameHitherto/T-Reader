@@ -109,7 +109,7 @@ pub fn ensure_local_dirs() -> Result<PathBuf, String> {
 }
 
 pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
-    let client = build_webdav_client();
+    let client = build_webdav_client(settings.webdav_timeout_seconds);
 
     let root_url = settings.webdav_url.trim_end_matches('/').to_string() + "/";
     let _ = client

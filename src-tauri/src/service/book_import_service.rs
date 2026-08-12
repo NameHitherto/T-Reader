@@ -29,8 +29,6 @@ use crate::{
     utils::webdav::is_txt_book_file,
 };
 
-const CLOUD_CONFIG_TIMEOUT_MS: u64 = 1500;
-
 /// 尝试从云端读取进度配置
 async fn try_read_cloud_progress_config(
     pool: &SqlitePool,
@@ -48,7 +46,9 @@ async fn try_read_cloud_progress_config(
         return Ok(None);
     }
 
-    let client = build_webdav_client();
+    // 云端检查超时与 WebDAV 请求超时保持一致，由用户在设置中配置
+    let config_timeout = Duration::from_secs(settings.webdav_timeout_seconds.max(1) as u64);
+    let client = build_webdav_client(settings.webdav_timeout_seconds);
 
     // 使用 timeout 检查文件是否存在
     let exists_future = crate::service::webdav::file_service::webdav_file_exists(
@@ -57,11 +57,7 @@ async fn try_read_cloud_progress_config(
         config_filename,
     );
 
-    let exists = match tokio::time::timeout(
-        Duration::from_millis(CLOUD_CONFIG_TIMEOUT_MS),
-        exists_future,
-    )
-    .await
+    let exists = match tokio::time::timeout(config_timeout, exists_future).await
     {
         Ok(Ok(true)) => true,
         Ok(Ok(false)) => return Ok(None),
@@ -87,11 +83,7 @@ async fn try_read_cloud_progress_config(
         config_filename,
     );
 
-    match tokio::time::timeout(
-        Duration::from_millis(CLOUD_CONFIG_TIMEOUT_MS),
-        download_future,
-    )
-    .await
+    match tokio::time::timeout(config_timeout, download_future).await
     {
         Ok(Ok(contents)) => {
             let config: Value = match serde_json::from_slice(&contents) {

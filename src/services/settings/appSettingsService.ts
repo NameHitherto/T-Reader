@@ -12,6 +12,7 @@ export interface AppSettings {
   webdavUrl: string
   webdavUser: string
   webdavPass: string
+  webdavTimeoutSeconds: number
   modelProviders: ModelProviderMap
   themeMode: AppThemeMode
   updateChannel: UpdateChannel
@@ -58,9 +59,17 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   webdavUrl: '',
   webdavUser: '',
   webdavPass: '',
+  webdavTimeoutSeconds: 30,
   modelProviders: emptyModelProviders(),
   themeMode: 'light',
   updateChannel: 'stable',
+}
+
+export const normalizeWebdavTimeoutSeconds = (value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_APP_SETTINGS.webdavTimeoutSeconds
+  }
+  return Math.min(300, Math.max(1, Math.round(value)))
 }
 
 export const normalizeAppSettings = (
@@ -71,6 +80,7 @@ export const normalizeAppSettings = (
     ...(settings || {}),
     themeMode: normalizeAppThemeMode(settings?.themeMode),
     updateChannel: normalizeUpdateChannel(settings?.updateChannel),
+    webdavTimeoutSeconds: normalizeWebdavTimeoutSeconds(settings?.webdavTimeoutSeconds),
     modelProviders: normalizeModelProviders(settings?.modelProviders),
   }
 }

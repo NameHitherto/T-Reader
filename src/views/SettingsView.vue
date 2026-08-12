@@ -98,6 +98,21 @@
                   />
                 </div>
               </div>
+              <div class="setting-item setting-item--input">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">请求超时（秒）</span>
+                  <span class="setting-item__subtitle">WebDAV 请求超时时间，慢速服务器可调大（1-300 秒）</span>
+                </div>
+                <div class="setting-item__control">
+                  <el-input-number
+                    v-model="webdavTimeoutSeconds"
+                    :min="1"
+                    :max="300"
+                    :step="5"
+                    controls-position="right"
+                  />
+                </div>
+              </div>
             </div>
           </section>
 
@@ -239,6 +254,7 @@ export default {
       webdavUrlFolder: '',
       webdavUsername: '',
       webdavPassword: '',
+      webdavTimeoutSeconds: 30,
       platformList: [
         { value: 'https://dav.jianguoyun.com/dav/', label: '坚果云' },
         { value: '__custom__', label: '自定义服务器' },
@@ -301,6 +317,9 @@ export default {
     webdavPassword() {
       this.scheduleAutoSave()
     },
+    webdavTimeoutSeconds() {
+      this.scheduleAutoSave()
+    },
     modelProviders: {
       deep: true,
       handler() {
@@ -342,6 +361,7 @@ export default {
         this.webdavUrlFolder = loadedSettings.webdavUrlFolder
         this.webdavUsername = loadedSettings.webdavUser
         this.webdavPassword = loadedSettings.webdavPass
+        this.webdavTimeoutSeconds = loadedSettings.webdavTimeoutSeconds ?? 30
         this.modelProviders = { ...loadedSettings.modelProviders }
         this.txtTocRules = await loadTxtTocRules()
         this.lastSavedThemeMode = loadedSettings.themeMode
@@ -363,6 +383,7 @@ export default {
         webdavUrl: this.webdavUrl,
         webdavUser: this.webdavUsername,
         webdavPass: this.webdavPassword,
+        webdavTimeoutSeconds: this.webdavTimeoutSeconds,
         modelProviders: this.modelProviders,
         themeMode: this.themeMode,
       }
