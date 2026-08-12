@@ -53,18 +53,31 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Read Release Notes
+      - name: Read Release Notes from CHANGELOG
         id: read_release_notes
         shell: bash
         run: |
-          if [ -f RELEASE_NOTES.md ]; then
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES=""
+          if [ -f CHANGELOG.md ]; then
+            NOTES=$(awk -v v="[${VERSION}]" '
+              $0 ~ /^## / {
+                if (found) exit
+                found = (index($0, v) > 0)
+                next
+              }
+              found { print }
+            ' CHANGELOG.md)
+          fi
+
+          if [ -z "$NOTES" ]; then
+            echo "notes=Update ${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
             EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
             echo "notes<<$EOF" >> $GITHUB_OUTPUT
-            cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+            printf '%s\n' "$NOTES" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
             echo "$EOF" >> $GITHUB_OUTPUT
-          else
-            echo "notes=Update ${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build Tauri app

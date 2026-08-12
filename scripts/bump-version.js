@@ -5,13 +5,13 @@ import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const DEFAULT_RELEASE_BRANCH = 'release'
+const DEFAULT_RELEASE_BRANCH = 'main'
 const SEMVER_TAG_PATTERN =
   /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
 
 const printUsage = () => {
   console.log('Usage: npm run release -- --tag <tag> [--branch <branch>]')
-  console.log('Example: npm run release -- --tag v2.0.0-rc --branch develop/2.0.0')
+  console.log('Example: npm run release -- --tag v2.0.0 (default branch: main)')
 }
 
 const parseArgs = (args) => {
