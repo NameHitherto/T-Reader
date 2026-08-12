@@ -2,7 +2,7 @@
 
 T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、自动更新能力。
 
-![version](https://img.shields.io/badge/version-2.0.2-blue)
+![version](https://img.shields.io/badge/version-2.0.3-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri%202-Rust-orange)
 ![Vue 3](https://img.shields.io/badge/Vue%203-TypeScript-42b883)
