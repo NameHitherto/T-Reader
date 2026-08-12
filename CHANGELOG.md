@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-08-12
+
+### Added
+
+- 云同步支持自定义 WebDAV 服务器地址，可指向任意 WebDAV 服务，不再局限于坚果云（issue [#2](https://github.com/NameHitherto/T-Reader/issues/2)，由特性分支 `feature/2-custom-webdav` 实现）。
+- 支持自定义 WebDAV 请求超时时间。
+
+### Fixed
+
+- 修复 element-plus 组件样式覆盖不生效的问题。
+- 修复部分 WebDAV 服务器（如使用大写、任意命名空间前缀或无前缀的响应格式）下 href 元素解析失败的问题（issue [#2](https://github.com/NameHitherto/T-Reader/issues/2)）。
+- 修复符合 RFC 4918 的服务器（对已存在目录执行 MKCOL 返回 405/409 或重定向）被误报为目录创建失败的问题（issue [#2](https://github.com/NameHitherto/T-Reader/issues/2)）。
+- 统一自定义服务器地址的保存语义，修正云同步服务商判断（issue [#2](https://github.com/NameHitherto/T-Reader/issues/2)）。
+
 ## [2.0.1] - 2026-08-05
 
 ### Added

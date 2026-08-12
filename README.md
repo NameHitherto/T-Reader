@@ -98,47 +98,9 @@ T-Reader/
 
 - https://tauri.app/start/prerequisites/
 
-## 本地开发
+## 贡献指南
 
-1. 克隆仓库并初始化子模块：
-
-```bash
-git clone <repo-url>
-cd T-Reader
-git submodule update --init --recursive
-```
-
-2. 安装 `libs/epub.js` 依赖：
-
-```bash
-cd libs/epub.js
-npm install
-cd ../..
-```
-
-3. 安装主项目依赖：
-
-```bash
-npm install
-```
-
-4. 启动桌面开发环境：
-
-```bash
-npm run tauri dev
-```
-
-## 常用命令
-
-```bash
-npm run dev
-npm run build
-npm run preview
-npm run tauri dev
-npm run tauri build
-node scripts/bump-version.js --tag v2.0.1
-node scripts/bump-version.js --tag v2.0.1 --branch develop
-```
+参与开发前请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)，了解分支管理、提交规范、issue 处理与发版流程。
 
 ## 相关仓库
 
