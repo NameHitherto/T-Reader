@@ -100,8 +100,7 @@
               </div>
               <div class="setting-item setting-item--input">
                 <div class="setting-item__info">
-                  <span class="setting-item__title">请求超时（秒）</span>
-                  <span class="setting-item__subtitle">WebDAV 请求超时时间，慢速服务器可调大（1-300 秒）</span>
+                  <span class="setting-item__title">请求超时限制（秒）</span>
                 </div>
                 <div class="setting-item__control">
                   <el-input-number
