@@ -40,7 +40,10 @@
     @delete="(markId: string) => delBookMark(markId)"
   />
   <!-- 功能帮助 -->
-  <HelpDialog v-model="helpVisible" />
+  <HelpDialog
+    v-model="helpVisible"
+    @open-system-font-dialog="handleOpenSystemFontDialogFromHelp"
+  />
   <SystemFontEnableDialog v-model="systemFontDialogVisible" />
   <!-- AI绘画 -->
   <DrawDialog
@@ -79,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch, type Ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -553,6 +556,7 @@ function bindCurrentReaderInteractions() {
       showContextMenu.value = false
     },
     isParentPointerIgnored: (target) => styleMenuVisible.value && isStyleMenuRelatedTarget(target),
+    isOverlayOpen: () => anyReaderOverlayOpen.value,
     openContextMenu: (x, y, menuItems) =>
       openContextMenu('root', x, y, menuItems as ContextMenuItem[]),
     buildContextMenuItems: () => [
@@ -845,6 +849,52 @@ function handleReaderDomToggleDrawDialog() {
 function handleOpenSystemFontDialog() {
   closeStyleMenu()
   systemFontDialogVisible.value = true
+}
+
+function handleOpenSystemFontDialogFromHelp() {
+  helpVisible.value = false
+  systemFontDialogVisible.value = true
+}
+
+// ============================================================
+// 弹窗打开状态聚合（用于临时禁用阅读器快捷键）
+// ============================================================
+const anyReaderOverlayOpen = computed(
+  () =>
+    bookInfoVisible.value ||
+    tocDrawer.value ||
+    showContextMenu.value ||
+    bookMarkEditionVisible.value ||
+    helpVisible.value ||
+    systemFontDialogVisible.value ||
+    drawDialogVisible.value ||
+    styleMenuVisible.value,
+)
+
+// ============================================================
+// 弹窗互斥：该窗口至多同时只有一个弹窗显示，
+// 打开下一个弹窗时自动关闭上一个，方向键锁定状态随之同步
+// ============================================================
+const readerOverlayRefs: Array<Ref<boolean>> = [
+  bookInfoVisible,
+  tocDrawer,
+  showContextMenu,
+  bookMarkEditionVisible,
+  helpVisible,
+  systemFontDialogVisible,
+  drawDialogVisible,
+  styleMenuVisible,
+]
+
+for (const overlayRef of readerOverlayRefs) {
+  watch(overlayRef, (visible) => {
+    if (!visible) return
+    for (const otherRef of readerOverlayRefs) {
+      if (otherRef !== overlayRef) {
+        otherRef.value = false
+      }
+    }
+  })
 }
 
 // ============================================================

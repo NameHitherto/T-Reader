@@ -15,6 +15,8 @@ interface BindReaderInteractionsArgs {
   isParentPointerIgnored: (target: HTMLElement | null) => boolean
   openContextMenu: (x: number, y: number, menuItems: ReaderContextMenuItem[]) => void
   buildContextMenuItems: () => ReaderContextMenuItem[]
+  /** 是否有弹窗/菜单正在打开；为 true 时忽略阅读器快捷键，避免干扰弹窗内操作 */
+  isOverlayOpen: () => boolean
 }
 
 interface ReaderInteractionBinding {
@@ -58,6 +60,12 @@ export const bindReaderInteractions = (
   const boundDocuments = new WeakSet<Document>()
 
   const handleKeydown = (event: KeyboardEvent) => {
+    // 弹窗/菜单打开时（如书籍信息、绘画、目录、笔记编辑等），
+    // 临时禁用方向键翻页等阅读器快捷键，避免干扰弹窗内的输入与操作
+    if (args.isOverlayOpen()) {
+      return
+    }
+
     dispatchReaderKeydown(event, {
       onPrevPage: args.onPrevPage,
       onNextPage: args.onNextPage,

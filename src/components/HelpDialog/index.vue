@@ -47,7 +47,10 @@
                 <div class="font-panel-subtitle">当前可在样式菜单中选择的系统字体</div>
                 <div class="font-panel-description">没有启用时，阅读器只会使用系统默认 Serif。</div>
               </div>
-              <el-button class="font-panel-button" @click="fontDialogVisible = true">
+              <el-button
+                class="font-panel-button"
+                @click="$emit('open-system-font-dialog')"
+              >
                 自定义系统字体
               </el-button>
             </div>
@@ -73,28 +76,22 @@
         </div>
       </el-scrollbar>
     </div>
-
-    <SystemFontEnableDialog v-model="fontDialogVisible" />
   </el-dialog>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref } from 'vue'
+import { computed, defineComponent } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
-import SystemFontEnableDialog from '@/components/SystemFontEnableDialog/index.vue'
 import { getSystemFontEntryKey } from '@/services/reader/systemFontService'
 import styleDemoImg from '@/assets/images/style_demo.png'
 
 export default defineComponent({
   name: 'HelpDialog',
-  components: {
-    SystemFontEnableDialog,
-  },
+  emits: ['open-system-font-dialog'],
   setup() {
     const readerConfigStore = useReaderConfigStore()
     const { readerConfig } = storeToRefs(readerConfigStore)
-    const fontDialogVisible = ref(false)
     const shortcuts = [
       { description: '上一页', key: ['↑'] },
       { description: '上一页', key: ['←'] },
@@ -121,7 +118,6 @@ export default defineComponent({
     return {
       groupedShortcuts,
       styleDemoImg,
-      fontDialogVisible,
       enabledSystemFonts: computed(() => readerConfig.value.enabledSystemFonts),
       getSystemFontEntryKey,
     }
