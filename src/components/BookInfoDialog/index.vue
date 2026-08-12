@@ -164,7 +164,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .info-container {
   position: relative;
 
@@ -175,9 +175,12 @@ export default {
 }
 </style>
 <style lang="scss">
+.info-dialog-wrapper.is-align-center.info-dialog-wrapper{
+  width: fit-content;
+}
+
 .info-dialog-wrapper {
   max-height: 70vh;
-  width: auto;
   display: flex;
   transition: transform var(--duration-base) var(--easing-standard);
   padding: 0;
@@ -225,6 +228,7 @@ export default {
     height: 100%;
     scale: 0.95;
     opacity: 0;
+    border-radius: var(--radius-lg);
     letter-spacing: 1px;
     transition: all var(--duration-slow) var(--easing-standard);
     overflow: auto;
