@@ -156,7 +156,7 @@ export default {
         try {
           epub.destroy?.()
         } catch (error) {
-          logWarn('bookInfo', '销毁 EPUB 实例失败', error)
+          logWarn('book-info', 'destroy-epub-instance-failed', error)
         }
       }
     },

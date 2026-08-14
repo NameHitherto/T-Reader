@@ -6,13 +6,11 @@ import { createPinia } from 'pinia'
 import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events'
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService'
 import { bindWindowTitlebarControls } from '@/services/window/windowTitlebarService'
-import { initAppLogger } from '@/utils/logger'
 import { disableBrowserNativeBehaviors } from '@/utils/disableBrowserNativeBehaviors'
 import './styles/index.scss'
 
 const bootstrap = async () => {
   await initializeAppTheme()
-  await initAppLogger('reader')
   disableBrowserNativeBehaviors()
 
   const app = createApp(ReaderApp)

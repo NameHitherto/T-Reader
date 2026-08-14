@@ -49,12 +49,12 @@ pub fn ensure_local_dirs() -> Result<PathBuf, String> {
 
     if !root_path.exists() {
         log_info(
-            "dir",
+            "filesystem",
             &format!("creating-local-root path={}", root_path.display()),
         );
         fs::create_dir_all(&root_path).map_err(|error| {
             log_error(
-                "dir",
+                "filesystem",
                 &format!(
                     "create-local-root failed path={} error={}",
                     root_path.display(),
@@ -69,12 +69,12 @@ pub fn ensure_local_dirs() -> Result<PathBuf, String> {
         let subdir_path = root_path.join(subdir);
         if !subdir_path.exists() {
             log_info(
-                "dir",
+                "filesystem",
                 &format!("creating-local-subdir path={}", subdir_path.display()),
             );
             fs::create_dir_all(&subdir_path).map_err(|error| {
                 log_error(
-                    "dir",
+                    "filesystem",
                     &format!(
                         "create-local-subdir failed path={} error={}",
                         subdir_path.display(),
@@ -89,12 +89,12 @@ pub fn ensure_local_dirs() -> Result<PathBuf, String> {
     let logs_dir_path = root_path.join(LOCAL_CACHED_DIR).join(LOCAL_LOGS_DIR);
     if !logs_dir_path.exists() {
         log_info(
-            "dir",
+            "filesystem",
             &format!("creating-local-subdir path={}", logs_dir_path.display()),
         );
         fs::create_dir_all(&logs_dir_path).map_err(|error| {
             log_error(
-                "dir",
+                "filesystem",
                 &format!(
                     "create-local-subdir failed path={} error={}",
                     logs_dir_path.display(),
@@ -132,7 +132,7 @@ pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
                 let status_code = status.as_u16();
                 if status.is_success() {
                     log_info(
-                        "dir",
+                        "webdav",
                         &format!("cloud-dir-ready subdir={} status={}", subdir, status_code),
                     );
                 } else if matches!(status_code, 301 | 302 | 405 | 409) {
@@ -141,19 +141,19 @@ pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
                     // 301/302: 已存在路径可能被服务器重定向。
                     // 以上均视为目录已存在，属于期望状态。
                     log_info(
-                        "dir",
+                        "webdav",
                         &format!("cloud-dir-exists subdir={} status={}", subdir, status_code),
                     );
                 } else {
                     log_warn(
-                        "dir",
+                        "webdav",
                         &format!("cloud-dir-check status={} subdir={}", status_code, subdir),
                     );
                 }
             }
             Err(error) => {
                 log_warn(
-                    "dir",
+                    "webdav",
                     &format!("cloud-dir-check failed subdir={} error={}", subdir, error),
                 );
             }

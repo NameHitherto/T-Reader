@@ -1,4 +1,4 @@
-use log::info;
+use crate::utils::logging::log_info;
 use serde_json::{json, Value};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
@@ -38,7 +38,7 @@ fn next_reader_message_id() -> String {
 
 /// 启动时预创建 reader 窗口（隐藏状态），生命周期贯穿整个应用会话。
 pub fn precreate_reader_window(app: &AppHandle) -> Result<(), String> {
-    info!("[reader][window] 预创建阅读器窗口（隐藏）");
+    log_info("window", "reader-window-precreating");
 
     let window =
         WebviewWindowBuilder::new(app, READER_LABEL, WebviewUrl::App("reader.html".into()))
@@ -53,11 +53,11 @@ pub fn precreate_reader_window(app: &AppHandle) -> Result<(), String> {
 
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::Destroyed = event {
-            info!("[reader][window] 阅读器窗口已销毁");
+            log_info("window", "reader-window-destroyed");
         }
     });
 
-    info!("[reader][window] 阅读器窗口预创建完成（隐藏状态）");
+    log_info("window", "reader-window-precreate-done");
     Ok(())
 }
 
@@ -116,7 +116,7 @@ fn ensure_reader_window_exists(
                 window
                     .set_focus()
                     .map_err(|e| format!("聚焦阅读器窗口失败: {:?}", e))?;
-                info!("[reader][window] 阅读器窗口已显示");
+                log_info("window", "reader-window-shown");
             } else {
                 window
                     .set_focus()
@@ -127,7 +127,7 @@ fn ensure_reader_window_exists(
     }
 
     // 兜底：窗口被意外销毁后重新创建
-    info!("[reader][window] 阅读器窗口不存在，重新创建中");
+    log_info("window", "reader-window-recreating");
 
     let app_handle = app.clone();
     let window =
@@ -150,10 +150,10 @@ fn ensure_reader_window_exists(
                     reset_runtime(&mut runtime);
                 }
             }
-            info!("[reader][window] 阅读器窗口收到关闭请求，重置运行时状态");
+            log_info("window", "reader-window-close-requested");
         }
         if let WindowEvent::Destroyed = event {
-            info!("[reader][window] 阅读器窗口已销毁");
+            log_info("window", "reader-window-destroyed");
         }
     });
 
@@ -164,9 +164,9 @@ fn ensure_reader_window_exists(
     runtime.is_ready = false;
     runtime.last_seen_at = now_millis();
 
-    info!(
-        "[reader][window] 阅读器窗口创建成功 (标签={}, 尺寸=880x660)",
-        READER_LABEL
+    log_info(
+        "window",
+        &format!("reader-window-created label={} size=880x660", READER_LABEL),
     );
 
     Ok(true)
@@ -254,9 +254,9 @@ pub async fn open_reader_window(
         runtime.last_seen_at = now_millis();
     }
 
-    info!(
-        "[reader][window] 打开阅读器窗口 (bookKey={}, created={})",
-        book_key_for_log, created
+    log_info(
+        "window",
+        &format!("reader-window-open bookKey={} created={}", book_key_for_log, created),
     );
     let acknowledged = wait_reader_load_ack(&app, &state).await?;
 
@@ -275,7 +275,7 @@ pub fn reader_window_ready(state: State<'_, ReaderWindowState>) -> Result<(), St
     runtime.is_ready = true;
     runtime.last_seen_at = now_millis();
 
-    info!("[reader][window] 阅读器前端就绪");
+    log_info("window", "reader-frontend-ready");
     Ok(())
 }
 
@@ -296,9 +296,9 @@ pub fn ack_reader_load(
         runtime.last_acked_message_id = Some(message_id.clone());
     }
 
-    info!(
-        "[reader][window] 阅读器确认书籍加载 (messageId={})",
-        message_id
+    log_info(
+        "window",
+        &format!("reader-book-load-acked messageId={}", message_id),
     );
 
     Ok(())
@@ -403,9 +403,9 @@ pub async fn prepare_reader_book_delete(
                 }
             }
 
-            info!(
-                "[reader][window] 阅读器确认删除前清理 (messageId={}, affected={})",
-                message_id, affected
+            log_info(
+                "window",
+                &format!("reader-book-delete-cleanup-acked messageId={} affected={}", message_id, affected),
             );
             return Ok(PrepareReaderBookDeleteResult {
                 acknowledged: true,
@@ -450,7 +450,7 @@ pub fn hide_reader_window(
             .hide()
             .map_err(|error| format!("隐藏阅读器窗口失败: {:?}", error))?;
     }
-    info!("[reader][window] 阅读器窗口已隐藏");
+    log_info("window", "reader-window-hidden");
 
     let mut runtime = state
         .inner
@@ -518,6 +518,6 @@ pub fn dispatch_main_event(
     )
     .map_err(|error| format!("failed to dispatch main event: {:?}", error))?;
 
-    info!("[main][window] 分发事件到主窗口完成 (event={})", event_name);
+    log_info("window", &format!("main-event-dispatched event={}", event_name));
     Ok(DispatchReaderEventResult { delivered: true })
 }

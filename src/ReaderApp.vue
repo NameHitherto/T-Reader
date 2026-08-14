@@ -294,7 +294,7 @@ async function loadReaderConfig() {
     const [configTemp, systemFonts] = await Promise.all([
       loadReaderConfigFromDisk(),
       fetchSystemFonts().catch((error) => {
-        logWarn('reader', '加载系统字体失败，将跳过阅读器字体迁移', error)
+        logWarn('reader', 'load-system-fonts-failed skip-migration', error)
         return []
       }),
     ])
@@ -311,7 +311,7 @@ async function loadReaderConfig() {
     readerConfigStore.setReaderConfig(
       syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
     )
-    logWarn('reader', '阅读配置加载失败，已加载默认配置')
+    logWarn('reader', 'load-reader-config-failed use-default')
   }
 }
 
@@ -351,7 +351,7 @@ async function saveReaderRendition() {
       durChapterTitle: savedProgress.bookConfig.durChapterTitle,
       durChapterTime: savedProgress.bookConfig.durChapterTime,
     }).catch((error) => {
-      logWarn('reader', '通知主窗口刷新书架失败', error)
+      logWarn('reader', 'notify-bookshelf-refresh-failed', error)
     })
   }
 }
@@ -591,14 +591,14 @@ function disposeReaderBookRuntime(options: DisposeReaderBookRuntimeOptions = {})
   try {
     disposeReaderInteractions?.()
   } catch (error) {
-    logWarn('ReaderApp', '解绑阅读器交互失败', error)
+    logWarn('reader', 'dispose-reader-interactions-failed', error)
   }
   disposeReaderInteractions = null
 
   try {
     stylesheetIsolationController?.destroy()
   } catch (error) {
-    logWarn('ReaderApp', '销毁 EPUB 样式隔离控制器失败', error)
+    logWarn('reader', 'destroy-stylesheet-isolation-failed', error)
   }
   stylesheetIsolationController = null
 
@@ -606,7 +606,7 @@ function disposeReaderBookRuntime(options: DisposeReaderBookRuntimeOptions = {})
     try {
       destroyEpubRendition(rendition.value)
     } catch (error) {
-      logWarn('ReaderApp', '销毁 Rendition 失败', error)
+      logWarn('reader', 'destroy-rendition-failed', error)
     }
     rendition.value = null
   }
@@ -685,7 +685,7 @@ async function loadBook(bookKey: string, cfi?: string) {
       queueMicrotask(() => {
         void primeBookLocationsAfterImport(bookKey, bookArrayBuffer as ArrayBuffer, fileName).catch(
           (error) => {
-            logWarn('ReaderApp', '补全 EPUB locations 缓存失败', error)
+            logWarn('reader', 'prime-locations-cache-failed', error)
           },
         )
       })
@@ -699,7 +699,7 @@ async function loadBook(bookKey: string, cfi?: string) {
       void initAllBookMarks()
     }
 
-    logInfo('ReaderApp', 'loadBook', {
+    logInfo('reader', 'load-book', {
       bookKey,
       title: bookConfig.name,
     })
@@ -711,7 +711,7 @@ async function loadBook(bookKey: string, cfi?: string) {
         pendingBookKey.value = null
       }
     }
-    logError('ReaderApp', '书籍加载失败', error, { bookKey })
+    logError('reader', 'load-book-failed', error, { bookKey })
   })
 }
 
@@ -919,10 +919,10 @@ const unlistenShowHelp = ref<UnlistenFn | null>(null)
 
 const saveReaderSession = async () => {
   await saveReaderRendition().catch(() => {
-    logError('reader', '窗口关闭异常: 阅读进度保存失败')
+    logError('reader', 'close-save-progress-failed')
   })
   await saveReaderConfig().catch(() => {
-    logError('reader', '窗口关闭异常: 全局配置保存失败')
+    logError('reader', 'close-save-config-failed')
   })
 }
 
@@ -938,19 +938,19 @@ registerReaderWindowEvents({
   onLoadBookKey: async (event) => {
     const payload = event.payload || {}
     if (!payload.bookKey) {
-      logWarn('ReaderApp', '收到无效的load-book消息', payload)
+      logWarn('reader', 'invalid-load-book-message', payload)
       return
     }
 
     if (payload.messageId) {
       await ackReaderLoadMessage(payload.messageId).catch((error) => {
-        logWarn('ReaderApp', 'load-book ACK失败', error)
+        logWarn('reader', 'load-book-ack-failed', error)
       })
     }
 
     await runReaderLifecycleTask(async () => {
       await saveReaderRendition().catch((error) => {
-        logWarn('ReaderApp', '切换书籍前保存旧书进度失败，将继续加载新书', error)
+        logWarn('reader', 'save-previous-progress-failed continue-load', error)
       })
       await loadBook(payload.bookKey, payload.cfi)
     })
@@ -959,7 +959,7 @@ registerReaderWindowEvents({
     runReaderLifecycleTask(async () => {
       const payload = event.payload
       if (!payload?.bookKey || !payload.messageId) {
-        logWarn('ReaderApp', '收到无效的删除前清理消息', payload)
+        logWarn('reader', 'invalid-prepare-book-delete-message', payload)
         return
       }
 
@@ -967,14 +967,14 @@ registerReaderWindowEvents({
         currentBookKey.value === payload.bookKey || pendingBookKey.value === payload.bookKey
       if (affected) {
         disposeReaderBookRuntime()
-        logInfo('ReaderApp', '删除前已清理阅读器书籍状态', {
+        logInfo('reader', 'prepare-book-delete-cleanup', {
           bookKey: payload.bookKey,
           messageId: payload.messageId,
         })
       }
 
       await ackReaderBookDelete(payload.messageId, affected).catch((error) => {
-        logError('ReaderApp', '删除前清理 ACK 失败', error, {
+        logError('reader', 'prepare-book-delete-ack-failed', error, {
           bookKey: payload.bookKey,
           messageId: payload.messageId,
         })
@@ -1023,7 +1023,7 @@ registerReaderWindowEvents({
 })
 
 void notifyReaderWindowReady().catch((error) => {
-  logWarn('ReaderApp', '通知后端reader就绪失败', error)
+  logWarn('reader', 'notify-reader-ready-failed', error)
 })
 
 // ============================================================

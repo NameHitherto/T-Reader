@@ -362,7 +362,7 @@ export default {
         this.lastSavedSnapshot = this.createSettingsSnapshot()
         this.hasLoadedSettings = true
       } catch (error) {
-        logWarn('SettingsView', 'load-settings failed', error)
+        logWarn('settings', 'load-settings failed', error)
       } finally {
         this.isLoadingSettings = false
       }
@@ -429,7 +429,7 @@ export default {
         }
         this.lastSavedSnapshot = snapshot
       } catch (error) {
-        logWarn('SettingsView', 'auto-save-settings failed', error)
+        logWarn('settings', 'auto-save-settings failed', error)
       }
     },
     startEdit() {

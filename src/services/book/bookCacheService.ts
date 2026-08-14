@@ -8,7 +8,7 @@ import {
 import { saveBookLocationsCache } from '@/services/book/bookLocationsCacheService'
 import { loadBookBinary, updateBookCover } from '@/services/book/bookRepository'
 import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
-import { createDurationLogger, logInfo, logWarn } from '@/utils/logger'
+import { logInfo, logWarn } from '@/utils/logger'
 import {
   ensureLocalDir,
   localPathExists,
@@ -125,13 +125,13 @@ export const parseBookCoverInBackground = (
       const coverName = await saveEpubCoverResource(book.bookKey, fileBuffer)
       const updatedBook = await updateBookCover(book.bookKey, Boolean(coverName), coverName)
       await options.onCoverUpdated?.(updatedBook)
-      logInfo('book-cache-service', 'parse-book-cover:done', {
+      logInfo('book-cache', 'parse-book-cover:done', {
         bookKey: book.bookKey,
         hasCover: Boolean(coverName),
         coverName,
       })
     } catch (error) {
-      logWarn('book-cache-service', 'parse-book-cover failed', {
+      logWarn('book-cache', 'parse-book-cover failed', {
         bookKey: book.bookKey,
         error,
       })
@@ -157,7 +157,7 @@ export const resolveBookCoverForDisplay = async (
         return coverUrl
       }
     } catch (error) {
-      logWarn('book-cache-service', 'resolve-book-cover-url failed', {
+      logWarn('book-cache', 'resolve-book-cover-url failed', {
         bookKey: book.bookKey,
         coverName: book.coverName,
         error,
@@ -174,13 +174,6 @@ export const primeBookLocationsAfterImport = async (
   fileBuffer: ArrayBuffer,
   originalFileName: string,
 ): Promise<void> => {
-  const finishLog = createDurationLogger(
-    'book-cache-service',
-    'prime-book-locations-after-import',
-    {
-      fileName: originalFileName,
-    },
-  )
   const locationsStatus = 'building' as const
   await saveBookLocationsCache(bookKey, {
     status: locationsStatus,
@@ -195,7 +188,7 @@ export const primeBookLocationsAfterImport = async (
         locations,
       })
     } catch (error) {
-      logWarn('book-cache-service', 'prime-epub-locations-cache failed', {
+      logWarn('book-cache', 'prime-epub-locations-cache failed', {
         fileName: originalFileName,
         error,
       })
@@ -204,7 +197,7 @@ export const primeBookLocationsAfterImport = async (
           status: 'failed',
         })
       } catch (saveError) {
-        logWarn('book-cache-service', 'mark-epub-locations-cache failed-status failed', {
+        logWarn('book-cache', 'mark-epub-locations-cache failed-status failed', {
           fileName: originalFileName,
           error: saveError,
         })
@@ -212,7 +205,7 @@ export const primeBookLocationsAfterImport = async (
     }
   })()
 
-  finishLog({
+  logInfo('book-cache', 'prime-book-locations-after-import', {
     fileName: originalFileName,
     locationsStatus,
   })

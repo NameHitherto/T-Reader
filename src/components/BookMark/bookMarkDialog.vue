@@ -74,7 +74,7 @@ export default defineComponent({
         this.bookMarkJSON = JSON.parse(this.bookMarkList)
         this.comments = this.bookMarkJSON.comments || ''
       } else {
-        logWarn('bookmark', '打开了一个空的笔记')
+        logWarn('bookmark', 'open-empty-note')
       }
     },
     async onClose() {

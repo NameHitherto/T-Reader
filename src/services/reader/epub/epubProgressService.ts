@@ -159,7 +159,7 @@ export const serializeEpubProgress = async (
   const durChapterPos = calculateLegadoOffset(section, range)
   const durChapterTitle = resolveEpubTocLabel(book.navigation?.toc, href) || href
 
-  logInfo('epubProgress', '保存 EPUB 进度', {
+  logInfo('epub-progress', 'save-progress', {
     sourceCfi: cfi,
     durChapterIndex,
     durChapterPos,
@@ -195,14 +195,14 @@ export const resolveEpubDisplayTarget = async (
 
   try {
     const target = section.cfiFromRange(range)
-    logInfo('epubProgress', '恢复 EPUB 进度', {
+    logInfo('epub-progress', 'restore-progress', {
       snapshot,
       target,
     })
     return target
   } catch (error) {
-    logWarn('epubProgress', '根据 EPUB 进度快照恢复 CFI 失败', error)
-    logInfo('epubProgress', '恢复 EPUB 进度（回退到 href）', {
+    logWarn('epub-progress', 'restore-cfi-failed', error)
+    logInfo('epub-progress', 'restore-progress fallback-to-href', {
       snapshot,
       target: section.href,
     })
@@ -235,13 +235,13 @@ export const calculateEpubProgressFromSnapshot = async (
     book.locations.load(cachedLocations)
     return book.locations.percentageFromCfi(cfi) * 100
   } catch (error) {
-    logWarn('epubProgress', '根据 EPUB 进度快照计算进度失败', error)
+    logWarn('epub-progress', 'calculate-progress-failed', error)
     return 0
   } finally {
     try {
       book.destroy?.()
     } catch (error) {
-      logWarn('epubProgress', '销毁 EPUB 进度快照实例失败', error)
+      logWarn('epub-progress', 'destroy-snapshot-instance-failed', error)
     }
   }
 }

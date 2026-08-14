@@ -6,13 +6,12 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme/themeService'
 import { bindWindowTitlebarControls } from '@/services/window/windowTitlebarService'
-import { initAppLogger, logError } from '@/utils/logger'
+import { logError } from '@/utils/logger'
 import { disableBrowserNativeBehaviors } from '@/utils/disableBrowserNativeBehaviors'
 import './styles/index.scss'
 
 const bootstrap = async () => {
   await initializeAppTheme()
-  await initAppLogger('main')
   disableBrowserNativeBehaviors()
 
   // 根据当前平台创建不同实例
@@ -36,7 +35,7 @@ const bootstrap = async () => {
       unlistenTheme()
     })
   } else {
-    logError('bootstrap', '意料之外的平台!')
+    logError('app', 'unsupported-platform')
   }
 }
 

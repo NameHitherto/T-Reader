@@ -126,7 +126,7 @@ fn parse_opf_metadata<R: Read + std::io::Seek>(
             Err(error) => {
                 log_warn(
                     "epub-meta",
-                    &format!("解析 OPF 文件时出错: {}", error),
+                    &format!("parse-opf-error error={}", error),
                 );
                 break;
             }
@@ -144,7 +144,7 @@ fn parse_opf_metadata<R: Read + std::io::Seek>(
         title = stem.to_string();
         log_warn(
             "epub-meta",
-            &format!("title 为空，使用文件名: {}", title),
+            &format!("title-empty-fallback-to-filename title={}", title),
         );
     }
 

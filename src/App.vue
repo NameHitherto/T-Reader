@@ -97,7 +97,7 @@ const registerCloudSyncFailedListener = async () => {
 
 onMounted(() => {
   void registerCloudSyncFailedListener().catch((error) => {
-    logWarn('app-shell', 'register cloud-sync-failed listener failed', error)
+    logWarn('app', 'register cloud-sync-failed listener failed', error)
   })
 })
 

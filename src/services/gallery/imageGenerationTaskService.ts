@@ -80,13 +80,13 @@ export const startImageGenerationTask = (request: GenerateGalleryImageRequest): 
       const record = await generateGalleryImage(request)
       state.status = 'success'
       state.lastImageId = record.id
-      logInfo('image-gen-task', `generated id=${record.id}`)
+      logInfo('image-gen', `generated id=${record.id}`)
       void dispatchMainEvent(WINDOW_EVENTS.GALLERY_IMAGE_CREATED, { id: record.id })
       scheduleReset(SUCCESS_RESET_DELAY_MS)
     } catch (error) {
       state.status = 'error'
       state.errorMessage = String(error)
-      logError('image-gen-task', 'generate image failed', error)
+      logError('image-gen', 'generate image failed', error)
       scheduleReset(ERROR_RESET_DELAY_MS)
     }
   })()

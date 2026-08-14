@@ -32,7 +32,7 @@ export const extractEpubContent = async (bookData: Uint8Array): Promise<string> 
         fullText += `${cleanText}\n\n`
       }
     } catch (error) {
-      logError('epubContent', '提取 EPUB 内容失败', error)
+      logError('epub-content', 'extract-content-failed', error)
     }
   }
 

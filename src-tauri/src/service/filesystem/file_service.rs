@@ -13,7 +13,7 @@ pub fn copy_file_to_subdir(filepath: &str, subdir: &str, filename: &str) -> Resu
     let target_path = dir_path.join(filename);
     let source_path = PathBuf::from(filepath);
     let copied_bytes = copy_file(&source_path, &target_path)?;
-    log_file_copy("file", &source_path, &target_path, copied_bytes);
+    log_file_copy("filesystem", &source_path, &target_path, copied_bytes);
     Ok(())
 }
 

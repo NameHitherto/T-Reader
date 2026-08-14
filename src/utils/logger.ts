@@ -2,24 +2,17 @@ import { error as logErrorFn, info as logInfoFn, warn as logWarnFn } from '@taur
 
 type LogPayload = Record<string, unknown> | undefined
 
-let windowLabel: string = 'unknown'
-
 const buildFallbackConsolePrefix = (level: 'ERROR' | 'WARN'): string => {
   const now = new Date()
-  const date = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-')
   const time = now.toTimeString().slice(0, 8)
 
-  return `[${date}][${time}][frontend][${level}]`
+  return `[${time}][${level}]`
 }
 
 const emitFrontendLog = (logTask: Promise<void>) => {
   void logTask.catch((error) => {
     globalThis.console.error(
-      `${buildFallbackConsolePrefix('ERROR')}[${windowLabel}][logger] failed-to-dispatch-tauri-log`,
+      `${buildFallbackConsolePrefix('ERROR')}[logger] failed-to-dispatch-tauri-log`,
       error,
     )
   })
@@ -38,11 +31,7 @@ const buildLogMessage = (scope: string, message: string, payload?: LogPayload): 
   const payloadStr = formatPayload(payload)
   const event = payloadStr ? `${message} ${payloadStr}` : message
 
-  return `[${windowLabel}][${scope}] ${event}`
-}
-
-export const initAppLogger = async (label: 'main' | 'reader') => {
-  windowLabel = label
+  return `[${scope}] ${event}`
 }
 
 export const logInfo = (scope: string, message: string, payload?: LogPayload) => {
@@ -64,17 +53,4 @@ export const logError = (scope: string, message: string, err?: unknown, payload?
   }
   const normalizedPayload = Object.keys(combinedPayload).length > 0 ? combinedPayload : undefined
   emitFrontendLog(logErrorFn(buildLogMessage(scope, message, normalizedPayload)))
-}
-
-export const createDurationLogger = (scope: string, message: string, payload?: LogPayload) => {
-  const startedAt = performance.now()
-  logInfo(scope, `══════════ ${message}:start ═════════`, payload)
-
-  return (result?: LogPayload) => {
-    const durationMs = Number((performance.now() - startedAt).toFixed(2))
-    logInfo(scope, `══════════ ${message}:done ═════════`, {
-      durationMs,
-      ...result,
-    })
-  }
 }

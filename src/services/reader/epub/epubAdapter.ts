@@ -64,7 +64,7 @@ export const renderEpubBook = async (
     try {
       ePubBook.locations.load(cachedLocations)
     } catch (error) {
-      logWarn('epubAdapter', '加载 EPUB locations 缓存失败', error)
+      logWarn('epub-render', 'load-locations-cache-failed', error)
     }
   }
 

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <Teleport to="#titlebar-page-actions">
     <div class="titlebar-shelf-actions">
       <ShelfMenu
@@ -190,7 +190,7 @@ import {
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import { WINDOW_EVENTS } from '@/constants/events'
-import { createDurationLogger, logError, logInfo, logWarn } from '@/utils/logger'
+import { logError, logInfo, logWarn } from '@/utils/logger'
 import { getFileNameFromPath } from '@/utils/filePath'
 
 defineOptions({
@@ -416,12 +416,11 @@ const refreshShelfBookCover = async (record: StoredBookRecord) => {
 }
 
 const loadBooks = async () => {
-  const finishLog = createDurationLogger('bookshelf', 'load-books')
   try {
     booksLoading.value = true
     const loadedBooks = await loadBookConfigs()
     shelfBooks.setShelfBooks(await Promise.all(loadedBooks.map((book) => buildShelfBook(book))))
-    finishLog({
+    logInfo('bookshelf', 'load-books', {
       total: books.value.length,
     })
   } catch (error) {
@@ -504,10 +503,6 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
     return
   }
 
-  const finishLog = createDurationLogger('bookshelf', 'import-book', {
-    fileName: sourceFileName,
-    sourceFormat,
-  })
   batchContext.reservedOriginalFileNames.add(normalizedOriginalFileName)
   beginLoading(IMPORT_LOADING_TEXT.parsing)
 
@@ -597,7 +592,9 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
       batchContext.batchNotifier.recordSuccess(bookLabel)
     }
 
-    finishLog({
+    logInfo('bookshelf', 'import-book', {
+      fileName: sourceFileName,
+      sourceFormat,
       bookKey: result.bookKey,
       total: books.value.length,
     })
@@ -619,9 +616,6 @@ const addBookByPath = async (path: string, batchContext: BatchImportContext) => 
 // 书籍删除业务
 // ============================================================
 const deleteBook = async (bookKey: string) => {
-  const finishLog = createDurationLogger('bookshelf', 'delete-book', {
-    bookKey,
-  })
   try {
     const targetBook = shelfBooks.getShelfBook(bookKey)
     const resolvedBookFile = targetBook ? await resolveBookFile(bookKey).catch(() => null) : null
@@ -698,7 +692,8 @@ const deleteBook = async (bookKey: string) => {
       })
     })
 
-    finishLog({
+    logInfo('bookshelf', 'delete-book', {
+      bookKey,
       total: books.value.length,
     })
   } catch (error) {

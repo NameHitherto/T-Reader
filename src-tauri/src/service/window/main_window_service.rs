@@ -1,10 +1,11 @@
-use log::info;
 use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
+
+use crate::utils::logging::log_info;
 
 pub const MAIN_LABEL: &str = "main";
 
 pub fn create_main_window(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    info!("[main][window] 主窗口创建中");
+    log_info("window", "main-window-creating");
 
     let window = WebviewWindowBuilder::new(app, MAIN_LABEL, WebviewUrl::App("index.html".into()))
         .title("书架")
@@ -15,17 +16,17 @@ pub fn create_main_window(app: &AppHandle) -> Result<(), Box<dyn std::error::Err
 
     window.on_window_event(|event| {
         if let tauri::WindowEvent::CloseRequested { .. } = event {
-            info!("[main][window] 主窗口收到关闭请求，执行销毁程序");
+            log_info("window", "main-window-close-requested");
         }
         if let tauri::WindowEvent::Destroyed = event {
-            info!("[main][window] 主窗口已销毁");
+            log_info("window", "main-window-destroyed");
         }
     });
 
-    info!("[main][window] 主窗口创建成功");
-    info!(
-        "[main][window] 窗口标签={}, 尺寸=880x660, 装饰=false",
-        MAIN_LABEL
+    log_info("window", "main-window-created");
+    log_info(
+        "window",
+        &format!("main-window-created-detail label={} size=880x660 decorations=false", MAIN_LABEL),
     );
 
     Ok(())

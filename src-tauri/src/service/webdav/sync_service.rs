@@ -30,7 +30,7 @@ use crate::{
         webdav::dir_service::ensure_cloud_dirs,
     },
     utils::{
-        logging::{finish_timer, log_info, log_warn, start_timer},
+        logging::{log_info, log_warn},
         webdav::{
             is_config_file, is_supported_book_file, is_txt_book_file, should_upload_local_config,
         },
@@ -111,7 +111,7 @@ async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, WebDav
         collect_remote_files(&client, &settings, CLOUD_PROGRESS_DIR, is_config_file).await?;
 
     log_info(
-        "webdav",
+        "webdav-sync",
         &format!(
             "sync-snapshot local_books={} cloud_books={} local_configs={} cloud_configs={}",
             local_books.len(),
@@ -240,7 +240,7 @@ async fn auto_import_downloaded_book(
     } else {
         parse_epub_metadata(file_contents).map_err(|error| {
             log_warn(
-                "webdav",
+                "webdav-sync",
                 &format!(
                     "auto-import parse-epub-meta-failed file={} error={}",
                     file_name, error
@@ -258,7 +258,7 @@ async fn auto_import_downloaded_book(
     let existing = get_book_by_key(pool, &book_key).await?;
     if existing.is_some() {
         log_info(
-            "webdav",
+            "webdav-sync",
             &format!(
                 "auto-import book-already-exists book_key={} file={}",
                 book_key, file_name
@@ -286,7 +286,7 @@ async fn auto_import_downloaded_book(
     .await?;
 
     log_info(
-        "webdav",
+        "webdav-sync",
         &format!(
             "auto-import book-record-created book_key={} title={} author={} file={}",
             book_key, title, author, file_name
@@ -308,7 +308,7 @@ async fn auto_import_downloaded_book(
         let config_bytes = serde_json::to_vec(&initial_config).map_err(|error| error.to_string())?;
         write_binary_file(&config_path, &config_bytes)?;
         log_info(
-            "webdav",
+            "webdav-sync",
             &format!(
                 "auto-import progress-config-created book_key={} file={}",
                 book_key, config_file_name
@@ -375,7 +375,7 @@ async fn sync_book_files(
                         message: error,
                     })?;
                     log_info(
-                        "webdav",
+                        "webdav-sync",
                         &format!(
                             "sync-book-files converted-txt source={} target={}",
                             selection.file_name, target_file
@@ -400,7 +400,7 @@ async fn sync_book_files(
                     auto_import_downloaded_book(pool, &snapshot.progress_path, &actual_file_name, &contents).await
                 {
                     log_warn(
-                        "webdav",
+                        "webdav-sync",
                         &format!(
                             "sync-book-files auto-import-failed file={} error={}",
                             actual_file_name, error
@@ -537,10 +537,9 @@ fn build_legacy_request(snapshot: &SyncSnapshot) -> CloudSyncApplyRequest {
 }
 
 pub async fn webdav_get_sync_preview(pool: &SqlitePool) -> Result<CloudSyncPreviewResult, WebDavError> {
-    let started_at = start_timer("webdav", "webdav-get-sync-preview");
     let snapshot = collect_sync_snapshot(pool).await?;
     let result = build_preview_result(&snapshot);
-    finish_timer("webdav", "webdav-get-sync-preview", started_at);
+    log_info("webdav-sync", "get-sync-preview-done");
     Ok(result)
 }
 
@@ -548,18 +547,16 @@ pub async fn webdav_apply_sync_plan(
     pool: &SqlitePool,
     request: CloudSyncApplyRequest,
 ) -> Result<CloudSyncApplyResult, WebDavError> {
-    let started_at = start_timer("webdav", "webdav-apply-sync-plan");
     let snapshot = collect_sync_snapshot(pool).await?;
     let result = apply_sync_plan_with_snapshot(snapshot, request, pool).await?;
-    finish_timer("webdav", "webdav-apply-sync-plan", started_at);
+    log_info("webdav-sync", "apply-sync-plan-done");
     Ok(result)
 }
 
 pub async fn webdav_sync_files(pool: &SqlitePool) -> Result<(), WebDavError> {
-    let started_at = start_timer("webdav", "webdav-sync-files");
     let snapshot = collect_sync_snapshot(pool).await?;
     let request = build_legacy_request(&snapshot);
     apply_sync_plan_with_snapshot(snapshot, request, pool).await?;
-    finish_timer("webdav", "webdav-sync-files", started_at);
+    log_info("webdav-sync", "sync-files-done");
     Ok(())
 }

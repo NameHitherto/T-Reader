@@ -1,4 +1,3 @@
-use log::info;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 
@@ -8,6 +7,7 @@ use crate::{
         ReaderWindowState,
     },
     service::window::reader_window_service,
+    utils::logging::log_info,
 };
 
 #[tauri::command]
@@ -109,7 +109,7 @@ pub fn window_minimize(app: AppHandle, label: String) -> Result<(), String> {
     window
         .minimize()
         .map_err(|e| format!("窗口最小化失败: {:?}", e))?;
-    info!("[{}][window] 窗口最小化", label);
+    log_info("window", &format!("window-minimized label={}", label));
     Ok(())
 }
 
@@ -126,7 +126,7 @@ pub fn window_toggle_maximize(app: AppHandle, label: String) -> Result<(), Strin
         window
             .set_fullscreen(false)
             .map_err(|e| format!("退出全屏失败: {:?}", e))?;
-        info!("[{}][window] 退出全屏", label);
+        log_info("window", &format!("window-exit-fullscreen label={}", label));
         return Ok(());
     }
 
@@ -137,12 +137,12 @@ pub fn window_toggle_maximize(app: AppHandle, label: String) -> Result<(), Strin
         window
             .unmaximize()
             .map_err(|e| format!("取消最大化失败: {:?}", e))?;
-        info!("[{}][window] 取消最大化", label);
+        log_info("window", &format!("window-unmaximized label={}", label));
     } else {
         window
             .maximize()
             .map_err(|e| format!("最大化失败: {:?}", e))?;
-        info!("[{}][window] 窗口最大化", label);
+        log_info("window", &format!("window-maximized label={}", label));
     }
 
     Ok(())
@@ -162,7 +162,7 @@ pub fn window_toggle_fullscreen(app: AppHandle, label: String) -> Result<(), Str
         window
             .set_fullscreen(false)
             .map_err(|e| format!("退出全屏失败: {:?}", e))?;
-        info!("[{}][window] 退出全屏", label);
+        log_info("window", &format!("window-exit-fullscreen label={}", label));
         return Ok(());
     }
 
@@ -174,12 +174,12 @@ pub fn window_toggle_fullscreen(app: AppHandle, label: String) -> Result<(), Str
         window
             .unmaximize()
             .map_err(|e| format!("取消最大化失败: {:?}", e))?;
-        info!("[{}][window] 取消最大化", label);
+        log_info("window", &format!("window-unmaximized label={}", label));
     } else {
         window
             .set_fullscreen(true)
             .map_err(|e| format!("进入全屏失败: {:?}", e))?;
-        info!("[{}][window] 进入全屏", label);
+        log_info("window", &format!("window-enter-fullscreen label={}", label));
     }
     Ok(())
 }
@@ -195,7 +195,7 @@ pub fn window_show(app: AppHandle, label: String) -> Result<(), String> {
     window
         .set_focus()
         .map_err(|e| format!("窗口聚焦失败: {:?}", e))?;
-    info!("[{}][window] 窗口显示", label);
+    log_info("window", &format!("window-shown label={}", label));
     Ok(())
 }
 
@@ -207,7 +207,7 @@ pub fn window_hide(app: AppHandle, label: String) -> Result<(), String> {
     window
         .hide()
         .map_err(|e| format!("窗口隐藏失败: {:?}", e))?;
-    info!("[{}][window] 窗口隐藏", label);
+    log_info("window", &format!("window-hidden label={}", label));
     Ok(())
 }
 
@@ -217,13 +217,13 @@ pub fn app_close(app: AppHandle) -> Result<(), String> {
         reader
             .close()
             .map_err(|e| format!("关闭 reader 窗口失败: {:?}", e))?;
-        info!("[reader][window] 阅读器窗口关闭命令已执行（应用退出）");
+        log_info("window", "reader-window-close-command");
     }
 
     if let Some(main) = app.get_webview_window("main") {
         main.close()
             .map_err(|e| format!("关闭 main 窗口失败: {:?}", e))?;
-        info!("[main][window] 主窗口关闭命令已执行（应用退出）");
+        log_info("window", "main-window-close-command");
     }
 
     Ok(())

@@ -1,11 +1,8 @@
 import ePub from 'libs/epub.js'
 import { ParsedBookMeta } from '@/services/book/types'
-import { createDurationLogger, logWarn } from '@/utils/logger'
+import { logInfo, logWarn } from '@/utils/logger'
 
 export const parseEpubMeta = async (buffer: ArrayBuffer): Promise<ParsedBookMeta> => {
-  const finishLog = createDurationLogger('epub-parser', 'parse-epub-meta', {
-    byteLength: buffer.byteLength,
-  })
   const book = ePub(buffer)
 
   try {
@@ -16,7 +13,8 @@ export const parseEpubMeta = async (buffer: ArrayBuffer): Promise<ParsedBookMeta
       title: metadata.title || '',
       author: metadata.creator || '',
     }
-    finishLog({
+    logInfo('epub-parser', 'parse-epub-meta', {
+      byteLength: buffer.byteLength,
       title: payload.title,
       author: payload.author,
     })

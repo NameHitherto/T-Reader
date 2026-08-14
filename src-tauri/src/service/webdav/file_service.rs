@@ -9,7 +9,7 @@ use crate::{
     service::{
         filesystem::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs,
     },
-    utils::logging::{finish_timer, log_warn, start_timer},
+    utils::logging::{log_info, log_warn},
 };
 use sqlx::SqlitePool;
 
@@ -36,7 +36,6 @@ pub async fn webdav_upload_file(
     filename: &str,
     contents: Vec<u8>,
 ) -> Result<(), WebDavError> {
-    let started_at = start_timer("webdav", "webdav-upload");
     let settings = load_settings_entity(pool).await.map_err(|error| WebDavError {
         status_code: 0,
         operation: "upload".to_string(),
@@ -55,7 +54,7 @@ pub async fn webdav_upload_file(
     })
     .await;
     if result.is_ok() {
-        finish_timer("webdav", "webdav-upload", started_at);
+        log_info("webdav", "upload-done");
     }
     result
 }
@@ -65,7 +64,6 @@ pub async fn webdav_get_file(
     subdir: &str,
     filename: &str,
 ) -> Result<Vec<u8>, WebDavError> {
-    let started_at = start_timer("webdav", "webdav-get");
     let settings = load_settings_entity(pool).await.map_err(|error| WebDavError {
         status_code: 0,
         operation: "download".to_string(),
@@ -78,7 +76,7 @@ pub async fn webdav_get_file(
     })
     .await;
     if result.is_ok() {
-        finish_timer("webdav", "webdav-get", started_at);
+        log_info("webdav", "get-done");
     }
     result
 }

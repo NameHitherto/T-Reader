@@ -451,7 +451,7 @@ export default defineComponent({
         })
         closeDialog()
       } catch (error) {
-        logError('systemFont', '保存系统字体启用项失败', error)
+        logError('system-font', 'save-system-font-enabled-failed', error)
       } finally {
         saving.value = false
       }

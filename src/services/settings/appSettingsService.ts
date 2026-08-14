@@ -91,7 +91,7 @@ export const loadAppSettings = async (): Promise<AppSettings> => {
 
     return normalizeAppSettings(loadedSettings)
   } catch (error) {
-    logWarn('appSettings', '加载应用设置失败，已回退到默认设置', error)
+    logWarn('app-settings', 'load-failed fallback-to-default', error)
     return { ...DEFAULT_APP_SETTINGS }
   }
 }

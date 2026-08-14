@@ -23,9 +23,10 @@ fn build_log_targets() -> Result<Vec<Target>, String> {
 #[cfg(not(debug_assertions))]
 fn build_log_targets() -> Result<Vec<Target>, String> {
     let log_dir = service::filesystem::dir_service::get_local_logs_dir_path()?;
+    let file_name = utils::logging::build_log_file_name();
     Ok(vec![build_log_target(TargetKind::Folder {
         path: log_dir,
-        file_name: Some("t-reader".to_string()),
+        file_name: Some(file_name),
     })])
 }
 

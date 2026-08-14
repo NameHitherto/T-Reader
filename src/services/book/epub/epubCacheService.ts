@@ -1,17 +1,16 @@
 import ePub from 'libs/epub.js'
 import { buildBookCacheCoverPath, buildBookCacheDir } from '@/services/book/bookCachePathService'
 import { ensureLocalDir, writeBinaryFile } from '@/services/fileSystem/localStorageService'
-import { createDurationLogger, logWarn } from '@/utils/logger'
+import { logInfo, logWarn } from '@/utils/logger'
 
 export const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> => {
-  const finishLog = createDurationLogger('book-cache-service', 'extract-epub-locations')
   const book = ePub(fileBuffer)
 
   try {
     await book.ready
     await book.locations.generate(1000)
     const locations = book.locations.save()
-    finishLog({
+    logInfo('book-cache', 'extract-epub-locations', {
       locationLength: locations.length,
     })
     return locations
@@ -19,7 +18,7 @@ export const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<str
     try {
       book.destroy?.()
     } catch (error) {
-      logWarn('book-cache-service', 'release-epub-locations-instance failed', {
+      logWarn('book-cache', 'release-epub-locations-instance failed', {
         error,
       })
     }
@@ -59,7 +58,7 @@ const extractEpubCoverBlob = async (fileBuffer: ArrayBuffer): Promise<Blob | nul
     try {
       book.destroy?.()
     } catch (error) {
-      logWarn('book-cache-service', 'release-epub-cover-instance failed', {
+      logWarn('book-cache', 'release-epub-cover-instance failed', {
         error,
       })
     }
@@ -85,7 +84,7 @@ export const saveEpubCoverResource = async (
 
     return coverResource
   } catch (error) {
-    logWarn('book-cache-service', 'save-epub-cover-resource failed', {
+    logWarn('book-cache', 'save-epub-cover-resource failed', {
       bookKey,
       error,
     })
