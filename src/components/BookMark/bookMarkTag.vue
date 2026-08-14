@@ -206,8 +206,6 @@ export default defineComponent({
     transition: transform var(--duration-base) var(--easing-standard);
 
     &:hover {
-      transform: translateY(-2px);
-
       .tag-inner {
         transform: rotateY(180deg);
       }
