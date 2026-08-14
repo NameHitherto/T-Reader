@@ -65,7 +65,6 @@ export interface EpubLocationLike {
 export interface EpubContentsLike {
   document?: Document
   window: Window
-  cfiFromRange?: (range: Range, ignoreClass?: string) => string
 }
 
 export interface EpubRenditionLike {

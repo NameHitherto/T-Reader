@@ -34,22 +34,20 @@
       />
     </div>
     <div class="color-picker">
-      <template v-for="preset in colorChoices" :key="preset.background">
+      <template v-for="color in colorChoices" :key="color">
         <span
           class="color-choice"
-          :class="{ 'is-selected': preset.background === bookMarkJSON.color }"
-          :style="{ backgroundColor: preset.background, color: preset.text }"
-          @click="updateColor(preset.background)"
-        >
-          A
-        </span>
+          :class="{ 'is-selected': color === bookMarkJSON.color }"
+          :style="{ backgroundColor: color }"
+          @click="updateColor(color)"
+        />
       </template>
     </div>
   </el-dialog>
 </template>
 <script lang="ts">
 import { ref, defineComponent } from 'vue'
-import { BOOKMARK_HIGHLIGHT_PRESETS, type BookmarkHighlightPreset } from '@/constants/bookmark'
+import { BOOKMARK_COLOR_CHOICES } from '@/constants/bookmark'
 import { logWarn } from '@/utils/logger'
 import type { BookMark } from '@/store/bookMark'
 export default defineComponent({
@@ -64,7 +62,7 @@ export default defineComponent({
     return {
       comments: ref(''),
       bookMarkJSON: ref<Partial<BookMark>>({}),
-      colorChoices: [...BOOKMARK_HIGHLIGHT_PRESETS] as BookmarkHighlightPreset[],
+      colorChoices: [...BOOKMARK_COLOR_CHOICES],
     }
   },
   methods: {

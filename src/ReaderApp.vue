@@ -133,7 +133,7 @@ import { primeBookLocationsAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
-import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR, BOOKMARK_HIGHLIGHT_CLASS } from '@/constants/bookmark'
+import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
 import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
 import {
   getAppliedAppThemeMode,
@@ -260,12 +260,6 @@ const readerDefaultTheme = computed(() => {
     img: {
       width: '100%',
       filter: readerPalette.value.imageFilter,
-    },
-    [`.${BOOKMARK_HIGHLIGHT_CLASS}`]: {
-      cursor: 'pointer',
-      'border-radius': '4px',
-      'box-decoration-break': 'clone',
-      '-webkit-box-decoration-break': 'clone',
     },
   }
 
@@ -1078,6 +1072,16 @@ onUnmounted(() => {
   background-color: var(--scrollbar-thumb);
   border-radius: 6px;
   background-clip: content-box;
+}
+:global(.bookmark-highlight) {
+  fill-opacity: 0.4;
+  pointer-events: all;
+  cursor: var(--t-mouse-cursor-link), default;
+  user-select: none;
+}
+:global(.bookmark-highlight rect) {
+  rx: 5;
+  ry: 5;
 }
 
 :global(.style-menu-panel) {

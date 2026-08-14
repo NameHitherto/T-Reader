@@ -1,8 +1,5 @@
 import { BookMark } from '@/store/bookMark'
-import {
-  BOOKMARK_HIGHLIGHT_CLASS,
-  getBookmarkHighlightTextColor,
-} from '@/constants/bookmark'
+import { BOOKMARK_HIGHLIGHT_CLASS } from '@/constants/bookmark'
 import type { EpubRenditionLike } from '@/types/epub'
 
 export const applyBookmarkHighlight = (
@@ -14,9 +11,6 @@ export const applyBookmarkHighlight = (
     return
   }
 
-  const background = bookMark.color || defaultHighlightColor
-  const textColor = getBookmarkHighlightTextColor(background)
-
   rendition.annotations.remove(bookMark.bookCfi, 'highlight')
   rendition.annotations.add(
     'highlight',
@@ -25,8 +19,7 @@ export const applyBookmarkHighlight = (
     undefined,
     BOOKMARK_HIGHLIGHT_CLASS,
     {
-      'background-color': background,
-      color: textColor,
+      fill: bookMark.color || defaultHighlightColor,
     },
   )
 }
@@ -41,17 +34,9 @@ export const addBookmarkHighlight = (
     return
   }
 
-  rendition.annotations.add(
-    'highlight',
-    cfiRange,
-    { markId },
-    undefined,
-    BOOKMARK_HIGHLIGHT_CLASS,
-    {
-      'background-color': defaultHighlightColor,
-      color: getBookmarkHighlightTextColor(defaultHighlightColor),
-    },
-  )
+  rendition.annotations.add('highlight', cfiRange, { markId }, undefined, BOOKMARK_HIGHLIGHT_CLASS, {
+    fill: defaultHighlightColor,
+  })
 }
 
 export const removeBookmarkHighlight = (rendition: EpubRenditionLike | null, cfiRange: string) => {

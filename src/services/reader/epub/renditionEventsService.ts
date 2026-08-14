@@ -1,4 +1,3 @@
-import { BOOKMARK_HIGHLIGHT_CLASS } from '@/constants/bookmark'
 import type { EpubContentsLike, EpubLocationLike, EpubRenditionLike } from '@/types/epub'
 
 interface BindRenditionEventsArgs {
@@ -20,26 +19,9 @@ export const bindRenditionEvents = (
   })
 
   rendition.on('selected', (cfiRange: unknown, contents: unknown) => {
+    const cfi = typeof cfiRange === 'string' ? cfiRange : ''
     const readerContents = contents as EpubContentsLike
-    const selection = readerContents.window?.getSelection?.()
-    const selectedText = selection?.toString() || ''
-    let cfi = typeof cfiRange === 'string' ? cfiRange : ''
-
-    // 重新基于选区计算 CFI，并忽略已有高亮包裹 span，确保书签在重新渲染后仍能准确定位。
-    if (
-      selection &&
-      selection.rangeCount > 0 &&
-      typeof readerContents.cfiFromRange === 'function'
-    ) {
-      const recomputed = readerContents.cfiFromRange(
-        selection.getRangeAt(0),
-        BOOKMARK_HIGHLIGHT_CLASS,
-      )
-      if (recomputed) {
-        cfi = recomputed
-      }
-    }
-
+    const selectedText = readerContents.window.getSelection()?.toString() || ''
     args.onSelected(cfi, selectedText)
   })
 
