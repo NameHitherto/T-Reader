@@ -34,13 +34,15 @@
       />
     </div>
     <div class="color-picker">
-      <template v-for="color in colorChoices" :key="color">
+      <template v-for="preset in colorChoices" :key="preset.background">
         <span
           class="color-choice"
-          :class="{ 'is-selected': color === bookMarkJSON.color }"
-          :style="{ backgroundColor: color }"
-          @click="updateColor(color)"
-        />
+          :class="{ 'is-selected': preset.background === bookMarkJSON.color }"
+          :style="{ backgroundColor: preset.background, color: preset.text }"
+          @click="updateColor(preset.background)"
+        >
+          A
+        </span>
       </template>
     </div>
     <div class="option-box">
@@ -57,7 +59,7 @@
 </template>
 <script lang="ts">
 import { ref, defineComponent } from 'vue'
-import { BOOKMARK_COLOR_CHOICES } from '@/constants/bookmark'
+import { BOOKMARK_HIGHLIGHT_PRESETS, type BookmarkHighlightPreset } from '@/constants/bookmark'
 import { logWarn } from '@/utils/logger'
 import type { BookMark } from '@/store/bookMark'
 export default defineComponent({
@@ -72,7 +74,7 @@ export default defineComponent({
     return {
       comments: ref(''),
       bookMarkJSON: ref<Partial<BookMark>>({}),
-      colorChoices: [...BOOKMARK_COLOR_CHOICES],
+      colorChoices: [...BOOKMARK_HIGHLIGHT_PRESETS] as BookmarkHighlightPreset[],
     }
   },
   methods: {
@@ -123,6 +125,9 @@ export default defineComponent({
   gap: 8px;
 
   .color-choice {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -130,6 +135,9 @@ export default defineComponent({
     border-width: 2px;
     cursor: var(--t-mouse-cursor-link), pointer;
     box-shadow: var(--shadow-xs);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
 
     &.is-selected {
       border-color: var(--text-primary);
