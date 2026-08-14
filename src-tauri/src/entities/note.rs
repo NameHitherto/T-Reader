@@ -11,5 +11,7 @@ pub struct BookMarkDto {
     pub book_cfi: String,
     pub create_time: String,
     pub comments: Option<String>,
-    pub color: Option<String>,
+    pub underline_color: Option<String>,
+    pub underline_type: Option<String>,
+    pub underline_width: Option<f64>,
 }

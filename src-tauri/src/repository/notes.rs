@@ -7,7 +7,7 @@ pub async fn load_all_notes(pool: &SqlitePool) -> Result<Vec<BookMarkDto>, Strin
         r#"
         SELECT notes.id, notes.content, books.book_key AS book_name,
                notes.book_title, notes.book_cfi, notes.create_time,
-               notes.comments, notes.color
+               notes.comments, notes.underline_color, notes.underline_type, notes.underline_width
         FROM notes
         INNER JOIN books ON books.id = notes.book_id
         ORDER BY notes.create_time DESC
@@ -26,7 +26,7 @@ pub async fn load_notes_by_book_key(
         r#"
         SELECT notes.id, notes.content, books.book_key AS book_name,
                notes.book_title, notes.book_cfi, notes.create_time,
-               notes.comments, notes.color
+               notes.comments, notes.underline_color, notes.underline_type, notes.underline_width
         FROM notes
         INNER JOIN books ON books.id = notes.book_id
         WHERE books.book_key = ?
@@ -48,16 +48,18 @@ async fn insert_note(
         r#"
         INSERT INTO notes (
             id, book_id, content, book_title, book_cfi, comments,
-            color, create_time, updated_at
+            underline_color, underline_type, underline_width, create_time, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(id) DO UPDATE SET
             book_id = excluded.book_id,
             content = excluded.content,
             book_title = excluded.book_title,
             book_cfi = excluded.book_cfi,
             comments = excluded.comments,
-            color = excluded.color,
+            underline_color = excluded.underline_color,
+            underline_type = excluded.underline_type,
+            underline_width = excluded.underline_width,
             create_time = excluded.create_time,
             updated_at = datetime('now')
         "#,
@@ -68,7 +70,9 @@ async fn insert_note(
     .bind(&note.book_title)
     .bind(&note.book_cfi)
     .bind(&note.comments)
-    .bind(&note.color)
+    .bind(&note.underline_color)
+    .bind(&note.underline_type)
+    .bind(&note.underline_width)
     .bind(&note.create_time)
     .execute(&mut **tx)
     .await
