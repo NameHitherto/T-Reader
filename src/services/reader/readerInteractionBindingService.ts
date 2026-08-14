@@ -1,5 +1,6 @@
 import type { EpubContentsLike, EpubRenditionLike } from '@/types/epub'
 import { dispatchReaderKeydown, resetReaderTransientUi } from '@/services/reader/interactionService'
+import { BOOKMARK_HIGHLIGHT_CLASS } from '@/constants/bookmark'
 
 interface ReaderContextMenuItem {
   label: string
@@ -15,6 +16,7 @@ interface BindReaderInteractionsArgs {
   isParentPointerIgnored: (target: HTMLElement | null) => boolean
   openContextMenu: (x: number, y: number, menuItems: ReaderContextMenuItem[]) => void
   buildContextMenuItems: () => ReaderContextMenuItem[]
+  buildHighlightContextMenuItems: (markId: string) => ReaderContextMenuItem[]
   /** 是否有弹窗/菜单正在打开；为 true 时忽略阅读器快捷键，避免干扰弹窗内操作 */
   isOverlayOpen: () => boolean
 }
@@ -102,22 +104,33 @@ export const bindReaderInteractions = (
     const handleContextMenu = (event: MouseEvent) => {
       event.preventDefault()
 
-      const selection = contents.window.getSelection()
-      if (!selection || !isPointerInsideSelection(event, selection)) {
-        return
-      }
-
       const targetIframe = findIframeByWindow(contents.window)
       if (!targetIframe) {
         return
       }
 
       const iframeRect = targetIframe.getBoundingClientRect()
-      args.openContextMenu(
-        iframeRect.left + event.clientX,
-        iframeRect.top + event.clientY,
-        args.buildContextMenuItems(),
-      )
+      const menuX = iframeRect.left + event.clientX
+      const menuY = iframeRect.top + event.clientY
+
+      // 优先处理：右键点击已有高亮笔记时，展示笔记管理菜单
+      const target = event.target as HTMLElement | null
+      const highlightEl = target?.closest?.(`.${BOOKMARK_HIGHLIGHT_CLASS}`) as HTMLElement | null
+      if (highlightEl) {
+        const markId = highlightEl.dataset.markId
+        if (markId) {
+          args.openContextMenu(menuX, menuY, args.buildHighlightContextMenuItems(markId))
+        }
+        return
+      }
+
+      // 否则：右键点击选中文本时，展示添加笔记菜单
+      const selection = contents.window.getSelection()
+      if (!selection || !isPointerInsideSelection(event, selection)) {
+        return
+      }
+
+      args.openContextMenu(menuX, menuY, args.buildContextMenuItems())
     }
 
     contentDocument.addEventListener('keydown', handleKeydown)

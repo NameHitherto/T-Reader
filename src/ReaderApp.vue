@@ -568,6 +568,10 @@ function bindCurrentReaderInteractions() {
       { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
       { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
     ],
+    buildHighlightContextMenuItems: (markId: string) => [
+      { label: '编辑 | 编辑笔记', type: 'edit', onClick: () => openEditorByMarkId(markId) },
+      { label: '删除 | 删除笔记', type: 'delBookMark', onClick: () => delBookMark(markId) },
+    ],
   })
 
   disposeReaderInteractions = binding.dispose
