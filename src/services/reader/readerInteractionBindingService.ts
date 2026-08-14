@@ -89,6 +89,24 @@ export const bindReaderInteractions = (
     resetTransientUi()
   }
 
+  const handleParentContextMenu = (event: MouseEvent) => {
+    // SVG 下划线标记渲染在父文档（iframe 之外的覆盖层），iframe 内的 contextmenu
+    // 监听无法命中它，因此需要在父文档单独处理已有笔记的右键菜单。
+    const target = event.target as HTMLElement | null
+    const underlineEl = target?.closest?.(`.${BOOKMARK_UNDERLINE_CLASS}`) as HTMLElement | null
+    if (!underlineEl) {
+      return
+    }
+
+    const markId = underlineEl.dataset.markId
+    if (!markId) {
+      return
+    }
+
+    event.preventDefault()
+    args.openContextMenu(event.clientX, event.clientY, args.buildBookmarkContextMenuItems(markId))
+  }
+
   const bindIframeDocument = (contents: EpubContentsLike) => {
     const contentDocument = contents?.document
     if (!contentDocument || boundDocuments.has(contentDocument)) {
@@ -151,9 +169,11 @@ export const bindReaderInteractions = (
 
   document.addEventListener('keydown', handleKeydown)
   document.addEventListener('pointerdown', handleParentPointerDown)
+  document.addEventListener('contextmenu', handleParentContextMenu)
   removers.push(() => {
     document.removeEventListener('keydown', handleKeydown)
     document.removeEventListener('pointerdown', handleParentPointerDown)
+    document.removeEventListener('contextmenu', handleParentContextMenu)
   })
 
   if (rendition) {
