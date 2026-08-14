@@ -37,19 +37,43 @@
         :max-height="tableMaxHeight"
         :default-sort="{ prop: 'createTime', order: 'descending' }"
         style="width: 100%"
+        @wheel="handleTableWheel"
       >
-        <el-table-column prop="bookTitle" label="书名" width="180" show-overflow-tooltip />
-        <el-table-column label="详情">
-          <el-table-column prop="content" label="内容" show-overflow-tooltip min-width="120" />
-          <el-table-column prop="comments" label="笔记内容" show-overflow-tooltip min-width="120" />
-          <el-table-column prop="createTime" label="创建时间" width="160" />
-        </el-table-column>
-        <el-table-column fixed="right" label="操作" width="160">
-          <template #default="item">
-            <el-button @click="jumpToRead(item.row)"> 跳转 </el-button>
-            <el-button @click="deleteBookMark(item.row)"> 删除 </el-button>
+        <el-table-column prop="bookTitle" label="书名" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="content" label="内容" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="comments" label="笔记内容" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="table-comment">{{ row.comments?.trim() ? row.comments : '—' }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column fixed="right" label="操作" width="100">
+          <template #default="item">
+            <div class="table-actions">
+              <button
+                class="table-action-btn"
+                type="button"
+                title="跳转阅读"
+                aria-label="跳转阅读"
+                @click="jumpToRead(item.row)"
+              >
+                <AppIcon name="bookOpen" :size="16" />
+              </button>
+              <button
+                class="table-action-btn table-action-btn--delete"
+                type="button"
+                title="删除笔记"
+                aria-label="删除笔记"
+                @click="deleteBookMark(item.row)"
+              >
+                <AppIcon name="delete" :size="16" />
+              </button>
+            </div>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <el-empty :image-size="120" description="暂无笔记" />
+        </template>
       </el-table>
     </div>
   </div>
@@ -59,6 +83,7 @@
 import { defineComponent } from 'vue'
 import BookMarkTag from '@/components/BookMark/bookMarkTag.vue'
 import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
+import AppIcon from '@/components/common/AppIcon/index.vue'
 import { BookMark } from '@/store/bookMark'
 import { ElMessageBox } from 'element-plus'
 import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookMarksRepository'
@@ -70,6 +95,7 @@ export default defineComponent({
   components: {
     BookMarkTag,
     BubbleToggle,
+    AppIcon,
   },
   data() {
     return {
@@ -161,6 +187,19 @@ export default defineComponent({
     handleScroll(amount: { scrollLeft: number }) {
       this.scrollLeft = amount.scrollLeft
     },
+    handleTableWheel(event: WheelEvent) {
+      const root = event.currentTarget as HTMLElement | null
+      const wrap = root?.querySelector<HTMLElement>('.el-table__body-wrapper .el-scrollbar__wrap')
+      if (!wrap) {
+        return
+      }
+      const maxScrollLeft = wrap.scrollWidth - wrap.clientWidth
+      if (maxScrollLeft <= 0) {
+        return
+      }
+      event.preventDefault()
+      wrap.scrollLeft = Math.min(Math.max(wrap.scrollLeft + event.deltaY, 0), maxScrollLeft)
+    },
     handleViewTypeChange(value: 'tag' | 'table') {
       this.viewType = value
       localStorage.setItem('bookMarkViewType', value)
@@ -239,8 +278,67 @@ export default defineComponent({
     padding: 1rem;
 
     .table {
-      border-radius: var(--radius-lg);
-      overflow: hidden;
+      :deep(.el-table__header th.el-table__cell) {
+        background: var(--table-header-bg);
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      :deep(.el-table__body td.el-table__cell) {
+        font-size: 13px;
+      }
+
+      .table-comment {
+        color: var(--text-secondary);
+      }
+
+      .table-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .table-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid var(--border-soft);
+        border-radius: 50%;
+        background: var(--surface-strong);
+        color: var(--text-tertiary);
+        cursor: var(--t-mouse-cursor-link), pointer;
+        outline: none;
+        transition:
+          transform var(--duration-fast) var(--easing-standard),
+          border-color var(--duration-fast) var(--easing-standard),
+          background-color var(--duration-fast) var(--easing-standard),
+          color var(--duration-fast) var(--easing-standard),
+          box-shadow var(--duration-fast) var(--easing-standard);
+
+        &:hover,
+        &:focus-visible {
+          border-color: var(--border-brand);
+          background: var(--surface-brand-soft);
+          color: var(--brand-primary);
+          box-shadow: var(--shadow-xs);
+        }
+
+        &:active {
+          transform: scale(0.92);
+        }
+
+        &--delete:hover,
+        &--delete:focus-visible {
+          border-color: var(--border-danger);
+          background: var(--surface-danger-soft);
+          color: var(--danger);
+        }
+      }
     }
 
     .tag-scrollbar {

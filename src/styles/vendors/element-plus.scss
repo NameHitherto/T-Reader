@@ -225,11 +225,7 @@
 
 .el-radio-button__inner,
 .el-switch__action,
-.el-menu,
-.el-table,
-.el-table tr,
-.el-table th.el-table__cell,
-.el-table td.el-table__cell {
+.el-menu {
   background: transparent;
 }
 
@@ -249,8 +245,12 @@
 
 .el-table {
   --el-table-border-color: var(--border-default);
-  --el-table-header-bg-color: var(--surface-card-soft);
-  --el-table-row-hover-bg-color: var(--surface-brand-soft);
+  --el-table-header-bg-color: var(--table-header-bg);
+  --el-table-header-text-color: var(--text-secondary);
+  --el-table-text-color: var(--text-primary);
+  --el-table-row-hover-bg-color: var(--table-row-hover-bg);
+  --el-table-bg-color: var(--table-bg);
+  --el-table-tr-bg-color: var(--table-bg);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   overflow: hidden;
