@@ -37,11 +37,25 @@
         :max-height="tableMaxHeight"
         :default-sort="{ prop: 'createTime', order: 'descending' }"
         style="width: 100%"
-        @wheel="handleTableWheel"
       >
-        <el-table-column prop="bookTitle" label="书名" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="content" label="内容" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="comments" label="笔记内容" min-width="180" show-overflow-tooltip>
+        <el-table-column
+          prop="bookTitle"
+          label="书名"
+          min-width="180"
+          :show-overflow-tooltip="{ popperClass: 'bookmark-cell-tooltip' }"
+        />
+        <el-table-column
+          prop="content"
+          label="内容"
+          min-width="220"
+          :show-overflow-tooltip="{ popperClass: 'bookmark-cell-tooltip' }"
+        />
+        <el-table-column
+          prop="comments"
+          label="笔记内容"
+          min-width="180"
+          :show-overflow-tooltip="{ popperClass: 'bookmark-cell-tooltip' }"
+        >
           <template #default="{ row }">
             <span class="table-comment">{{ row.comments?.trim() ? row.comments : '—' }}</span>
           </template>
@@ -186,19 +200,6 @@ export default defineComponent({
     },
     handleScroll(amount: { scrollLeft: number }) {
       this.scrollLeft = amount.scrollLeft
-    },
-    handleTableWheel(event: WheelEvent) {
-      const root = event.currentTarget as HTMLElement | null
-      const wrap = root?.querySelector<HTMLElement>('.el-table__body-wrapper .el-scrollbar__wrap')
-      if (!wrap) {
-        return
-      }
-      const maxScrollLeft = wrap.scrollWidth - wrap.clientWidth
-      if (maxScrollLeft <= 0) {
-        return
-      }
-      event.preventDefault()
-      wrap.scrollLeft = Math.min(Math.max(wrap.scrollLeft + event.deltaY, 0), maxScrollLeft)
     },
     handleViewTypeChange(value: 'tag' | 'table') {
       this.viewType = value
@@ -357,5 +358,14 @@ export default defineComponent({
   100% {
     background-position: 25px 25px;
   }
+}
+</style>
+
+<style lang="scss">
+// 表格单元格溢出提示框：限制最大宽度，避免过长内容撑满窗口。
+// popper 由 el-table 动态渲染并挂载到表格容器，scoped 样式无法命中，故使用全局样式。
+.bookmark-cell-tooltip {
+  max-width: 320px;
+  white-space: normal;
 }
 </style>
