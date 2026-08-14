@@ -364,6 +364,25 @@ onMounted(async () => {
       </div>
     </section>
 
+    <section v-if="showReleaseNotes" class="surface-card info-card">
+      <h3>版本说明</h3>
+      <p class="info-line"><strong>目标版本：</strong>{{ checkResult?.latestVersion || '暂无' }}</p>
+      <div class="notes-box">{{ checkResult?.releaseNotes || '暂无版本说明。' }}</div>
+    </section>
+
+    <section v-if="showProgressTimeline" class="surface-card info-card">
+      <h3>进度时间线</h3>
+      <p class="info-line"><strong>阶段：</strong>{{ stageToLabel(currentProgress?.stage) }}</p>
+      <p class="info-line">
+        <strong>更新时间：</strong>{{ formatDateTime(currentProgress?.eventAt) }}
+      </p>
+      <el-progress :percentage="progressPercent" :stroke-width="12" />
+      <p class="info-line"><strong>传输：</strong>{{ transferText }}</p>
+      <p class="info-line">
+        <strong>状态：</strong>{{ currentProgress?.message || '等待下载开始' }}
+      </p>
+    </section>
+
     <section class="surface-card info-card contact-card">
       <div class="section-header">
         <h3>联系作者</h3>
@@ -387,25 +406,6 @@ onMounted(async () => {
         </div>
       </div>
     </section>
-
-    <section v-if="showReleaseNotes" class="surface-card info-card">
-      <h3>版本说明</h3>
-      <p class="info-line"><strong>目标版本：</strong>{{ checkResult?.latestVersion || '暂无' }}</p>
-      <div class="notes-box">{{ checkResult?.releaseNotes || '暂无版本说明。' }}</div>
-    </section>
-
-    <section v-if="showProgressTimeline" class="surface-card info-card">
-      <h3>进度时间线</h3>
-      <p class="info-line"><strong>阶段：</strong>{{ stageToLabel(currentProgress?.stage) }}</p>
-      <p class="info-line">
-        <strong>更新时间：</strong>{{ formatDateTime(currentProgress?.eventAt) }}
-      </p>
-      <el-progress :percentage="progressPercent" :stroke-width="12" />
-      <p class="info-line"><strong>传输：</strong>{{ transferText }}</p>
-      <p class="info-line">
-        <strong>状态：</strong>{{ currentProgress?.message || '等待下载开始' }}
-      </p>
-    </section>
   </div>
 </template>
 
@@ -414,6 +414,9 @@ onMounted(async () => {
   height: 100%;
   width: 100%;
   padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   overflow-y: auto;
   color: var(--text-primary);
 }
@@ -423,7 +426,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: 16px;
   padding: 24px;
-  margin-bottom: 16px;
   border: 1px solid var(--border-brand);
 }
 
