@@ -1,57 +1,80 @@
 import { BookMark } from '@/store/bookMark'
-import { BOOKMARK_HIGHLIGHT_CLASS } from '@/constants/bookmark'
+import {
+  BOOKMARK_UNDERLINE_CLASS,
+  DEFAULT_UNDERLINE_STYLE,
+  type UnderlineStyle,
+} from '@/constants/bookmark'
 import type { EpubRenditionLike } from '@/types/epub'
 
-export const applyBookmarkHighlight = (
+const resolveStyle = (bookMark: BookMark, fallback: UnderlineStyle): UnderlineStyle => ({
+  color: bookMark.underlineColor || fallback.color,
+  type: bookMark.underlineType || fallback.type,
+  width: bookMark.underlineWidth ?? fallback.width,
+})
+
+export const applyBookmarkUnderline = (
   rendition: EpubRenditionLike | null,
   bookMark: BookMark,
-  defaultHighlightColor: string,
+  defaultStyle: UnderlineStyle,
 ) => {
   if (!rendition) {
     return
   }
 
-  rendition.annotations.remove(bookMark.bookCfi, 'highlight')
+  const style = resolveStyle(bookMark, defaultStyle)
+
+  rendition.annotations.remove(bookMark.bookCfi, 'underline')
   rendition.annotations.add(
-    'highlight',
+    'underline',
     bookMark.bookCfi,
     { markId: bookMark.id },
     undefined,
-    BOOKMARK_HIGHLIGHT_CLASS,
+    BOOKMARK_UNDERLINE_CLASS,
     {
-      fill: bookMark.color || defaultHighlightColor,
+      color: style.color,
+      type: style.type,
+      width: String(style.width),
     },
   )
 }
 
-export const addBookmarkHighlight = (
+export const addBookmarkUnderline = (
   rendition: EpubRenditionLike | null,
   cfiRange: string,
   markId: string,
-  defaultHighlightColor: string,
+  defaultStyle: UnderlineStyle,
 ) => {
   if (!rendition) {
     return
   }
 
-  rendition.annotations.add('highlight', cfiRange, { markId }, undefined, BOOKMARK_HIGHLIGHT_CLASS, {
-    fill: defaultHighlightColor,
-  })
+  rendition.annotations.add(
+    'underline',
+    cfiRange,
+    { markId },
+    undefined,
+    BOOKMARK_UNDERLINE_CLASS,
+    {
+      color: defaultStyle.color,
+      type: defaultStyle.type,
+      width: String(defaultStyle.width),
+    },
+  )
 }
 
-export const removeBookmarkHighlight = (rendition: EpubRenditionLike | null, cfiRange: string) => {
+export const removeBookmarkUnderline = (rendition: EpubRenditionLike | null, cfiRange: string) => {
   if (!rendition) {
     return
   }
 
-  rendition.annotations.remove(cfiRange, 'highlight')
+  rendition.annotations.remove(cfiRange, 'underline')
 }
 
 export const initBookMarksForBook = (
   rendition: EpubRenditionLike | null,
   bookMarks: BookMark[],
   bookKey: string,
-  defaultHighlightColor: string,
+  defaultStyle: UnderlineStyle = DEFAULT_UNDERLINE_STYLE,
 ) => {
   if (!rendition) {
     return
@@ -59,7 +82,7 @@ export const initBookMarksForBook = (
 
   bookMarks.forEach((bookMark) => {
     if (bookMark.bookName === bookKey) {
-      applyBookmarkHighlight(rendition, bookMark, defaultHighlightColor)
+      applyBookmarkUnderline(rendition, bookMark, defaultStyle)
     }
   })
 }

@@ -33,23 +33,64 @@
         @change="bookMarkJSON.comments = comments"
       />
     </div>
-    <div class="color-picker">
-      <template v-for="color in colorChoices" :key="color">
-        <span
-          class="color-choice"
-          :class="{ 'is-selected': color === bookMarkJSON.color }"
-          :style="{ backgroundColor: color }"
-          @click="updateColor(color)"
-        />
-      </template>
+    <div class="underline-editor">
+      <div class="type-picker">
+        <span class="picker-label">线型</span>
+        <template v-for="type in underlineTypes" :key="type">
+          <span
+            class="type-choice"
+            :class="{ 'is-selected': type === currentType }"
+            @click="updateType(type)"
+          >
+            {{ typeLabels[type] }}
+          </span>
+        </template>
+      </div>
+      <div class="color-picker">
+        <span class="picker-label">颜色</span>
+        <template v-for="color in colorChoices" :key="color">
+          <span
+            class="color-choice"
+            :class="{ 'is-selected': color === currentColor }"
+            :style="{ backgroundColor: color }"
+            @click="updateColor(color)"
+          />
+        </template>
+      </div>
+      <div class="width-picker">
+        <span class="picker-label">粗细</span>
+        <template v-for="width in widthChoices" :key="width">
+          <span
+            class="width-choice"
+            :class="{ 'is-selected': width === currentWidth }"
+            @click="updateWidth(width)"
+          >
+            {{ width }}px
+          </span>
+        </template>
+      </div>
     </div>
   </el-dialog>
 </template>
 <script lang="ts">
 import { ref, defineComponent } from 'vue'
-import { BOOKMARK_COLOR_CHOICES } from '@/constants/bookmark'
+import {
+  DEFAULT_UNDERLINE_STYLE,
+  UNDERLINE_COLOR_CHOICES,
+  UNDERLINE_TYPES,
+  UNDERLINE_WIDTH_CHOICES,
+  type UnderlineType,
+} from '@/constants/bookmark'
 import { logWarn } from '@/utils/logger'
 import type { BookMark } from '@/store/bookMark'
+
+const UNDERLINE_TYPE_LABELS: Record<UnderlineType, string> = {
+  straight: '直线',
+  dashed: '虚线',
+  dotted: '点线',
+  wavy: '波浪线',
+}
+
 export default defineComponent({
   name: 'BookMarkDialog',
   props: {
@@ -62,8 +103,22 @@ export default defineComponent({
     return {
       comments: ref(''),
       bookMarkJSON: ref<Partial<BookMark>>({}),
-      colorChoices: [...BOOKMARK_COLOR_CHOICES],
+      colorChoices: [...UNDERLINE_COLOR_CHOICES],
+      underlineTypes: [...UNDERLINE_TYPES],
+      widthChoices: [...UNDERLINE_WIDTH_CHOICES],
+      typeLabels: UNDERLINE_TYPE_LABELS,
     }
+  },
+  computed: {
+    currentColor() {
+      return this.bookMarkJSON.underlineColor || DEFAULT_UNDERLINE_STYLE.color
+    },
+    currentType() {
+      return this.bookMarkJSON.underlineType || DEFAULT_UNDERLINE_STYLE.type
+    },
+    currentWidth() {
+      return this.bookMarkJSON.underlineWidth ?? DEFAULT_UNDERLINE_STYLE.width
+    },
   },
   methods: {
     async onOpen() {
@@ -82,7 +137,15 @@ export default defineComponent({
       this.$emit('delete', this.bookMarkJSON.id)
     },
     async updateColor(color: string) {
-      this.bookMarkJSON.color = color
+      this.bookMarkJSON.underlineColor = color
+      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+    },
+    async updateType(type: UnderlineType) {
+      this.bookMarkJSON.underlineType = type
+      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+    },
+    async updateWidth(width: number) {
+      this.bookMarkJSON.underlineWidth = width
       this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
     },
   },
@@ -103,30 +166,60 @@ export default defineComponent({
   right: 10px;
   color: var(--text-on-brand);
 }
-.color-picker {
-  display: inline-flex;
-  margin-top: 10px;
+.underline-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.picker-label {
+  min-width: 32px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.type-picker,
+.color-picker,
+.width-picker {
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
 
-  .color-choice {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 2px solid var(--surface-strong);
-    border-width: 2px;
-    cursor: var(--t-mouse-cursor-link), pointer;
-    box-shadow: var(--shadow-xs);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1;
+.type-choice,
+.width-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--surface-strong);
+  font-size: 13px;
+  cursor: var(--t-mouse-cursor-link), pointer;
 
-    &.is-selected {
-      border-color: var(--text-primary);
-      transform: translateY(-1px);
-    }
+  &.is-selected {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+  }
+}
+
+.color-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-strong);
+  cursor: var(--t-mouse-cursor-link), pointer;
+  box-shadow: var(--shadow-xs);
+
+  &.is-selected {
+    border-color: var(--text-primary);
+    transform: translateY(-1px);
   }
 }
 </style>

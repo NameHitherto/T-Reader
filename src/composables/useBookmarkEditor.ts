@@ -1,16 +1,17 @@
 import { ref, watch, Ref } from 'vue'
-import { applyBookmarkHighlight } from '@/services/reader/epub/bookmarkService'
+import { applyBookmarkUnderline } from '@/services/reader/epub/bookmarkService'
 import type { BookMark, useBookMarkStore } from '@/store/bookMark'
 import type { EpubRenditionLike } from '@/types/epub'
+import type { UnderlineStyle } from '@/constants/bookmark'
 
 interface UseBookmarkEditorArgs {
   bookMarkStore: ReturnType<typeof useBookMarkStore>
   rendition: Ref<EpubRenditionLike | null>
-  defaultHighlightColor: string
+  defaultUnderlineStyle: UnderlineStyle
 }
 
 export const useBookmarkEditor = (args: UseBookmarkEditorArgs) => {
-  const { bookMarkStore, rendition, defaultHighlightColor } = args
+  const { bookMarkStore, rendition, defaultUnderlineStyle } = args
 
   const bookMarkEditionVisible = ref(false)
   const bookMarkEditionContent = ref('')
@@ -37,7 +38,7 @@ export const useBookmarkEditor = (args: UseBookmarkEditorArgs) => {
     bookMarkStore.updateBookMark(updated)
 
     if (rendition.value) {
-      applyBookmarkHighlight(rendition.value, updated, defaultHighlightColor)
+      applyBookmarkUnderline(rendition.value, updated, defaultUnderlineStyle)
     }
   })
 

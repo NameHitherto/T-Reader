@@ -107,10 +107,11 @@ import { loadReaderBookData } from '@/services/reader/readerLoadService'
 import { saveReaderProgress } from '@/services/reader/readerProgressService'
 import { registerReaderWindowEvents } from '@/services/reader/readerWindowEventsService'
 import {
-  addBookmarkHighlight,
+  addBookmarkUnderline,
   initBookMarksForBook,
-  removeBookmarkHighlight,
+  removeBookmarkUnderline,
 } from '@/services/reader/epub/bookmarkService'
+import { findOverlappingNote } from '@/services/reader/epub/bookmarkOverlapService'
 import { bindRenditionEvents } from '@/services/reader/epub/renditionEventsService'
 import {
   collectParentChapterIndexes,
@@ -133,7 +134,7 @@ import { primeBookLocationsAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
-import { DEFAULT_BOOKMARK_HIGHLIGHT_COLOR } from '@/constants/bookmark'
+import { DEFAULT_UNDERLINE_STYLE } from '@/constants/bookmark'
 import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
 import {
   getAppliedAppThemeMode,
@@ -459,13 +460,13 @@ function openContextMenu(mode: string, x: number, y: number, options: ContextMen
 // ============================================================
 const bookMarkStore = useBookMarkStore()
 const { bookMarks } = storeToRefs(bookMarkStore)
-const defaultHighlightColor = DEFAULT_BOOKMARK_HIGHLIGHT_COLOR
+const defaultUnderlineStyle = DEFAULT_UNDERLINE_STYLE
 
 const { bookMarkEditionVisible, bookMarkEditionContent, openEditorByMarkId, closeEditor } =
   useBookmarkEditor({
     bookMarkStore,
     rendition,
-    defaultHighlightColor,
+    defaultUnderlineStyle,
   })
 
 function initAllBookMarks() {
@@ -475,7 +476,7 @@ function initAllBookMarks() {
     rendition.value,
     bookMarks.value,
     currentBookKey.value,
-    defaultHighlightColor,
+    defaultUnderlineStyle,
   )
 }
 
@@ -490,11 +491,11 @@ async function addBookMark() {
     createTime: formatDate(new Date()),
   }
   bookMarkStore.addBookMark(bookMark)
-  addBookmarkHighlight(
+  addBookmarkUnderline(
     rendition.value,
     selectedRange.value ? selectedRange.value : '',
     tempId,
-    defaultHighlightColor,
+    defaultUnderlineStyle,
   )
   return tempId
 }
@@ -506,7 +507,7 @@ async function addBookMarkComment() {
 
 function delBookMark(markId: string) {
   const bookMark = bookMarkStore.getBookMark(markId)[0]
-  removeBookmarkHighlight(rendition.value, bookMark.bookCfi)
+  removeBookmarkUnderline(rendition.value, bookMark.bookCfi)
   bookMarkStore.removeBookMark(markId)
   closeEditor()
 }
@@ -557,12 +558,20 @@ function bindCurrentReaderInteractions() {
     isOverlayOpen: () => anyReaderOverlayOpen.value,
     openContextMenu: (x, y, menuItems) =>
       openContextMenu('root', x, y, menuItems as ContextMenuItem[]),
-    buildContextMenuItems: () => [
-      { label: '标记 | 添加书签', type: 'bookmark', onClick: () => addBookMark() },
-      { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
-      { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
-    ],
-    buildHighlightContextMenuItems: (markId: string) => [
+    buildContextMenuItems: (contents) => {
+      const selection = contents.window.getSelection()
+      const selectionRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
+      const items = [
+        { label: '标记 | 添加书签', type: 'bookmark', onClick: () => addBookMark() },
+        { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
+        { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
+      ]
+      if (selectionRange && findOverlappingNote(contents, selectionRange, bookMarks.value)) {
+        return items.filter((item) => item.type === 'draw')
+      }
+      return items
+    },
+    buildBookmarkContextMenuItems: (markId: string) => [
       { label: '编辑 | 编辑笔记', type: 'edit', onClick: () => openEditorByMarkId(markId) },
       { label: '删除 | 删除笔记', type: 'delBookMark', onClick: () => delBookMark(markId) },
     ],
@@ -1073,15 +1082,10 @@ onUnmounted(() => {
   border-radius: 6px;
   background-clip: content-box;
 }
-:global(.bookmark-highlight) {
-  fill-opacity: 0.4;
+:global(.bookmark-underline) {
   pointer-events: all;
   cursor: var(--t-mouse-cursor-link), default;
   user-select: none;
-}
-:global(.bookmark-highlight rect) {
-  rx: 5;
-  ry: 5;
 }
 
 :global(.style-menu-panel) {

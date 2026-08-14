@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { UnderlineType } from '@/constants/bookmark'
 
 export interface BookMark {
   // 书签自身主键
@@ -16,8 +17,12 @@ export interface BookMark {
   createTime: string
   // 用户补充的笔记内容
   comments?: string
-  // 高亮颜色
-  color?: string
+  // 下划线颜色
+  underlineColor?: string
+  // 下划线线型
+  underlineType?: UnderlineType
+  // 下划线粗细（px）
+  underlineWidth?: number
 }
 
 type BookMarkPatch = Partial<BookMark> & Pick<BookMark, 'id'>
