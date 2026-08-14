@@ -33,41 +33,43 @@
         @change="bookMarkJSON.comments = comments"
       />
     </div>
-    <div class="underline-editor">
-      <div class="type-picker">
-        <span class="picker-label">线型</span>
-        <template v-for="type in underlineTypes" :key="type">
-          <span
-            class="type-choice"
-            :class="{ 'is-selected': type === currentType }"
-            @click="updateType(type)"
-          >
-            {{ typeLabels[type] }}
-          </span>
-        </template>
-      </div>
-      <div class="color-picker">
-        <span class="picker-label">颜色</span>
-        <template v-for="color in colorChoices" :key="color">
-          <span
-            class="color-choice"
-            :class="{ 'is-selected': color === currentColor }"
-            :style="{ backgroundColor: color }"
-            @click="updateColor(color)"
-          />
-        </template>
-      </div>
-      <div class="width-picker">
-        <span class="picker-label">粗细</span>
-        <template v-for="width in widthChoices" :key="width">
-          <span
-            class="width-choice"
-            :class="{ 'is-selected': width === currentWidth }"
-            @click="updateWidth(width)"
-          >
-            {{ width }}px
-          </span>
-        </template>
+    <div class="underline-panel">
+      <div class="underline-editor">
+        <div class="type-picker">
+          <span class="picker-label">线型</span>
+          <template v-for="type in underlineTypes" :key="type">
+            <span
+              class="type-choice"
+              :class="{ 'is-selected': type === currentType }"
+              @click="updateType(type)"
+            >
+              {{ typeLabels[type] }}
+            </span>
+          </template>
+        </div>
+        <div class="color-picker">
+          <span class="picker-label">颜色</span>
+          <template v-for="color in colorChoices" :key="color">
+            <span
+              class="color-choice"
+              :class="{ 'is-selected': color === currentColor }"
+              :style="{ backgroundColor: color }"
+              @click="updateColor(color)"
+            />
+          </template>
+        </div>
+        <div class="width-picker">
+          <span class="picker-label">粗细</span>
+          <template v-for="width in widthChoices" :key="width">
+            <span
+              class="width-choice"
+              :class="{ 'is-selected': width === currentWidth }"
+              @click="updateWidth(width)"
+            >
+              {{ width }}px
+            </span>
+          </template>
+        </div>
       </div>
     </div>
   </el-dialog>
@@ -75,10 +77,12 @@
 <script lang="ts">
 import { ref, defineComponent } from 'vue'
 import {
-  DEFAULT_UNDERLINE_STYLE,
   UNDERLINE_COLOR_CHOICES,
   UNDERLINE_TYPES,
   UNDERLINE_WIDTH_CHOICES,
+  loadPreferredUnderlineStyle,
+  savePreferredUnderlineStyle,
+  type UnderlineStyle,
   type UnderlineType,
 } from '@/constants/bookmark'
 import { logWarn } from '@/utils/logger'
@@ -107,17 +111,25 @@ export default defineComponent({
       underlineTypes: [...UNDERLINE_TYPES],
       widthChoices: [...UNDERLINE_WIDTH_CHOICES],
       typeLabels: UNDERLINE_TYPE_LABELS,
+      preferredStyle: loadPreferredUnderlineStyle(),
     }
   },
   computed: {
+    currentStyle(): UnderlineStyle {
+      return {
+        color: this.bookMarkJSON.underlineColor || this.preferredStyle.color,
+        type: this.bookMarkJSON.underlineType || this.preferredStyle.type,
+        width: this.bookMarkJSON.underlineWidth ?? this.preferredStyle.width,
+      }
+    },
     currentColor() {
-      return this.bookMarkJSON.underlineColor || DEFAULT_UNDERLINE_STYLE.color
+      return this.currentStyle.color
     },
     currentType() {
-      return this.bookMarkJSON.underlineType || DEFAULT_UNDERLINE_STYLE.type
+      return this.currentStyle.type
     },
     currentWidth() {
-      return this.bookMarkJSON.underlineWidth ?? DEFAULT_UNDERLINE_STYLE.width
+      return this.currentStyle.width
     },
   },
   methods: {
@@ -136,17 +148,25 @@ export default defineComponent({
     async deleteBookMark() {
       this.$emit('delete', this.bookMarkJSON.id)
     },
+    commitStyle() {
+      const style = this.currentStyle
+      this.bookMarkJSON.underlineColor = style.color
+      this.bookMarkJSON.underlineType = style.type
+      this.bookMarkJSON.underlineWidth = style.width
+      savePreferredUnderlineStyle(style)
+      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+    },
     async updateColor(color: string) {
       this.bookMarkJSON.underlineColor = color
-      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+      this.commitStyle()
     },
     async updateType(type: UnderlineType) {
       this.bookMarkJSON.underlineType = type
-      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+      this.commitStyle()
     },
     async updateWidth(width: number) {
       this.bookMarkJSON.underlineWidth = width
-      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
+      this.commitStyle()
     },
   },
 })
@@ -166,11 +186,16 @@ export default defineComponent({
   right: 10px;
   color: var(--text-on-brand);
 }
+
+.underline-panel {
+  margin-top: 4px;
+}
+
 .underline-editor {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 10px;
 }
 
 .picker-label {

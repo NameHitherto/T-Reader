@@ -133,7 +133,7 @@ import { primeBookLocationsAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
-import { DEFAULT_UNDERLINE_STYLE } from '@/constants/bookmark'
+import { loadPreferredUnderlineStyle } from '@/constants/bookmark'
 import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
 import {
   getAppliedAppThemeMode,
@@ -459,7 +459,7 @@ function openContextMenu(mode: string, x: number, y: number, options: ContextMen
 // ============================================================
 const bookMarkStore = useBookMarkStore()
 const { bookMarks } = storeToRefs(bookMarkStore)
-const defaultUnderlineStyle = DEFAULT_UNDERLINE_STYLE
+const defaultUnderlineStyle = loadPreferredUnderlineStyle()
 
 const { bookMarkEditionVisible, bookMarkEditionContent, openEditorByMarkId, closeEditor } =
   useBookmarkEditor({
@@ -481,6 +481,7 @@ function initAllBookMarks() {
 
 async function addBookMark() {
   const tempId = generateID(3)
+  const style = loadPreferredUnderlineStyle()
   const bookMark: BookMark = {
     id: tempId,
     bookName: currentBookKey.value ? currentBookKey.value : '',
@@ -488,13 +489,16 @@ async function addBookMark() {
     bookTitle: (await rendition.value?.book?.loaded?.metadata)?.title || '未知书籍',
     content: selectedText.value,
     createTime: formatDate(new Date()),
+    underlineColor: style.color,
+    underlineType: style.type,
+    underlineWidth: style.width,
   }
   bookMarkStore.addBookMark(bookMark)
   addBookmarkUnderline(
     rendition.value,
     selectedRange.value ? selectedRange.value : '',
     tempId,
-    defaultUnderlineStyle,
+    style,
   )
   return tempId
 }

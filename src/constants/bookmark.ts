@@ -30,3 +30,46 @@ export const DEFAULT_UNDERLINE_STYLE: UnderlineStyle = {
   type: 'straight',
   width: 2,
 }
+
+const UNDERLINE_STYLE_STORAGE_KEY = 't-reader:underline-style'
+
+const isUnderlineType = (value: unknown): value is UnderlineType =>
+  typeof value === 'string' && (UNDERLINE_TYPES as string[]).includes(value)
+
+/**
+ * 读取用户上次保存的下划线样式偏好，未保存时回落到默认样式。
+ */
+export const loadPreferredUnderlineStyle = (): UnderlineStyle => {
+  try {
+    const raw = localStorage.getItem(UNDERLINE_STYLE_STORAGE_KEY)
+    if (!raw) {
+      return { ...DEFAULT_UNDERLINE_STYLE }
+    }
+
+    const parsed = JSON.parse(raw) as Partial<UnderlineStyle>
+    return {
+      color:
+        typeof parsed.color === 'string' && parsed.color
+          ? parsed.color
+          : DEFAULT_UNDERLINE_STYLE.color,
+      type: isUnderlineType(parsed.type) ? parsed.type : DEFAULT_UNDERLINE_STYLE.type,
+      width:
+        typeof parsed.width === 'number' && parsed.width > 0
+          ? parsed.width
+          : DEFAULT_UNDERLINE_STYLE.width,
+    }
+  } catch {
+    return { ...DEFAULT_UNDERLINE_STYLE }
+  }
+}
+
+/**
+ * 保存用户的下划线样式偏好。
+ */
+export const savePreferredUnderlineStyle = (style: UnderlineStyle): void => {
+  try {
+    localStorage.setItem(UNDERLINE_STYLE_STORAGE_KEY, JSON.stringify(style))
+  } catch {
+    // 忽略 localStorage 不可用或写满等异常
+  }
+}
