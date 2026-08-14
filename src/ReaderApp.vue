@@ -448,9 +448,7 @@ function openContextMenu(mode: string, x: number, y: number, options: ContextMen
     x: menuX,
     y: menuY,
     menuItems: options,
-    width: 160,
-    itemHeight: 35,
-    precision: 20,
+    margin: 20,
     theme: appThemeMode.value,
   })
   showContextMenu.value = true

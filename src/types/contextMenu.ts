@@ -12,12 +12,17 @@ type ContextMenuIconType =
 
 type ContextMenuThemeType = 'light' | 'dark'
 
-export interface ContextMenuData {
+export interface ContextMenuAnchor {
   x: number
   y: number
-  width: number
+}
+
+export interface ContextMenuData {
+  anchor: ContextMenuAnchor
   theme: ContextMenuThemeType
   items: ContextMenuItem[]
+  /** 与视口边缘的最小安全距离（px），默认 20 */
+  margin?: number
 }
 
 export interface ContextMenuItem {

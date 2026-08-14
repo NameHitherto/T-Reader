@@ -853,9 +853,7 @@ const onContextMenu = (e: MouseEvent, bookKey: string) => {
     x: e.x,
     y: e.y,
     menuItems,
-    width: 170,
-    itemHeight: 35,
-    precision: 20,
+    margin: 20,
     theme: getAppliedAppThemeMode(),
   })
   showMenu.value = true

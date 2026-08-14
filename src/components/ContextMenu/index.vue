@@ -6,7 +6,7 @@
         ref="menu"
         class="context-menu"
         :class="menuData.theme"
-        :style="{ top: `${menuData.y}px`, left: `${menuData.x}px`, width: `${menuData.width}px` }"
+        :style="{ top: `${position.top}px`, left: `${position.left}px` }"
         @contextmenu="($event) => $event.preventDefault()"
       >
         <div class="menu-body">
@@ -31,6 +31,14 @@ import { PropType } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { IconName } from '@/icons/registry'
 import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+
+const DEFAULT_VIEWPORT_MARGIN = 20
+
+interface ContextMenuPosition {
+  left: number
+  top: number
+}
+
 export default {
   name: 'ContextMenu',
   components: {
@@ -47,6 +55,7 @@ export default {
   data() {
     return {
       menuActive: true,
+      position: { left: 0, top: 0 } as ContextMenuPosition,
     }
   },
   watch: {
@@ -59,12 +68,21 @@ export default {
       },
       deep: true,
     },
+    menuActive(active: boolean) {
+      if (active && this.show) {
+        this.$nextTick(() => {
+          this.syncPosition()
+        })
+      }
+    },
   },
   mounted() {
     document.addEventListener('click', this.handleBackDropClick)
+    window.addEventListener('resize', this.handleWindowResize)
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleBackDropClick)
+    window.removeEventListener('resize', this.handleWindowResize)
   },
   methods: {
     resolveIconName(type?: ContextMenuItem['type']): IconName {
@@ -75,6 +93,41 @@ export default {
       const menu = this.$refs.menu as HTMLElement
       if (menu && !menu.contains(target)) {
         this.$emit('update:show', false)
+      }
+    },
+    handleWindowResize() {
+      if (this.show) {
+        this.syncPosition()
+      }
+    },
+    syncPosition() {
+      if (!this.show) return
+      const menu = this.$refs.menu as HTMLElement | null
+      const anchor = this.menuData.anchor
+      if (!menu || !anchor) return
+
+      const margin = this.menuData.margin ?? DEFAULT_VIEWPORT_MARGIN
+      const width = menu.offsetWidth
+      const height = menu.offsetHeight
+      const viewportWidth = document.documentElement.clientWidth
+      const viewportHeight = document.documentElement.clientHeight
+
+      const clamp = (value: number, min: number, max: number) =>
+        Math.min(Math.max(value, min), Math.max(min, max))
+
+      let left = anchor.x
+      let top = anchor.y
+
+      if (left + width > viewportWidth - margin) {
+        left = anchor.x - width
+      }
+      if (top + height > viewportHeight - margin) {
+        top = anchor.y - height
+      }
+
+      this.position = {
+        left: clamp(left, margin, viewportWidth - margin - width),
+        top: clamp(top, margin, viewportHeight - margin - height),
       }
     },
     handleClick(item: ContextMenuItem, event: MouseEvent | KeyboardEvent) {
@@ -89,6 +142,7 @@ export default {
 <style scoped lang="scss">
 .context-menu {
   position: absolute;
+  min-width: 160px;
   border-radius: var(--radius-md);
   padding: 6px;
   border: 1px solid var(--border-default);
@@ -132,6 +186,7 @@ export default {
           font-size: 13px;
           font-weight: 600;
           letter-spacing: 0.01em;
+          white-space: nowrap;
         }
 
         .menu-icon {
