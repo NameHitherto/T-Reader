@@ -111,7 +111,6 @@ import {
   initBookMarksForBook,
   removeBookmarkUnderline,
 } from '@/services/reader/epub/bookmarkService'
-import { findOverlappingNote } from '@/services/reader/epub/bookmarkOverlapService'
 import { bindRenditionEvents } from '@/services/reader/epub/renditionEventsService'
 import {
   collectParentChapterIndexes,
@@ -558,19 +557,11 @@ function bindCurrentReaderInteractions() {
     isOverlayOpen: () => anyReaderOverlayOpen.value,
     openContextMenu: (x, y, menuItems) =>
       openContextMenu('root', x, y, menuItems as ContextMenuItem[]),
-    buildContextMenuItems: (contents) => {
-      const selection = contents.window.getSelection()
-      const selectionRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
-      const items = [
-        { label: '标记 | 添加书签', type: 'bookmark', onClick: () => addBookMark() },
-        { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
-        { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
-      ]
-      if (selectionRange && findOverlappingNote(contents, selectionRange, bookMarks.value)) {
-        return items.filter((item) => item.type === 'draw')
-      }
-      return items
-    },
+    buildContextMenuItems: () => [
+      { label: '标记 | 添加书签', type: 'bookmark', onClick: () => addBookMark() },
+      { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
+      { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
+    ],
     buildBookmarkContextMenuItems: (markId: string) => [
       { label: '编辑 | 编辑笔记', type: 'edit', onClick: () => openEditorByMarkId(markId) },
       { label: '删除 | 删除笔记', type: 'delBookMark', onClick: () => delBookMark(markId) },

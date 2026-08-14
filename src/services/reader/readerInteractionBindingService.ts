@@ -15,7 +15,7 @@ interface BindReaderInteractionsArgs {
   hideContextMenu: () => void
   isParentPointerIgnored: (target: HTMLElement | null) => boolean
   openContextMenu: (x: number, y: number, menuItems: ReaderContextMenuItem[]) => void
-  buildContextMenuItems: (contents: EpubContentsLike) => ReaderContextMenuItem[]
+  buildContextMenuItems: () => ReaderContextMenuItem[]
   buildBookmarkContextMenuItems: (markId: string) => ReaderContextMenuItem[]
   /** 是否有弹窗/菜单正在打开；为 true 时忽略阅读器快捷键，避免干扰弹窗内操作 */
   isOverlayOpen: () => boolean
@@ -130,7 +130,7 @@ export const bindReaderInteractions = (
         return
       }
 
-      args.openContextMenu(menuX, menuY, args.buildContextMenuItems(contents))
+      args.openContextMenu(menuX, menuY, args.buildContextMenuItems())
     }
 
     contentDocument.addEventListener('keydown', handleKeydown)
