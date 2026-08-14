@@ -18,8 +18,6 @@ export interface BookMark {
   comments?: string
   // 高亮颜色
   color?: string
-  // 是否显示边框
-  hasBorder?: boolean
 }
 
 type BookMarkPatch = Partial<BookMark> & Pick<BookMark, 'id'>

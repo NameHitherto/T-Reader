@@ -1,5 +1,4 @@
 import { BookMark } from '@/store/bookMark'
-import { getAppThemePalette, getAppliedAppThemeMode } from '@/services/theme/themeService'
 import {
   BOOKMARK_HIGHLIGHT_CLASS,
   getBookmarkHighlightTextColor,
@@ -15,7 +14,6 @@ export const applyBookmarkHighlight = (
     return
   }
 
-  const themePalette = getAppThemePalette(getAppliedAppThemeMode())
   const background = bookMark.color || defaultHighlightColor
   const textColor = getBookmarkHighlightTextColor(background)
 
@@ -29,7 +27,6 @@ export const applyBookmarkHighlight = (
     {
       'background-color': background,
       color: textColor,
-      ...(bookMark.hasBorder ? { 'box-shadow': `inset 0 0 0 1px ${themePalette.readerText}` } : {}),
     },
   )
 }

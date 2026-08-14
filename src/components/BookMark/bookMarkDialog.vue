@@ -45,16 +45,6 @@
         </span>
       </template>
     </div>
-    <div class="option-box">
-      <span class="text-border" @click="updateHasBorder">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32px" height="32px" viewBox="0 0 24 24">
-          <path
-            :fill="bookMarkJSON.hasBorder ? 'var(--brand-primary)' : 'var(--text-muted)'"
-            d="M3 16c0 2.8 2.2 5 5 5h2v-2H8c-1.7 0-3-1.3-3-3v-2H3zm18-8c0-2.8-2.2-5-5-5h-2v2h2c1.7 0 3 1.3 3 3v2h2zm-5 13c2.8 0 5-2.2 5-5v-2h-2v2c0 1.7-1.3 3-3 3h-2v2zM8 3C5.2 3 3 5.2 3 8v2h2V8c0-1.7 1.3-3 3-3h2V3z"
-          />
-        </svg>
-      </span>
-    </div>
   </el-dialog>
 </template>
 <script lang="ts">
@@ -95,10 +85,6 @@ export default defineComponent({
     },
     async updateColor(color: string) {
       this.bookMarkJSON.color = color
-      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
-    },
-    async updateHasBorder() {
-      this.bookMarkJSON.hasBorder = !this.bookMarkJSON.hasBorder
       this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
     },
   },
@@ -143,19 +129,6 @@ export default defineComponent({
       border-color: var(--text-primary);
       transform: translateY(-1px);
     }
-  }
-}
-.option-box {
-  display: flex;
-
-  .text-border {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: var(--t-mouse-cursor-link), pointer;
-    border-radius: var(--radius-sm);
-    padding: 6px;
-    background: var(--surface-card-soft);
   }
 }
 </style>

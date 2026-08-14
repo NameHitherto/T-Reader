@@ -12,5 +12,4 @@ pub struct BookMarkDto {
     pub create_time: String,
     pub comments: Option<String>,
     pub color: Option<String>,
-    pub has_border: Option<bool>,
 }
