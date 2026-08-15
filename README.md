@@ -2,7 +2,7 @@
 
 T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、自动更新能力。
 
-![version](https://img.shields.io/badge/version-2.0.3-blue)
+![version](https://img.shields.io/badge/version-2.1.1-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri%202-Rust-orange)
 ![Vue 3](https://img.shields.io/badge/Vue%203-TypeScript-42b883)
@@ -12,12 +12,12 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 支持 `EPUB` / `TXT` 导入、书架展示与打开阅读
 - 书架支持列表 / 网格双视图，并支持按标题、作者、阅读时间、添加日期排序，展示封面、格式、最近阅读与进度
 - 独立阅读器窗口支持目录、翻页、滚动、快捷键与沉浸式阅读
-- 支持 EPUB 书签、高亮和个人笔记，笔记页可统一浏览与跳转
+- 支持 EPUB 书签、通过艺术下划线标注个人笔记，笔记统一管理浏览与跳转
 - 阅读界面清爽简洁，书籍字体可选择Windows系统内置字体
 - 阅读样式支持字号、字重、行距、段距、页边距、栏数、翻页模式调节
 - 支持 WebDAV 云同步，可自定义服务器地址与请求超时，已适配第三方开源移动端阅读器Legado
 - 支持应用内检查更新、下载更新，可选择正式版 / 抢先版更新渠道
-- 内置 AI 大模型配置（对话、生图、嵌入、重排序模型），支持接入主流服务商
+- 内置 AI 大模型配置（对话、生图、嵌入、重排序模型）
 - 画廊：结合书籍的图片和原文内容，使用生图模型进行二次创作
 - 书籍、笔记、设置等本地数据基于 SQLite 持久化存储
 
@@ -31,9 +31,9 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 
 ![书架列表视图](./docs/images/listview.png)
 
-### 阅读器与样式设置
+### 阅读器、样式菜单以及笔记注释
 
-![阅读器与样式设置](./docs/images/reader.jpg)
+![阅读器、样式菜单以及笔记注释](./docs/images/reader.png)
 
 ### 云同步
 
@@ -96,23 +96,6 @@ T-Reader/
 ├─ books/
 └─ bookProgress/
 ```
-
-说明：
-
-- 开发态日志仅打印到 `npm run tauri dev` 的终端，不写入 DevTools 或本地日志文件
-- 打包后的日志写入 `Document/T-Reader/cached/logs/`
-- `cached/` 与本地 SQLite 数据库当前不参与 WebDAV 同步
-- 云端与本地进度冲突时，优先使用 `durChapterTime` 更新较新的配置
-
-## 开发环境
-
-- `Rust 1.89.0+`（edition 2024）
-- 主项目建议使用最新稳定版 `Node.js v24`
-- `libs/epub.js` 建议使用 `Node.js v16.20.2`
-
-开始前请先确认本机已满足 Tauri 官方前置环境要求：
-
-- https://tauri.app/start/prerequisites/
 
 ## 贡献指南
 

@@ -14,10 +14,13 @@
 
 ## 开发环境
 
-- Rust 1.89.0 及以上
-- Node.js v24（主项目）
-- `libs/epub.js` 子模块使用 Node.js v16.20.2
-- Tauri 官方前置环境：https://tauri.app/start/prerequisites/
+- `Rust 1.89.0+`（edition 2024）
+- 主项目建议使用最新稳定版 `Node.js v24`
+- `libs/epub.js` 建议使用 `Node.js v16.20.2`
+
+开始前请先确认本机已满足 Tauri 官方前置环境要求：
+
+- https://tauri.app/start/prerequisites/
 
 ## 本地开发
 
