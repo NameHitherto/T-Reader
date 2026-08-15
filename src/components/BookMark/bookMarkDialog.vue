@@ -37,38 +37,45 @@
       <div class="underline-editor">
         <div class="type-picker">
           <span class="picker-label">线型</span>
-          <template v-for="type in underlineTypes" :key="type">
-            <span
-              class="type-choice"
-              :class="{ 'is-selected': type === currentType }"
-              @click="updateType(type)"
-            >
-              {{ typeLabels[type] }}
-            </span>
-          </template>
+          <el-select
+            :model-value="currentType"
+            class="type-select"
+            popper-class="bookmark-type-popper"
+            @update:model-value="updateType"
+          >
+            <template #label>
+              <span class="type-preview" v-html="underlinePreviewSvg(currentType)" />
+            </template>
+            <el-option v-for="type in underlineTypes" :key="type" :value="type">
+              <span class="type-preview" v-html="underlinePreviewSvg(type)" />
+            </el-option>
+          </el-select>
         </div>
         <div class="color-picker">
           <span class="picker-label">颜色</span>
-          <template v-for="color in colorChoices" :key="color">
+          <div class="color-palette">
             <span
+              v-for="color in colorChoices"
+              :key="color"
               class="color-choice"
               :class="{ 'is-selected': color === currentColor }"
               :style="{ backgroundColor: color }"
               @click="updateColor(color)"
             />
-          </template>
+          </div>
         </div>
         <div class="width-picker">
           <span class="picker-label">粗细</span>
-          <template v-for="width in widthChoices" :key="width">
-            <span
-              class="width-choice"
-              :class="{ 'is-selected': width === currentWidth }"
-              @click="updateWidth(width)"
-            >
-              {{ width }}px
-            </span>
-          </template>
+          <el-slider
+            v-model="widthValue"
+            class="width-slider"
+            :min="widthRange.min"
+            :max="widthRange.max"
+            :step="widthRange.step"
+            :format-tooltip="formatWidthTooltip"
+            @change="commitWidth"
+          />
+          <span class="width-value">{{ widthValue }}px</span>
         </div>
       </div>
     </div>
@@ -79,7 +86,7 @@ import { ref, defineComponent } from 'vue'
 import {
   UNDERLINE_COLOR_CHOICES,
   UNDERLINE_TYPES,
-  UNDERLINE_WIDTH_CHOICES,
+  UNDERLINE_WIDTH_RANGE,
   loadPreferredUnderlineStyle,
   savePreferredUnderlineStyle,
   type UnderlineStyle,
@@ -87,13 +94,6 @@ import {
 } from '@/constants/bookmark'
 import { logWarn } from '@/utils/logger'
 import type { BookMark } from '@/store/bookMark'
-
-const UNDERLINE_TYPE_LABELS: Record<UnderlineType, string> = {
-  straight: '直线',
-  dashed: '虚线',
-  dotted: '点线',
-  wavy: '波浪线',
-}
 
 export default defineComponent({
   name: 'BookMarkDialog',
@@ -109,8 +109,8 @@ export default defineComponent({
       bookMarkJSON: ref<Partial<BookMark>>({}),
       colorChoices: [...UNDERLINE_COLOR_CHOICES],
       underlineTypes: [...UNDERLINE_TYPES],
-      widthChoices: [...UNDERLINE_WIDTH_CHOICES],
-      typeLabels: UNDERLINE_TYPE_LABELS,
+      widthRange: { ...UNDERLINE_WIDTH_RANGE },
+      widthValue: 2,
       preferredStyle: loadPreferredUnderlineStyle(),
     }
   },
@@ -138,6 +138,7 @@ export default defineComponent({
       if (this.bookMarkList) {
         this.bookMarkJSON = JSON.parse(this.bookMarkList)
         this.comments = this.bookMarkJSON.comments || ''
+        this.widthValue = this.currentWidth
       } else {
         logWarn('bookmark', 'open-empty-note')
       }
@@ -168,6 +169,38 @@ export default defineComponent({
       this.bookMarkJSON.underlineWidth = width
       this.commitStyle()
     },
+    commitWidth() {
+      this.updateWidth(this.widthValue)
+    },
+    formatWidthTooltip(value: number): string {
+      return `${value}px`
+    },
+    underlinePreviewSvg(type: UnderlineType): string {
+      const stroke = 'currentColor'
+      const wrap = (inner: string) =>
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 24" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`
+
+      switch (type) {
+        case 'brush':
+          return wrap(
+            `<path d="M4 13 Q 20 16 34 12 T 60 14 T 92 12" fill="none" stroke="${stroke}" stroke-width="7" stroke-linecap="square"/>`,
+          )
+        case 'highlighter':
+          return wrap(
+            `<path d="M4 17 L 92 13" fill="none" stroke="${stroke}" stroke-width="14" stroke-linecap="round" opacity="0.45"/>`,
+          )
+        case 'spring':
+          return wrap(
+            `<path d="M4 15 C 12 5 16 23 24 15 C 32 5 36 23 44 15 C 52 5 56 23 64 15 C 72 5 76 23 84 15 C 88 11 90 19 92 15" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`,
+          )
+        case 'dotwave':
+          return wrap(
+            `<path d="M4 13 Q 26 20 48 13 T 92 13" fill="none" stroke="${stroke}" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 10"/>`,
+          )
+        default:
+          return ''
+      }
+    },
   },
 })
 </script>
@@ -194,8 +227,8 @@ export default defineComponent({
 .underline-editor {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 18px;
 }
 
 .picker-label {
@@ -212,31 +245,41 @@ export default defineComponent({
   gap: 8px;
 }
 
-.type-choice,
-.width-choice {
+.type-select {
+  width: 136px;
+}
+
+.type-preview {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--surface-strong);
-  font-size: 13px;
-  cursor: var(--t-mouse-cursor-link), pointer;
+  width: 96px;
+  height: 22px;
+  color: var(--text-secondary);
 
-  &.is-selected {
-    border-color: var(--brand-primary);
-    color: var(--brand-primary);
+  :deep(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
+}
+
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--surface-strong);
+  border-radius: var(--radius-sm);
 }
 
 .color-choice {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 2px solid var(--surface-strong);
   cursor: var(--t-mouse-cursor-link), pointer;
@@ -245,6 +288,30 @@ export default defineComponent({
   &.is-selected {
     border-color: var(--text-primary);
     transform: translateY(-1px);
+  }
+}
+
+.width-slider {
+  flex: 1;
+  margin-right: 4px;
+}
+
+.width-value {
+  min-width: 44px;
+  font-size: 13px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+</style>
+
+<style lang="scss">
+.bookmark-type-popper {
+  .el-select-dropdown__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 12px;
   }
 }
 </style>
