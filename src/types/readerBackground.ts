@@ -1,6 +1,14 @@
-export type ReaderLightBackgroundPreset = 'default' | 'warm-yellow'
+export type ReaderLightBackgroundPreset =
+  | 'default'
+  | 'parchment'
+  | 'kraft'
+  | 'xuan'
+  | 'warm-amber'
+  | 'eye-green'
+  | 'soft-cyan'
+  | 'jade-white'
 
-export type ReaderDarkBackgroundPreset = 'default' | 'ide-dark'
+export type ReaderDarkBackgroundPreset = 'default' | 'dark-night' | 'pure-black'
 
 export type ReaderBackgroundPreset = ReaderLightBackgroundPreset | ReaderDarkBackgroundPreset
 

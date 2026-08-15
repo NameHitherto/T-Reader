@@ -34,6 +34,9 @@ export interface AppThemePalette {
 export interface ReaderRuntimePalette {
   viewportBackground: string
   contentBackground: string
+  backgroundImage?: string
+  backgroundSize?: string
+  backgroundPosition?: string
   surface: string
   surfaceStrong: string
   text: string
@@ -49,6 +52,9 @@ export interface ReaderBackgroundPresetOption<T extends ReaderBackgroundPreset> 
   label: string
   description: string
   preview: string
+  previewBackgroundImage?: string
+  previewBackgroundSize?: string
+  previewBackgroundPosition?: string
 }
 
 const THEME_PALETTES: Record<AppThemeMode, AppThemePalette> = {
@@ -84,10 +90,20 @@ const THEME_PALETTES: Record<AppThemeMode, AppThemePalette> = {
 
 const LIGHT_BACKGROUND_PRESET_VALUES = new Set<ReaderLightBackgroundPreset>([
   'default',
-  'warm-yellow',
+  'parchment',
+  'kraft',
+  'xuan',
+  'warm-amber',
+  'eye-green',
+  'soft-cyan',
+  'jade-white',
 ])
 
-const DARK_BACKGROUND_PRESET_VALUES = new Set<ReaderDarkBackgroundPreset>(['default', 'ide-dark'])
+const DARK_BACKGROUND_PRESET_VALUES = new Set<ReaderDarkBackgroundPreset>([
+  'default',
+  'dark-night',
+  'pure-black',
+])
 
 const LIGHT_BACKGROUND_PRESET_OPTIONS: ReaderBackgroundPresetOption<ReaderLightBackgroundPreset>[] =
   [
@@ -98,10 +114,55 @@ const LIGHT_BACKGROUND_PRESET_OPTIONS: ReaderBackgroundPresetOption<ReaderLightB
       preview: '#FFFFFF',
     },
     {
-      value: 'warm-yellow',
-      label: '暖黄护眼',
-      description: '暖黄纸面配色，适合长时间沉浸阅读。',
-      preview: '#FBF0D9',
+      value: 'parchment',
+      label: '羊皮纸纹',
+      description: '拟真羊皮纸纹理，暖黄复古，适合文学与历史类书籍。',
+      preview: '#F4EBD0',
+      previewBackgroundImage:
+        'radial-gradient(hsla(40, 30%, 80%, 0.5), hsla(38, 25%, 70%, 0.6)), repeating-radial-gradient(transparent 0, transparent 2px, rgba(139, 90, 43, 0.03) 3px, transparent 4px)',
+    },
+    {
+      value: 'kraft',
+      label: '牛皮纸',
+      description: '复古牛皮纸颗粒质感，适合笔记与手账风格阅读。',
+      preview: '#D9BE9B',
+      previewBackgroundImage:
+        'radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0), radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)',
+      previewBackgroundSize: '8px 8px, 12px 12px',
+      previewBackgroundPosition: '0 0, 4px 4px',
+    },
+    {
+      value: 'xuan',
+      label: '棉麻宣纸',
+      description: '棉麻宣纸纹理，温润素雅，适合传统文学与国学。',
+      preview: '#F7F4ED',
+      previewBackgroundImage:
+        'linear-gradient(90deg, rgba(200, 190, 170, 0.08) 1px, transparent 0), linear-gradient(180deg, rgba(200, 190, 170, 0.08) 1px, transparent 0)',
+      previewBackgroundSize: '16px 16px',
+    },
+    {
+      value: 'warm-amber',
+      label: '暖调琥珀',
+      description: '暖调琥珀底色，柔和护眼，适合长时间沉浸阅读。',
+      preview: '#F6EDD9',
+    },
+    {
+      value: 'eye-green',
+      label: '豆沙护眼绿',
+      description: '经典豆沙护眼绿，缓解视觉疲劳，适合长文本阅读。',
+      preview: '#C7EDCC',
+    },
+    {
+      value: 'soft-cyan',
+      label: '静谧青蓝',
+      description: '静谧青蓝底色，清冷宁神，适合学术与专注阅读。',
+      preview: '#DCEFF2',
+    },
+    {
+      value: 'jade-white',
+      label: '温润冷灰',
+      description: '接近羊脂玉的极简冷灰底色，清爽耐看。',
+      preview: '#F2F4F5',
     },
   ]
 
@@ -113,10 +174,16 @@ const DARK_BACKGROUND_PRESET_OPTIONS: ReaderBackgroundPresetOption<ReaderDarkBac
     preview: '#121212',
   },
   {
-    value: 'ide-dark',
-    label: 'IDE 深色',
-    description: 'VS Code 风格的深色阅读背景。',
-    preview: '#1E1E1E',
+    value: 'dark-night',
+    label: '暗夜深邃',
+    description: '暗夜深邃黑，柔和不刺眼，适合夜间沉浸阅读。',
+    preview: '#1A1A1A',
+  },
+  {
+    value: 'pure-black',
+    label: '极黑 OLED',
+    description: '纯黑 OLED 底色，极致省电，适合 AMOLED 屏幕。',
+    preview: '#000000',
   },
 ]
 
@@ -126,31 +193,118 @@ const READER_RUNTIME_OVERRIDES: Record<
 > = {
   light: {
     default: {},
-    'warm-yellow': {
-      viewportBackground: '#FBF0D9',
-      contentBackground: '#FBF0D9',
-      surface: '#F4E5C2',
-      surfaceStrong: '#FBF0D9',
-      text: '#433422',
-      mutedText: '#785D3D',
+    parchment: {
+      viewportBackground: '#F4EBD0',
+      contentBackground: '#F4EBD0',
+      backgroundImage:
+        'radial-gradient(hsla(40, 30%, 80%, 0.5), hsla(38, 25%, 70%, 0.6)), repeating-radial-gradient(transparent 0, transparent 2px, rgba(139, 90, 43, 0.03) 3px, transparent 4px)',
+      surface: '#E9DCB6',
+      surfaceStrong: '#F9F1D9',
+      text: '#3D2C1D',
+      mutedText: '#6B5638',
+      link: '#8A5A2B',
+      selectionBackground: 'rgba(139, 90, 43, 0.22)',
+      selectionColor: '#3D2C1D',
+    },
+    kraft: {
+      viewportBackground: '#D9BE9B',
+      contentBackground: '#D9BE9B',
+      backgroundImage:
+        'radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 0), radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)',
+      backgroundSize: '8px 8px, 12px 12px',
+      backgroundPosition: '0 0, 4px 4px',
+      surface: '#C9AC85',
+      surfaceStrong: '#E4CDAA',
+      text: '#2C1D11',
+      mutedText: '#5C4630',
+      link: '#7A4A1F',
+      selectionBackground: 'rgba(44, 29, 17, 0.2)',
+      selectionColor: '#2C1D11',
+    },
+    xuan: {
+      viewportBackground: '#F7F4ED',
+      contentBackground: '#F7F4ED',
+      backgroundImage:
+        'linear-gradient(90deg, rgba(200, 190, 170, 0.08) 1px, transparent 0), linear-gradient(180deg, rgba(200, 190, 170, 0.08) 1px, transparent 0)',
+      backgroundSize: '16px 16px',
+      surface: '#EAE5D8',
+      surfaceStrong: '#FBF9F4',
+      text: '#2B2B2B',
+      mutedText: '#5B5B5B',
+      link: '#2563EB',
+      selectionBackground: 'rgba(37, 99, 235, 0.18)',
+      selectionColor: '#2B2B2B',
+    },
+    'warm-amber': {
+      viewportBackground: '#F6EDD9',
+      contentBackground: '#F6EDD9',
+      surface: '#EBDFC2',
+      surfaceStrong: '#FAF3E3',
+      text: '#332C22',
+      mutedText: '#6B5D43',
       link: '#B45309',
-      selectionBackground: 'rgba(180, 83, 9, 0.18)',
-      selectionColor: '#433422',
+      selectionBackground: 'rgba(180, 83, 9, 0.2)',
+      selectionColor: '#332C22',
+    },
+    'eye-green': {
+      viewportBackground: '#C7EDCC',
+      contentBackground: '#C7EDCC',
+      surface: '#B0DBB6',
+      surfaceStrong: '#D4F3D8',
+      text: '#1E3320',
+      mutedText: '#3F5A42',
+      link: '#15803D',
+      selectionBackground: 'rgba(22, 101, 52, 0.2)',
+      selectionColor: '#1E3320',
+    },
+    'soft-cyan': {
+      viewportBackground: '#DCEFF2',
+      contentBackground: '#DCEFF2',
+      surface: '#C2DFE5',
+      surfaceStrong: '#E6F5F8',
+      text: '#1A3038',
+      mutedText: '#3E5A63',
+      link: '#0E7490',
+      selectionBackground: 'rgba(14, 116, 144, 0.2)',
+      selectionColor: '#1A3038',
+    },
+    'jade-white': {
+      viewportBackground: '#F2F4F5',
+      contentBackground: '#F2F4F5',
+      surface: '#E2E6E8',
+      surfaceStrong: '#F7F9FA',
+      text: '#22252A',
+      mutedText: '#565C64',
+      link: '#2563EB',
+      selectionBackground: 'rgba(37, 99, 235, 0.18)',
+      selectionColor: '#22252A',
     },
   },
   dark: {
     default: {},
-    'ide-dark': {
-      viewportBackground: '#1E1E1E',
-      contentBackground: '#1E1E1E',
-      surface: '#252526',
-      surfaceStrong: '#333333',
-      text: '#D4D4D4',
-      mutedText: '#CCCCCC',
-      link: '#007ACC',
-      selectionBackground: 'rgba(0, 122, 204, 0.24)',
-      selectionColor: '#D4D4D4',
+    'dark-night': {
+      viewportBackground: '#1A1A1A',
+      contentBackground: '#1A1A1A',
+      surface: '#242424',
+      surfaceStrong: '#2A2A2A',
+      text: '#A0A0A0',
+      mutedText: '#7A7A7A',
+      link: '#7AA2C4',
+      selectionBackground: 'rgba(160, 160, 160, 0.22)',
+      selectionColor: '#A0A0A0',
       imageFilter: 'brightness(0.94) contrast(1.02)',
+    },
+    'pure-black': {
+      viewportBackground: '#000000',
+      contentBackground: '#000000',
+      surface: '#111111',
+      surfaceStrong: '#1A1A1A',
+      text: '#888888',
+      mutedText: '#5F5F5F',
+      link: '#6A9EC4',
+      selectionBackground: 'rgba(136, 136, 136, 0.24)',
+      selectionColor: '#888888',
+      imageFilter: 'brightness(0.9) contrast(1.05)',
     },
   },
 }
@@ -269,6 +423,27 @@ export const getReaderRuntimePalette = (
     ...defaultPalette,
     ...(READER_RUNTIME_OVERRIDES[normalizedMode][activePreset] || {}),
   }
+}
+
+export const buildReaderBackgroundDeclarations = (
+  palette: ReaderRuntimePalette,
+): Record<string, string> => {
+  const declarations: Record<string, string> = {
+    background: palette.contentBackground,
+    'background-color': palette.contentBackground,
+  }
+
+  if (palette.backgroundImage) {
+    declarations['background-image'] = palette.backgroundImage
+  }
+  if (palette.backgroundSize) {
+    declarations['background-size'] = palette.backgroundSize
+  }
+  if (palette.backgroundPosition) {
+    declarations['background-position'] = palette.backgroundPosition
+  }
+
+  return declarations
 }
 
 export const getReaderThemeCompatColors = (

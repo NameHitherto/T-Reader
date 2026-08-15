@@ -40,10 +40,7 @@
     @delete="(markId: string) => delBookMark(markId)"
   />
   <!-- 功能帮助 -->
-  <HelpDialog
-    v-model="helpVisible"
-    @open-system-font-dialog="handleOpenSystemFontDialogFromHelp"
-  />
+  <HelpDialog v-model="helpVisible" @open-system-font-dialog="handleOpenSystemFontDialogFromHelp" />
   <SystemFontEnableDialog v-model="systemFontDialogVisible" />
   <!-- AI绘画 -->
   <DrawDialog
@@ -136,6 +133,7 @@ import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { loadPreferredUnderlineStyle } from '@/constants/bookmark'
 import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
 import {
+  buildReaderBackgroundDeclarations,
   getAppliedAppThemeMode,
   getReaderRuntimePalette,
   syncReaderConfigThemeColors,
@@ -208,8 +206,7 @@ const readerDefaultTheme = computed(() => {
       'font-size': `${readerConfig.value.fontSize}px`,
       'font-weight': readerConfig.value.fontWeight,
       color: readerPalette.value.text,
-      background: readerPalette.value.contentBackground,
-      'background-color': readerPalette.value.contentBackground,
+      ...buildReaderBackgroundDeclarations(readerPalette.value),
       'padding-top': `${readerConfig.value.boxPaddingTop}px !important`,
       'padding-bottom': `${readerConfig.value.boxPaddingBottom}px !important`,
       'padding-left': `${readerConfig.value.boxPaddingHorizontal}px !important`,
@@ -253,8 +250,7 @@ const readerDefaultTheme = computed(() => {
       color: readerPalette.value.selectionColor,
     },
     html: {
-      background: readerPalette.value.contentBackground,
-      'background-color': readerPalette.value.contentBackground,
+      ...buildReaderBackgroundDeclarations(readerPalette.value),
       cursor: `url('/src/assets/cursor/pointer.cur'), default`,
     },
     img: {
@@ -1117,14 +1113,20 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   color: var(--reader-text);
-  background: var(--reader-background);
+  background-color: var(--reader-background);
+  background-image: var(--reader-background-image, none);
+  background-size: var(--reader-background-size, auto);
+  background-position: var(--reader-background-position, 0 0);
 
   #epub-reader {
     position: absolute;
     padding: 30px 0px 40px 0px;
     width: 100%;
     height: 100%;
-    background: var(--reader-background);
+    background-color: var(--reader-background);
+    background-image: var(--reader-background-image, none);
+    background-size: var(--reader-background-size, auto);
+    background-position: var(--reader-background-position, 0 0);
   }
 
   /* 阅读容器滚动条样式 */

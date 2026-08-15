@@ -40,8 +40,14 @@ export const applyReaderStyles = (
   applyIframeStyle = true,
 ) => {
   const palette = getReaderRuntimePalette(readerConfig, themeMode)
+  const backgroundImage = palette.backgroundImage || 'none'
+  const backgroundSize = palette.backgroundSize || 'auto'
+  const backgroundPosition = palette.backgroundPosition || '0 0'
 
   document.documentElement.style.setProperty('--reader-background', palette.viewportBackground)
+  document.documentElement.style.setProperty('--reader-background-image', backgroundImage)
+  document.documentElement.style.setProperty('--reader-background-size', backgroundSize)
+  document.documentElement.style.setProperty('--reader-background-position', backgroundPosition)
   document.documentElement.style.setProperty(
     '--reader-content-background',
     palette.contentBackground,
@@ -54,20 +60,27 @@ export const applyReaderStyles = (
   document.documentElement.style.setProperty('--reader-selection-text', palette.selectionColor)
   document.documentElement.style.setProperty('--reader-image-filter', palette.imageFilter)
 
-  document.body.style.background = palette.viewportBackground
+  const applyViewportBackground = (element: HTMLElement) => {
+    element.style.backgroundColor = palette.viewportBackground
+    element.style.backgroundImage = backgroundImage
+    element.style.backgroundSize = backgroundSize
+    element.style.backgroundPosition = backgroundPosition
+  }
+
+  applyViewportBackground(document.body)
   document.body.style.color = palette.text
-  document.documentElement.style.background = palette.viewportBackground
+  applyViewportBackground(document.documentElement)
   document.documentElement.style.color = palette.text
 
   const readerRoot = document.getElementById('reader-app')
   if (readerRoot) {
-    readerRoot.style.background = palette.viewportBackground
+    applyViewportBackground(readerRoot)
     readerRoot.style.color = palette.text
   }
 
   const epubReader = document.getElementById('epub-reader')
   if (epubReader) {
-    epubReader.style.background = palette.viewportBackground
+    applyViewportBackground(epubReader)
     epubReader.style.color = palette.text
   }
 

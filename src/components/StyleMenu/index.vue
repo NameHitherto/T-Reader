@@ -1,45 +1,37 @@
 <template>
   <div ref="menuElement" class="menu" :style="menuStyle">
-    <div class="menu-hero">
-      <div class="menu-title">阅读样式</div>
-      <div class="menu-theme">
-        <span class="summary-pill">当前主题 · {{ themeModeLabel }}</span>
-      </div>
-    </div>
-
-    <div class="background-section section">
-      <div class="section-head">
-        <span class="section-title">背景</span>
-      </div>
-
-      <div class="background-grid">
-        <button
-          v-for="option in backgroundPresetOptions"
-          :key="option.value"
-          type="button"
-          class="background-card"
-          :class="{ 'is-active': option.value === activeBackgroundPreset }"
-          @click="selectBackgroundPreset(option.value)"
-        >
-          <span class="background-card-preview" :style="{ background: option.preview }">
-            <span v-if="option.value === activeBackgroundPreset" class="background-card-check">
-              ✓
-            </span>
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <div class="font-section section">
-      <div class="section-head">
-        <span class="section-title">字体</span>
-        <div class="font-summary">
-          <span class="summary-pill">已启用 {{ enabledFontCount }} 款系统字体</span>
+    <div class="reader-config-section section">
+      <section class="section-head">
+        <span class="section-title">主题</span>
+      </section>
+      <div class="basic-option">
+        <span class="option-title">背景</span>
+        <div class="background-select">
+          <el-select
+            :model-value="activeBackgroundPreset"
+            class="background-select-input"
+            popper-class="style-menu-select-popper"
+            @change="selectBackgroundPreset"
+          >
+            <el-option
+              v-for="option in backgroundPresetOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            >
+              <div class="background-option">
+                <span class="background-option-preview" :style="buildPreviewStyle(option)"></span>
+                <span class="background-option-label">{{ option.label }}</span>
+              </div>
+            </el-option>
+          </el-select>
         </div>
       </div>
 
-      <div class="font-option">
+      <div class="basic-option">
+        <span class="option-title">字体</span>
         <el-select
+          ref="fontSelectRef"
           v-model="selectedFont"
           placeholder="系统默认字体"
           class="font-select"
@@ -52,15 +44,21 @@
             :label="font.label"
             :value="font.value"
           />
+          <template #footer>
+            <button
+              type="button"
+              class="font-select-footer"
+              @click="handleOpenFontDialogFromSelect"
+            >
+              选择系统字体
+            </button>
+          </template>
         </el-select>
       </div>
-
-      <button class="font-manage-button app-secondary-button" @click="openFontDialog">
-        选择系统字体
-      </button>
     </div>
 
-    <div class="basic-section section">
+    <div class="common-section section">
+      <span class="section-title">通用</span>
       <div v-for="(setting, index) in settings" :key="index" class="adjust-option">
         <label>{{ setting.label }}</label>
         <el-input-number
@@ -118,6 +116,7 @@ import {
   getAppliedAppThemeMode,
   getReaderBackgroundPresetOptions,
   syncReaderConfigThemeColors,
+  type ReaderBackgroundPresetOption,
 } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
 import type {
@@ -174,6 +173,7 @@ export default defineComponent({
 
     const menuElement = ref<HTMLElement | null>(null)
     const selectedFont = ref(readerConfig.value.font)
+    const fontSelectRef = ref<{ blur: () => void } | null>(null)
     const settings = ref<ReaderNumericSetting[]>([
       {
         label: '首行缩进',
@@ -300,16 +300,31 @@ export default defineComponent({
     const fontOptions = computed(() =>
       buildReaderFontOptions(readerConfig.value.enabledSystemFonts),
     )
-    const enabledFontCount = computed(() => readerConfig.value.enabledSystemFonts.length)
-    const themeModeLabel = computed(() => {
-      return currentThemeMode.value === 'dark' ? '黑夜模式' : '白天模式'
-    })
     const backgroundPresetOptions = computed(() => {
       return getReaderBackgroundPresetOptions(currentThemeMode.value)
     })
     const activeBackgroundPreset = computed(() => {
       return readerConfig.value.backgroundPresets[currentThemeMode.value]
     })
+    const buildPreviewStyle = (
+      option: ReaderBackgroundPresetOption<ReaderBackgroundPreset>,
+    ): Record<string, string> => {
+      const style: Record<string, string> = {
+        backgroundColor: option.preview,
+      }
+
+      if (option.previewBackgroundImage) {
+        style.backgroundImage = option.previewBackgroundImage
+      }
+      if (option.previewBackgroundSize) {
+        style.backgroundSize = option.previewBackgroundSize
+      }
+      if (option.previewBackgroundPosition) {
+        style.backgroundPosition = option.previewBackgroundPosition
+      }
+
+      return style
+    }
     const menuStyle = computed(() => {
       if (!props.maxHeight) {
         return undefined
@@ -414,6 +429,11 @@ export default defineComponent({
       emit('open-font-dialog')
     }
 
+    const handleOpenFontDialogFromSelect = () => {
+      fontSelectRef.value?.blur()
+      openFontDialog()
+    }
+
     watch(
       () => readerConfig.value.font,
       (font) => {
@@ -425,15 +445,16 @@ export default defineComponent({
       activeBackgroundPreset,
       adjustSetting,
       backgroundPresetOptions,
-      enabledFontCount,
+      buildPreviewStyle,
       epubBuiltInStylesheet,
       epubBuiltInStylesheetOptions,
       flow,
       flowOptions,
       fontOptions,
+      fontSelectRef,
+      handleOpenFontDialogFromSelect,
       menuElement,
       menuStyle,
-      openFontDialog,
       readerConfig,
       resetStyle,
       selectBackgroundPreset,
@@ -442,7 +463,6 @@ export default defineComponent({
       settings,
       switchFlow,
       switchEpubBuiltInStylesheet,
-      themeModeLabel,
     }
   },
 })
@@ -464,37 +484,6 @@ label {
   overflow: auto;
   backdrop-filter: blur(14px);
 
-  .menu-hero {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    border-radius: var(--radius-lg);
-    background: var(--surface-strong);
-    border: 1px solid var(--border-default);
-    box-shadow: var(--shadow-sm), var(--shadow-inset-light);
-  }
-
-  .menu-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .menu-theme {
-    .summary-pill {
-      width: fit-content;
-      display: inline-flex;
-      align-items: center;
-      padding: 5px 10px;
-      border-radius: var(--radius-pill);
-      background: var(--surface-brand-soft);
-      color: var(--brand-primary);
-      font-size: 12px;
-      font-weight: 700;
-    }
-  }
-
   .section {
     margin-top: 14px;
     padding: 14px;
@@ -512,114 +501,43 @@ label {
   .section-head {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 12px;
   }
 
-  .background-section {
-    .background-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 12px;
-    }
+  .reader-config-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 
-    .background-card {
+    .basic-option {
       display: flex;
-      flex-direction: column;
-      min-width: 0;
-      padding: 8px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-default);
-      background: var(--surface-strong);
-      color: inherit;
-      text-align: left;
-      box-shadow: var(--shadow-xs);
-      transition:
-        transform var(--duration-fast) var(--easing-standard),
-        box-shadow var(--duration-fast) var(--easing-standard),
-        border-color var(--duration-fast) var(--easing-standard);
-
-      &:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-        border-color: var(--border-emphasis);
-      }
-
-      &.is-active {
-        border-color: var(--border-brand);
-        box-shadow:
-          var(--shadow-md),
-          0 0 0 2px var(--ring-brand-subtle);
-      }
-    }
-
-    .background-card-preview {
-      position: relative;
-      display: block;
-      width: 100%;
-      height: 72px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-emphasis);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.3),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
-      overflow: hidden;
-    }
-
-    .background-card-check {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.26);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1;
-      box-shadow: var(--shadow-sm);
-    }
-  }
+      justify-content: space-between;
 
-  .font-section {
-    .font-option {
-      margin-top: 12px;
+      .option-title {
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 700;
+      }
+    }
+
+    .background-select {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .background-select-input {
+      width: 180px;
     }
 
     .font-select {
-      width: 100%;
-    }
-
-    .font-summary {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .summary-pill {
-      width: fit-content;
-      display: inline-flex;
-      align-items: center;
-      padding: 5px 10px;
-      border-radius: var(--radius-pill);
-      background: var(--surface-brand-soft);
-      color: var(--brand-primary);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .font-manage-button {
-      margin-top: 14px;
+      width: 180px;
     }
   }
 
-  .basic-section {
+  .common-section {
     .adjust-option {
       display: flex;
       align-items: center;
@@ -709,5 +627,59 @@ label {
 
 :global(.style-menu-select-popper) {
   z-index: 4800 !important;
+}
+
+// 背景预设选项内的预览：选项内容会被 el-select 传送到 body，需用全局选择器保证样式生效
+:global(.style-menu-select-popper .background-option) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  line-height: 1;
+}
+
+:global(.style-menu-select-popper .background-option-preview) {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  border: 1px solid var(--border-emphasis);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:global(.style-menu-select-popper .background-option-label) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
+}
+
+// 字体下拉框底部的“选择系统字体”入口
+:global(.style-menu-select-popper .el-select-dropdown__footer) {
+  border-top: 1px solid var(--border-soft);
+}
+
+:global(.style-menu-select-popper .font-select-footer) {
+  display: block;
+  width: 100%;
+  padding: 9px 16px;
+  border: none;
+  background: transparent;
+  color: var(--brand-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: left;
+  cursor: pointer;
+}
+
+:global(.style-menu-select-popper .font-select-footer:hover) {
+  background: var(--surface-brand-soft);
 }
 </style>
