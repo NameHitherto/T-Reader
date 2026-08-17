@@ -1,8 +1,8 @@
 # T-Reader
 
-T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、WebDAV 云同步、自动更新能力。
+T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以轻小说阅读体验为核心，提供书架管理、独立阅读窗口、书签与笔记、AI 智能问答与书籍知识库、WebDAV 云同步、自动更新能力。
 
-![version](https://img.shields.io/badge/version-2.1.1-blue)
+![version](https://img.shields.io/badge/version-2.2.0-blue)
 ![platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri%202-Rust-orange)
 ![Vue 3](https://img.shields.io/badge/Vue%203-TypeScript-42b883)
@@ -15,9 +15,12 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 - 支持 EPUB 书签、通过艺术下划线标注个人笔记，笔记统一管理浏览与跳转
 - 阅读界面清爽简洁，书籍字体可选择Windows系统内置字体
 - 阅读样式支持字号、字重、行距、段距、页边距、栏数、翻页模式调节
+- 阅读器内置智能问答，可基于当前书籍正文提问并持久化会话
+- 书籍知识库支持按系列导入多本 EPUB，建立向量索引后进行带原文来源的系列问答
 - 支持 WebDAV 云同步，可自定义服务器地址与请求超时，已适配第三方开源移动端阅读器Legado
+- 网络代理支持独立开关，统一应用于更新、WebDAV、AI 问答与知识库等网络请求
 - 支持应用内检查更新、下载更新，可选择正式版 / 抢先版更新渠道
-- 内置 AI 大模型配置（对话、生图、嵌入、重排序模型）
+- 内置 AI 大模型配置（对话、生图、嵌入、重排序模型），模型地址支持完整 URL 直连
 - 画廊：结合书籍的图片和原文内容，使用生图模型进行二次创作
 - 书籍、笔记、设置等本地数据基于 SQLite 持久化存储
 
@@ -38,6 +41,10 @@ T-Reader 是一个面向 Windows 桌面端的轻量阅读器项目。项目以�
 ### 云同步
 
 ![云同步](./docs/images/webdav.png)
+
+### 知识库与系列问答
+
+![知识库与系列问答](./docs/images/knowledge.png)
 
 ### 画廊
 
@@ -66,7 +73,7 @@ T-Reader/
 │  ├─ styles/            # 全局样式与主题
 │  ├─ types/             # 共享类型定义
 │  ├─ utils/             # 通用工具
-│  ├─ services/          # book / reader / fileSystem / gallery / settings / sync / notification 等
+│  ├─ services/          # book / reader / chat / knowledgeBase / fileSystem / gallery / settings / sync / notification 等
 │  ├─ store/             # Pinia 状态
 │  └─ router/            # 主窗口路由
 ├─ src-tauri/            # Rust 后端与 Tauri 配置
@@ -85,8 +92,9 @@ T-Reader/
 T-Reader/
 ├─ books/         # 原始书籍文件（epub / txt）
 ├─ bookProgress/  # 书籍进度配置
+├─ knowledge/     # 知识库导入的原始 EPUB 文件
 ├─ cached/        # 封面、locations、段落统计缓存，以及打包后日志 logs/
-└─ system/        # SQLite 数据库 t-reader.db（书籍、笔记、设置、阅读样式等）
+└─ system/        # SQLite 数据库 t-reader.db（书籍、笔记、设置、阅读样式、知识库等）
 ```
 
 云端 WebDAV 目录：
