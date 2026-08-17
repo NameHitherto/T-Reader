@@ -631,7 +631,7 @@ const clearConversation = async () => {
 }
 
 const goToSettings = () => {
-  void router.push('/settings')
+  void router.push({ path: '/settings', query: { module: 'aiModels' } })
 }
 
 onMounted(async () => {

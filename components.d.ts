@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiModelSettings: typeof import('./src/components/SettingTabs/AiModelSettings.vue')['default']
     AppIcon: typeof import('./src/components/common/AppIcon/index.vue')['default']
     BookInfoDialog: typeof import('./src/components/BookInfoDialog/index.vue')['default']
     BookMarkDialog: typeof import('./src/components/BookMark/bookMarkDialog.vue')['default']
@@ -18,6 +19,7 @@ declare module 'vue' {
     BookMetadataEditDialog: typeof import('./src/components/BookMetadataEditDialog.vue')['default']
     BubbleToggle: typeof import('./src/components/common/BubbleToggle/index.vue')['default']
     ChatDialog: typeof import('./src/components/ChatDialog/index.vue')['default']
+    ContactSettings: typeof import('./src/components/SettingTabs/ContactSettings.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu/index.vue')['default']
     DrawDialog: typeof import('./src/components/DrawDialog/index.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
@@ -47,15 +49,19 @@ declare module 'vue' {
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    GeneralSettings: typeof import('./src/components/SettingTabs/GeneralSettings.vue')['default']
     GenerationStatusBar: typeof import('./src/components/DrawDialog/GenerationStatusBar.vue')['default']
     HelpDialog: typeof import('./src/components/HelpDialog/index.vue')['default']
     LoadingBlockade: typeof import('./src/components/common/LoadingBlockade/index.vue')['default']
-    ModelProviderForm: typeof import('./src/components/SettingDialog/ModelProviderForm.vue')['default']
+    ModelProviderForm: typeof import('./src/components/SettingTabs/ModelProviderForm.vue')['default']
+    NetworkSettings: typeof import('./src/components/SettingTabs/NetworkSettings.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ShelfMenu: typeof import('./src/components/ShelfMenu/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
     SystemFontEnableDialog: typeof import('./src/components/SystemFontEnableDialog/index.vue')['default']
     TocMenu: typeof import('./src/components/TocMenu/index.vue')['default']
+    TxtTocSettings: typeof import('./src/components/SettingTabs/TxtTocSettings.vue')['default']
+    UpdateSettings: typeof import('./src/components/SettingTabs/UpdateSettings.vue')['default']
   }
 }

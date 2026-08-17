@@ -19,10 +19,7 @@
       <div class="setting-item__info">
         <div class="setting-item__title-row">
           <span class="setting-item__title">API请求地址</span>
-          <div
-            class="full-url-switch"
-            :class="{ 'is-active': form.fullUrl }"
-          >
+          <div class="full-url-switch" :class="{ 'is-active': form.fullUrl }">
             <AppIcon class="full-url-switch__icon" name="fullUrl" :size="13" aria-label="完整URL" />
             <span class="full-url-switch__label">完整URL</span>
             <el-switch v-model="form.fullUrl" size="small" aria-label="完整URL" />
@@ -32,7 +29,9 @@
       <div class="setting-item__control">
         <el-input
           v-model="form.baseUrl"
-          :placeholder="form.fullUrl ? 'https://api.example.com/v1/chat/completions' : 'https://api.example.com'"
+          :placeholder="
+            form.fullUrl ? 'https://api.example.com/v1/chat/completions' : 'https://api.example.com'
+          "
         />
       </div>
     </div>
@@ -218,78 +217,16 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use './setting-tab';
+
 .model-provider-form {
-  // 与 SettingsView 中 setting-item 视觉对齐：
-  // --select：标题在左、控件在右；--input：标题在上、控件占满宽度
   .setting-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 0;
-
-    &:not(:last-child) {
-      border-bottom: 1px solid var(--border-soft);
-    }
-
-    &__info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    &__title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-    }
-
     &__title-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       width: 100%;
-    }
-
-    &__subtitle {
-      font-size: 12px;
-      line-height: 1.5;
-      color: var(--text-tertiary);
-    }
-
-    &__control {
-      :deep(.el-select) {
-        width: 100%;
-      }
-    }
-
-    // 输入型：标题在上、控件占满卡片宽度
-    &--input {
-      display: block;
-
-      .setting-item__info {
-        margin-bottom: 10px;
-      }
-
-      .setting-item__control {
-        width: 100%;
-      }
-    }
-
-    // 选择型：标题在左、控件在右
-    &--select {
-      flex-direction: row;
-
-      .setting-item__info {
-        flex: 1;
-      }
-
-      .setting-item__control {
-        flex-shrink: 0;
-        min-width: 160px;
-      }
     }
   }
 

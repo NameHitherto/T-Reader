@@ -1,0 +1,113 @@
+// SettingTabs 各分类子标签页共用的布局样式：Group（独立标题 + 通栏卡片）、
+// Item（左侧信息 + 右侧控件）。由各子标签页在 scoped style 中 @use 引入，
+// 保证类名语义与视觉在所有分类模块间统一。
+
+// Group：独立标题 + 通栏卡片
+.setting-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-group__title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.setting-card {
+  padding: 0 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+}
+
+// Item：左侧信息 + 右侧控件
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-tertiary);
+  }
+
+  // 输入型：标题在上、控件占满卡片宽度
+  &--input {
+    display: block;
+
+    .setting-item__info {
+      margin-bottom: 10px;
+    }
+
+    .setting-item__control {
+      width: 100%;
+
+      :deep(.el-select) {
+        width: 100%;
+      }
+    }
+  }
+
+  // 选择型：标题在左、控件在右
+  &--select {
+    flex-direction: row;
+
+    .setting-item__info {
+      flex: 1;
+    }
+
+    .setting-item__control {
+      flex-shrink: 0;
+      min-width: 160px;
+
+      :deep(.el-select) {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// 只读信息字段（标签 + 值），代理检测结果与模型卡片共用
+.model-card-field {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.model-card-label {
+  flex-shrink: 0;
+  width: 64px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.model-card-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
