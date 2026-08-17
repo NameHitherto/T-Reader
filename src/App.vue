@@ -3,8 +3,20 @@
     <span class="main-titlebar-page-name">{{ pageTitle }}</span>
   </Teleport>
 
+  <Teleport to="#titlebar-page-nav">
+    <button
+      v-if="isSettingsView"
+      type="button"
+      class="main-titlebar-back-button"
+      @click="goBackToBookshelf"
+    >
+      <AppIcon name="arrowLeft" :size="15" />
+      <span>返回书架</span>
+    </button>
+  </Teleport>
+
   <div class="app-shell">
-    <aside class="sidebar" aria-label="主导航">
+    <aside v-show="!isSettingsView" class="sidebar" aria-label="主导航">
       <div class="logo">
         <div class="logo-icon">
           <img :src="logoIcon" alt="T-Reader" />
@@ -49,7 +61,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import logoIcon from '/src-tauri/icons/Roxy.png'
 import AppIcon from '@/components/common/AppIcon/index.vue'
@@ -66,6 +78,7 @@ interface NavigationItem {
 }
 
 const route = useRoute()
+const router = useRouter()
 
 const primaryNavigation: NavigationItem[] = [
   { name: 'Home', path: '/', label: '书架', icon: 'sidebarBookshelf' },
@@ -77,10 +90,14 @@ const primaryNavigation: NavigationItem[] = [
 
 const utilityNavigation: NavigationItem[] = [
   { name: 'Settings', path: '/settings', label: '设置', icon: 'setting' },
-  { name: 'About', path: '/about', label: '关于', icon: 'sidebarAbout' },
 ]
 
 const pageTitle = computed(() => String(route.meta.title ?? 'T-Reader'))
+const isSettingsView = computed(() => route.name === 'Settings')
+
+const goBackToBookshelf = () => {
+  void router.push('/')
+}
 
 let unlistenCloudSyncFailed: UnlistenFn | null = null
 
@@ -258,5 +275,30 @@ onUnmounted(() => {
   letter-spacing: 0.015em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.main-titlebar-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--easing-standard),
+    background-color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard);
+
+  &:hover {
+    color: var(--brand-primary);
+    background: var(--surface-brand-soft);
+    border-color: var(--border-brand);
+  }
 }
 </style>

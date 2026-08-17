@@ -76,6 +76,18 @@
     pointer-events: none;
   }
 
+  // 左侧页头操作区（如设置视图的返回按钮）
+  .titlebar-page-nav {
+    position: absolute;
+    z-index: 2;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
   .titlebar-page-actions {
     position: relative;
     z-index: 2;
