@@ -29,6 +29,10 @@ pub struct ModelProviderConfig {
     pub model_id: String,
     #[serde(default, rename = "apiKey")]
     pub api_key: String,
+    #[serde(default, rename = "batchSize")]
+    pub batch_size: Option<i64>,
+    #[serde(default, rename = "vectorDimension")]
+    pub vector_dimension: Option<i64>,
 }
 
 impl ModelProviderConfig {

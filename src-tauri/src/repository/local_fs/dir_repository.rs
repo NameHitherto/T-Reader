@@ -12,15 +12,17 @@ pub const LOCAL_PROGRESS_DIR: &str = "bookProgress";
 pub const LOCAL_CACHED_DIR: &str = "cached";
 pub const LOCAL_LOGS_DIR: &str = "logs";
 pub const LOCAL_SYSTEM_DIR: &str = "system";
+pub const LOCAL_KNOWLEDGE_DIR: &str = "knowledge";
 
 pub const CLOUD_BOOKS_DIR: &str = "books";
 pub const CLOUD_PROGRESS_DIR: &str = "bookProgress";
 
-const LOCAL_SUBDIRS: [&str; 4] = [
+const LOCAL_SUBDIRS: [&str; 5] = [
     LOCAL_BOOKS_DIR,
     LOCAL_PROGRESS_DIR,
     LOCAL_CACHED_DIR,
     LOCAL_SYSTEM_DIR,
+    LOCAL_KNOWLEDGE_DIR,
 ];
 const CLOUD_SUBDIRS: [&str; 2] = [CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR];
 

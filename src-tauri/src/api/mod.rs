@@ -3,6 +3,7 @@ pub mod chat;
 pub mod file;
 pub mod font;
 pub mod gallery;
+pub mod knowledge_base;
 pub mod note;
 pub mod proxy;
 pub mod settings;

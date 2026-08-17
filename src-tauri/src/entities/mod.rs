@@ -4,6 +4,7 @@ pub mod chat;
 pub mod cloud_sync;
 pub mod font;
 pub mod gallery;
+pub mod knowledge_base;
 pub mod note;
 pub mod proxy;
 pub mod reader_window;
@@ -28,6 +29,12 @@ pub use cloud_sync::{
 };
 pub use font::FontNameEntry;
 pub use gallery::{GalleryImageDto, GenerateGalleryImageRequest};
+pub use knowledge_base::{
+    CreateKnowledgeSeriesRequest, KnowledgeAnswerStreamChunk, KnowledgeChunkRecord,
+    KnowledgeCitation, KnowledgeDocumentDto, KnowledgeIngestProgressEvent, KnowledgeQaContextInfo,
+    KnowledgeQaMessageDto, KnowledgeSeriesDto, SendKnowledgeQaMessageRequest,
+    UpdateKnowledgeSeriesRequest,
+};
 pub use note::BookMarkDto;
 pub use proxy::SystemProxyInfo;
 pub use reader_window::{

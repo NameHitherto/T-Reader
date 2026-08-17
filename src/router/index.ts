@@ -4,6 +4,7 @@ import BookMark from '@/views/BookMark.vue'
 import GalleryView from '@/views/GalleryView.vue'
 import CloudSyncView from '@/views/CloudSyncView.vue'
 import SettingsView from '@/views/SettingsView.vue'
+import KnowledgeBaseView from '@/views/KnowledgeBaseView.vue'
 import AboutView from '@/views/AboutView.vue'
 
 const routes: Array<RouteRecordRaw> = [
@@ -30,6 +31,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Sync',
     component: CloudSyncView,
     meta: { title: '云同步' },
+  },
+  {
+    path: '/knowledge',
+    name: 'KnowledgeBase',
+    component: KnowledgeBaseView,
+    meta: { title: '知识库' },
   },
   {
     path: '/settings',

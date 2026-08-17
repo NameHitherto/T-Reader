@@ -12,6 +12,8 @@ export interface ModelProvider {
   fullUrl?: boolean
   modelId: string
   apiKey: string
+  batchSize?: number
+  vectorDimension?: number
 }
 
 export type ModelProviderMap = Record<ModelPurpose, ModelProvider | null>

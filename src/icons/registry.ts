@@ -10,6 +10,7 @@ import sidebarBookshelfIcon from '@/assets/icons/sidebar-bookshelf.svg?raw'
 import sidebarNoteIcon from '@/assets/icons/sidebar-note.svg?raw'
 import sidebarGalleryIcon from '@/assets/icons/sidebar-gallery.svg?raw'
 import sidebarAboutIcon from '@/assets/icons/sidebar-about.svg?raw'
+import sidebarKnowledgeIcon from '@/assets/icons/sidebar-knowledge.svg?raw'
 import contactBilibiliIcon from '@/assets/icons/contact-bilibili.svg?raw'
 import contactGithubIcon from '@/assets/icons/contact-github.svg?raw'
 import contactEmailIcon from '@/assets/icons/contact-email.svg?raw'
@@ -44,6 +45,7 @@ export type IconName =
   | 'sidebarNote'
   | 'sidebarGallery'
   | 'sidebarAbout'
+  | 'sidebarKnowledge'
   | 'contactBilibili'
   | 'contactGithub'
   | 'contactEmail'
@@ -87,6 +89,7 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   sidebarNote: { src: toDataUri(sidebarNoteIcon), mode: 'mask' },
   sidebarGallery: { src: toDataUri(sidebarGalleryIcon), mode: 'mask' },
   sidebarAbout: { src: toDataUri(sidebarAboutIcon), mode: 'mask' },
+  sidebarKnowledge: { src: toDataUri(sidebarKnowledgeIcon), mode: 'mask' },
   contactBilibili: { src: toDataUri(contactBilibiliIcon), mode: 'mask' },
   contactGithub: { src: toDataUri(contactGithubIcon), mode: 'mask' },
   contactEmail: { src: toDataUri(contactEmailIcon), mode: 'mask' },

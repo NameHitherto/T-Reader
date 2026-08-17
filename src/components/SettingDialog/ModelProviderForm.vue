@@ -96,6 +96,39 @@
       </div>
     </div>
 
+    <div v-if="form.purpose === 'embedding'" class="setting-item setting-item--input">
+      <div class="setting-item__info">
+        <span class="setting-item__title">批次大小</span>
+        <span class="setting-item__subtitle">每次嵌入请求最多包含的文本块数量</span>
+      </div>
+      <div class="setting-item__control">
+        <el-input-number
+          v-model="form.batchSize"
+          :min="1"
+          :max="100"
+          :step="1"
+          controls-position="right"
+        />
+      </div>
+    </div>
+
+    <div v-if="form.purpose === 'embedding'" class="setting-item setting-item--input">
+      <div class="setting-item__info">
+        <span class="setting-item__title">向量维度</span>
+        <span class="setting-item__subtitle">用于校验嵌入结果，留空则自动识别</span>
+      </div>
+      <div class="setting-item__control">
+        <el-input-number
+          v-model="form.vectorDimension"
+          :min="1"
+          :max="100000"
+          :step="1"
+          controls-position="right"
+          placeholder="自动识别"
+        />
+      </div>
+    </div>
+
     <div class="model-provider-form__actions">
       <el-button type="primary" size="small" @click="onSubmit">注册</el-button>
       <el-button size="small" @click="$emit('cancel')">返回</el-button>
@@ -131,6 +164,8 @@ export default {
         fullUrl: this.provider?.fullUrl ?? false,
         modelId: this.provider?.modelId ?? '',
         apiKey: this.provider?.apiKey ?? '',
+        batchSize: this.provider?.batchSize ?? 20,
+        vectorDimension: this.provider?.vectorDimension ?? null,
       },
     }
   },
@@ -171,7 +206,12 @@ export default {
       }
     },
     onSubmit() {
-      this.$emit('submit', { ...this.form })
+      const payload = { ...this.form }
+      if (this.form.purpose !== 'embedding') {
+        delete payload.batchSize
+        delete payload.vectorDimension
+      }
+      this.$emit('submit', payload)
     },
   },
 }

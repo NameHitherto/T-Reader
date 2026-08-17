@@ -1,9 +1,10 @@
 pub mod book_identity;
-pub mod chat;
 pub mod book_import_service;
+pub mod chat;
 pub mod filesystem;
 pub mod font;
 pub mod image_gen;
+pub mod knowledge_base;
 pub mod updater;
 pub mod webdav;
 pub mod window;

@@ -72,6 +72,7 @@ const primaryNavigation: NavigationItem[] = [
   { name: 'Bookmark', path: '/bookmark', label: '笔记', icon: 'sidebarNote' },
   { name: 'Gallery', path: '/gallery', label: '画廊', icon: 'sidebarGallery' },
   { name: 'Sync', path: '/sync', label: '云同步', icon: 'refresh' },
+  { name: 'KnowledgeBase', path: '/knowledge', label: '知识库', icon: 'sidebarKnowledge' },
 ]
 
 const utilityNavigation: NavigationItem[] = [
