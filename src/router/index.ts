@@ -5,7 +5,6 @@ import GalleryView from '@/views/GalleryView.vue'
 import CloudSyncView from '@/views/CloudSyncView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import KnowledgeBaseView from '@/views/KnowledgeBaseView.vue'
-import AboutView from '@/views/AboutView.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -43,12 +42,6 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Settings',
     component: SettingsView,
     meta: { title: '设置' },
-  },
-  {
-    path: '/about',
-    name: 'About',
-    component: AboutView,
-    meta: { title: '关于' },
   },
 ]
 
