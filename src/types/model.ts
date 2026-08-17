@@ -24,7 +24,7 @@ export const PURPOSE_LABELS: Record<ModelPurpose, string> = {
 
 export const ENDPOINT_PRESETS: Record<ProviderType, Partial<Record<ModelPurpose, string[]>>> = {
   OpenAI: {
-    chat: ['/v1/chat/completions', '/v1/responses'],
+    chat: ['/v1/chat/completions'],
     image: ['/v1/images/generations'],
     embedding: ['/v1/embeddings'],
     rerank: ['/v1/rerank'],

@@ -1,5 +1,6 @@
 pub mod app_update;
 pub mod book;
+pub mod chat;
 pub mod cloud_sync;
 pub mod font;
 pub mod gallery;
@@ -17,6 +18,9 @@ pub use app_update::{
 pub use book::{
     BookRecord, ImportBookResult, ResolvedBookFile, UpdateBookMetadataRequest,
     UpdateBookMetadataResult, UpsertBookRequest,
+};
+pub use chat::{
+    BookChatContextInfo, BookChatMessageDto, BookChatStreamChunk, SendBookChatMessageRequest,
 };
 pub use cloud_sync::{
     CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncBookAction, CloudSyncBookSelection,

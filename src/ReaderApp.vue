@@ -49,6 +49,8 @@
     :initial-prompt="drawDialogPrompt"
     :rendition="rendition"
   />
+  <!-- 智能问答 -->
+  <ChatDialog v-model="chatDialogVisible" :book-key="currentBookKey" />
   <!-- AI绘画后台任务状态（右下角） -->
   <GenerationStatusBar />
   <Teleport to="body">
@@ -91,6 +93,7 @@ import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
 import DrawDialog from './components/DrawDialog/index.vue'
+import ChatDialog from './components/ChatDialog/index.vue'
 import GenerationStatusBar from './components/DrawDialog/GenerationStatusBar.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
@@ -618,6 +621,7 @@ function disposeReaderBookRuntime(options: DisposeReaderBookRuntimeOptions = {})
   showContextMenu.value = false
   bookInfoVisible.value = false
   drawDialogVisible.value = false
+  chatDialogVisible.value = false
   drawDialogPrompt.value = ''
   bookMarkStore.clearBookMarks()
 
@@ -833,6 +837,7 @@ const helpVisible = ref(false)
 const systemFontDialogVisible = ref(false)
 const drawDialogVisible = ref(false)
 const drawDialogPrompt = ref('')
+const chatDialogVisible = ref(false)
 
 function openDrawDialogWithSelection() {
   drawDialogPrompt.value = selectedText.value
@@ -846,6 +851,10 @@ function handleReaderDomToggleDrawDialog() {
   }
   drawDialogPrompt.value = ''
   drawDialogVisible.value = true
+}
+
+function handleReaderDomToggleChatDialog() {
+  chatDialogVisible.value = !chatDialogVisible.value
 }
 
 function handleOpenSystemFontDialog() {
@@ -870,6 +879,7 @@ const anyReaderOverlayOpen = computed(
     helpVisible.value ||
     systemFontDialogVisible.value ||
     drawDialogVisible.value ||
+    chatDialogVisible.value ||
     styleMenuVisible.value,
 )
 
@@ -885,6 +895,7 @@ const readerOverlayRefs: Array<Ref<boolean>> = [
   helpVisible,
   systemFontDialogVisible,
   drawDialogVisible,
+  chatDialogVisible,
   styleMenuVisible,
 ]
 
@@ -1029,6 +1040,7 @@ onMounted(async () => {
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)
+  window.addEventListener(READER_DOM_EVENTS.TOGGLE_CHAT_DIALOG, handleReaderDomToggleChatDialog)
   window.addEventListener('resize', handleWindowResize)
   window.addEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.addEventListener('reader:after-fullscreen', handleAfterFullscreen)
@@ -1039,6 +1051,7 @@ onUnmounted(() => {
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)
+  window.removeEventListener(READER_DOM_EVENTS.TOGGLE_CHAT_DIALOG, handleReaderDomToggleChatDialog)
   window.removeEventListener('resize', handleWindowResize)
   window.removeEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.removeEventListener('reader:after-fullscreen', handleAfterFullscreen)

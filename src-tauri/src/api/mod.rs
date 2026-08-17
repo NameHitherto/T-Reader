@@ -1,4 +1,5 @@
 pub mod book;
+pub mod chat;
 pub mod file;
 pub mod font;
 pub mod gallery;
