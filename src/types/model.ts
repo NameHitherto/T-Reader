@@ -9,6 +9,7 @@ export interface ModelProvider {
   providerType: ProviderType
   baseUrl: string
   endpoint: string
+  fullUrl?: boolean
   modelId: string
   apiKey: string
 }

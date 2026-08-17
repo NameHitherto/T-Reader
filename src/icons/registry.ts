@@ -15,6 +15,7 @@ import contactGithubIcon from '@/assets/icons/contact-github.svg?raw'
 import contactEmailIcon from '@/assets/icons/contact-email.svg?raw'
 import sunIcon from '@/assets/icons/sun.svg?raw'
 import moonIcon from '@/assets/icons/moon.svg?raw'
+import fullUrlIcon from '@/assets/icons/full-url.svg?raw'
 
 import bookOpenIcon from '@/components/ContextMenu/assets/book-open.svg?raw'
 import uploadIcon from '@/components/ContextMenu/assets/upload.svg?raw'
@@ -48,6 +49,7 @@ export type IconName =
   | 'contactEmail'
   | 'sun'
   | 'moon'
+  | 'fullUrl'
   | 'bookOpen'
   | 'upload'
   | 'delete'
@@ -90,6 +92,7 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   contactEmail: { src: toDataUri(contactEmailIcon), mode: 'mask' },
   sun: { src: toDataUri(sunIcon), mode: 'mask' },
   moon: { src: toDataUri(moonIcon), mode: 'mask' },
+  fullUrl: { src: toDataUri(fullUrlIcon), mode: 'mask' },
   bookOpen: { src: toDataUri(bookOpenIcon), mode: 'mask' },
   upload: { src: toDataUri(uploadIcon), mode: 'mask' },
   delete: { src: toDataUri(deleteIcon), mode: 'mask' },

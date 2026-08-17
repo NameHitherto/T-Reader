@@ -23,10 +23,22 @@ pub struct ModelProviderConfig {
     pub base_url: String,
     #[serde(default, rename = "endpoint")]
     pub endpoint: String,
+    #[serde(default, rename = "fullUrl")]
+    pub full_url: bool,
     #[serde(default, rename = "modelId")]
     pub model_id: String,
     #[serde(default, rename = "apiKey")]
     pub api_key: String,
+}
+
+impl ModelProviderConfig {
+    pub fn request_url(&self, endpoint: &str) -> String {
+        if self.full_url {
+            self.base_url.trim().to_string()
+        } else {
+            format!("{}{}", self.base_url.trim_end_matches('/'), endpoint)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

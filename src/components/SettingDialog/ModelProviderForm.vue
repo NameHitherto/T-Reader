@@ -17,10 +17,23 @@
 
     <div class="setting-item setting-item--input">
       <div class="setting-item__info">
-        <span class="setting-item__title">API请求地址</span>
+        <div class="setting-item__title-row">
+          <span class="setting-item__title">API请求地址</span>
+          <div
+            class="full-url-switch"
+            :class="{ 'is-active': form.fullUrl }"
+          >
+            <AppIcon class="full-url-switch__icon" name="fullUrl" :size="13" aria-label="完整URL" />
+            <span class="full-url-switch__label">完整URL</span>
+            <el-switch v-model="form.fullUrl" size="small" aria-label="完整URL" />
+          </div>
+        </div>
       </div>
       <div class="setting-item__control">
-        <el-input v-model="form.baseUrl" placeholder="https://api.example.com" />
+        <el-input
+          v-model="form.baseUrl"
+          :placeholder="form.fullUrl ? 'https://api.example.com/v1/chat/completions' : 'https://api.example.com'"
+        />
       </div>
     </div>
 
@@ -29,7 +42,11 @@
         <span class="setting-item__title">模型协议格式</span>
       </div>
       <div class="setting-item__control">
-        <el-select :model-value="form.providerType" @update:model-value="onProviderTypeChange">
+        <el-select
+          :model-value="form.providerType"
+          :disabled="form.fullUrl"
+          @update:model-value="onProviderTypeChange"
+        >
           <el-option v-for="p in providerTypes" :key="p" :label="p" :value="p" />
         </el-select>
       </div>
@@ -46,11 +63,17 @@
         <el-select
           v-if="usesEndpointSelect"
           :model-value="form.endpoint"
+          :disabled="form.fullUrl"
           @update:model-value="form.endpoint = $event"
         >
           <el-option v-for="ep in endpointPresets" :key="ep" :label="ep" :value="ep" />
         </el-select>
-        <el-input v-else v-model="form.endpoint" placeholder="/v1/chat/completions" />
+        <el-input
+          v-else
+          v-model="form.endpoint"
+          :disabled="form.fullUrl"
+          placeholder="/v1/chat/completions"
+        />
       </div>
     </div>
 
@@ -82,9 +105,11 @@
 
 <script>
 import { MODEL_PURPOSES, PURPOSE_LABELS, ENDPOINT_PRESETS, PROVIDER_TYPES } from '@/types/model'
+import AppIcon from '@/components/common/AppIcon/index.vue'
 
 export default {
   name: 'ModelProviderForm',
+  components: { AppIcon },
   props: {
     provider: {
       type: Object,
@@ -103,6 +128,7 @@ export default {
         providerType: this.provider?.providerType ?? 'OpenAI',
         baseUrl: this.provider?.baseUrl ?? '',
         endpoint: this.provider?.endpoint ?? '',
+        fullUrl: this.provider?.fullUrl ?? false,
         modelId: this.provider?.modelId ?? '',
         apiKey: this.provider?.apiKey ?? '',
       },
@@ -179,6 +205,14 @@ export default {
       color: var(--text-primary);
     }
 
+    &__title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
     &__subtitle {
       font-size: 12px;
       line-height: 1.5;
@@ -224,6 +258,46 @@ export default {
     justify-content: flex-end;
     gap: 8px;
     padding: 14px 0 10px;
+  }
+
+  .full-url-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 4px 8px 4px 7px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    background: var(--surface-inset);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &.is-active {
+      background: var(--brand-primary-tint-7);
+      color: var(--brand-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    &__icon {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    &__label {
+      white-space: nowrap;
+    }
+
+    :deep(.el-switch) {
+      --el-switch-on-color: var(--brand-primary);
+      --el-switch-off-color: var(--text-tertiary);
+    }
   }
 }
 </style>

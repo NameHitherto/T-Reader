@@ -59,10 +59,6 @@ fn load_chat_provider(settings: &Settings) -> Result<ModelProviderConfig, String
     Ok(provider)
 }
 
-fn build_request_url(base_url: &str, endpoint: &str) -> String {
-    format!("{}{}", base_url.trim_end_matches('/'), endpoint)
-}
-
 fn build_chat_client(proxy_enabled: bool) -> Client {
     let mut builder = Client::builder().timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS));
 
@@ -128,7 +124,9 @@ async fn send_openai_chat(
     system_prompt: &str,
     messages: Vec<Value>,
 ) -> Result<reqwest::Response, String> {
-    let endpoint = if provider.endpoint.trim().is_empty() {
+    let endpoint = if provider.full_url {
+        ""
+    } else if provider.endpoint.trim().is_empty() {
         DEFAULT_OPENAI_ENDPOINT
     } else {
         let endpoint = provider.endpoint.trim();
@@ -151,9 +149,7 @@ async fn send_openai_chat(
         "messages": body,
     });
 
-    let mut request = client
-        .post(build_request_url(&provider.base_url, endpoint))
-        .json(&payload);
+    let mut request = client.post(provider.request_url(endpoint)).json(&payload);
     if !provider.api_key.trim().is_empty() {
         request = request.bearer_auth(&provider.api_key);
     }
@@ -170,7 +166,9 @@ async fn send_anthropic_chat(
     system_prompt: &str,
     messages: Vec<Value>,
 ) -> Result<reqwest::Response, String> {
-    let endpoint = if provider.endpoint.trim().is_empty() {
+    let endpoint = if provider.full_url {
+        ""
+    } else if provider.endpoint.trim().is_empty() {
         DEFAULT_ANTHROPIC_ENDPOINT
     } else {
         provider.endpoint.trim()
@@ -185,7 +183,7 @@ async fn send_anthropic_chat(
     });
 
     client
-        .post(build_request_url(&provider.base_url, endpoint))
+        .post(provider.request_url(endpoint))
         .header("x-api-key", &provider.api_key)
         .header("anthropic-version", ANTHROPIC_VERSION)
         .json(&payload)

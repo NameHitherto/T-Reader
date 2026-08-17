@@ -188,9 +188,7 @@
                     </div>
                     <div class="model-card-field">
                       <span class="model-card-label">请求地址</span>
-                      <span class="model-card-value"
-                        >{{ currentProvider.baseUrl }}{{ currentProvider.endpoint }}</span
-                      >
+                      <span class="model-card-value">{{ currentProviderRequestUrl }}</span>
                     </div>
                   </div>
                   <div class="model-card-actions">
@@ -339,6 +337,15 @@ export default {
     },
     currentProvider() {
       return this.modelProviders[this.activePurpose] ?? null
+    },
+    currentProviderRequestUrl() {
+      if (!this.currentProvider) {
+        return ''
+      }
+      if (this.currentProvider.fullUrl) {
+        return this.currentProvider.baseUrl
+      }
+      return `${this.currentProvider.baseUrl}${this.currentProvider.endpoint}`
     },
     purposeLabel() {
       return PURPOSE_LABELS[this.activePurpose] ?? ''

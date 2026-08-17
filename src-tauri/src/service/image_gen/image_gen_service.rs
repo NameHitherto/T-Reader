@@ -81,10 +81,6 @@ fn build_image_client(proxy_enabled: bool) -> Client {
     builder.build().unwrap_or_else(|_| Client::new())
 }
 
-fn build_request_url(base_url: &str, endpoint: &str) -> String {
-    format!("{}{}", base_url.trim_end_matches('/'), endpoint)
-}
-
 /// 把前端暂存到 cached/gallery/_staging 的参考图移动到本次生成的 refs 目录，
 /// 返回 (相对路径列表, 参考图字节列表)。
 fn collect_reference_images(
@@ -152,7 +148,7 @@ async fn request_image_bytes(
         }
 
         client
-            .post(build_request_url(&provider.base_url, endpoint))
+            .post(provider.request_url(endpoint))
             .bearer_auth(&provider.api_key)
             .json(&body)
             .send()
@@ -178,7 +174,7 @@ async fn request_image_bytes(
         }
 
         client
-            .post(build_request_url(&provider.base_url, EDITS_ENDPOINT))
+            .post(provider.request_url(EDITS_ENDPOINT))
             .bearer_auth(&provider.api_key)
             .multipart(form)
             .send()
