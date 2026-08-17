@@ -16,6 +16,7 @@ export interface AppSettings {
   modelProviders: ModelProviderMap
   themeMode: AppThemeMode
   updateChannel: UpdateChannel
+  proxyEnabled: boolean
 }
 
 export const normalizeAppThemeMode = (value: unknown): AppThemeMode => {
@@ -63,6 +64,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   modelProviders: emptyModelProviders(),
   themeMode: 'light',
   updateChannel: 'stable',
+  proxyEnabled: false,
 }
 
 export const normalizeWebdavTimeoutSeconds = (value: unknown): number => {
@@ -80,6 +82,7 @@ export const normalizeAppSettings = (
     ...(settings || {}),
     themeMode: normalizeAppThemeMode(settings?.themeMode),
     updateChannel: normalizeUpdateChannel(settings?.updateChannel),
+    proxyEnabled: settings?.proxyEnabled === true,
     webdavTimeoutSeconds: normalizeWebdavTimeoutSeconds(settings?.webdavTimeoutSeconds),
     modelProviders: normalizeModelProviders(settings?.modelProviders),
   }

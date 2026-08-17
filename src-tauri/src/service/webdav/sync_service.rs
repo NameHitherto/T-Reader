@@ -84,7 +84,7 @@ async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, WebDav
         resource: "settings".to_string(),
         message: error,
     })?;
-    let client = build_webdav_client(settings.webdav_timeout_seconds);
+    let client = build_webdav_client(settings.webdav_timeout_seconds, settings.proxy_enabled);
 
     ensure_cloud_dirs(&settings).await.map_err(|error| WebDavError {
         status_code: 0,

@@ -13,7 +13,7 @@ use crate::{
     entities::{GalleryImageDto, GenerateGalleryImageRequest, ModelProviderConfig},
     repository::{
         gallery, local_fs::dir_repository::get_local_root_dir, settings,
-        system::proxy_repository::detect_updater_proxy,
+        system::proxy_repository::resolve_request_proxy_url,
     },
     utils::logging::{log_error, log_info, log_warn},
 };
@@ -63,14 +63,18 @@ async fn load_image_provider(pool: &SqlitePool) -> Result<ModelProviderConfig, S
     }
 }
 
-fn build_image_client() -> Client {
+fn build_image_client(proxy_enabled: bool) -> Client {
     let mut builder = Client::builder().timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS));
 
-    let proxy = detect_updater_proxy();
-    if let Some(proxy_url) = proxy.proxy_url {
-        if let Ok(reqwest_proxy) = reqwest::Proxy::all(&proxy_url) {
-            log_info("image-gen", &format!("using-proxy url={}", proxy_url));
-            builder = builder.proxy(reqwest_proxy);
+    match resolve_request_proxy_url(proxy_enabled) {
+        Some(proxy_url) => {
+            if let Ok(reqwest_proxy) = reqwest::Proxy::all(&proxy_url) {
+                log_info("image-gen", &format!("using-proxy url={}", proxy_url));
+                builder = builder.proxy(reqwest_proxy);
+            }
+        }
+        None => {
+            builder = builder.no_proxy();
         }
     }
 
@@ -292,7 +296,11 @@ async fn generate_into_dir(
         ),
     );
 
-    let client = build_image_client();
+    let proxy_enabled = settings::load_app_settings(pool)
+        .await
+        .map(|value| value.proxy_enabled)
+        .unwrap_or(false);
+    let client = build_image_client(proxy_enabled);
     let image_bytes = request_image_bytes(
         &client,
         provider,

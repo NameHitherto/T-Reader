@@ -48,7 +48,7 @@ async fn try_read_cloud_progress_config(
 
     // 云端检查超时与 WebDAV 请求超时保持一致，由用户在设置中配置
     let config_timeout = Duration::from_secs(settings.webdav_timeout_seconds.max(1) as u64);
-    let client = build_webdav_client(settings.webdav_timeout_seconds);
+    let client = build_webdav_client(settings.webdav_timeout_seconds, settings.proxy_enabled);
 
     // 使用 timeout 检查文件是否存在
     let exists_future = crate::service::webdav::file_service::webdav_file_exists(

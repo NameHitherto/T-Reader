@@ -4,6 +4,7 @@ pub mod cloud_sync;
 pub mod font;
 pub mod gallery;
 pub mod note;
+pub mod proxy;
 pub mod reader_window;
 pub mod settings;
 pub mod txt_toc_rule;
@@ -24,6 +25,7 @@ pub use cloud_sync::{
 pub use font::FontNameEntry;
 pub use gallery::{GalleryImageDto, GenerateGalleryImageRequest};
 pub use note::BookMarkDto;
+pub use proxy::SystemProxyInfo;
 pub use reader_window::{
     DispatchReaderEventResult, OpenReaderWindowResult, PendingBookDeleteMessage,
     PendingLoadMessage, PrepareReaderBookDeleteResult, ReaderWindowRuntime, ReaderWindowState,

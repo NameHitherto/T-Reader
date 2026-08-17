@@ -44,6 +44,7 @@ fn default_app_settings() -> Settings {
         webdav_timeout_seconds: 30,
         theme_mode: "light".to_string(),
         update_channel: "stable".to_string(),
+        proxy_enabled: false,
         model_providers: default_model_providers(),
     }
 }
@@ -92,9 +93,9 @@ async fn persist_app_settings(pool: &SqlitePool, settings: Settings) -> Result<S
         r#"
         INSERT INTO app_settings (
             id, webdav_url_root, webdav_url_folder, webdav_url, webdav_user, webdav_pass,
-            webdav_timeout_seconds, theme_mode, update_channel, model_providers, created_at, updated_at
+            webdav_timeout_seconds, theme_mode, update_channel, proxy_enabled, model_providers, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ON CONFLICT(id) DO UPDATE SET
             webdav_url_root = excluded.webdav_url_root,
             webdav_url_folder = excluded.webdav_url_folder,
@@ -104,6 +105,7 @@ async fn persist_app_settings(pool: &SqlitePool, settings: Settings) -> Result<S
             webdav_timeout_seconds = excluded.webdav_timeout_seconds,
             theme_mode = excluded.theme_mode,
             update_channel = excluded.update_channel,
+            proxy_enabled = excluded.proxy_enabled,
             model_providers = excluded.model_providers,
             updated_at = datetime('now')
         "#,
@@ -117,6 +119,7 @@ async fn persist_app_settings(pool: &SqlitePool, settings: Settings) -> Result<S
     .bind(settings.webdav_timeout_seconds)
     .bind(&settings.theme_mode)
     .bind(&settings.update_channel)
+    .bind(settings.proxy_enabled)
     .bind(model_providers)
     .execute(pool)
     .await
@@ -129,7 +132,7 @@ pub async fn load_app_settings(pool: &SqlitePool) -> Result<Settings, String> {
     let row = sqlx::query(
         r#"
         SELECT webdav_url_root, webdav_url_folder, webdav_url, webdav_user, webdav_pass,
-               webdav_timeout_seconds, theme_mode, update_channel, model_providers
+               webdav_timeout_seconds, theme_mode, update_channel, proxy_enabled, model_providers
         FROM app_settings
         WHERE id = 1
         "#,
@@ -164,6 +167,9 @@ pub async fn load_app_settings(pool: &SqlitePool) -> Result<Settings, String> {
             row.try_get::<String, _>("update_channel")
                 .unwrap_or_else(|_| "stable".to_string()),
         ),
+        proxy_enabled: row
+            .try_get::<bool, _>("proxy_enabled")
+            .unwrap_or(false),
         model_providers: parse_model_providers(
             row.try_get::<String, _>("model_providers")
                 .unwrap_or_else(|_| "{}".to_string()),
@@ -200,6 +206,9 @@ pub async fn save_app_settings(
     }
     if let Some(value) = request.update_channel {
         current.update_channel = normalize_update_channel(value);
+    }
+    if let Some(value) = request.proxy_enabled {
+        current.proxy_enabled = value;
     }
     if let Some(value) = request.model_providers {
         current.model_providers = value;

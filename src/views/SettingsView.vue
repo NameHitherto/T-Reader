@@ -115,6 +115,53 @@
             </div>
           </section>
 
+          <!-- 网络代理 -->
+          <section class="setting-group">
+            <h3 class="setting-group__title">代理</h3>
+            <div class="setting-card">
+              <div class="setting-item">
+                <div class="setting-item__info">
+                  <span class="setting-item__title">启用系统代理</span>
+                </div>
+                <el-switch v-model="proxyEnabled" aria-label="启用网络代理" />
+              </div>
+              <div v-if="proxyEnabled" class="proxy-detect">
+                <div class="proxy-detect__header">
+                  <span class="proxy-detect__title">已检测到系统代理配置（只读）</span>
+                  <el-button
+                    size="small"
+                    text
+                    :loading="isDetectingProxy"
+                    @click="refreshSystemProxy"
+                  >
+                    重新检测
+                  </el-button>
+                </div>
+                <template v-if="systemProxy && systemProxy.enabled">
+                  <div class="model-card-field">
+                    <span class="model-card-label">代理类型</span>
+                    <span class="model-card-value">{{ systemProxy.proxyType || '未知' }}</span>
+                  </div>
+                  <div class="model-card-field">
+                    <span class="model-card-label">服务器地址</span>
+                    <span class="model-card-value">{{ systemProxy.host || '未知' }}</span>
+                  </div>
+                  <div class="model-card-field">
+                    <span class="model-card-label">端口</span>
+                    <span class="model-card-value">{{ systemProxy.port ?? '未知' }}</span>
+                  </div>
+                  <div class="model-card-field">
+                    <span class="model-card-label">排除列表</span>
+                    <span class="model-card-value">{{ formattedProxyBypassList }}</span>
+                  </div>
+                </template>
+                <div v-else class="proxy-detect__empty">
+                  未检测到系统代理，网络请求将直连
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- AI大模型 -->
           <section class="setting-group">
             <h3 class="setting-group__title">AI大模型</h3>
@@ -227,6 +274,7 @@
 
 <script>
 import { loadAppSettings, saveAppSettings } from '@/services/settings/appSettingsService'
+import { detectSystemProxy } from '@/services/settings/proxyService'
 import {
   loadTxtTocRules,
   resequenceTxtTocRules,
@@ -254,6 +302,9 @@ export default {
       webdavUsername: '',
       webdavPassword: '',
       webdavTimeoutSeconds: 30,
+      proxyEnabled: false,
+      systemProxy: null,
+      isDetectingProxy: false,
       platformList: [
         { value: 'preset', label: '坚果云' },
         { value: 'custom', label: '自定义服务器' },
@@ -292,6 +343,17 @@ export default {
     purposeLabel() {
       return PURPOSE_LABELS[this.activePurpose] ?? ''
     },
+    formattedProxyBypassList() {
+      const raw = this.systemProxy?.bypassList
+      if (!raw) {
+        return '无'
+      }
+      return raw
+        .split(/[;,]/)
+        .map((item) => item.trim())
+        .filter((item) => item && item !== '<local>')
+        .join(', ')
+    },
   },
   watch: {
     themeMode() {
@@ -317,6 +379,12 @@ export default {
     },
     webdavTimeoutSeconds() {
       this.scheduleAutoSave()
+    },
+    proxyEnabled(newValue) {
+      this.scheduleAutoSave()
+      if (newValue) {
+        void this.refreshSystemProxy()
+      }
     },
     modelProviders: {
       deep: true,
@@ -356,11 +424,15 @@ export default {
         this.webdavUsername = loadedSettings.webdavUser
         this.webdavPassword = loadedSettings.webdavPass
         this.webdavTimeoutSeconds = loadedSettings.webdavTimeoutSeconds ?? 30
+        this.proxyEnabled = loadedSettings.proxyEnabled === true
         this.modelProviders = { ...loadedSettings.modelProviders }
         this.txtTocRules = await loadTxtTocRules()
         this.lastSavedThemeMode = loadedSettings.themeMode
         this.lastSavedSnapshot = this.createSettingsSnapshot()
         this.hasLoadedSettings = true
+        if (this.proxyEnabled) {
+          void this.refreshSystemProxy()
+        }
       } catch (error) {
         logWarn('settings', 'load-settings failed', error)
       } finally {
@@ -375,6 +447,7 @@ export default {
         webdavUser: this.webdavUsername,
         webdavPass: this.webdavPassword,
         webdavTimeoutSeconds: this.webdavTimeoutSeconds,
+        proxyEnabled: this.proxyEnabled,
         modelProviders: this.modelProviders,
         themeMode: this.themeMode,
       }
@@ -471,6 +544,17 @@ export default {
     },
     onThemeSwitchChange(value) {
       this.themeMode = value ? 'dark' : 'light'
+    },
+    async refreshSystemProxy() {
+      this.isDetectingProxy = true
+      try {
+        this.systemProxy = await detectSystemProxy()
+      } catch (error) {
+        logWarn('settings', 'detect-system-proxy failed', error)
+        this.systemProxy = null
+      } finally {
+        this.isDetectingProxy = false
+      }
     },
     moveRule(currentIndex, offset) {
       const targetIndex = currentIndex + offset
@@ -735,6 +819,34 @@ export default {
     padding: 12px 0;
     color: var(--text-secondary);
     font-size: 13px;
+  }
+
+  // 网络代理检测结果（只读）
+  .proxy-detect {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0 14px;
+    border-top: 1px solid var(--border-soft);
+
+    &__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    &__title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+    }
+
+    &__empty {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
   }
 
   // TXT 分章规则

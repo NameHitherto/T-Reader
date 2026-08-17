@@ -47,6 +47,8 @@ pub struct Settings {
     pub theme_mode: String,
     #[serde(default = "default_update_channel", rename = "updateChannel")]
     pub update_channel: String,
+    #[serde(default, rename = "proxyEnabled")]
+    pub proxy_enabled: bool,
     #[serde(default, rename = "modelProviders")]
     pub model_providers: HashMap<String, ModelProviderConfig>,
 }
@@ -62,6 +64,7 @@ pub struct SaveAppSettingsRequest {
     pub webdav_timeout_seconds: Option<i64>,
     pub theme_mode: Option<String>,
     pub update_channel: Option<String>,
+    pub proxy_enabled: Option<bool>,
     pub model_providers: Option<HashMap<String, ModelProviderConfig>>,
 }
 

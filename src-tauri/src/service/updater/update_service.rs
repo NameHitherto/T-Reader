@@ -223,7 +223,14 @@ fn rewrite_download_url_for_source(
     Ok(())
 }
 
-fn to_proxy_info() -> AppUpdateProxyInfo {
+fn to_proxy_info(proxy_enabled: bool) -> AppUpdateProxyInfo {
+    if !proxy_enabled {
+        return AppUpdateProxyInfo {
+            source: "none".to_string(),
+            proxy_mode: "direct".to_string(),
+            proxy_url: None,
+        };
+    }
     let proxy = detect_updater_proxy();
     AppUpdateProxyInfo {
         source: proxy.source,
@@ -328,12 +335,13 @@ fn build_progress_event(
 
 pub async fn check_app_update(
     update_channel: String,
+    proxy_enabled: bool,
     app: AppHandle,
     state: State<'_, AppUpdateState>,
 ) -> Result<AppUpdateCheckResult, String> {
     let update_channel = normalize_update_channel(&update_channel).to_string();
     let current_version = app.package_info().version.to_string();
-    let proxy = to_proxy_info();
+    let proxy = to_proxy_info(proxy_enabled);
     let mut attempts: Vec<AppUpdateAttempt> = Vec::new();
     let official_endpoint = if update_channel == "preview" {
         let started_at = Instant::now();

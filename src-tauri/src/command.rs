@@ -14,6 +14,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::updater::prepare_updater_proxy,
         crate::api::updater::check_app_update,
         crate::api::updater::install_app_update,
+        crate::api::proxy::detect_system_proxy,
         crate::api::settings::load_app_settings,
         crate::api::settings::save_app_settings,
         crate::api::settings::load_reader_config,

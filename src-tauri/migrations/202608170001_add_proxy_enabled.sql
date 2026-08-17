@@ -1,0 +1,1 @@
+ALTER TABLE app_settings ADD COLUMN proxy_enabled INTEGER NOT NULL DEFAULT 0;

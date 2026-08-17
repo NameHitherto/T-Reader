@@ -22,6 +22,7 @@ const installing = ref(false)
 const savingChannel = ref(false)
 const updateChannel = ref<UpdateChannel>('stable')
 const persistedUpdateChannel = ref<UpdateChannel>('stable')
+const proxyEnabled = ref(false)
 const checkResult = ref<AppUpdateCheckResult | null>(null)
 const currentProgress = ref<AppUpdateProgressEvent | null>(null)
 
@@ -183,6 +184,7 @@ const checkForUpdates = async () => {
   try {
     const result = await invoke<AppUpdateCheckResult>('check_app_update', {
       updateChannel: updateChannel.value,
+      proxyEnabled: proxyEnabled.value,
     })
     checkResult.value = result
 
@@ -316,6 +318,7 @@ onMounted(async () => {
   version.value = currentVersion
   updateChannel.value = settings.updateChannel
   persistedUpdateChannel.value = settings.updateChannel
+  proxyEnabled.value = settings.proxyEnabled
 })
 </script>
 

@@ -3,6 +3,7 @@ pub mod file;
 pub mod font;
 pub mod gallery;
 pub mod note;
+pub mod proxy;
 pub mod settings;
 pub mod txt_toc_rule;
 pub mod updater;
