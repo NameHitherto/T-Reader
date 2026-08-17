@@ -17,6 +17,10 @@ import contactEmailIcon from '@/assets/icons/contact-email.svg?raw'
 import sunIcon from '@/assets/icons/sun.svg?raw'
 import moonIcon from '@/assets/icons/moon.svg?raw'
 import fullUrlIcon from '@/assets/icons/full-url.svg?raw'
+import arrowLeftIcon from '@/assets/icons/arrow-left.svg?raw'
+import globeIcon from '@/assets/icons/globe.svg?raw'
+import robotIcon from '@/assets/icons/robot.svg?raw'
+import checkCircleIcon from '@/assets/icons/check-circle.svg?raw'
 
 import bookOpenIcon from '@/components/ContextMenu/assets/book-open.svg?raw'
 import uploadIcon from '@/components/ContextMenu/assets/upload.svg?raw'
@@ -52,6 +56,10 @@ export type IconName =
   | 'sun'
   | 'moon'
   | 'fullUrl'
+  | 'arrowLeft'
+  | 'globe'
+  | 'robot'
+  | 'checkCircle'
   | 'bookOpen'
   | 'upload'
   | 'delete'
@@ -96,6 +104,10 @@ const iconRegistry: Record<IconName, IconDefinition> = {
   sun: { src: toDataUri(sunIcon), mode: 'mask' },
   moon: { src: toDataUri(moonIcon), mode: 'mask' },
   fullUrl: { src: toDataUri(fullUrlIcon), mode: 'mask' },
+  arrowLeft: { src: toDataUri(arrowLeftIcon), mode: 'mask' },
+  globe: { src: toDataUri(globeIcon), mode: 'mask' },
+  robot: { src: toDataUri(robotIcon), mode: 'mask' },
+  checkCircle: { src: toDataUri(checkCircleIcon), mode: 'mask' },
   bookOpen: { src: toDataUri(bookOpenIcon), mode: 'mask' },
   upload: { src: toDataUri(uploadIcon), mode: 'mask' },
   delete: { src: toDataUri(deleteIcon), mode: 'mask' },
