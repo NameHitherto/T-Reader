@@ -144,6 +144,7 @@
                 :key="preset.label"
                 :effect="currentProvider.contextWindowSize === preset.value ? 'dark' : 'plain'"
                 class="context-window-preset"
+                :disable-transitions="true"
                 @click="applyContextWindowPreset(preset.value)"
               >
                 {{ preset.label }}

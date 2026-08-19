@@ -12,7 +12,7 @@
           type="warning"
           effect="dark"
           size="small"
-          disable-transitions="true"
+          :disable-transitions="true"
         >
           抢先体验
         </el-tag>

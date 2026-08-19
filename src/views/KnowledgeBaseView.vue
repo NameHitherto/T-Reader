@@ -68,7 +68,7 @@
             <div v-for="doc in documents" :key="doc.id" class="document-card">
               <div class="document-card__header">
                 <span class="document-card__title" :title="doc.title">{{ doc.title }}</span>
-                <el-tag :type="statusTagType(doc.status)" size="small" effect="plain">
+                <el-tag :type="statusTagType(doc.status)" size="small" effect="plain" :disable-transitions="true">
                   {{ statusLabel(doc.status) }}
                 </el-tag>
               </div>
