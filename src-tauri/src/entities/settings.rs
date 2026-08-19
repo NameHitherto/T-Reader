@@ -33,6 +33,8 @@ pub struct ModelProviderConfig {
     pub batch_size: Option<i64>,
     #[serde(default, rename = "vectorDimension")]
     pub vector_dimension: Option<i64>,
+    #[serde(default, rename = "contextWindowSize")]
+    pub context_window_size: Option<i64>,
 }
 
 impl ModelProviderConfig {

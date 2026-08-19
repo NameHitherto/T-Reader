@@ -14,6 +14,7 @@ export interface ModelProvider {
   apiKey: string
   batchSize?: number
   vectorDimension?: number | null
+  contextWindowSize?: number | null
 }
 
 export type ModelProviderMap = Record<ModelPurpose, ModelProvider | null>

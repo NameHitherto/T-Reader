@@ -86,6 +86,9 @@ const createDefaultProvider = (purpose: ModelPurpose): ModelProvider => {
     provider.batchSize = 20
     provider.vectorDimension = null
   }
+  if (purpose === 'chat') {
+    provider.contextWindowSize = null
+  }
   return provider
 }
 

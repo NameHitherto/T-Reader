@@ -123,6 +123,34 @@
           </div>
         </div>
 
+        <!-- 对话专用 -->
+        <div v-if="activePurpose === 'chat'" class="setting-item setting-item--input">
+          <div class="setting-item__info">
+            <span class="setting-item__title">上下文窗口</span>
+          </div>
+          <div class="setting-item__control context-window-control">
+            <el-input-number
+              v-model="currentProvider.contextWindowSize"
+              :min="1"
+              :max="100000000"
+              :step="1024"
+              controls-position="right"
+              placeholder="不限制"
+            />
+            <div class="context-window-presets">
+              <el-tag
+                v-for="preset in contextWindowPresets"
+                :key="preset.label"
+                :effect="currentProvider.contextWindowSize === preset.value ? 'dark' : 'plain'"
+                class="context-window-preset"
+                @click="applyContextWindowPreset(preset.value)"
+              >
+                {{ preset.label }}
+              </el-tag>
+            </div>
+          </div>
+        </div>
+
         <!-- 嵌入专用 -->
         <div v-if="activePurpose === 'embedding'" class="setting-item setting-item--input">
           <div class="setting-item__info">
@@ -186,6 +214,20 @@ const purposes = MODEL_PURPOSES.map((p) => ({
 }))
 
 const providerTypes = PROVIDER_TYPES
+
+// 上下文窗口常用预设（K = 1024，M = 1024K）
+const contextWindowPresets = [
+  { label: '100K', value: 100 * 1024 },
+  { label: '256K', value: 256 * 1024 },
+  { label: '512K', value: 512 * 1024 },
+  { label: '1M', value: 1024 * 1024 },
+]
+
+const applyContextWindowPreset = (value: number) => {
+  const provider = currentProvider.value
+  if (!provider) return
+  provider.contextWindowSize = value
+}
 
 const endpointPresets = computed(() => {
   const providerType = currentProvider.value?.providerType ?? 'Other'
@@ -269,6 +311,25 @@ const applyDefaultEndpoint = () => {
     border-color: var(--border-brand);
     font-weight: 700;
   }
+}
+
+// 上下文窗口：数字输入框 + 右侧常用值预设 Tag
+.context-window-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.context-window-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.context-window-preset {
+  cursor: pointer;
+  user-select: none;
 }
 
 // API 请求地址标题行（标题 + 完整 URL 开关）
