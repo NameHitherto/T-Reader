@@ -68,7 +68,7 @@ const tabs: SettingsTab[] = [
   {
     id: 'aiModels',
     label: 'AI大模型',
-    description: '配置对话 / 图像 / 嵌入 / 重排序模型服务',
+    description: '对话 / 知识库服务',
     icon: 'robot',
     component: AiModelSettings,
   },

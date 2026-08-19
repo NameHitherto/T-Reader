@@ -14,7 +14,12 @@ import {
   type TxtTocRule,
 } from '@/services/settings/txtTocRulesService'
 import { emitAppThemeUpdate } from '@/services/theme/themeService'
-import { PURPOSE_LABELS, type ModelProvider, type ModelPurpose } from '@/types/model'
+import {
+  ENDPOINT_PRESETS,
+  type ModelProvider,
+  type ModelPurpose,
+  type ProviderType,
+} from '@/types/model'
 import type { SystemProxyInfo } from '@/types/proxy'
 import { logWarn } from '@/utils/logger'
 
@@ -43,9 +48,6 @@ const modelProviders = ref<Record<ModelPurpose, ModelProvider | null>>({
   rerank: null,
 })
 const activePurpose = ref<ModelPurpose>('chat')
-const isEditingModel = ref(false)
-const isAddingModel = ref(false)
-const editingProvider = ref<ModelProvider | null>(null)
 const txtTocRules = ref<TxtTocRule[]>([])
 
 const isLoadingSettings = ref(false)
@@ -67,17 +69,42 @@ const webdavUrl = computed(() => {
 
 const currentProvider = computed(() => modelProviders.value[activePurpose.value] ?? null)
 
-const currentProviderRequestUrl = computed(() => {
-  if (!currentProvider.value) {
-    return ''
+// 为指定用途初始化一个默认模型配置，供编辑表单补建绑定目标并预填端点
+const createDefaultProvider = (purpose: ModelPurpose): ModelProvider => {
+  const providerType: ProviderType = 'OpenAI'
+  const endpoint = ENDPOINT_PRESETS[providerType]?.[purpose]?.[0] ?? ''
+  const provider: ModelProvider = {
+    purpose,
+    providerType,
+    baseUrl: '',
+    endpoint,
+    fullUrl: false,
+    modelId: '',
+    apiKey: '',
   }
-  if (currentProvider.value.fullUrl) {
-    return currentProvider.value.baseUrl
+  if (purpose === 'embedding') {
+    provider.batchSize = 20
+    provider.vectorDimension = null
   }
-  return `${currentProvider.value.baseUrl}${currentProvider.value.endpoint}`
-})
+  return provider
+}
 
-const purposeLabel = computed(() => PURPOSE_LABELS[activePurpose.value] ?? '')
+// 确保指定用途存在可编辑配置对象，不存在时补建默认值，保证表单始终有绑定目标
+const ensureProvider = (purpose: ModelPurpose): ModelProvider => {
+  const existing = modelProviders.value[purpose]
+  if (existing) {
+    return existing
+  }
+  const next = createDefaultProvider(purpose)
+  modelProviders.value = { ...modelProviders.value, [purpose]: next }
+  return next
+}
+
+// 切换模型类型：先补建目标配置，再切换当前用途
+const selectModelPurpose = (purpose: ModelPurpose) => {
+  ensureProvider(purpose)
+  activePurpose.value = purpose
+}
 
 const formattedProxyBypassList = computed(() => {
   const raw = systemProxy.value?.bypassList
@@ -189,6 +216,7 @@ const loadSettings = async () => {
     webdavTimeoutSeconds.value = loadedSettings.webdavTimeoutSeconds ?? 30
     proxyEnabled.value = loadedSettings.proxyEnabled === true
     modelProviders.value = { ...loadedSettings.modelProviders }
+    ensureProvider(activePurpose.value)
     txtTocRules.value = await loadTxtTocRules()
     lastSavedThemeMode = loadedSettings.themeMode
     lastSavedSnapshot = createSettingsSnapshot()
@@ -200,48 +228,6 @@ const loadSettings = async () => {
     logWarn('settings', 'load-settings failed', error)
   } finally {
     isLoadingSettings.value = false
-  }
-}
-
-const startEditModel = () => {
-  isEditingModel.value = true
-  isAddingModel.value = false
-  editingProvider.value = { ...currentProvider.value } as ModelProvider
-}
-
-const startAddModel = () => {
-  isEditingModel.value = true
-  isAddingModel.value = true
-  editingProvider.value = {
-    purpose: activePurpose.value,
-    providerType: 'OpenAI',
-    baseUrl: '',
-    endpoint: '',
-    modelId: '',
-    apiKey: '',
-  }
-}
-
-const handleModelFormSubmit = (provider: ModelProvider) => {
-  modelProviders.value = {
-    ...modelProviders.value,
-    [provider.purpose]: provider,
-  }
-  isEditingModel.value = false
-  isAddingModel.value = false
-  editingProvider.value = null
-}
-
-const handleModelFormCancel = () => {
-  isEditingModel.value = false
-  isAddingModel.value = false
-  editingProvider.value = null
-}
-
-const deleteModelProvider = () => {
-  modelProviders.value = {
-    ...modelProviders.value,
-    [activePurpose.value]: null,
   }
 }
 
@@ -305,21 +291,13 @@ export function useSettingsCenter() {
     formattedProxyBypassList,
     modelProviders,
     activePurpose,
-    isEditingModel,
-    isAddingModel,
-    editingProvider,
     currentProvider,
-    currentProviderRequestUrl,
-    purposeLabel,
+    ensureProvider,
+    selectModelPurpose,
     txtTocRules,
     loadSettings,
     flushAutoSaveSettings,
     refreshSystemProxy,
-    startEditModel,
-    startAddModel,
-    handleModelFormSubmit,
-    handleModelFormCancel,
-    deleteModelProvider,
     moveTxtTocRule,
   }
 }

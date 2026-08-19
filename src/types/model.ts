@@ -13,7 +13,7 @@ export interface ModelProvider {
   modelId: string
   apiKey: string
   batchSize?: number
-  vectorDimension?: number
+  vectorDimension?: number | null
 }
 
 export type ModelProviderMap = Record<ModelPurpose, ModelProvider | null>
