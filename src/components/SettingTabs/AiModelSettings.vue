@@ -127,6 +127,7 @@
         <div v-if="activePurpose === 'chat'" class="setting-item setting-item--input">
           <div class="setting-item__info">
             <span class="setting-item__title">上下文窗口</span>
+            <span class="setting-item__subtitle">模型支持的最大上下文 Token 数，留空则默认 100K</span>
           </div>
           <div class="setting-item__control context-window-control">
             <el-input-number
@@ -135,7 +136,7 @@
               :max="100000000"
               :step="1024"
               controls-position="right"
-              placeholder="不限制"
+              placeholder="默认 100K"
             />
             <div class="context-window-presets">
               <el-tag

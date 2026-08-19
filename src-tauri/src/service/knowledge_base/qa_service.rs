@@ -12,12 +12,16 @@ use crate::{
         model_client,
         vector_store::{normalize_vector, rank_chunks_by_query},
     },
-    utils::logging::{log_error, log_info},
+    utils::{
+        logging::{log_error, log_info},
+        token_budget::fit_messages_to_context,
+    },
 };
 
 const MAX_HISTORY_MESSAGES: usize = 20;
 const RETRIEVAL_CANDIDATES: usize = 40;
 const RERANK_TOP_N: usize = 6;
+const MAX_OUTPUT_TOKENS: usize = 4096;
 
 pub async fn get_knowledge_qa_context(
     pool: &SqlitePool,
@@ -113,6 +117,12 @@ pub async fn send_qa_message(
         "role": "user",
         "content": content,
     }));
+    let messages = fit_messages_to_context(
+        &system_prompt,
+        messages,
+        chat_provider.context_window_size,
+        MAX_OUTPUT_TOKENS,
+    )?;
 
     let answer =
         match model_client::stream_chat_completion(pool, &system_prompt, messages, &on_event).await

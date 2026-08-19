@@ -26,6 +26,7 @@ use crate::{
         webdav::file_service::webdav_get_file,
     },
     utils::logging::{log_error, log_info},
+    utils::token_budget::fit_messages_to_context,
 };
 
 const CHAT_MODEL_PURPOSE: &str = "chat";
@@ -423,6 +424,12 @@ pub async fn send_book_chat_message(
         "role": "user",
         "content": content,
     }));
+    let messages = fit_messages_to_context(
+        &system_prompt,
+        messages,
+        provider.context_window_size,
+        MAX_OUTPUT_TOKENS as usize,
+    )?;
 
     let client = build_chat_client(app_settings.proxy_enabled);
     let response = match provider.provider_type.as_str() {
