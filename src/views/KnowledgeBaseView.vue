@@ -173,7 +173,7 @@
     <el-dialog
       v-model="seriesDialogVisible"
       :title="editingSeries ? '编辑系列' : '新建系列'"
-      width="420px"
+      width="min(420px, 92vw)"
       :close-on-click-modal="false"
       @closed="resetSeriesDialog"
     >
@@ -980,5 +980,76 @@ onMounted(async () => {
   flex: 1;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .knowledge-series-panel {
+    flex-basis: 200px;
+  }
+
+  .knowledge-workspace {
+    padding: 14px 14px 16px;
+  }
+
+  .knowledge-columns {
+    grid-template-columns: minmax(220px, 0.9fr) minmax(300px, 1.1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 880px) {
+  .knowledge-page {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .knowledge-series-panel {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .panel-header {
+    padding: 12px 14px 8px;
+  }
+
+  .series-list {
+    display: flex;
+    gap: 8px;
+    padding: 0 14px 12px;
+    overflow: auto hidden;
+  }
+
+  .series-item {
+    flex: 0 0 180px;
+    margin-bottom: 0;
+  }
+
+  .knowledge-workspace {
+    flex: none;
+    overflow: visible;
+  }
+
+  .workspace-header {
+    flex-wrap: wrap;
+  }
+
+  .knowledge-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .documents-column,
+  .qa-column {
+    overflow: visible;
+  }
+
+  .document-list {
+    overflow: visible;
+  }
+
+  .qa-messages {
+    min-height: 260px;
+    max-height: 55vh;
+  }
 }
 </style>
