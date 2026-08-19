@@ -128,7 +128,10 @@
                 class="qa-message"
                 :class="`qa-message--${message.role}`"
               >
-                <div class="qa-bubble">{{ message.content }}</div>
+                <div class="qa-bubble">
+                  <MarkdownContent v-if="message.role === 'assistant'" :content="message.content" />
+                  <template v-else>{{ message.content }}</template>
+                </div>
                 <div v-if="message.citations.length > 0" class="qa-citations">
                   <div v-for="(citation, index) in message.citations" :key="index" class="citation">
                     <div class="citation__meta">
@@ -140,7 +143,7 @@
               </div>
               <div v-if="isStreaming" class="qa-message qa-message--assistant">
                 <div class="qa-bubble">
-                  {{ streamingText || '正在检索并思考…' }}
+                  <MarkdownContent :content="streamingText || '正在检索并思考…'" />
                 </div>
               </div>
             </div>
@@ -226,6 +229,7 @@ import {
   updateKnowledgeSeries,
 } from '@/services/knowledgeBase/knowledgeBaseService'
 import { logError } from '@/utils/logger'
+import MarkdownContent from '@/components/common/MarkdownContent/index.vue'
 
 const router = useRouter()
 const series = ref<KnowledgeSeries[]>([])

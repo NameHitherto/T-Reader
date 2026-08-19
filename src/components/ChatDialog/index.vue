@@ -27,12 +27,15 @@
           class="chat-message"
           :class="`chat-message--${message.role}`"
         >
-          <div class="chat-bubble">{{ message.content }}</div>
+          <div class="chat-bubble">
+            <MarkdownContent v-if="message.role === 'assistant'" :content="message.content" />
+            <template v-else>{{ message.content }}</template>
+          </div>
         </div>
 
         <div v-if="isStreaming" class="chat-message chat-message--assistant">
           <div class="chat-bubble">
-            {{ streamingText || '正在思考…' }}
+            <MarkdownContent :content="streamingText || '正在思考…'" />
           </div>
         </div>
 
@@ -80,6 +83,7 @@ import {
 } from '@/services/chat/bookChatService'
 import { logError } from '@/utils/logger'
 import { generateID } from '@/utils/id'
+import MarkdownContent from '@/components/common/MarkdownContent/index.vue'
 
 const props = defineProps<{
   modelValue: boolean
