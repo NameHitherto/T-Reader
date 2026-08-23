@@ -5,7 +5,7 @@ import { normalizeAppThemeMode, type AppThemeMode } from '@/services/settings/ap
 import type {
   PrepareBookDeletePayload,
   ReaderLoadPayload,
-} from '@/services/reader/readerWindowBridgeService'
+} from '@/services/ipc'
 
 interface RegisterReaderWindowEventsArgs {
   onLoadBookKey: (event: { payload: ReaderLoadPayload }) => Promise<void> | void

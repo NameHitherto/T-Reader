@@ -6,7 +6,7 @@ import {
 } from '@/services/book/bookRepository'
 import { CLOUD_DIRS } from '@/services/fileSystem/localStorageService'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
-import { openReaderWindow } from '@/services/reader/readerWindowBridgeService'
+import { openReaderWindow } from '@/services/ipc'
 import { toHttpResponseResult } from '@/services/response/responseHandler'
 
 const launchReaderWindow = async (bookKey: string, cfi = '') => {

@@ -70,7 +70,7 @@ import {
   removeLocalFile,
 } from '@/services/fileSystem/localStorageService'
 import { toBookConfigFilename } from '@/services/book/bookIdentity'
-import { prepareReaderBookDelete } from '@/services/reader/readerWindowBridgeService'
+import { prepareReaderBookDelete } from '@/services/ipc'
 import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
 import { logWarn } from '@/utils/logger'
 

@@ -135,7 +135,7 @@ import {
   escapeCssString,
   getReaderLocalFontCandidates,
 } from '@/services/reader/readerFontApplicationService'
-import { dispatchReaderStyleUpdate } from '@/services/reader/readerWindowBridgeService'
+import { dispatchReaderStyleUpdate } from '@/services/ipc'
 import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
 import { logError } from '@/utils/logger'
 import {

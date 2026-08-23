@@ -186,7 +186,7 @@ import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaun
 import {
   prepareReaderBookDelete,
   type BookshelfProgressSavedPayload,
-} from '@/services/reader/readerWindowBridgeService'
+} from '@/services/ipc'
 import { buildContextMenuData } from '@/services/reader/contextMenuService'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import { WINDOW_EVENTS } from '@/constants/events'

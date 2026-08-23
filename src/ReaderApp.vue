@@ -148,7 +148,7 @@ import {
   ackReaderLoadMessage,
   dispatchBookshelfProgressSaved,
   notifyReaderWindowReady,
-} from '@/services/reader/readerWindowBridgeService'
+} from '@/services/ipc'
 import { formatDate } from '@/utils/date'
 import { generateID } from '@/utils/id'
 

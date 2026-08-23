@@ -1,7 +1,7 @@
 import { reactive, readonly } from 'vue'
 import { GenerateGalleryImageRequest } from '@/types/gallery'
 import { generateGalleryImage } from '@/services/gallery/galleryRepository'
-import { dispatchMainEvent } from '@/services/reader/readerWindowBridgeService'
+import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { logError, logInfo } from '@/utils/logger'
 

@@ -16,7 +16,7 @@ import { normalizeBookConfig } from '@/services/book/bookConfigService'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { encodeJson } from '@/utils/json'
 import { BookFormat } from '@/types/book'
-import { dispatchMainEvent } from '@/services/reader/readerWindowBridgeService'
+import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { loadAppSettings } from '@/services/settings/appSettingsService'
 import {

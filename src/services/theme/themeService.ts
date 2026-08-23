@@ -1,6 +1,6 @@
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { WINDOW_EVENTS } from '@/constants/events'
-import { dispatchReaderThemeUpdate } from '@/services/reader/readerWindowBridgeService'
+import { dispatchReaderThemeUpdate } from '@/services/ipc'
 import {
   loadAppSettings,
   normalizeAppThemeMode,
