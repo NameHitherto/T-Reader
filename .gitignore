@@ -24,25 +24,16 @@ dist-ssr
 *.sln
 *.sw?
 
-# .trae
+# Agents
 .trae
-
-# .codex
 .codex
-AGENTS.md
-
-# .claude
 .claude
-CLAUDE.md
-docs/superpowers
-
-# .deepseek
 .deepseek
-
-# .reasonix
 .reasonix
+.zcode
 
-# agent plan
+# plan
+docs/superpowers
 plan
 
 # exe
