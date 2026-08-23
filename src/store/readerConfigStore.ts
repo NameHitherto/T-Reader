@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { EnabledSystemFont } from '@/types/readerFonts'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
-import { getReaderThemeCompatColors } from '@/services/theme/themeService'
+import { getReaderThemeCompatColors } from '@/services/theme'
 import {
   createDefaultReaderBackgroundPresets,
   type ReaderBackgroundPresets,
