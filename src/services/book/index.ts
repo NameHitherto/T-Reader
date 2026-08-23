@@ -15,10 +15,7 @@ export {
   saveUploadedBookCover,
 } from './cache'
 export { isUnreadProgressSnapshot, normalizeBookConfig } from './config'
-export {
-  extractEpubLocations,
-  saveEpubCoverResource,
-} from './epubCache'
+export { extractEpubLocations, saveEpubCoverResource } from './epubCache'
 export { parseEpubMeta } from './epubParser'
 export {
   getLocalBookRelativePath,
@@ -44,10 +41,7 @@ export {
   removeBookLocationsCache,
   saveBookLocationsCache,
 } from './locationsCache'
-export {
-  buildLastReadLabel,
-  normalizeDisplayedChapterTitle,
-} from './presentation'
+export { buildLastReadLabel, normalizeDisplayedChapterTitle } from './presentation'
 export {
   downloadBookFileToLocal,
   getImportedBookName,
@@ -86,11 +80,7 @@ export {
   replaceBookMarksForBook,
   saveAllBookMarks,
 } from './bookmarks'
-export {
-  loadTxtTocRules,
-  resequenceTxtTocRules,
-  saveTxtTocRules,
-} from './txtTocRules'
+export { loadTxtTocRules, resequenceTxtTocRules, saveTxtTocRules } from './txtTocRules'
 
 export type {
   BookLocationsCachePayload,

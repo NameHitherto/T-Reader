@@ -11,8 +11,4 @@ export {
   syncReaderConfigThemeColors,
 } from './palettes'
 
-export type {
-  AppThemePalette,
-  ReaderBackgroundPresetOption,
-  ReaderRuntimePalette,
-} from './types'
+export type { AppThemePalette, ReaderBackgroundPresetOption, ReaderRuntimePalette } from './types'

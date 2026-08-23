@@ -1,7 +1,4 @@
-import {
-  normalizeAppThemeMode,
-  type AppThemeMode,
-} from '@/services/settings'
+import { normalizeAppThemeMode, type AppThemeMode } from '@/services/settings'
 import type {
   ReaderBackgroundPreset,
   ReaderBackgroundPresets,
@@ -9,17 +6,9 @@ import type {
   ReaderLightBackgroundPreset,
 } from '@/types/readerBackground'
 import { DEFAULT_READER_BACKGROUND_PRESETS } from '@/types/readerBackground'
-import type {
-  AppThemePalette,
-  ReaderBackgroundPresetOption,
-  ReaderRuntimePalette,
-} from './types'
+import type { AppThemePalette, ReaderBackgroundPresetOption, ReaderRuntimePalette } from './types'
 
-export type {
-  AppThemePalette,
-  ReaderBackgroundPresetOption,
-  ReaderRuntimePalette,
-} from './types'
+export type { AppThemePalette, ReaderBackgroundPresetOption, ReaderRuntimePalette } from './types'
 
 const THEME_ATTRIBUTE = 'data-theme'
 

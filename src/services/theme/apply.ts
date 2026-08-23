@@ -1,11 +1,7 @@
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { dispatchReaderThemeUpdate } from '@/services/ipc'
-import {
-  loadAppSettings,
-  normalizeAppThemeMode,
-  type AppThemeMode,
-} from '@/services/settings'
+import { loadAppSettings, normalizeAppThemeMode, type AppThemeMode } from '@/services/settings'
 
 const THEME_ATTRIBUTE = 'data-theme'
 
