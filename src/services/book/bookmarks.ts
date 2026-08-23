@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { BookMark } from '@/store/bookMark'
+import type { BookMark } from '@/services/book/types'
 
 export const loadAllBookMarks = async (): Promise<BookMark[]> => {
   return await invoke<BookMark[]>('load_all_notes')

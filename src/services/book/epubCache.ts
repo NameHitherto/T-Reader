@@ -1,5 +1,5 @@
 import ePub from 'libs/epub.js'
-import { buildBookCacheCoverPath, buildBookCacheDir } from '@/services/book/bookCachePathService'
+import { buildBookCacheCoverPath, buildBookCacheDir } from '@/services/book/cachePath'
 import { ensureLocalDir, writeBinaryFile } from '@/services/fileSystem/localStorageService'
 import { logInfo, logWarn } from '@/utils/logger'
 

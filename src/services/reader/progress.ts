@@ -1,8 +1,8 @@
-import { BookMark } from '@/store/bookMark'
+import type { BookMark } from '@/services/book/types'
 import { BookConfig, BookProgressSnapshot } from '@/types/book'
-import { loadBookConfig, saveBookConfig, updateBookProgress } from '@/services/book/bookRepository'
-import { replaceBookMarksForBook } from '@/services/book/bookMarksRepository'
-import { isUnreadProgressSnapshot } from '@/services/book/bookConfigService'
+import { loadBookConfig, saveBookConfig, updateBookProgress } from '@/services/book/repository'
+import { replaceBookMarksForBook } from '@/services/book/bookmarks'
+import { isUnreadProgressSnapshot } from '@/services/book/config'
 import {
   calculateEpubProgress,
   calculateEpubProgressFromSnapshot,
@@ -11,7 +11,7 @@ import {
 } from '@/services/reader/epubProgress'
 import type { EpubBookLike, EpubRenditionLike } from '@/types/epub'
 
-import type { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
+import type { BookLocationsCachePayload } from '@/services/book/locationsCache'
 
 interface SaveReaderProgressArgs {
   bookKey: string

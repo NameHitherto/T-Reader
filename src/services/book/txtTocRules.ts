@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import type { TxtTocRule } from '@/services/book/types'
 import {
   buildLocalFilePath,
   LOCAL_DIRS,
@@ -7,14 +8,7 @@ import {
   writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
 
-export interface TxtTocRule {
-  enable: boolean
-  example: string
-  id: number
-  name: string
-  rule: string
-  serialNumber: number
-}
+export type { TxtTocRule }
 
 const TXT_TOC_RULE_FILE = 'txtTocRule.json'
 

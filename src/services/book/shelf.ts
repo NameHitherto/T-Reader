@@ -1,38 +1,12 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { BookConfig, BookFormat } from '@/types/book'
+import { computed, ref, type Ref } from 'vue'
 import {
   createBookComparator,
   loadPersistedBookSort,
   persistBookSort,
-  type BookSortKey,
-  type BookSortOrder,
-} from '@/services/book/bookSortService'
+} from '@/services/book/sort'
+import type { BookSortKey, BookSortOrder, ShelfBook, ShelfBooksService } from '@/services/book/types'
 
-export type ShelfBookFormat = BookFormat | 'unknown'
-
-export type ShelfBook = BookConfig & {
-  bookKey: string
-  displayTitle: string
-  cover?: string
-  format: ShelfBookFormat
-  progressValue: number
-  lastReadLabel: string
-  createdAt: number
-}
-
-export interface ShelfBooksService {
-  books: ComputedRef<ShelfBook[]>
-  isBooksEmpty: ComputedRef<boolean>
-  sortKey: Ref<BookSortKey>
-  sortOrder: Ref<BookSortOrder>
-  setBookSort: (key: BookSortKey, order: BookSortOrder) => void
-  setShelfBooks: (list: ShelfBook[]) => void
-  hasShelfBook: (bookKey: string) => boolean
-  getShelfBook: (bookKey: string) => ShelfBook | undefined
-  upsertShelfBook: (book: ShelfBook) => void
-  removeShelfBook: (bookKey: string) => void
-  refreshBookOrder: () => void
-}
+export type { ShelfBook, ShelfBookFormat, ShelfBooksService } from '@/services/book/types'
 
 export const useShelfBooksService = (): ShelfBooksService => {
   const booksByKey: Ref<Map<string, ShelfBook>> = ref(new Map())

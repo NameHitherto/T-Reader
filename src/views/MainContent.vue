@@ -136,28 +136,28 @@ import emptyStateImage from '@/assets/images/empty.png'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import BookMetadataEditDialog from '@/components/BookMetadataEditDialog.vue'
 import defaultCover from '@/assets/default-cover.png'
-import { detectBookFormatFromPath } from '@/services/book/bookFormatService'
+import { detectBookFormatFromPath } from '@/services/book/format'
 import { getLocalDirNames } from '@/services/fileSystem/dirService'
 import type { LocalDirNames } from '@/services/fileSystem/dirService'
 import {
   parseBookCoverInBackground,
   resolveBookCoverForDisplay,
   removeBookCacheDir,
-} from '@/services/book/bookCacheService'
+} from '@/services/book/cache'
 import {
   buildLastReadLabel,
   normalizeDisplayedChapterTitle,
-} from '@/services/book/bookPresentationService'
+} from '@/services/book/presentation'
 import {
   useShelfBooksService,
   type ShelfBook,
   type ShelfBookFormat,
-} from '@/services/book/shelfBooksService'
+} from '@/services/book/shelf'
 import {
   parseBookCreatedAt,
   type BookSortKey,
   type BookSortOrder,
-} from '@/services/book/bookSortService'
+} from '@/services/book/sort'
 import ShelfMenu from '@/components/ShelfMenu/index.vue'
 import {
   invalidateBookFileCache,
@@ -166,11 +166,11 @@ import {
   resolveBookFile,
   resolveBookFormat,
   uploadLocalBookFileToCloud,
-} from '@/services/book/bookRepository'
-import type { StoredBookConfig } from '@/services/book/bookRepository'
-import type { ImportBookResult, StoredBookRecord } from '@/services/book/bookRepositoryTypes'
-import { removeBookMarksByBookKey } from '@/services/book/bookMarksRepository'
-import { toBookConfigFilename } from '@/services/book/bookIdentity'
+} from '@/services/book/repository'
+import type { StoredBookConfig } from '@/services/book/repository'
+import type { ImportBookResult, StoredBookRecord } from '@/services/book/types'
+import { removeBookMarksByBookKey } from '@/services/book/bookmarks'
+import { toBookConfigFilename } from '@/services/book/identity'
 import {
   buildLocalFilePath,
   CLOUD_DIRS,

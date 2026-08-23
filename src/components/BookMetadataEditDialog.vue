@@ -56,22 +56,22 @@ import {
   saveBookConfig,
   updateBookCover,
   updateBookMetadata,
-} from '@/services/book/bookRepository'
+} from '@/services/book/repository'
 import defaultCover from '@/assets/default-cover.png'
 import {
   migrateBookCache,
   removeBookCoverResource,
   resolveBookCoverForDisplay,
   saveUploadedBookCover,
-} from '@/services/book/bookCacheService'
+} from '@/services/book/cache'
 import {
   buildLocalFilePath,
   LOCAL_DIRS,
   removeLocalFile,
 } from '@/services/fileSystem/localStorageService'
-import { toBookConfigFilename } from '@/services/book/bookIdentity'
+import { toBookConfigFilename } from '@/services/book/identity'
 import { prepareReaderBookDelete } from '@/services/ipc'
-import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
+import type { StoredBookRecord } from '@/services/book/types'
 import { logWarn } from '@/utils/logger'
 
 const MAX_COVER_BYTES = 5 * 1024 * 1024

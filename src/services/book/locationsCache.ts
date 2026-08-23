@@ -1,7 +1,8 @@
 import {
   buildBookCacheDir,
   buildBookCacheLocationsPath,
-} from '@/services/book/bookCachePathService'
+} from '@/services/book/cachePath'
+import type { BookLocationsCachePayload, BookLocationsCacheStatus } from '@/services/book/types'
 import {
   ensureLocalDir,
   readJsonFile,
@@ -9,12 +10,7 @@ import {
   writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
 
-export type BookLocationsCacheStatus = 'ready' | 'building' | 'failed'
-
-export interface BookLocationsCachePayload {
-  status: BookLocationsCacheStatus
-  locations?: string
-}
+export type { BookLocationsCachePayload, BookLocationsCacheStatus }
 
 type RawBookLocationsCachePayload = Partial<BookLocationsCachePayload>
 

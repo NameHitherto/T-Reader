@@ -1,6 +1,6 @@
 import type { ReaderLoadResult } from '@/services/reader/types'
-import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
-import { loadBookLocationsCache } from '@/services/book/bookLocationsCacheService'
+import { loadBookBinary, loadBookConfig } from '@/services/book/repository'
+import { loadBookLocationsCache } from '@/services/book/locationsCache'
 
 export { ReaderLoadResult }
 

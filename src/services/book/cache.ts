@@ -1,13 +1,13 @@
-import { extractEpubLocations, saveEpubCoverResource } from '@/services/book/epub/epubCacheService'
+import { extractEpubLocations, saveEpubCoverResource } from '@/services/book/epubCache'
 import {
   buildBookCacheCoverAssetUrl,
   buildBookCacheCoverPath,
   buildBookCacheDir,
   buildBookCacheLocationsPath,
-} from '@/services/book/bookCachePathService'
-import { saveBookLocationsCache } from '@/services/book/bookLocationsCacheService'
-import { loadBookBinary, updateBookCover } from '@/services/book/bookRepository'
-import type { StoredBookRecord } from '@/services/book/bookRepositoryTypes'
+} from '@/services/book/cachePath'
+import { saveBookLocationsCache } from '@/services/book/locationsCache'
+import { loadBookBinary, updateBookCover } from '@/services/book/repository'
+import type { StoredBookRecord } from '@/services/book/types'
 import { logInfo, logWarn } from '@/utils/logger'
 import {
   ensureLocalDir,

@@ -239,7 +239,7 @@
 <script lang="ts">
 import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { invalidateBookFileCache } from '@/services/book/bookRepository'
+import { invalidateBookFileCache } from '@/services/book/repository'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 import {
   EMPTY_CLOUD_SYNC_PREVIEW,

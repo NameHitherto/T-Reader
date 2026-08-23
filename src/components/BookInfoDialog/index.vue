@@ -69,8 +69,8 @@
 <script>
 import ePub from 'libs/epub.js'
 import defaultCover from '@/assets/default-cover.png'
-import { getStoredBookByKey, loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
-import { resolveBookCoverForDisplay } from '@/services/book/bookCacheService'
+import { getStoredBookByKey, loadBookBinary, loadBookConfig } from '@/services/book/repository'
+import { resolveBookCoverForDisplay } from '@/services/book/cache'
 import { logWarn } from '@/utils/logger'
 
 export default {

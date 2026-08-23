@@ -11,8 +11,8 @@ import {
   loadTxtTocRules,
   resequenceTxtTocRules,
   saveTxtTocRules,
-  type TxtTocRule,
-} from '@/services/settings/txtTocRulesService'
+} from '@/services/book/txtTocRules'
+import type { TxtTocRule } from '@/services/book/types'
 import { emitAppThemeUpdate } from '@/services/theme/themeService'
 import {
   ENDPOINT_PRESETS,

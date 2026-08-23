@@ -1,4 +1,4 @@
-import { detectBookFormatFromFilename } from '@/services/book/bookFormatService'
+import { detectBookFormatFromPath } from '@/services/book/format'
 import {
   buildLocalDirPath,
   buildLocalFilePath,
@@ -37,6 +37,6 @@ export const listLocalBookFiles = async (): Promise<string[]> => {
   const entries = await readLocalDirEntries(buildLocalDirPath(LOCAL_DIRS.books))
 
   return entries
-    .filter((entry) => entry.isFile && detectBookFormatFromFilename(entry.name))
+    .filter((entry) => entry.isFile && detectBookFormatFromPath(entry.name))
     .map((entry) => entry.name)
 }

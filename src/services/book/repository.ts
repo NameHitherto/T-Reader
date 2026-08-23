@@ -1,21 +1,21 @@
 import { invoke } from '@tauri-apps/api/core'
-import { BookConfig } from '@/types/book'
-import {
-  detectBookFormatFromFilename,
-  detectBookFormatFromPath,
-} from '@/services/book/bookFormatService'
+import type { BookConfig } from '@/types/book'
+import { detectBookFormatFromPath } from '@/services/book/format'
 import type {
+  LoadedBookBinary,
+  ResolvedBookFile,
+  StoredBookConfig,
   StoredBookRecord,
   UpdateBookMetadataRequest,
   UpdateBookMetadataResult,
   UpsertBookRequest,
-} from '@/services/book/bookRepositoryTypes'
-import { buildBookConfigFromImport } from '@/services/book/bookImportService'
-import { buildBookName, buildBookTitle, toBookConfigFilename } from '@/services/book/bookIdentity'
-import { normalizeBookConfig } from '@/services/book/bookConfigService'
+} from '@/services/book/types'
+import { buildBookConfigFromImport } from '@/services/book/import'
+import { buildBookName, buildBookTitle, toBookConfigFilename } from '@/services/book/identity'
+import { normalizeBookConfig } from '@/services/book/config'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { encodeJson } from '@/utils/json'
-import { BookFormat } from '@/types/book'
+import type { BookFormat } from '@/types/book'
 import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { loadAppSettings } from '@/services/settings/appSettingsService'
@@ -24,7 +24,7 @@ import {
   listLocalBookFiles,
   readLocalBookFile as readLocalBookFileFromDisk,
   writeLocalBookFile,
-} from '@/services/book/bookFileAccessService'
+} from '@/services/book/fileAccess'
 import {
   buildLocalFilePath,
   CLOUD_DIRS,
@@ -33,20 +33,11 @@ import {
   writeJsonFile,
 } from '@/services/fileSystem/localStorageService'
 
-export interface ResolvedBookFile {
-  fileName: string
-  format: BookFormat
-}
-
-export interface LoadedBookBinary extends ResolvedBookFile {
-  bookData: Uint8Array
-}
-
-export interface StoredBookConfig {
-  bookKey: string
-  config: BookConfig
-  record: StoredBookRecord
-}
+export type {
+  LoadedBookBinary,
+  ResolvedBookFile,
+  StoredBookConfig,
+} from '@/services/book/types'
 
 let cachedBookFileMap: Map<string, ResolvedBookFile> | null = null
 
@@ -85,7 +76,7 @@ const getDurChapterTime = (config: Partial<BookConfig> | null | undefined): numb
 }
 
 const toResolvedBookFile = (fileName: string): ResolvedBookFile | null => {
-  const format = detectBookFormatFromFilename(fileName)
+  const format = detectBookFormatFromPath(fileName)
   if (!format) {
     return null
   }

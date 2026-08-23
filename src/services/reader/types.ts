@@ -1,7 +1,7 @@
 import type { BookConfig, BookFormat } from '@/types/book'
 import type { ReaderBackgroundPresets } from '@/types/readerBackground'
 import type { EnabledSystemFont, SystemFontEntry } from '@/types/readerFonts'
-import type { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
+import type { BookLocationsCachePayload } from '@/services/book/types'
 
 export interface ReaderLoadResult {
   format: BookFormat

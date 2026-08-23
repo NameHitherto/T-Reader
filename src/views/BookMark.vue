@@ -100,7 +100,7 @@ import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { BookMark } from '@/store/bookMark'
 import { ElMessageBox } from 'element-plus'
-import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookMarksRepository'
+import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookmarks'
 import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import { formatDateToNumber } from '@/utils/date'
 

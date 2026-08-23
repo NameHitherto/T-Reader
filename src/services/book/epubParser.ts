@@ -1,5 +1,5 @@
 import ePub from 'libs/epub.js'
-import { ParsedBookMeta } from '@/services/book/types'
+import type { ParsedBookMeta } from '@/services/book/types'
 import { logInfo, logWarn } from '@/utils/logger'
 
 export const parseEpubMeta = async (buffer: ArrayBuffer): Promise<ParsedBookMeta> => {

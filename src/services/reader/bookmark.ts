@@ -1,4 +1,4 @@
-import { BookMark } from '@/store/bookMark'
+import type { BookMark } from '@/services/book/types'
 import {
   BOOKMARK_UNDERLINE_CLASS,
   DEFAULT_UNDERLINE_STYLE,

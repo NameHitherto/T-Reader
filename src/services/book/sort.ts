@@ -1,21 +1,7 @@
-import type { ShelfBook } from '@/services/book/shelfBooksService'
+import type { ShelfBook } from '@/services/book/types'
+import type { BookSortKey, BookSortOrder, BookSortState, BookSortOption } from '@/services/book/types'
 
-// ============================================================
-// 排序关键字与方向
-// ============================================================
-export type BookSortKey = 'title' | 'lastRead' | 'createdAt' | 'author'
-export type BookSortOrder = 'asc' | 'desc'
-
-export interface BookSortState {
-  key: BookSortKey
-  order: BookSortOrder
-}
-
-export interface BookSortOption {
-  key: BookSortKey
-  label: string
-  defaultOrder: BookSortOrder
-}
+export type { BookSortKey, BookSortOrder, BookSortState, BookSortOption } from '@/services/book/types'
 
 // 面板展示顺序（2×2）：标题 / 最近阅读 / 添加日期 / 作者
 export const BOOK_SORT_OPTIONS: readonly BookSortOption[] = [

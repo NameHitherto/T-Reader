@@ -1,4 +1,4 @@
-import { BookFormat } from '@/types/book'
+import type { BookFormat } from '@/types/book'
 
 const SUPPORTED_FORMATS: BookFormat[] = ['epub']
 
@@ -14,5 +14,3 @@ export const detectBookFormatFromPath = (path: string): BookFormat | null => {
 
   return null
 }
-
-export const detectBookFormatFromFilename = detectBookFormatFromPath

@@ -3,7 +3,7 @@ import {
   downloadBookFileToLocal,
   hasLocalBookFile,
   resolveBookFile,
-} from '@/services/book/bookRepository'
+} from '@/services/book/repository'
 import { CLOUD_DIRS } from '@/services/fileSystem/localStorageService'
 import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
 import { openReaderWindow } from '@/services/ipc'

@@ -82,7 +82,7 @@ import {
   type BookSortKey,
   type BookSortOption,
   type BookSortOrder,
-} from '@/services/book/bookSortService'
+} from '@/services/book/sort'
 
 defineOptions({
   name: 'ShelfMenu',
