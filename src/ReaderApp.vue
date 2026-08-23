@@ -101,40 +101,40 @@ import TocMenu from './components/TocMenu/index.vue'
 import { BookConfig } from '@/types/book'
 import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 import { READER_DOM_EVENTS } from '@/constants/events'
-import { destroyEpubRendition, renderEpubBook } from '@/services/reader/epub/epubAdapter'
-import type { EpubBuiltInStylesheetIsolationController } from '@/services/reader/epub/epubBuiltinStylesheetIsolationService'
-import { loadReaderBookData } from '@/services/reader/readerLoadService'
-import { saveReaderProgress } from '@/services/reader/readerProgressService'
-import { registerReaderWindowEvents } from '@/services/reader/readerWindowEventsService'
+import { destroyEpubRendition, renderEpubBook } from '@/services/reader/epubRender'
+import type { EpubBuiltInStylesheetIsolationController } from '@/services/reader/stylesheetIsolation'
+import { loadReaderBookData } from '@/services/reader/load'
+import { saveReaderProgress } from '@/services/reader/progress'
+import { registerReaderWindowEvents } from '@/services/reader/windowEvents'
 import {
   addBookmarkUnderline,
   initBookMarksForBook,
   removeBookmarkUnderline,
-} from '@/services/reader/epub/bookmarkService'
-import { bindRenditionEvents } from '@/services/reader/epub/renditionEventsService'
+} from '@/services/reader/bookmark'
+import { bindRenditionEvents } from '@/services/reader/renditionEvents'
 import {
   collectParentChapterIndexes,
   scrollDrawerToActiveChapter,
-} from '@/services/reader/epub/tocService'
-import { buildContextMenuData } from '@/services/reader/contextMenuService'
-import { bindReaderInteractions } from '@/services/reader/readerInteractionBindingService'
+} from '@/services/reader/toc'
+import { buildContextMenuData } from '@/services/reader/contextMenu'
+import { bindReaderInteractions } from '@/services/reader/interaction'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
 import { useBookMarkStore, BookMark } from './store/bookMark'
-import { withReaderLoading } from '@/services/reader/readerLoadingService'
-import { applyReaderStyles, ReaderStyleConfig } from '@/services/reader/readerStyleService'
-import { serializeReaderThemeCss } from '@/services/reader/epub/epubStyleService'
+import { withReaderLoading } from '@/services/reader/loadingOverlay'
+import { applyReaderStyles, ReaderStyleConfig } from '@/services/reader/style'
+import { serializeReaderThemeCss } from '@/services/reader/epubStyle'
 import {
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
-} from '@/services/reader/readerConfigService'
-import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFontService'
-import { buildReaderFontApplication } from '@/services/reader/readerFontApplicationService'
+} from '@/services/reader/config'
+import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFonts'
+import { buildReaderFontApplication } from '@/services/reader/fontApplication'
 import { primeBookLocationsAfterImport } from '@/services/book/bookCacheService'
 import { getReadyBookLocations } from '@/services/book/bookLocationsCacheService'
 import { normalizeDisplayedChapterTitle } from '@/services/book/bookPresentationService'
 import { loadBookMarksByBookKey } from '@/services/book/bookMarksRepository'
 import { loadPreferredUnderlineStyle } from '@/constants/bookmark'
-import { resolveEpubTocLabel } from '@/services/reader/epub/epubProgressService'
+import { resolveEpubTocLabel } from '@/services/reader/epubProgress'
 import {
   buildReaderBackgroundDeclarations,
   getAppliedAppThemeMode,

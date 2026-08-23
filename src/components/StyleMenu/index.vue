@@ -109,7 +109,7 @@ import { storeToRefs } from 'pinia'
 import { confirm } from '@tauri-apps/plugin-dialog'
 import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
-import { buildReaderFontOptions } from '@/services/reader/systemFontService'
+import { buildReaderFontOptions } from '@/services/reader/systemFonts'
 import { dispatchReaderStyleUpdate } from '@/services/ipc'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
 import {

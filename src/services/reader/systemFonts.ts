@@ -7,6 +7,9 @@ import {
   normalizeReaderBackgroundPresets,
 } from '@/services/theme/themeService'
 import { createDefaultReaderBackgroundPresets } from '@/types/readerBackground'
+import type { ReaderFontOption, SystemFontFamilyGroup } from '@/services/reader/types'
+
+export type { ReaderFontOption, SystemFontFamilyGroup }
 
 interface RawSystemFontEntry {
   family: string
@@ -18,20 +21,6 @@ interface RawSystemFontEntry {
   path: string | null
   face_index: number
   family_aliases: unknown
-}
-
-export interface ReaderFontOption {
-  label: string
-  value: string
-  family: string
-  subfamily: string | null
-  isDefault: boolean
-}
-
-export interface SystemFontFamilyGroup {
-  family: string
-  displayFamily: string
-  entries: SystemFontEntry[]
 }
 
 const normalizeSearchText = (value: string | null | undefined) => {

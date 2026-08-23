@@ -1,10 +1,10 @@
+import type { ReaderLoadResult } from '@/services/reader/types'
 import { loadBookBinary, loadBookConfig } from '@/services/book/bookRepository'
 import { loadBookLocationsCache } from '@/services/book/bookLocationsCacheService'
-import { ReaderFormatLoadResult } from '@/services/reader/formatTypes'
 
-export type ReaderLoadResult = ReaderFormatLoadResult
+export { ReaderLoadResult }
 
-export const loadReaderBookData = async (bookKey: string): Promise<ReaderFormatLoadResult> => {
+export const loadReaderBookData = async (bookKey: string): Promise<ReaderLoadResult> => {
   const bookConfig = await loadBookConfig(bookKey)
   const loadedBook = await loadBookBinary(bookKey)
   const bookLocationsCache = await loadBookLocationsCache(bookKey)

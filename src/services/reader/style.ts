@@ -1,36 +1,10 @@
 import { getAppliedAppThemeMode, getReaderRuntimePalette } from '@/services/theme/themeService'
 import type { AppThemeMode } from '@/services/settings/appSettingsService'
-import type { ReaderBackgroundPresets } from '@/types/readerBackground'
-import type { EnabledSystemFont } from '@/types/readerFonts'
-import { applyEpubReaderStyles } from '@/services/reader/epub/epubStyleService'
+import type { ReaderStyleConfig } from '@/services/reader/types'
+import { applyEpubReaderStyles } from '@/services/reader/epubStyle'
 import type { EpubRenditionLike } from '@/types/epub'
 
-export interface ReaderStyleConfig {
-  font: string
-  fontSize: number
-  fontWeight: number
-  lineSpacing: number
-  paragraphSpacing: number
-  letterSpacing: number
-  boxPaddingTop: number
-  boxPaddingBottom: number
-  boxPaddingHorizontal: number
-  columnCount: number
-  indent: number
-  color: string
-  fontColor: string
-  backgroundPresets: ReaderBackgroundPresets
-  flow: string
-  enabledSystemFonts: EnabledSystemFont[]
-}
-
-export interface ReaderRenditionLike {
-  themes: {
-    default: (theme: Record<string, unknown>) => void
-  }
-  flow: (flowMode: string) => void
-  layout: (layout: unknown) => void
-}
+export type { ReaderStyleConfig, ReaderRenditionLike } from '@/services/reader/types'
 
 export const applyReaderStyles = (
   readerConfig: ReaderStyleConfig,

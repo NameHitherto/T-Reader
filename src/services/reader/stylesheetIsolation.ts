@@ -1,4 +1,4 @@
-import { getFootnoteBaseStyles } from '@/services/reader/epub/epubFootnoteStyleService'
+import { getFootnoteBaseStyles } from '@/services/reader/epubStyle'
 
 interface EpubContentHook {
   register: (hook: (document: Document) => void) => void

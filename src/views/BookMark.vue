@@ -101,7 +101,7 @@ import AppIcon from '@/components/common/AppIcon/index.vue'
 import { BookMark } from '@/store/bookMark'
 import { ElMessageBox } from 'element-plus'
 import { loadAllBookMarks, saveAllBookMarks } from '@/services/book/bookMarksRepository'
-import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
+import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import { formatDateToNumber } from '@/utils/date'
 
 export default defineComponent({

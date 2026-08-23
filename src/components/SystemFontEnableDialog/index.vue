@@ -129,12 +129,12 @@
 import { defineComponent, computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
-import { saveReaderConfigToDisk } from '@/services/reader/readerConfigService'
+import { saveReaderConfigToDisk } from '@/services/reader/config'
 import {
   buildLocalSrcValue,
   escapeCssString,
   getReaderLocalFontCandidates,
-} from '@/services/reader/readerFontApplicationService'
+} from '@/services/reader/fontApplication'
 import { dispatchReaderStyleUpdate } from '@/services/ipc'
 import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
 import { logError } from '@/utils/logger'
@@ -149,7 +149,7 @@ import {
   orderSystemFontFamilyGroups,
   toEnabledSystemFont,
   type SystemFontFamilyGroup,
-} from '@/services/reader/systemFontService'
+} from '@/services/reader/systemFonts'
 import {
   DEFAULT_READER_FONT,
   SYSTEM_FONT_PREVIEW_TEXT,

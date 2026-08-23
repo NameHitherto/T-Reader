@@ -1,10 +1,17 @@
 import { BookMark } from '@/store/bookMark'
-import { BookConfig } from '@/types/book'
+import { BookConfig, BookProgressSnapshot } from '@/types/book'
 import { loadBookConfig, saveBookConfig, updateBookProgress } from '@/services/book/bookRepository'
 import { replaceBookMarksForBook } from '@/services/book/bookMarksRepository'
-import { serializeReaderProgress } from '@/services/reader/progressSnapshotService'
-import { epubReaderProgressHandler } from '@/services/reader/epub/epubProgressService'
-import type { EpubRenditionLike } from '@/types/epub'
+import { isUnreadProgressSnapshot } from '@/services/book/bookConfigService'
+import {
+  calculateEpubProgress,
+  calculateEpubProgressFromSnapshot,
+  resolveEpubDisplayTarget,
+  serializeEpubProgress,
+} from '@/services/reader/epubProgress'
+import type { EpubBookLike, EpubRenditionLike } from '@/types/epub'
+
+import type { BookLocationsCachePayload } from '@/services/book/bookLocationsCacheService'
 
 interface SaveReaderProgressArgs {
   bookKey: string
@@ -18,14 +25,41 @@ export interface SavedReaderProgress {
   progress: number
 }
 
+export const serializeReaderProgress = async (
+  rendition: EpubRenditionLike | null,
+): Promise<BookProgressSnapshot | null> => {
+  return await serializeEpubProgress(rendition)
+}
+
+export const resolveReaderDisplayTarget = async (
+  source: EpubBookLike,
+  snapshot: BookProgressSnapshot,
+): Promise<string | number | undefined> => {
+  return await resolveEpubDisplayTarget(source, snapshot)
+}
+
+export const calculateShelfProgress = async (
+  bookData: Uint8Array | undefined,
+  snapshot: BookProgressSnapshot,
+  locationsCache?: BookLocationsCachePayload | null,
+): Promise<number> => {
+  if (isUnreadProgressSnapshot(snapshot)) {
+    return 0
+  }
+
+  if (!bookData) {
+    return 0
+  }
+
+  const cachedLocations = locationsCache?.status === 'ready' ? locationsCache.locations : undefined
+
+  return await calculateEpubProgressFromSnapshot(bookData, snapshot, cachedLocations)
+}
+
 const resolveReaderProgressPercent = async (
   rendition: EpubRenditionLike | null,
-  bookConfig: Pick<BookConfig, 'durChapterIndex'>,
 ): Promise<number> => {
-  return await epubReaderProgressHandler.calculateProgress({
-    rendition,
-    bookConfig,
-  })
+  return await calculateEpubProgress(rendition)
 }
 
 export const saveReaderProgress = async (
@@ -48,7 +82,7 @@ export const saveReaderProgress = async (
   await replaceBookMarksForBook(bookKey, nextBookMarks)
 
   await saveBookConfig(bookKey, bookConfig)
-  const progress = await resolveReaderProgressPercent(rendition, bookConfig)
+  const progress = await resolveReaderProgressPercent(rendition)
   await updateBookProgress(bookKey, progress)
 
   return {

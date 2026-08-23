@@ -2,7 +2,7 @@ import {
   buildReaderBackgroundDeclarations,
   getReaderRuntimePalette,
 } from '@/services/theme/themeService'
-import type { ReaderRenditionLike, ReaderStyleConfig } from '@/services/reader/readerStyleService'
+import type { ReaderRenditionLike, ReaderStyleConfig } from './types'
 
 type ReaderPalette = ReturnType<typeof getReaderRuntimePalette>
 
@@ -11,6 +11,19 @@ const serializeCssDeclaration = (declarations: Record<string, unknown>) => {
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .map(([property, value]) => `${property}: ${String(value)};`)
     .join('\n')
+}
+
+/**
+ * 获取脚注基础样式
+ * 这些样式会在样式隔离启用时注入到 iframe 中
+ */
+export const getFootnoteBaseStyles = (): string => {
+  return `
+    /* 脚注图标 */
+    img[class~="footnote"] {
+      max-width: 1em !important;
+    }
+  `
 }
 
 export const serializeReaderThemeCss = (theme: Record<string, unknown>) => {

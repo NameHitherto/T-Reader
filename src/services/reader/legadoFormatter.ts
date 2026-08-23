@@ -12,6 +12,8 @@
  * 5. 规范化空白和段落缩进
  */
 
+import type { EpubSectionLike } from '@/types/epub'
+
 const LEGADO_PARAGRAPH_INDENT = '\u3000\u3000'
 const ZERO_WIDTH_CHARS = new RegExp(
   // eslint-disable-next-line no-misleading-character-class
@@ -319,4 +321,3 @@ export const createRangeFromLegadoOffset = (
   range.collapse(true)
   return range
 }
-import type { EpubSectionLike } from '@/types/epub'

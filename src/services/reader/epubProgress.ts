@@ -1,11 +1,10 @@
 import ePub, { EpubCFI } from 'libs/epub.js'
 import { BookConfig } from '@/types/book'
-import { ReaderProgressHandler } from '@/services/reader/formatTypes'
 import { logInfo, logWarn } from '@/utils/logger'
 import {
   calculateLegadoOffset,
   createRangeFromLegadoOffset,
-} from '@/services/reader/epub/legadoHtmlFormatter'
+} from '@/services/reader/legadoFormatter'
 import type {
   EpubBookLike,
   EpubLocationLike,
@@ -254,27 +253,9 @@ const clampProgress = (value: number): number => {
   return Math.min(100, Math.max(0, value))
 }
 
-export const epubReaderProgressHandler: ReaderProgressHandler = {
-  async serializeProgress({ rendition }) {
-    return await serializeEpubProgress(rendition)
-  },
-  async resolveDisplayTarget(source, snapshot) {
-    return await resolveEpubDisplayTarget(source, snapshot)
-  },
-  async calculateProgress({ rendition }) {
-    const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
-    const percentage = currentLocation?.start?.percentage
+export const calculateEpubProgress = async (rendition: EpubRenditionLike | null): Promise<number> => {
+  const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
+  const percentage = currentLocation?.start?.percentage
 
-    return typeof percentage === 'number' ? clampProgress(percentage * 100) : 0
-  },
-  async calculateShelfProgress({ bookData, snapshot, locationsCache }) {
-    if (!bookData) {
-      return 0
-    }
-
-    const cachedLocations =
-      locationsCache?.status === 'ready' ? locationsCache.locations : undefined
-
-    return await calculateEpubProgressFromSnapshot(bookData, snapshot, cachedLocations)
-  },
+  return typeof percentage === 'number' ? clampProgress(percentage * 100) : 0
 }

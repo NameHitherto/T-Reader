@@ -1,5 +1,5 @@
 import { ref, watch, Ref } from 'vue'
-import { applyBookmarkUnderline } from '@/services/reader/epub/bookmarkService'
+import { applyBookmarkUnderline } from '@/services/reader/bookmark'
 import type { BookMark, useBookMarkStore } from '@/store/bookMark'
 import type { EpubRenditionLike } from '@/types/epub'
 import type { UnderlineStyle } from '@/constants/bookmark'

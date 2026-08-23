@@ -182,12 +182,12 @@ import {
   showMainTaskMessage,
 } from '@/services/notification/mainTaskMessageService'
 import { toHttpResponseResult, toSettledResponseResult } from '@/services/response/responseHandler'
-import { openReaderWindowWithPrecheck } from '@/services/reader/readerWindowLaunchService'
+import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import {
   prepareReaderBookDelete,
   type BookshelfProgressSavedPayload,
 } from '@/services/ipc'
-import { buildContextMenuData } from '@/services/reader/contextMenuService'
+import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme/themeService'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { logError, logInfo, logWarn } from '@/utils/logger'

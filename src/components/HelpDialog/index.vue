@@ -83,7 +83,7 @@
 import { computed, defineComponent } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useReaderConfigStore } from '@/store/readerConfigStore'
-import { getSystemFontEntryKey } from '@/services/reader/systemFontService'
+import { getSystemFontEntryKey } from '@/services/reader/systemFonts'
 import styleDemoImg from '@/assets/images/style_demo.png'
 
 export default defineComponent({
