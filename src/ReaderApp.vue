@@ -270,13 +270,17 @@ const readerDefaultTheme = computed(() => {
 })
 
 async function applyReaderStyle(applyIframeStyle = true) {
-  applyReaderStyles(
+  const themeCss = applyReaderStyles(
     readerConfig.value as ReaderStyleConfig,
     readerDefaultTheme.value,
     rendition.value,
     appThemeMode.value,
     applyIframeStyle,
   )
+
+  if (themeCss !== undefined) {
+    stylesheetIsolationController?.setCustomStylesheet(themeCss)
+  }
 }
 
 // ============================================================

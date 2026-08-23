@@ -32,9 +32,6 @@ export interface ReaderStyleConfig {
 }
 
 export interface ReaderRenditionLike {
-  themes: {
-    default: (theme: Record<string, unknown>) => void
-  }
   flow: (flowMode: string) => void
   layout: (layout: unknown) => void
 }

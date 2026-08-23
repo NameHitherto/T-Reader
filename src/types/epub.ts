@@ -65,6 +65,7 @@ export interface EpubLocationLike {
 export interface EpubContentsLike {
   document?: Document
   window: Window
+  addStylesheetCss?: (serializedCss: string, key: string) => Promise<boolean> | boolean
 }
 
 export interface EpubRenditionLike {
@@ -88,15 +89,12 @@ export interface EpubRenditionLike {
   hooks: {
     content: {
       clear?: () => void
-      deregister?: (callback: (contents: EpubContentsLike) => EpubContentsLike) => void
-      register: (callback: (contents: EpubContentsLike) => EpubContentsLike) => unknown
+      deregister?: (callback: (contents: EpubContentsLike) => unknown) => void
+      register: (callback: (contents: EpubContentsLike) => unknown) => unknown
     }
   }
   on: (eventName: string, callback: (...args: unknown[]) => void) => void
   getContents?: () => EpubContentsLike[]
-  themes: {
-    default: (theme: Record<string, unknown>) => void
-  }
   flow: (flow: string) => void
   layout: (settings: unknown) => void
   resize?: (width?: number, height?: number) => void

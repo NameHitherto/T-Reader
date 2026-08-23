@@ -1,7 +1,4 @@
-import {
-  buildReaderBackgroundDeclarations,
-  getReaderRuntimePalette,
-} from '@/services/theme'
+import { buildReaderBackgroundDeclarations, getReaderRuntimePalette } from '@/services/theme'
 import type { ReaderRenditionLike, ReaderStyleConfig } from './types'
 
 type ReaderPalette = ReturnType<typeof getReaderRuntimePalette>
@@ -65,7 +62,8 @@ export const applyEpubReaderStyles = (
     },
   }
 
-  rendition?.themes.default(resolvedTheme)
   rendition?.flow(readerConfig.flow)
   rendition?.layout(null)
+
+  return serializeReaderThemeCss(resolvedTheme)
 }

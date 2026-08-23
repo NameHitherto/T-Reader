@@ -59,8 +59,8 @@ export const applyReaderStyles = (
   }
 
   if (!applyIframeStyle) {
-    return
+    return undefined
   }
 
-  applyEpubReaderStyles(readerConfig, readerDefaultTheme, rendition, palette)
+  return applyEpubReaderStyles(readerConfig, readerDefaultTheme, rendition, palette)
 }

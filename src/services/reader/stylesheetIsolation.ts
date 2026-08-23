@@ -1,6 +1,7 @@
 import { getFootnoteBaseStyles } from '@/services/reader/epubStyle'
+import type { EpubContentsLike, EpubRenditionLike } from '@/types/epub'
 
-interface EpubContentHook {
+interface EpubSpineContentHook {
   register: (hook: (document: Document) => void) => void
   deregister: (hook: (document: Document) => void) => void
 }
@@ -8,7 +9,7 @@ interface EpubContentHook {
 interface EpubBookLike {
   spine?: {
     hooks?: {
-      content?: EpubContentHook
+      content?: EpubSpineContentHook
     }
   }
 }
@@ -17,48 +18,21 @@ export interface EpubBuiltInStylesheetIsolationController {
   disableBuiltInStylesheet: () => void
   enableBuiltInStylesheet: () => void
   setCustomStylesheet: (css: string) => void
+  bindRendition: (rendition: EpubRenditionLike) => void
   destroy: () => void
 }
 
-const CUSTOM_STYLESHEET_ID = 't-reader-custom-stylesheet'
-
-const removeBuiltInStylesheetNodes = (doc: Document) => {
-  const nodes = doc.querySelectorAll("link[rel~='stylesheet'], style")
-  nodes.forEach((node) => node.remove())
-}
-
-const insertCustomStylesheetNode = (doc: Document, css: string) => {
-  const head = doc.head || doc.getElementsByTagName('head')[0]
-  if (!head) {
-    return
-  }
-
-  const existingStyle = doc.getElementById(CUSTOM_STYLESHEET_ID) as HTMLStyleElement | null
-
-  if (!css) {
-    existingStyle?.remove()
-    return
-  }
-
-  const styleElement = existingStyle || doc.createElement('style')
-  styleElement.id = CUSTOM_STYLESHEET_ID
-
-  if (styleElement.textContent !== css) {
-    styleElement.textContent = css
-  }
-
-  if (!styleElement.isConnected) {
-    head.appendChild(styleElement)
-  }
-}
+const CUSTOM_STYLESHEET_KEY = 't-reader-theme'
 
 export const createEpubBuiltInStylesheetIsolationController = (
   book: EpubBookLike,
 ): EpubBuiltInStylesheetIsolationController => {
   const contentHook = book.spine?.hooks?.content
   let isRegistered = false
-  let isCustomStylesheetRegistered = false
+  let renditionContentHook: ((contents: EpubContentsLike) => unknown) | undefined
+  let isRenditionThemeRegistered = false
   let customStylesheetCss = ''
+  let boundRendition: EpubRenditionLike | null = null
 
   const FOOTNOTE_STYLE_ID = 't-reader-footnote-styles'
 
@@ -72,55 +46,68 @@ export const createEpubBuiltInStylesheetIsolationController = (
   }
 
   const stripBuiltInStylesheetHook = (doc: Document) => {
-    removeBuiltInStylesheetNodes(doc)
-    // 样式隔离时注入脚注基础样式
+    const nodes = doc.querySelectorAll("link[rel~='stylesheet'], style")
+    nodes.forEach((node) => node.remove())
     injectFootnoteStyles(doc)
   }
 
-  const customStylesheetHook = (doc: Document) => {
-    insertCustomStylesheetNode(doc, customStylesheetCss)
+  const applyThemeToContents = async (contents: EpubContentsLike) => {
+    if (!customStylesheetCss || !contents.addStylesheetCss) return contents
+
+    try {
+      await contents.addStylesheetCss(customStylesheetCss, CUSTOM_STYLESHEET_KEY)
+    } catch {
+      // A destroyed or not-yet-ready iframe must not interrupt rendition hooks.
+    }
+
+    return contents
+  }
+
+  const applyThemeToCurrentContents = () => {
+    const contents = boundRendition?.getContents?.() || []
+    contents.forEach((content) => {
+      void applyThemeToContents(content)
+    })
   }
 
   const disableBuiltInStylesheet = () => {
-    if (!contentHook || isRegistered) {
-      return
-    }
-
+    if (!contentHook || isRegistered) return
     contentHook.register(stripBuiltInStylesheetHook)
     isRegistered = true
   }
 
   const enableBuiltInStylesheet = () => {
-    if (!contentHook || !isRegistered) {
-      return
-    }
-
+    if (!contentHook || !isRegistered) return
     contentHook.deregister(stripBuiltInStylesheetHook)
     isRegistered = false
   }
 
-  const setCustomStylesheet = (css: string) => {
-    customStylesheetCss = css
+  const bindRendition = (rendition: EpubRenditionLike) => {
+    if (boundRendition === rendition) return
 
-    if (!contentHook || isCustomStylesheetRegistered) {
-      return
+    if (renditionContentHook && boundRendition?.hooks?.content) {
+      boundRendition.hooks.content.deregister?.(renditionContentHook)
     }
 
-    contentHook.register(customStylesheetHook)
-    isCustomStylesheetRegistered = true
+    boundRendition = rendition
+    renditionContentHook = applyThemeToContents
+    rendition.hooks?.content?.register(renditionContentHook)
+    isRenditionThemeRegistered = Boolean(rendition.hooks?.content)
+    applyThemeToCurrentContents()
   }
 
-  const removeCustomStylesheet = () => {
-    if (!contentHook || !isCustomStylesheetRegistered) {
-      return
-    }
-
-    contentHook.deregister(customStylesheetHook)
-    isCustomStylesheetRegistered = false
+  const setCustomStylesheet = (css: string) => {
+    customStylesheetCss = css
+    applyThemeToCurrentContents()
   }
 
   const destroy = () => {
-    removeCustomStylesheet()
+    if (renditionContentHook && boundRendition?.hooks?.content && isRenditionThemeRegistered) {
+      boundRendition.hooks.content.deregister?.(renditionContentHook)
+    }
+    renditionContentHook = undefined
+    boundRendition = null
+    isRenditionThemeRegistered = false
     enableBuiltInStylesheet()
   }
 
@@ -128,6 +115,7 @@ export const createEpubBuiltInStylesheetIsolationController = (
     disableBuiltInStylesheet,
     enableBuiltInStylesheet,
     setCustomStylesheet,
+    bindRendition,
     destroy,
   }
 }

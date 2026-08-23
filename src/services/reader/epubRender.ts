@@ -60,6 +60,8 @@ export const renderEpubBook = async (
     allowScriptedContent: true,
   })
 
+  stylesheetIsolation.bindRendition(rendition as unknown as EpubRenditionLike)
+
   if (cachedLocations) {
     try {
       ePubBook.locations.load(cachedLocations)
