@@ -5,7 +5,7 @@ import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/types/readerFo
 import {
   getReaderThemeCompatColors,
   normalizeReaderBackgroundPresets,
-} from '@/services/theme/themeService'
+} from '@/services/theme'
 import { createDefaultReaderBackgroundPresets } from '@/types/readerBackground'
 import type { ReaderFontOption, SystemFontFamilyGroup } from '@/services/reader/types'
 

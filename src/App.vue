@@ -67,7 +67,7 @@ import logoIcon from '/src-tauri/icons/Roxy.png'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { IconName } from '@/icons/registry'
-import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
+import { showMainTaskMessage } from '@/services/notification'
 import { logWarn } from '@/utils/logger'
 
 interface NavigationItem {

@@ -25,8 +25,8 @@ import { computed } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { about } from '@/constants/about'
 import type { IconName } from '@/icons/registry'
-import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
-import { toHttpResponseMessage } from '@/services/response/responseHandler'
+import { showMainTaskMessage } from '@/services/notification'
+import { toHttpResponseMessage } from '@/services/response'
 
 interface ContactItem {
   key: string

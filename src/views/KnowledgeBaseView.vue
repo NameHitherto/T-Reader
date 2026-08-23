@@ -227,7 +227,7 @@ import {
   reingestKnowledgeDocument,
   sendKnowledgeQaMessage,
   updateKnowledgeSeries,
-} from '@/services/knowledgeBase/knowledgeBaseService'
+} from '@/services/knowledgeBase'
 import { logError } from '@/utils/logger'
 import MarkdownContent from '@/components/common/MarkdownContent/index.vue'
 

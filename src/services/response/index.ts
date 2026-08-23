@@ -1,4 +1,4 @@
-import type { MainTaskMessageType } from '@/services/notification/mainTaskMessageService'
+import type { MainTaskMessageType } from '@/services/notification'
 import { isWebDavError } from '@/types/webdavError'
 
 // 判断错误是否为 WebDavError

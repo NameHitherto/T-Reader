@@ -137,8 +137,8 @@ import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import BookMetadataEditDialog from '@/components/BookMetadataEditDialog.vue'
 import defaultCover from '@/assets/default-cover.png'
 import { detectBookFormatFromPath } from '@/services/book/format'
-import { getLocalDirNames } from '@/services/fileSystem/dirService'
-import type { LocalDirNames } from '@/services/fileSystem/dirService'
+import { getLocalDirNames } from '@/services/fileSystem'
+import type { LocalDirNames } from '@/services/fileSystem'
 import {
   parseBookCoverInBackground,
   resolveBookCoverForDisplay,
@@ -176,19 +176,19 @@ import {
   CLOUD_DIRS,
   LOCAL_DIRS,
   removeLocalFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 import {
   createMainTaskBatchNotifier,
   showMainTaskMessage,
-} from '@/services/notification/mainTaskMessageService'
-import { toHttpResponseResult, toSettledResponseResult } from '@/services/response/responseHandler'
+} from '@/services/notification'
+import { toHttpResponseResult, toSettledResponseResult } from '@/services/response'
 import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import {
   prepareReaderBookDelete,
   type BookshelfProgressSavedPayload,
 } from '@/services/ipc'
 import { buildContextMenuData } from '@/services/reader/contextMenu'
-import { getAppliedAppThemeMode } from '@/services/theme/themeService'
+import { getAppliedAppThemeMode } from '@/services/theme'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { getFileNameFromPath } from '@/utils/filePath'

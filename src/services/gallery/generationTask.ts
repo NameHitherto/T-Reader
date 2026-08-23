@@ -1,6 +1,6 @@
 import { reactive, readonly } from 'vue'
 import { GenerateGalleryImageRequest } from '@/types/gallery'
-import { generateGalleryImage } from '@/services/gallery/galleryRepository'
+import { generateGalleryImage } from '@/services/gallery/repository'
 import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { logError, logInfo } from '@/utils/logger'

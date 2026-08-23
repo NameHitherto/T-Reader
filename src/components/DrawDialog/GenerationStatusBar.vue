@@ -18,7 +18,7 @@ import { computed } from 'vue'
 import {
   dismissImageGenerationStatus,
   imageGenerationTask,
-} from '@/services/gallery/imageGenerationTaskService'
+} from '@/services/gallery'
 
 defineOptions({ name: 'GenerationStatusBar' })
 

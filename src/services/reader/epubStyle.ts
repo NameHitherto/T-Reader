@@ -1,7 +1,7 @@
 import {
   buildReaderBackgroundDeclarations,
   getReaderRuntimePalette,
-} from '@/services/theme/themeService'
+} from '@/services/theme'
 import type { ReaderRenditionLike, ReaderStyleConfig } from './types'
 
 type ReaderPalette = ReturnType<typeof getReaderRuntimePalette>

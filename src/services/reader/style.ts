@@ -1,5 +1,5 @@
-import { getAppliedAppThemeMode, getReaderRuntimePalette } from '@/services/theme/themeService'
-import type { AppThemeMode } from '@/services/settings/appSettingsService'
+import { getAppliedAppThemeMode, getReaderRuntimePalette } from '@/services/theme'
+import type { AppThemeMode } from '@/services/settings'
 import type { ReaderStyleConfig } from '@/services/reader/types'
 import { applyEpubReaderStyles } from '@/services/reader/epubStyle'
 import type { EpubRenditionLike } from '@/types/epub'

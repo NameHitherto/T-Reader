@@ -18,7 +18,7 @@ import { encodeJson } from '@/utils/json'
 import type { BookFormat } from '@/types/book'
 import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
-import { loadAppSettings } from '@/services/settings/appSettingsService'
+import { loadAppSettings } from '@/services/settings'
 import {
   localBookExists,
   listLocalBookFiles,
@@ -31,7 +31,7 @@ import {
   LOCAL_DIRS,
   readJsonFile,
   writeJsonFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 
 export type {
   LoadedBookBinary,

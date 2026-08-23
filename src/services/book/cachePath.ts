@@ -1,7 +1,7 @@
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { documentDir, join } from '@tauri-apps/api/path'
 import { hashBookKey } from '@/services/book/identity'
-import { buildLocalFilePath, LOCAL_DIRS } from '@/services/fileSystem/localStorageService'
+import { buildLocalFilePath, LOCAL_DIRS } from '@/services/fileSystem'
 
 const BOOK_CACHE_LOCATIONS_FILENAME = 'locations.json'
 

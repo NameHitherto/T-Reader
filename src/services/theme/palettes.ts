@@ -1,11 +1,7 @@
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { WINDOW_EVENTS } from '@/constants/events'
-import { dispatchReaderThemeUpdate } from '@/services/ipc'
 import {
-  loadAppSettings,
   normalizeAppThemeMode,
   type AppThemeMode,
-} from '@/services/settings/appSettingsService'
+} from '@/services/settings'
 import type {
   ReaderBackgroundPreset,
   ReaderBackgroundPresets,
@@ -13,49 +9,19 @@ import type {
   ReaderLightBackgroundPreset,
 } from '@/types/readerBackground'
 import { DEFAULT_READER_BACKGROUND_PRESETS } from '@/types/readerBackground'
+import type {
+  AppThemePalette,
+  ReaderBackgroundPresetOption,
+  ReaderRuntimePalette,
+} from './types'
+
+export type {
+  AppThemePalette,
+  ReaderBackgroundPresetOption,
+  ReaderRuntimePalette,
+} from './types'
 
 const THEME_ATTRIBUTE = 'data-theme'
-
-export interface AppThemePalette {
-  appBackground: string
-  appForeground: string
-  loadingOverlay: string
-  readerBackground: string
-  readerSurface: string
-  readerSurfaceStrong: string
-  readerText: string
-  readerMutedText: string
-  readerLink: string
-  readerSelectionBackground: string
-  readerSelectionColor: string
-  readerImageFilter: string
-}
-
-export interface ReaderRuntimePalette {
-  viewportBackground: string
-  contentBackground: string
-  backgroundImage?: string
-  backgroundSize?: string
-  backgroundPosition?: string
-  surface: string
-  surfaceStrong: string
-  text: string
-  mutedText: string
-  link: string
-  selectionBackground: string
-  selectionColor: string
-  imageFilter: string
-}
-
-export interface ReaderBackgroundPresetOption<T extends ReaderBackgroundPreset> {
-  value: T
-  label: string
-  description: string
-  preview: string
-  previewBackgroundImage?: string
-  previewBackgroundSize?: string
-  previewBackgroundPosition?: string
-}
 
 const THEME_PALETTES: Record<AppThemeMode, AppThemePalette> = {
   light: {
@@ -336,19 +302,6 @@ export const getAppThemePalette = (
   return THEME_PALETTES[normalizeAppThemeMode(mode)]
 }
 
-export const applyAppThemeMode = (mode: unknown): AppThemeMode => {
-  const normalizedMode = normalizeAppThemeMode(mode)
-  document.documentElement.setAttribute(THEME_ATTRIBUTE, normalizedMode)
-  document.documentElement.style.colorScheme = normalizedMode
-  return normalizedMode
-}
-
-export const initializeAppTheme = async () => {
-  const settings = await loadAppSettings()
-
-  return applyAppThemeMode(settings.themeMode)
-}
-
 export const normalizeReaderBackgroundPresets = (
   presets: Partial<ReaderBackgroundPresets> | null | undefined,
 ): ReaderBackgroundPresets => {
@@ -475,16 +428,4 @@ export const syncReaderConfigThemeColors = <
     ...config,
     ...getReaderThemeCompatColors(config, mode),
   }
-}
-
-export const emitAppThemeUpdate = async (mode: AppThemeMode) => {
-  const normalizedMode = applyAppThemeMode(mode)
-  const currentWindow = getCurrentWebviewWindow()
-
-  await Promise.allSettled([
-    currentWindow.emit(WINDOW_EVENTS.UPDATE_APP_THEME, { mode: normalizedMode }),
-    dispatchReaderThemeUpdate(normalizedMode),
-  ])
-
-  return normalizedMode
 }

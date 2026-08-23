@@ -8,7 +8,7 @@ import {
   readLocalDirEntries,
   removeLocalFile,
   writeBinaryFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 
 export const getLocalBookRelativePath = (fileName: string): string => {
   return buildLocalFilePath(LOCAL_DIRS.books, fileName)

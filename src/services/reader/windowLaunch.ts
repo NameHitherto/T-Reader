@@ -4,10 +4,10 @@ import {
   hasLocalBookFile,
   resolveBookFile,
 } from '@/services/book/repository'
-import { CLOUD_DIRS } from '@/services/fileSystem/localStorageService'
-import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
+import { CLOUD_DIRS } from '@/services/fileSystem'
+import { showMainTaskMessage } from '@/services/notification'
 import { openReaderWindow } from '@/services/ipc'
-import { toHttpResponseResult } from '@/services/response/responseHandler'
+import { toHttpResponseResult } from '@/services/response'
 
 const launchReaderWindow = async (bookKey: string, cfi = '') => {
   await openReaderWindow(bookKey, cfi)

@@ -1,7 +1,7 @@
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { WINDOW_EVENTS } from '@/constants/events'
-import { normalizeAppThemeMode, type AppThemeMode } from '@/services/settings/appSettingsService'
+import { normalizeAppThemeMode, type AppThemeMode } from '@/services/settings'
 import type {
   PrepareBookDeletePayload,
   ReaderLoadPayload,

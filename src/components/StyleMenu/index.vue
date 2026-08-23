@@ -117,8 +117,8 @@ import {
   getReaderBackgroundPresetOptions,
   syncReaderConfigThemeColors,
   type ReaderBackgroundPresetOption,
-} from '@/services/theme/themeService'
-import type { AppThemeMode } from '@/services/settings/appSettingsService'
+} from '@/services/theme'
+import type { AppThemeMode } from '@/services/settings'
 import type {
   ReaderBackgroundPreset,
   ReaderBackgroundPresets,

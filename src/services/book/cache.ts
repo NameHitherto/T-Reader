@@ -16,7 +16,7 @@ import {
   removeLocalDir,
   removeLocalFile,
   writeBinaryFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 
 export interface ResolveBookCoverOptions {
   onCoverUpdated?: (book: StoredBookRecord) => void | Promise<void>

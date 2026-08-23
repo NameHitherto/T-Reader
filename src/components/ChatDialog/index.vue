@@ -80,7 +80,7 @@ import {
   getBookChatContext,
   listBookChatMessages,
   sendBookChatMessage,
-} from '@/services/chat/bookChatService'
+} from '@/services/chat'
 import { logError } from '@/utils/logger'
 import { generateID } from '@/utils/id'
 import MarkdownContent from '@/components/common/MarkdownContent/index.vue'

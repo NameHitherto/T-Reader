@@ -1,4 +1,4 @@
-import type { UpdateChannel } from '@/services/settings/appSettingsService'
+export type UpdateChannel = 'stable' | 'preview'
 
 export type AppUpdateStage = 'preparing' | 'downloading' | 'installing' | 'handoff' | 'failed'
 

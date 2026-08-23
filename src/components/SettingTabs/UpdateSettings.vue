@@ -104,15 +104,14 @@ import { open } from '@tauri-apps/plugin-shell'
 import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { about } from '@/constants/about'
-import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
-import { toHttpResponseMessage } from '@/services/response/responseHandler'
+import { showMainTaskMessage } from '@/services/notification'
+import { toHttpResponseMessage } from '@/services/response'
 import {
   loadAppSettings,
   normalizeUpdateChannel,
   saveAppSettings,
-  type UpdateChannel,
-} from '@/services/settings/appSettingsService'
-import type { AppUpdateCheckResult, AppUpdateProgressEvent } from '@/types/appUpdate'
+} from '@/services/settings'
+import type { AppUpdateCheckResult, AppUpdateProgressEvent, UpdateChannel } from '@/types/appUpdate'
 
 const version = ref('')
 const checking = ref(false)

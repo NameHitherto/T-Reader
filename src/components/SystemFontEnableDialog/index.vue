@@ -136,7 +136,7 @@ import {
   getReaderLocalFontCandidates,
 } from '@/services/reader/fontApplication'
 import { dispatchReaderStyleUpdate } from '@/services/ipc'
-import { syncReaderConfigThemeColors } from '@/services/theme/themeService'
+import { syncReaderConfigThemeColors } from '@/services/theme'
 import { logError } from '@/utils/logger'
 import {
   doesSystemFontGroupMatchKeyword,

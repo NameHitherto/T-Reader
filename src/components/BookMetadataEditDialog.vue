@@ -68,7 +68,7 @@ import {
   buildLocalFilePath,
   LOCAL_DIRS,
   removeLocalFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 import { toBookConfigFilename } from '@/services/book/identity'
 import { prepareReaderBookDelete } from '@/services/ipc'
 import type { StoredBookRecord } from '@/services/book/types'

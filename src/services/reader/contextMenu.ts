@@ -1,4 +1,4 @@
-import { getAppliedAppThemeMode } from '@/services/theme/themeService'
+import { getAppliedAppThemeMode } from '@/services/theme'
 import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
 
 const DEFAULT_VIEWPORT_MARGIN = 20

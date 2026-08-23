@@ -8,7 +8,7 @@ import {
   readJsonFile,
   removeLocalFile,
   writeJsonFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 
 export type { BookLocationsCachePayload, BookLocationsCacheStatus }
 

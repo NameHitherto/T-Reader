@@ -240,7 +240,7 @@
 import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { invalidateBookFileCache } from '@/services/book/repository'
-import { showMainTaskMessage } from '@/services/notification/mainTaskMessageService'
+import { showMainTaskMessage } from '@/services/notification'
 import {
   EMPTY_CLOUD_SYNC_PREVIEW,
   applyCloudSyncPlan,
@@ -248,8 +248,8 @@ import {
   buildDefaultCloudSyncSelectionMap,
   formatCloudSyncResultMessage,
   getCloudSyncPreview,
-  toCloudSyncErrorMessage,
-} from '@/services/sync/cloudSyncService'
+} from '@/services/sync'
+import { toHttpResponseMessage } from '@/services/response'
 import type { CloudSyncPreviewResult } from '@/types/sync'
 
 export default defineComponent({
@@ -286,7 +286,7 @@ export default defineComponent({
         preview.value = nextPreview
         replaceDraftSelections(buildDefaultCloudSyncSelectionMap(nextPreview.bookItems))
       } catch (error) {
-        const message = toCloudSyncErrorMessage(error)
+        const message = toHttpResponseMessage(error)
         preview.value = { ...EMPTY_CLOUD_SYNC_PREVIEW }
         replaceDraftSelections({})
         loadError.value = message
@@ -338,7 +338,7 @@ export default defineComponent({
         showMainTaskMessage({
           type: 'error',
           title: '云同步失败',
-          message: toCloudSyncErrorMessage(error),
+          message: toHttpResponseMessage(error),
           taskKey: 'cloud-sync-apply',
         })
       } finally {

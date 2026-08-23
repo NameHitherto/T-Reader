@@ -1,5 +1,5 @@
 import { ElLoading } from 'element-plus'
-import { getAppThemePalette, getAppliedAppThemeMode } from '@/services/theme/themeService'
+import { getAppThemePalette, getAppliedAppThemeMode } from '@/services/theme'
 
 interface ReaderLoadingOptions {
   text?: string

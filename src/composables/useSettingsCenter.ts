@@ -5,15 +5,15 @@ import {
   loadAppSettings,
   saveAppSettings,
   type AppThemeMode,
-} from '@/services/settings/appSettingsService'
-import { detectSystemProxy } from '@/services/settings/proxyService'
+} from '@/services/settings'
+import { detectSystemProxy } from '@/services/settings'
 import {
   loadTxtTocRules,
   resequenceTxtTocRules,
   saveTxtTocRules,
 } from '@/services/book/txtTocRules'
 import type { TxtTocRule } from '@/services/book/types'
-import { emitAppThemeUpdate } from '@/services/theme/themeService'
+import { emitAppThemeUpdate } from '@/services/theme'
 import {
   ENDPOINT_PRESETS,
   type ModelProvider,

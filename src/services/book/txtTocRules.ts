@@ -6,7 +6,7 @@ import {
   localPathExists,
   readJsonFile,
   writeJsonFile,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 
 export type { TxtTocRule }
 

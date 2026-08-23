@@ -2,22 +2,10 @@ import { invoke } from '@tauri-apps/api/core'
 import { logWarn } from '@/utils/logger'
 import { MODEL_PURPOSES } from '@/types/model'
 import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/types/model'
+import type { UpdateChannel } from '@/types/appUpdate'
+import type { AppSettings, AppThemeMode } from './types'
 
-export type AppThemeMode = 'light' | 'dark'
-export type UpdateChannel = 'stable' | 'preview'
-
-export interface AppSettings {
-  webdavUrlRoot: string
-  webdavUrlFolder: string
-  webdavUrl: string
-  webdavUser: string
-  webdavPass: string
-  webdavTimeoutSeconds: number
-  modelProviders: ModelProviderMap
-  themeMode: AppThemeMode
-  updateChannel: UpdateChannel
-  proxyEnabled: boolean
-}
+export type { AppSettings, AppThemeMode } from './types'
 
 export const normalizeAppThemeMode = (value: unknown): AppThemeMode => {
   return value === 'dark' ? 'dark' : 'light'

@@ -1,6 +1,6 @@
 import ePub from 'libs/epub.js'
 import { buildBookCacheCoverPath, buildBookCacheDir } from '@/services/book/cachePath'
-import { ensureLocalDir, writeBinaryFile } from '@/services/fileSystem/localStorageService'
+import { ensureLocalDir, writeBinaryFile } from '@/services/fileSystem'
 import { logInfo, logWarn } from '@/utils/logger'
 
 export const extractEpubLocations = async (fileBuffer: ArrayBuffer): Promise<string> => {

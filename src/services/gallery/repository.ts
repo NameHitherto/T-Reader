@@ -4,7 +4,7 @@ import {
   ensureLocalDir,
   writeBinaryFile,
   buildLocalFilePath,
-} from '@/services/fileSystem/localStorageService'
+} from '@/services/fileSystem'
 import { generateID } from '@/utils/id'
 
 const GALLERY_STAGING_SUBDIR = 'cached/gallery/_staging'

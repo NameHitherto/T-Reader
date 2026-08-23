@@ -140,8 +140,8 @@ import {
   getAppliedAppThemeMode,
   getReaderRuntimePalette,
   syncReaderConfigThemeColors,
-} from '@/services/theme/themeService'
-import type { AppThemeMode } from '@/services/settings/appSettingsService'
+} from '@/services/theme'
+import type { AppThemeMode } from '@/services/settings'
 import type { EpubRenditionLike, EpubTocItem } from '@/types/epub'
 import {
   ackReaderBookDelete,
