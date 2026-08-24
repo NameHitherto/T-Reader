@@ -6,7 +6,7 @@ use epub_builder::{EpubBuilder, EpubContent, ReferenceType, ZipLibrary};
 
 use crate::{
     repository::local_fs::file_repository::{read_binary_file, write_binary_file},
-    service::filesystem::{
+    service::fs::{
         txt_chapter_split_service::{split_txt_to_chapters, TxtChapter},
         txt_toc_rule_service::get_enabled_txt_toc_rules,
     },

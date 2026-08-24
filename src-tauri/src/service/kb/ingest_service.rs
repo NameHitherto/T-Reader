@@ -15,8 +15,8 @@ use crate::{
         },
     },
     service::{
-        filesystem::epub_meta_service::parse_epub_metadata,
-        knowledge_base::{
+        fs::epub_meta_service::parse_epub_metadata,
+        kb::{
             chunking::build_knowledge_chunks,
             epub_knowledge_extractor::extract_epub_knowledge_paragraphs,
             model_client::embed_texts,

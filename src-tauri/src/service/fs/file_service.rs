@@ -5,7 +5,7 @@ use crate::{
         dir_repository::ensure_local_dirs,
         file_repository::{copy_file, log_file_copy},
     },
-    service::filesystem::txt_to_epub_service::convert_txt_file_to_epub,
+    service::fs::txt_to_epub_service::convert_txt_file_to_epub,
 };
 
 pub fn copy_file_to_subdir(filepath: &str, subdir: &str, filename: &str) -> Result<(), String> {

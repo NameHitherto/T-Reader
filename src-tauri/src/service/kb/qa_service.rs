@@ -8,7 +8,7 @@ use crate::{
         KnowledgeQaMessageDto, SendKnowledgeQaMessageRequest,
     },
     repository::knowledge_base as knowledge_repository,
-    service::knowledge_base::{
+    service::kb::{
         model_client,
         vector_store::{normalize_vector, rank_chunks_by_query},
     },

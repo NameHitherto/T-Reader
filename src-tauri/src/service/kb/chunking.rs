@@ -1,4 +1,4 @@
-use crate::service::knowledge_base::epub_knowledge_extractor::EpubKnowledgeParagraph;
+use crate::service::kb::epub_knowledge_extractor::EpubKnowledgeParagraph;
 
 const MIN_CHUNK_CHARS: usize = 400;
 const MAX_CHUNK_CHARS: usize = 800;
@@ -155,7 +155,7 @@ fn sentence_end_indices(text_chars: &[char]) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::{build_knowledge_chunks, split_long_text};
-    use crate::service::knowledge_base::epub_knowledge_extractor::EpubKnowledgeParagraph;
+    use crate::service::kb::epub_knowledge_extractor::EpubKnowledgeParagraph;
 
     #[test]
     fn merges_short_paragraphs() {

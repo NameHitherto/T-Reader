@@ -1,4 +1,4 @@
-use crate::service::filesystem::file_service::{
+use crate::service::fs::file_service::{
     convert_txt_to_epub as service_convert_txt_to_epub,
     copy_file_to_subdir as service_copy_file_to_subdir,
 };

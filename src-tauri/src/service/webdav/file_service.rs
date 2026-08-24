@@ -7,7 +7,7 @@ use crate::{
         },
     },
     service::{
-        filesystem::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs,
+        fs::settings_service::load_settings_entity, webdav::dir_service::ensure_cloud_dirs,
     },
     utils::logging::{log_info, log_warn},
 };

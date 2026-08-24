@@ -19,7 +19,7 @@ use crate::{
     },
     service::{
         book_identity::{build_book_key, build_book_title, hash_book_key},
-        filesystem::{
+        fs::{
             epub_meta_service::{parse_epub_metadata, EpubMetadata},
             settings_service::load_settings_entity,
             txt_to_epub_service::{convert_txt_bytes_to_epub, infer_txt_meta_from_filename},

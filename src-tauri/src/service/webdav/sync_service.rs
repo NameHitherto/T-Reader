@@ -22,7 +22,7 @@ use crate::{
     },
     service::{
         book_identity::build_book_key,
-        filesystem::{
+        fs::{
             epub_meta_service::parse_epub_metadata,
             settings_service::load_settings_entity,
             txt_to_epub_service::{convert_txt_bytes_to_epub, infer_txt_meta_from_filename, to_epub_file_name},
@@ -233,7 +233,7 @@ async fn auto_import_downloaded_book(
     // 解析书籍元数据
     let meta = if is_txt_book_file(file_name) {
         let inferred = infer_txt_meta_from_filename(file_name);
-        crate::service::filesystem::epub_meta_service::EpubMetadata {
+        crate::service::fs::epub_meta_service::EpubMetadata {
             title: inferred.title,
             author: inferred.author,
         }

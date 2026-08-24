@@ -8,7 +8,7 @@ use crate::{
         KnowledgeSeriesDto, SendKnowledgeQaMessageRequest, UpdateKnowledgeSeriesRequest,
     },
     repository::knowledge_base as knowledge_repository,
-    service::knowledge_base::{ingest_service, qa_service},
+    service::kb::{ingest_service, qa_service},
 };
 
 #[tauri::command]
