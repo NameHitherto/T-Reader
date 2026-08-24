@@ -67,7 +67,7 @@
             <div v-if="shelfViewMode === 'list'" class="shelf-list-content">
               <span
                 v-if="isBookMissing(book)"
-                class="shelf-list-missing-badge app-status-pill app-status-pill--danger"
+                class="shelf-list-missing-badge surface-pill surface-pill--danger"
               >
                 书籍缺失
               </span>

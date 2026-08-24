@@ -286,3 +286,66 @@
 .el-scrollbar__thumb {
   background-color: var(--scrollbar-thumb);
 }
+
+// —— 消息通知（ElMessage - main-task-message）——
+.main-task-message {
+  min-width: 0;
+  max-width: min(calc(100vw - 32px), 420px);
+  width: auto;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  pointer-events: auto;
+
+  &__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  &__text {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .el-message__content {
+    min-width: 0;
+    padding-right: 12px;
+  }
+
+  .el-message__icon {
+    margin-right: 10px;
+    font-size: 18px;
+  }
+
+  .el-message__closeBtn {
+    color: var(--text-tertiary);
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+
+  &--success,
+  &--info {
+    border-color: var(--border-brand);
+  }
+
+  &--warning {
+    border-color: var(--border-warning);
+    background: var(--surface-warning-soft);
+  }
+
+  &--error {
+    border-color: var(--border-danger);
+    background: var(--surface-danger-soft);
+  }
+}

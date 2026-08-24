@@ -29,14 +29,43 @@ img {
   background: var(--surface-strong);
 }
 
+::-webkit-scrollbar {
+  width: var(--t-scrollbar-width-thin);
+  height: var(--t-scrollbar-width-thin);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-strong);
+}
+
 .surface-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
   background: var(--surface-card-soft);
   color: var(--text-secondary);
+
+  &--danger {
+    border-color: transparent;
+    color: var(--text-on-brand);
+    background: var(--danger);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

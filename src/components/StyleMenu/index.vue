@@ -111,7 +111,7 @@
       <p class="epub-stylesheet-tip">切换后在下次打开书籍时生效</p>
     </div>
 
-    <button class="menu-reset-button app-secondary-button" @click="resetStyle">恢复默认样式</button>
+    <el-button class="menu-reset-button" @click="resetStyle">恢复默认样式</el-button>
   </div>
 </template>
 
@@ -593,6 +593,8 @@ label {
   }
 
   .menu-reset-button {
+    width: 100%;
+    min-height: 42px;
     margin-top: 14px;
   }
 }
