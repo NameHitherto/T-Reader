@@ -76,25 +76,37 @@
 
     <div class="extra-section section">
       <span class="section-title">其他</span>
-      <div class="flow-option">
+      <div class="extra-option">
         <label>翻页模式</label>
-        <BubbleToggle
+        <el-select
           v-model="flow"
-          class="style-menu-flow-toggle"
-          :options="flowOptions"
-          aria-label="翻页模式切换"
+          class="extra-select"
+          popper-class="style-menu-select-popper"
           @change="switchFlow"
-        />
+        >
+          <el-option
+            v-for="option in flowOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
+        </el-select>
       </div>
-      <div class="epub-stylesheet-option">
+      <div class="extra-option">
         <label>EPUB 内置样式</label>
-        <BubbleToggle
-          v-model="epubBuiltInStylesheet"
-          class="style-menu-epub-stylesheet-toggle"
-          :options="epubBuiltInStylesheetOptions"
-          aria-label="EPUB 内置样式切换"
-          @change="switchEpubBuiltInStylesheet"
-        />
+        <el-select
+          v-model="epubBuiltInStylesheetMode"
+          class="extra-select"
+          popper-class="style-menu-select-popper"
+          @change="switchEpubBuiltInStylesheetMode"
+        >
+          <el-option
+            v-for="option in epubBuiltInStylesheetOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
+        </el-select>
       </div>
       <p class="epub-stylesheet-tip">切换后在下次打开书籍时生效</p>
     </div>
@@ -107,8 +119,7 @@
 import { computed, defineComponent, ref, watch, type PropType } from 'vue'
 import { storeToRefs } from 'pinia'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import BubbleToggle from '@/components/common/BubbleToggle/index.vue'
-import { useReaderConfigStore } from '@/store/readerConfigStore'
+import { useReaderConfigStore, type EpubBuiltInStylesheetMode } from '@/store/readerConfigStore'
 import { buildReaderFontOptions } from '@/services/reader/systemFonts'
 import { dispatchReaderStyleUpdate } from '@/services/ipc'
 import { DEFAULT_READER_FONT } from '@/types/readerFonts'
@@ -150,9 +161,6 @@ interface ReaderNumericSetting {
 
 export default defineComponent({
   name: 'StyleMenu',
-  components: {
-    BubbleToggle,
-  },
   props: {
     maxHeight: {
       type: Number,
@@ -166,8 +174,6 @@ export default defineComponent({
   emits: ['open-font-dialog'],
   setup(props, { emit }) {
     type ReaderFlowToggleValue = 'paginated' | 'scrolled'
-    type EpubBuiltInStylesheetToggleValue = 'disabled' | 'enabled'
-
     const readerConfigStore = useReaderConfigStore()
     const { readerConfig } = storeToRefs(readerConfigStore)
 
@@ -270,32 +276,22 @@ export default defineComponent({
     const normalizeFlowToggleValue = (value: string): ReaderFlowToggleValue => {
       return value === 'paginated' ? 'paginated' : 'scrolled'
     }
-    const normalizeEpubBuiltInStylesheetToggleValue = (
-      value: boolean,
-    ): EpubBuiltInStylesheetToggleValue => {
-      return value ? 'enabled' : 'disabled'
-    }
-    const resolveEpubBuiltInStylesheetToggleValue = (
-      value?: EpubBuiltInStylesheetToggleValue,
-    ): boolean => {
-      return value === 'enabled'
-    }
-
     const flowOptions = [
       { label: '分页翻页', value: 'paginated' },
       { label: '滚动翻页', value: 'scrolled' },
     ] as { label: string; value: ReaderFlowToggleValue }[]
     const epubBuiltInStylesheetOptions = [
-      { label: '关闭', value: 'disabled' },
-      { label: '开启', value: 'enabled' },
-    ] as { label: string; value: EpubBuiltInStylesheetToggleValue }[]
+      { label: '移除', value: 'removed' },
+      { label: '智能', value: 'filtered' },
+      { label: '保留', value: 'preserved' },
+    ] as const
 
     const currentThemeMode = computed<AppThemeMode>(() => {
       return props.themeMode || getAppliedAppThemeMode()
     })
     const flow = ref<ReaderFlowToggleValue>(normalizeFlowToggleValue(readerConfig.value.flow))
-    const epubBuiltInStylesheet = ref<EpubBuiltInStylesheetToggleValue>(
-      normalizeEpubBuiltInStylesheetToggleValue(readerConfig.value.loadEpubBuiltInStylesheet),
+    const epubBuiltInStylesheetMode = ref<EpubBuiltInStylesheetMode>(
+      readerConfig.value.epubBuiltInStylesheetMode,
     )
     const fontOptions = computed(() =>
       buildReaderFontOptions(readerConfig.value.enabledSystemFonts),
@@ -342,9 +338,7 @@ export default defineComponent({
       })
       selectedFont.value = readerConfig.value.font
       flow.value = normalizeFlowToggleValue(readerConfig.value.flow)
-      epubBuiltInStylesheet.value = normalizeEpubBuiltInStylesheetToggleValue(
-        readerConfig.value.loadEpubBuiltInStylesheet,
-      )
+      epubBuiltInStylesheetMode.value = readerConfig.value.epubBuiltInStylesheetMode
     }
 
     const emitStyleApplication = () => {
@@ -413,10 +407,10 @@ export default defineComponent({
       readerConfigStore.changeState('flow', nextFlow)
       emitStyleApplication()
     }
-    const switchEpubBuiltInStylesheet = (value?: EpubBuiltInStylesheetToggleValue) => {
-      const enabled = resolveEpubBuiltInStylesheetToggleValue(value || epubBuiltInStylesheet.value)
-      epubBuiltInStylesheet.value = normalizeEpubBuiltInStylesheetToggleValue(enabled)
-      readerConfigStore.changeState('loadEpubBuiltInStylesheet', enabled)
+
+    const switchEpubBuiltInStylesheetMode = (value: EpubBuiltInStylesheetMode) => {
+      epubBuiltInStylesheetMode.value = value
+      readerConfigStore.changeState('epubBuiltInStylesheetMode', value)
     }
 
     const adjustSetting = (key: NumericSettingKey, value: number) => {
@@ -441,12 +435,19 @@ export default defineComponent({
       },
     )
 
+    watch(
+      () => readerConfig.value.epubBuiltInStylesheetMode,
+      (mode) => {
+        epubBuiltInStylesheetMode.value = mode
+      },
+    )
+
     return {
       activeBackgroundPreset,
       adjustSetting,
       backgroundPresetOptions,
       buildPreviewStyle,
-      epubBuiltInStylesheet,
+      epubBuiltInStylesheetMode,
       epubBuiltInStylesheetOptions,
       flow,
       flowOptions,
@@ -461,8 +462,8 @@ export default defineComponent({
       selectFont,
       selectedFont,
       settings,
+      switchEpubBuiltInStylesheetMode,
       switchFlow,
-      switchEpubBuiltInStylesheet,
     }
   },
 })
@@ -562,58 +563,30 @@ label {
   }
 
   .extra-section {
-    .flow-option {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .extra-option {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 10px;
+      gap: 12px;
 
       label {
         color: var(--text-secondary);
         font-size: 14px;
         font-weight: 700;
+        white-space: nowrap;
       }
 
-      .style-menu-flow-toggle {
-        --bubble-toggle-shell-padding: 5px 10px;
-        --bubble-toggle-shell-bg: var(--surface-brand-soft);
-        --bubble-toggle-shell-border: var(--border-brand);
-        --bubble-toggle-shell-shadow: var(--shadow-xs);
-        --bubble-toggle-focus-ring: var(--ring-brand-soft);
-        --bubble-toggle-font-size: 12px;
-        --bubble-toggle-font-weight: 700;
-        --bubble-toggle-text: var(--text-secondary);
-        --bubble-toggle-active-text: var(--brand-primary);
-      }
-    }
-
-    .epub-stylesheet-option {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-
-      label {
-        color: var(--text-secondary);
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .style-menu-epub-stylesheet-toggle {
-        --bubble-toggle-shell-padding: 5px 10px;
-        --bubble-toggle-shell-bg: var(--surface-brand-soft);
-        --bubble-toggle-shell-border: var(--border-brand);
-        --bubble-toggle-shell-shadow: var(--shadow-xs);
-        --bubble-toggle-focus-ring: var(--ring-brand-soft);
-        --bubble-toggle-font-size: 12px;
-        --bubble-toggle-font-weight: 700;
-        --bubble-toggle-text: var(--text-secondary);
-        --bubble-toggle-active-text: var(--brand-primary);
+      .extra-select {
+        width: 140px;
       }
     }
 
     .epub-stylesheet-tip {
-      margin: 8px 0 0;
+      margin: 0;
       color: var(--text-tertiary);
       font-size: 12px;
       line-height: 1.4;

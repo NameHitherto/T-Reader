@@ -105,7 +105,7 @@ pub struct ReaderStyleSettings {
     pub background_presets: serde_json::Value,
     pub flow: String,
     pub enabled_system_fonts: serde_json::Value,
-    pub load_epub_built_in_stylesheet: bool,
+    pub epub_built_in_stylesheet_mode: String,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -127,5 +127,5 @@ pub struct SaveReaderStyleSettingsRequest {
     pub background_presets: Option<serde_json::Value>,
     pub flow: Option<String>,
     pub enabled_system_fonts: Option<serde_json::Value>,
-    pub load_epub_built_in_stylesheet: Option<bool>,
+    pub epub_built_in_stylesheet_mode: Option<String>,
 }

@@ -9,6 +9,8 @@ import {
   type ReaderBackgroundPresets,
 } from '@/types/readerBackground'
 
+export type EpubBuiltInStylesheetMode = 'removed' | 'filtered' | 'preserved'
+
 export type ReaderFlowMode =
   | 'auto'
   | 'paginated'
@@ -33,7 +35,7 @@ export interface ReaderConfig {
   backgroundPresets: ReaderBackgroundPresets
   flow: ReaderFlowMode
   enabledSystemFonts: EnabledSystemFont[]
-  loadEpubBuiltInStylesheet: boolean
+  epubBuiltInStylesheetMode: EpubBuiltInStylesheetMode
 }
 
 export const createDefaultReaderConfig = (): ReaderConfig => {
@@ -55,7 +57,7 @@ export const createDefaultReaderConfig = (): ReaderConfig => {
     backgroundPresets,
     flow: 'paginated',
     enabledSystemFonts: [],
-    loadEpubBuiltInStylesheet: false,
+    epubBuiltInStylesheetMode: 'filtered',
   }
 }
 

@@ -7,6 +7,7 @@ import {
   type EpubBuiltInStylesheetIsolationController,
 } from '@/services/reader/stylesheetIsolation'
 import type { EpubRenditionLike, EpubTocItem } from '@/types/epub'
+import type { EpubBuiltInStylesheetMode } from '@/store/readerConfigStore'
 
 export interface EpubRenderResult {
   rendition: EpubRenditionLike
@@ -30,7 +31,7 @@ export const destroyEpubRendition = (rendition: EpubRenditionLike | null) => {
 export const renderEpubBook = async (
   bookArrayBuffer: ArrayBuffer,
   flow: string,
-  loadEpubBuiltInStylesheet: boolean,
+  epubBuiltInStylesheetMode: EpubBuiltInStylesheetMode,
   explicitCfi?: string,
   progressSnapshot?: Partial<BookConfig>,
   cachedLocations?: string,
@@ -39,8 +40,10 @@ export const renderEpubBook = async (
   const ePubBook = ePub(bookArrayBuffer)
   await ePubBook.ready
   const stylesheetIsolation = createEpubBuiltInStylesheetIsolationController(ePubBook)
-  if (loadEpubBuiltInStylesheet) {
+  if (epubBuiltInStylesheetMode === 'preserved') {
     stylesheetIsolation.enableBuiltInStylesheet()
+  } else if (epubBuiltInStylesheetMode === 'filtered') {
+    stylesheetIsolation.filterBuiltInStylesheet()
   } else {
     stylesheetIsolation.disableBuiltInStylesheet()
   }

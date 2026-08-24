@@ -653,7 +653,7 @@ async function loadBook(bookKey: string, cfi?: string) {
     const epubBook = await renderEpubBook(
       bookArrayBuffer as ArrayBuffer,
       readerConfig.value.flow,
-      readerConfig.value.loadEpubBuiltInStylesheet,
+      readerConfig.value.epubBuiltInStylesheetMode,
       cfi,
       bookConfig,
       getReadyBookLocations(bookLocationsCache),

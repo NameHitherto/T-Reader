@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { ReaderConfig } from '@/store/readerConfigStore'
+import type { EpubBuiltInStylesheetMode, ReaderConfig } from '@/store/readerConfigStore'
 import type { EnabledSystemFont, SystemFontEntry } from '@/types/readerFonts'
 import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/types/readerFonts'
 import {
@@ -409,12 +409,22 @@ export const normalizeReaderConfig = (
     backgroundPresets: createDefaultReaderBackgroundPresets(),
     flow: 'paginated',
     enabledSystemFonts: [],
-    loadEpubBuiltInStylesheet: false,
+    epubBuiltInStylesheetMode: 'filtered',
   }
+
+  const rawStylesheetMode = config?.epubBuiltInStylesheetMode
+  const legacyStylesheetMode = (config as Record<string, unknown> | undefined)?.loadEpubBuiltInStylesheet
+  const epubBuiltInStylesheetMode: EpubBuiltInStylesheetMode =
+    rawStylesheetMode === 'removed' || rawStylesheetMode === 'filtered' || rawStylesheetMode === 'preserved'
+      ? rawStylesheetMode
+      : typeof legacyStylesheetMode === 'boolean'
+        ? legacyStylesheetMode ? 'preserved' : 'removed'
+        : 'filtered'
 
   const mergedConfig = {
     ...baseConfig,
     ...(config || {}),
+    epubBuiltInStylesheetMode,
   } as ReaderConfig
 
   const enabledSystemFonts = normalizeEnabledSystemFonts(

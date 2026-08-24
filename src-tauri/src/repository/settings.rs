@@ -9,6 +9,7 @@ use crate::entities::{
 };
 
 const SETTINGS_ID: i64 = 1;
+const DEFAULT_EPUB_STYLESHEET_MODE: &str = "filtered";
 
 fn default_model_providers() -> HashMap<String, ModelProviderConfig> {
     HashMap::new()
@@ -49,6 +50,13 @@ fn default_app_settings() -> Settings {
     }
 }
 
+fn normalize_epub_stylesheet_mode(value: String) -> String {
+    match value.as_str() {
+        "removed" | "filtered" | "preserved" => value,
+        _ => DEFAULT_EPUB_STYLESHEET_MODE.to_string(),
+    }
+}
+
 fn default_reader_style_settings() -> ReaderStyleSettings {
     ReaderStyleSettings {
         font_size: 16.0,
@@ -70,7 +78,7 @@ fn default_reader_style_settings() -> ReaderStyleSettings {
         }),
         flow: "paginated".to_string(),
         enabled_system_fonts: json!([]),
-        load_epub_built_in_stylesheet: false,
+        epub_built_in_stylesheet_mode: DEFAULT_EPUB_STYLESHEET_MODE.to_string(),
     }
 }
 
@@ -227,7 +235,7 @@ async fn persist_reader_style_settings(
             id, font_size, font_weight, line_spacing, paragraph_spacing, letter_spacing,
             box_padding_top, box_padding_bottom, box_padding_horizontal, column_count, indent,
             font, color, font_color, background_presets, flow, enabled_system_fonts,
-            load_epub_built_in_stylesheet, created_at, updated_at
+            epub_built_in_stylesheet_mode, created_at, updated_at
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ON CONFLICT(id) DO UPDATE SET
@@ -247,7 +255,7 @@ async fn persist_reader_style_settings(
             background_presets = excluded.background_presets,
             flow = excluded.flow,
             enabled_system_fonts = excluded.enabled_system_fonts,
-            load_epub_built_in_stylesheet = excluded.load_epub_built_in_stylesheet,
+            epub_built_in_stylesheet_mode = excluded.epub_built_in_stylesheet_mode,
             updated_at = datetime('now')
         "#,
     )
@@ -268,7 +276,7 @@ async fn persist_reader_style_settings(
     .bind(to_json_text(&settings.background_presets)?)
     .bind(&settings.flow)
     .bind(to_json_text(&settings.enabled_system_fonts)?)
-    .bind(settings.load_epub_built_in_stylesheet)
+    .bind(&settings.epub_built_in_stylesheet_mode)
     .execute(pool)
     .await
     .map_err(|error| error.to_string())?;
@@ -282,7 +290,7 @@ pub async fn load_reader_style_settings(pool: &SqlitePool) -> Result<ReaderStyle
         SELECT font_size, font_weight, line_spacing, paragraph_spacing, letter_spacing,
                box_padding_top, box_padding_bottom, box_padding_horizontal, column_count, indent,
                font, color, font_color, background_presets, flow, enabled_system_fonts,
-               load_epub_built_in_stylesheet
+               epub_built_in_stylesheet_mode
         FROM reader_style_settings
         WHERE id = 1
         "#,
@@ -333,9 +341,10 @@ pub async fn load_reader_style_settings(pool: &SqlitePool) -> Result<ReaderStyle
                 .unwrap_or_else(|_| "[]".to_string()),
             json!([]),
         ),
-        load_epub_built_in_stylesheet: row
-            .try_get::<bool, _>("load_epub_built_in_stylesheet")
-            .unwrap_or(false),
+        epub_built_in_stylesheet_mode: normalize_epub_stylesheet_mode(
+            row.try_get::<String, _>("epub_built_in_stylesheet_mode")
+                .unwrap_or_else(|_| DEFAULT_EPUB_STYLESHEET_MODE.to_string()),
+        ),
     })
 }
 
@@ -393,8 +402,8 @@ pub async fn save_reader_style_settings(
     if let Some(value) = request.enabled_system_fonts {
         current.enabled_system_fonts = value;
     }
-    if let Some(value) = request.load_epub_built_in_stylesheet {
-        current.load_epub_built_in_stylesheet = value;
+    if let Some(value) = request.epub_built_in_stylesheet_mode {
+        current.epub_built_in_stylesheet_mode = normalize_epub_stylesheet_mode(value);
     }
 
     persist_reader_style_settings(pool, current).await

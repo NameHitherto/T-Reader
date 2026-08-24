@@ -1,12 +1,16 @@
-import { getFootnoteBaseStyles } from '@/services/reader/epubStyle'
+import {
+  filterDocumentStylesheets,
+  type EpubBookContext,
+  type EpubSectionContext,
+} from '@/services/reader/epubCssFilter'
 import type { EpubContentsLike, EpubRenditionLike } from '@/types/epub'
 
 interface EpubSpineContentHook {
-  register: (hook: (document: Document) => void) => void
-  deregister: (hook: (document: Document) => void) => void
+  register: (hook: (document: Document, section?: EpubSectionContext) => void) => void
+  deregister: (hook: (document: Document, section?: EpubSectionContext) => void) => void
 }
 
-interface EpubBookLike {
+interface EpubBookLike extends EpubBookContext {
   spine?: {
     hooks?: {
       content?: EpubSpineContentHook
@@ -17,6 +21,7 @@ interface EpubBookLike {
 export interface EpubBuiltInStylesheetIsolationController {
   disableBuiltInStylesheet: () => void
   enableBuiltInStylesheet: () => void
+  filterBuiltInStylesheet: () => void
   setCustomStylesheet: (css: string) => void
   bindRendition: (rendition: EpubRenditionLike) => void
   destroy: () => void
@@ -29,26 +34,21 @@ export const createEpubBuiltInStylesheetIsolationController = (
 ): EpubBuiltInStylesheetIsolationController => {
   const contentHook = book.spine?.hooks?.content
   let isRegistered = false
+  let registeredBuiltInStylesheetHook:
+    | ((doc: Document, section?: EpubSectionContext) => unknown)
+    | null = null
   let renditionContentHook: ((contents: EpubContentsLike) => unknown) | undefined
   let isRenditionThemeRegistered = false
   let customStylesheetCss = ''
   let boundRendition: EpubRenditionLike | null = null
 
-  const FOOTNOTE_STYLE_ID = 't-reader-footnote-styles'
-
-  const injectFootnoteStyles = (doc: Document) => {
-    if (doc.getElementById(FOOTNOTE_STYLE_ID)) return
-
-    const style = doc.createElement('style')
-    style.id = FOOTNOTE_STYLE_ID
-    style.textContent = getFootnoteBaseStyles()
-    doc.head?.appendChild(style)
-  }
-
   const stripBuiltInStylesheetHook = (doc: Document) => {
     const nodes = doc.querySelectorAll("link[rel~='stylesheet'], style")
     nodes.forEach((node) => node.remove())
-    injectFootnoteStyles(doc)
+  }
+
+  const filterBuiltInStylesheetHook = async (doc: Document, section?: EpubSectionContext) => {
+    await filterDocumentStylesheets(doc, section, book)
   }
 
   const applyThemeToContents = async (contents: EpubContentsLike) => {
@@ -73,12 +73,23 @@ export const createEpubBuiltInStylesheetIsolationController = (
   const disableBuiltInStylesheet = () => {
     if (!contentHook || isRegistered) return
     contentHook.register(stripBuiltInStylesheetHook)
+    registeredBuiltInStylesheetHook = stripBuiltInStylesheetHook
+    isRegistered = true
+  }
+
+  const filterBuiltInStylesheet = () => {
+    if (!contentHook || isRegistered) return
+    contentHook.register(filterBuiltInStylesheetHook)
+    registeredBuiltInStylesheetHook = filterBuiltInStylesheetHook
     isRegistered = true
   }
 
   const enableBuiltInStylesheet = () => {
     if (!contentHook || !isRegistered) return
-    contentHook.deregister(stripBuiltInStylesheetHook)
+    if (registeredBuiltInStylesheetHook) {
+      contentHook.deregister(registeredBuiltInStylesheetHook)
+    }
+    registeredBuiltInStylesheetHook = null
     isRegistered = false
   }
 
@@ -114,6 +125,7 @@ export const createEpubBuiltInStylesheetIsolationController = (
   return {
     disableBuiltInStylesheet,
     enableBuiltInStylesheet,
+    filterBuiltInStylesheet,
     setCustomStylesheet,
     bindRendition,
     destroy,
