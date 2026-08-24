@@ -120,7 +120,10 @@ const emit = defineEmits<{
 // ============================================================
 const triggerElement = ref<HTMLElement | null>(null)
 const panelElement = ref<HTMLElement | null>(null)
-const panelStyle = ref<{ top: string; right: string } | null>(null)
+const panelStyle = ref<{ top: string; left: string } | null>(null)
+
+const PANEL_DEFAULT_WIDTH = 264
+const VIEWPORT_PADDING = 8
 
 const sortOptions = BOOK_SORT_OPTIONS
 
@@ -152,9 +155,19 @@ const positionPanel = () => {
   }
 
   const rect = trigger.getBoundingClientRect()
+  const panelWidth = panelElement.value?.offsetWidth || PANEL_DEFAULT_WIDTH
+  const triggerCenterX = rect.left + rect.width / 2
+
+  // 计算居中对齐时的 left 坐标：使面板水平中心与按钮水平中心对齐
+  const rawLeft = triggerCenterX - panelWidth / 2
+
+  // 边界约束：确保面板不会超出窗口左右边缘
+  const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - panelWidth - VIEWPORT_PADDING)
+  const clampedLeft = Math.max(VIEWPORT_PADDING, Math.min(rawLeft, maxLeft))
+
   panelStyle.value = {
     top: `${rect.bottom + 6}px`,
-    right: `${Math.max(8, window.innerWidth - rect.right)}px`,
+    left: `${Math.round(clampedLeft)}px`,
   }
 }
 
@@ -308,6 +321,7 @@ onUnmounted(() => {
   background: var(--surface-strong);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(12px);
+  transform-origin: top center;
 
   .shelf-menu-head {
     display: flex;
@@ -361,7 +375,7 @@ onUnmounted(() => {
     gap: 6px;
     min-width: 0;
     padding: 8px 12px;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border-default);
     background: var(--surface-card-soft);
     color: var(--text-secondary);

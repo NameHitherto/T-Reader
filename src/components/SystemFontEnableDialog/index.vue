@@ -14,9 +14,6 @@
     <div class="system-font-enable-dialog">
       <div class="dialog-hero">
         <div class="dialog-title">启用系统字体</div>
-        <div class="dialog-subtitle">
-          先启用，再在阅读样式中选择。每个字体家族只保留一个启用样式。
-        </div>
         <div class="dialog-stats">
           <span class="stat-pill">系统字体家族 {{ fontFamilyGroups.length }}</span>
           <span class="stat-pill stat-pill--active">已启用 {{ selectedCount }}</span>
@@ -506,13 +503,6 @@ export default defineComponent({
     font-size: 24px;
     font-weight: 700;
     letter-spacing: 0.01em;
-  }
-
-  .dialog-subtitle {
-    margin-top: 6px;
-    color: var(--text-tertiary);
-    font-size: 14px;
-    line-height: 1.6;
   }
 
   .dialog-stats {
