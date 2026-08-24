@@ -61,8 +61,7 @@ T-Reader 是基于 Vue 3 + TypeScript + Vite 与 Tauri 2 + Rust 的 Windows 桌�
   - `sync/`：云同步服务，以及云同步响应体的错误、状态和消息转换。
   - `theme/`：同时适用于主窗口和阅读窗口的全局主题、调色板和阅读背景定义。
   - `window/`：窗口控制与窗口生命周期服务。
-- `src/store/`：不再作为 Pinia 全局状态目录保留。引入数据库后，持久化业务数据必须通过所属服务调用 Tauri/Rust 数据库接口；仅限阅读窗口内的短生命周期响应式状态放在 `services/reader/`，不把数据库镜像重新维护为 Pinia store。
-- `src/styles/`：全局样式规范，按 `global/`、`theme/`、`common/`、`components/`、`vendors/` 分类。SettingTabs 共用样式位于 `styles/components/setting-tab.scss`。
+- `src/styles/`：全局样式规范，按 `global/`、`theme/`、`common/`、`components/`、`vendors/` 分类。
 - `src/utils/`：与具体业务领域无关、可供任意组件或服务复用的通用工具。
 - `src/constants/`：稳定的常量、枚举式选项及常量相关的小型纯函数。
 - `src/router/`：主窗口路由定义。
