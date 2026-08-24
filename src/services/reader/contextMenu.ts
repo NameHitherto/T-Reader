@@ -1,5 +1,5 @@
 import { getAppliedAppThemeMode } from '@/services/theme'
-import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+import { ContextMenuData, ContextMenuItem } from '@/components/ContextMenu/types'
 
 const DEFAULT_VIEWPORT_MARGIN = 20
 
@@ -18,8 +18,13 @@ interface BuildContextMenuArgs {
  * 根据自身真实渲染尺寸计算，这里只负责归一化锚点、主题与边距。
  */
 export const buildContextMenuData = (args: BuildContextMenuArgs): ContextMenuData => {
-  const { x, y, menuItems, margin = DEFAULT_VIEWPORT_MARGIN, theme = getAppliedAppThemeMode() } =
-    args
+  const {
+    x,
+    y,
+    menuItems,
+    margin = DEFAULT_VIEWPORT_MARGIN,
+    theme = getAppliedAppThemeMode(),
+  } = args
 
   return {
     anchor: { x, y },

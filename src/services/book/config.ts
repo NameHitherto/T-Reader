@@ -1,4 +1,4 @@
-import { BookConfig, BookProgressSnapshot } from '@/types/book'
+import { BookConfig, BookProgressSnapshot } from '@/services/book/types'
 
 const normalizeIndex = (value: unknown): number => {
   const parsed = Number(value)

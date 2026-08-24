@@ -12,7 +12,7 @@
  * 5. 规范化空白和段落缩进
  */
 
-import type { EpubSectionLike } from '@/types/epub'
+import type { EpubSectionLike } from '@/services/reader/epubTypes'
 
 const LEGADO_PARAGRAPH_INDENT = '\u3000\u3000'
 const ZERO_WIDTH_CHARS = new RegExp(

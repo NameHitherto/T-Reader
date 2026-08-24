@@ -93,7 +93,7 @@ import {
   type UnderlineType,
 } from '@/constants/bookmark'
 import { logWarn } from '@/utils/logger'
-import type { BookMark } from '@/store/bookMark'
+import type { BookMark } from '@/services/reader/bookmarkState'
 
 export default defineComponent({
   name: 'BookMarkDialog',

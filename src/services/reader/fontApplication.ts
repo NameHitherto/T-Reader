@@ -1,4 +1,4 @@
-import { DEFAULT_READER_FONT, type EnabledSystemFont } from '@/types/readerFonts'
+import { DEFAULT_READER_FONT, type EnabledSystemFont } from '@/services/reader/fontTypes'
 import { getEnabledFontByValue } from '@/services/reader/systemFonts'
 
 export const ACTIVE_READER_FONT_FAMILY = 'TReaderActiveFont'

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { BookConfig } from '@/types/book'
+import type { BookConfig } from '@/services/book/types'
 import { detectBookFormatFromPath } from '@/services/book/format'
 import type {
   LoadedBookBinary,
@@ -15,7 +15,7 @@ import { buildBookName, buildBookTitle, toBookConfigFilename } from '@/services/
 import { normalizeBookConfig } from '@/services/book/config'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { encodeJson } from '@/utils/json'
-import type { BookFormat } from '@/types/book'
+import type { BookFormat } from '@/services/book/types'
 import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { loadAppSettings } from '@/services/settings'
@@ -31,13 +31,9 @@ import {
   LOCAL_DIRS,
   readJsonFile,
   writeJsonFile,
-} from '@/services/fileSystem'
+} from '@/services/fs'
 
-export type {
-  LoadedBookBinary,
-  ResolvedBookFile,
-  StoredBookConfig,
-} from '@/services/book/types'
+export type { LoadedBookBinary, ResolvedBookFile, StoredBookConfig } from '@/services/book/types'
 
 let cachedBookFileMap: Map<string, ResolvedBookFile> | null = null
 

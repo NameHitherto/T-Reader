@@ -13,7 +13,7 @@
 </template>
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
-import type { EpubTocItem } from '@/types/epub'
+import type { EpubTocItem } from '@/services/reader/epubTypes'
 
 export default defineComponent({
   name: 'TocMenu',

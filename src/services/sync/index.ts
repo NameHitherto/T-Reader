@@ -5,7 +5,7 @@ import type {
   CloudSyncBookAction,
   CloudSyncPreviewItem,
   CloudSyncPreviewResult,
-} from '@/types/sync'
+} from '@/services/sync/types'
 
 export const EMPTY_CLOUD_SYNC_PREVIEW: CloudSyncPreviewResult = {
   bookItems: [],
@@ -97,3 +97,21 @@ export const formatCloudSyncResultMessage = (result: CloudSyncApplyResult): stri
 
   return `${summaryParts.join('，')}。`
 }
+
+export { isWebDavError } from './errors'
+export {
+  toHttpResponseMessage,
+  toHttpResponseResult,
+  toHttpResponseType,
+  toSettledResponseResult,
+} from './response'
+export type {
+  CloudSyncApplyRequest,
+  CloudSyncApplyResult,
+  CloudSyncBookAction,
+  CloudSyncBookSelection,
+  CloudSyncBookStatus,
+  CloudSyncPreviewItem,
+  CloudSyncPreviewResult,
+} from './types'
+export type { WebDavError } from './errors'

@@ -117,12 +117,11 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref, watch, type PropType } from 'vue'
-import { storeToRefs } from 'pinia'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { useReaderConfigStore, type EpubBuiltInStylesheetMode } from '@/store/readerConfigStore'
+import { useReaderConfig, type EpubBuiltInStylesheetMode } from '@/services/reader/config'
 import { buildReaderFontOptions } from '@/services/reader/systemFonts'
 import { dispatchReaderStyleUpdate } from '@/services/ipc'
-import { DEFAULT_READER_FONT } from '@/types/readerFonts'
+import { DEFAULT_READER_FONT } from '@/services/reader/fontTypes'
 import {
   getAppliedAppThemeMode,
   getReaderBackgroundPresetOptions,
@@ -135,7 +134,7 @@ import type {
   ReaderBackgroundPresets,
   ReaderDarkBackgroundPreset,
   ReaderLightBackgroundPreset,
-} from '@/types/readerBackground'
+} from '@/services/theme/backgroundTypes'
 
 type NumericSettingKey =
   | 'indent'
@@ -174,8 +173,8 @@ export default defineComponent({
   emits: ['open-font-dialog'],
   setup(props, { emit }) {
     type ReaderFlowToggleValue = 'paginated' | 'scrolled'
-    const readerConfigStore = useReaderConfigStore()
-    const { readerConfig } = storeToRefs(readerConfigStore)
+    const readerConfigStore = useReaderConfig()
+    const { readerConfig } = readerConfigStore
 
     const menuElement = ref<HTMLElement | null>(null)
     const selectedFont = ref(readerConfig.value.font)

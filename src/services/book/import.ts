@@ -1,4 +1,4 @@
-import { BookConfig } from '@/types/book'
+import { BookConfig } from '@/services/book/types'
 import type { ImportBookParams } from '@/services/book/types'
 import { parseEpubMeta } from '@/services/book/epubParser'
 import { buildBookTitle } from '@/services/book/identity'

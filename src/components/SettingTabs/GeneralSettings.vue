@@ -38,7 +38,7 @@ const onThemeSwitchChange = (value: string | number | boolean) => {
 </script>
 
 <style scoped lang="scss">
-@use './setting-tab';
+@use '@/styles/components/setting-tab';
 
 // 主题 Switch（基于 el-switch，带日/月图标）
 .theme-switch {

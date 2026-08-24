@@ -142,7 +142,7 @@ const {
 </script>
 
 <style scoped lang="scss">
-@use './setting-tab';
+@use '@/styles/components/setting-tab';
 
 .network-settings {
   display: flex;

@@ -4,8 +4,8 @@ import type {
   ReaderBackgroundPresets,
   ReaderDarkBackgroundPreset,
   ReaderLightBackgroundPreset,
-} from '@/types/readerBackground'
-import { DEFAULT_READER_BACKGROUND_PRESETS } from '@/types/readerBackground'
+} from '@/services/theme/backgroundTypes'
+import { DEFAULT_READER_BACKGROUND_PRESETS } from '@/services/theme/backgroundTypes'
 import type { AppThemePalette, ReaderBackgroundPresetOption, ReaderRuntimePalette } from './types'
 
 export type { AppThemePalette, ReaderBackgroundPresetOption, ReaderRuntimePalette } from './types'

@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import { logWarn } from '@/utils/logger'
-import { MODEL_PURPOSES } from '@/types/model'
-import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/types/model'
-import type { UpdateChannel } from '@/types/appUpdate'
+import { MODEL_PURPOSES } from '@/services/settings/modelTypes'
+import type { ModelProvider, ModelProviderMap, ModelPurpose } from '@/services/settings/modelTypes'
+import type { UpdateChannel } from '@/services/settings/updateTypes'
 import type { AppSettings, AppThemeMode } from './types'
 
 export type { AppSettings, AppThemeMode } from './types'

@@ -1,4 +1,8 @@
-import type { EpubContentsLike, EpubLocationLike, EpubRenditionLike } from '@/types/epub'
+import type {
+  EpubContentsLike,
+  EpubLocationLike,
+  EpubRenditionLike,
+} from '@/services/reader/epubTypes'
 
 interface BindRenditionEventsArgs {
   onRelocated: (location: EpubLocationLike) => void

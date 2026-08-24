@@ -1,4 +1,4 @@
-import type { BookFormat } from '@/types/book'
+import type { BookFormat } from '@/services/book/types'
 
 const SUPPORTED_FORMATS: BookFormat[] = ['epub']
 

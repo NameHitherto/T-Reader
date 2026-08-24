@@ -1,11 +1,7 @@
 // 设置中心共享状态：SettingsView 与 SettingTabs 下各分类子标签页共用同一份
 // 设置数据与自动保存逻辑（模块级单例），避免在视图与子标签之间层层传递 props。
 import { computed, ref, watch } from 'vue'
-import {
-  loadAppSettings,
-  saveAppSettings,
-  type AppThemeMode,
-} from '@/services/settings'
+import { loadAppSettings, saveAppSettings, type AppThemeMode } from '@/services/settings'
 import { detectSystemProxy } from '@/services/settings'
 import {
   loadTxtTocRules,
@@ -19,8 +15,8 @@ import {
   type ModelProvider,
   type ModelPurpose,
   type ProviderType,
-} from '@/types/model'
-import type { SystemProxyInfo } from '@/types/proxy'
+} from '@/services/settings/modelTypes'
+import type { SystemProxyInfo } from '@/services/settings/proxyTypes'
 import { logWarn } from '@/utils/logger'
 
 const AUTO_SAVE_DELAY_MS = 200

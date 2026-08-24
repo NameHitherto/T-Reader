@@ -1,4 +1,4 @@
-import { BookConfig } from '@/types/book'
+import { BookConfig } from '@/services/book/types'
 import { isUnreadProgressSnapshot, normalizeBookConfig } from '@/services/book/config'
 
 export const normalizeDisplayedChapterTitle = (

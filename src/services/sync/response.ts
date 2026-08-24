@@ -1,5 +1,5 @@
 import type { MainTaskMessageType } from '@/services/notification'
-import { isWebDavError } from '@/types/webdavError'
+import { isWebDavError } from '@/services/sync/errors'
 
 // 判断错误是否为 WebDavError
 export { isWebDavError }

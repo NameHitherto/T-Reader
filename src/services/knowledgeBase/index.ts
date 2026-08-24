@@ -8,7 +8,7 @@ import type {
   KnowledgeQaMessage,
   KnowledgeSeries,
   UpdateKnowledgeSeriesRequest,
-} from '@/types/knowledgeBase'
+} from '@/services/knowledgeBase/types'
 
 export const listKnowledgeSeries = async (): Promise<KnowledgeSeries[]> => {
   return await invoke<KnowledgeSeries[]>('list_knowledge_series')
@@ -97,3 +97,14 @@ export const sendKnowledgeQaMessage = async (
     onEvent,
   })
 }
+
+export type {
+  CreateKnowledgeSeriesRequest,
+  KnowledgeAnswerStreamChunk,
+  KnowledgeDocument,
+  KnowledgeIngestProgressEvent,
+  KnowledgeQaContext,
+  KnowledgeQaMessage,
+  KnowledgeSeries,
+  UpdateKnowledgeSeriesRequest,
+} from './types'

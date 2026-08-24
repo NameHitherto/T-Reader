@@ -1,11 +1,11 @@
 import { ref, watch, Ref } from 'vue'
 import { applyBookmarkUnderline } from '@/services/reader/bookmark'
-import type { BookMark, useBookMarkStore } from '@/store/bookMark'
-import type { EpubRenditionLike } from '@/types/epub'
+import type { BookMark } from '@/services/reader/bookmarkState'
+import type { EpubRenditionLike } from '@/services/reader/epubTypes'
 import type { UnderlineStyle } from '@/constants/bookmark'
 
 interface UseBookmarkEditorArgs {
-  bookMarkStore: ReturnType<typeof useBookMarkStore>
+  bookMarkStore: ReturnType<typeof import('@/services/reader/bookmarkState').useBookMarkState>
   rendition: Ref<EpubRenditionLike | null>
   defaultUnderlineStyle: UnderlineStyle
 }

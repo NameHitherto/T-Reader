@@ -2,7 +2,6 @@ import { createApp } from 'vue'
 import ReaderApp from './ReaderApp.vue'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
-import { createPinia } from 'pinia'
 import { READER_DOM_EVENTS, WINDOW_EVENTS } from '@/constants/events'
 import { applyAppThemeMode, initializeAppTheme } from '@/services/theme'
 import { bindWindowTitlebarControls } from '@/services/window'
@@ -15,10 +14,6 @@ const bootstrap = async () => {
 
   const app = createApp(ReaderApp)
 
-  // 定义pinia
-  const pinia = createPinia()
-
-  app.use(pinia)
   app.mount('#reader-app')
 
   const disposeTitlebarControls = bindWindowTitlebarControls()

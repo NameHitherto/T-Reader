@@ -1,14 +1,6 @@
-import {
-  buildBookCacheDir,
-  buildBookCacheLocationsPath,
-} from '@/services/book/cachePath'
+import { buildBookCacheDir, buildBookCacheLocationsPath } from '@/services/book/cachePath'
 import type { BookLocationsCachePayload, BookLocationsCacheStatus } from '@/services/book/types'
-import {
-  ensureLocalDir,
-  readJsonFile,
-  removeLocalFile,
-  writeJsonFile,
-} from '@/services/fileSystem'
+import { ensureLocalDir, readJsonFile, removeLocalFile, writeJsonFile } from '@/services/fs'
 
 export type { BookLocationsCachePayload, BookLocationsCacheStatus }
 

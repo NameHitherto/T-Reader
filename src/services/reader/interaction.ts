@@ -1,6 +1,6 @@
 import { READER_DOM_EVENTS } from '@/constants/events'
 import { BOOKMARK_UNDERLINE_CLASS } from '@/constants/bookmark'
-import type { EpubContentsLike, EpubRenditionLike } from '@/types/epub'
+import type { EpubContentsLike, EpubRenditionLike } from '@/services/reader/epubTypes'
 
 interface ReaderKeydownHandlers {
   onPrevPage: () => void

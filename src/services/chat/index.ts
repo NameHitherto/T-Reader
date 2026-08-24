@@ -1,5 +1,9 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { BookChatContextInfo, BookChatMessage, BookChatStreamChunk } from '@/types/bookChat'
+import type {
+  BookChatContextInfo,
+  BookChatMessage,
+  BookChatStreamChunk,
+} from '@/services/chat/types'
 
 export const getBookChatContext = async (bookKey: string): Promise<BookChatContextInfo> => {
   return await invoke<BookChatContextInfo>('get_book_chat_context', { bookKey })
@@ -30,3 +34,10 @@ export const sendBookChatMessage = async (
     onEvent,
   })
 }
+
+export type {
+  BookChatContextInfo,
+  BookChatMessage,
+  BookChatRole,
+  BookChatStreamChunk,
+} from './types'

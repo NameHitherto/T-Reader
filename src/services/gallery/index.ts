@@ -13,3 +13,5 @@ export {
 } from './generationTask'
 
 export type { ImageGenerationStatus } from './generationTask'
+
+export type { GalleryImage, GenerateGalleryImageRequest } from './types'

@@ -1,5 +1,5 @@
 import type { BookMark } from '@/services/book/types'
-import { BookConfig, BookProgressSnapshot } from '@/types/book'
+import { BookConfig, BookProgressSnapshot } from '@/services/book/types'
 import { loadBookConfig, saveBookConfig, updateBookProgress } from '@/services/book/repository'
 import { replaceBookMarksForBook } from '@/services/book/bookmarks'
 import { isUnreadProgressSnapshot } from '@/services/book/config'
@@ -9,7 +9,7 @@ import {
   resolveEpubDisplayTarget,
   serializeEpubProgress,
 } from '@/services/reader/epubProgress'
-import type { EpubBookLike, EpubRenditionLike } from '@/types/epub'
+import type { EpubBookLike, EpubRenditionLike } from '@/services/reader/epubTypes'
 
 import type { BookLocationsCachePayload } from '@/services/book/locationsCache'
 

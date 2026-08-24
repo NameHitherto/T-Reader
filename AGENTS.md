@@ -40,10 +40,34 @@ T-Reader 是基于 Vue 3 + TypeScript + Vite 与 Tauri 2 + Rust 的 Windows 桌�
 - 不要覆盖或回滚工作区中与当前任务无关的既有修改；开始改动前先查看 `git status`。
 - 提交信息遵循 Conventional Commits，描述使用中文，详见 `CONTRIBUTING.md`。
 
-## 变更后报告
+## 前端目录职责（`src/`）
 
-完成任务时说明：
+本项目仅在 `src/` 范围内采用以下职责边界；新增代码应优先放入已经存在的业务模块，而不是重新创建职责重叠的目录。
 
-1. 修改了哪些文件及原因；
-2. 在 WSL2 中实际执行了哪些检查及结果；
-3. 哪些验证仍需在 Windows 上执行，尤其是 Rust 编译、Tauri 打包和手动测试。
+- `src/assets/`：静态资源，仅保存图片、SVG、光标等二进制或设计资源，不承载业务逻辑。
+- `src/components/`：可复用及页面内组合的 Vue 组件。组件自身的局部类型可放在组件目录；组件样式应遵循 `src/styles/` 规范，不能把跨组件样式散落在组件目录。
+- `src/views/`：主窗口侧边栏路由对应的视图组件，负责页面编排和展示，不直接承载跨页面的基础设施实现。
+- `src/composables/`：跨组件复用的 Vue 组合逻辑，负责组合响应式状态和交互流程；具体领域 API 仍归属 `services/`。
+- `src/services/`：客户端核心业务服务，按领域划分：
+  - `book/`：书籍原始数据流、导入、文件/缓存、元数据、书签、进度持久化和书架数据；与 epub.js 渲染解析引擎保持低耦合。
+  - `reader/`：阅读器窗口的 EPUB 排版、渲染、主题应用、字体、阅读交互、阅读窗口状态及 epub.js 适配类型。
+  - `chat/`：智能对话服务。
+  - `fs/`：本地文件系统访问。
+  - `gallery/`：画廊与图片生成服务。
+  - `ipc/`：主窗口与阅读窗口等窗口进程间通信协议和桥接。
+  - `knowledgeBase/`：知识库服务。
+  - `notification/`：窗口消息通知服务。
+  - `settings/`：主窗口设置及设置相关模型、更新、代理类型。
+  - `sync/`：云同步服务，以及云同步响应体的错误、状态和消息转换。
+  - `theme/`：同时适用于主窗口和阅读窗口的全局主题、调色板和阅读背景定义。
+  - `window/`：窗口控制与窗口生命周期服务。
+- `src/store/`：不再作为 Pinia 全局状态目录保留。引入数据库后，持久化业务数据必须通过所属服务调用 Tauri/Rust 数据库接口；仅限阅读窗口内的短生命周期响应式状态放在 `services/reader/`，不把数据库镜像重新维护为 Pinia store。
+- `src/styles/`：全局样式规范，按 `global/`、`theme/`、`common/`、`components/`、`vendors/` 分类。SettingTabs 共用样式位于 `styles/components/setting-tab.scss`。
+- `src/utils/`：与具体业务领域无关、可供任意组件或服务复用的通用工具。
+- `src/constants/`：稳定的常量、枚举式选项及常量相关的小型纯函数。
+- `src/router/`：主窗口路由定义。
+- `src/icons/`：图标注册和图标映射，不承载业务服务。
+
+### 类型归属规范
+
+不再新增顶层 `src/types/`。领域类型跟随所属服务维护在对应的 `types.ts` 或明确命名的类型文件中：书籍在 `services/book/types.ts`，阅读器/EPUB 在 `services/reader/`，对话在 `services/chat/`，画廊在 `services/gallery/`，知识库在 `services/knowledgeBase/`，同步在 `services/sync/`，设置/模型/更新/代理在 `services/settings/`，主题在 `services/theme/`；组件专属类型放在组件目录内。

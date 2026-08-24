@@ -1,12 +1,9 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { EpubBuiltInStylesheetMode, ReaderConfig } from '@/store/readerConfigStore'
-import type { EnabledSystemFont, SystemFontEntry } from '@/types/readerFonts'
-import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/types/readerFonts'
-import {
-  getReaderThemeCompatColors,
-  normalizeReaderBackgroundPresets,
-} from '@/services/theme'
-import { createDefaultReaderBackgroundPresets } from '@/types/readerBackground'
+import type { EpubBuiltInStylesheetMode, ReaderConfig } from '@/services/reader/config'
+import type { EnabledSystemFont, SystemFontEntry } from '@/services/reader/fontTypes'
+import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/services/reader/fontTypes'
+import { getReaderThemeCompatColors, normalizeReaderBackgroundPresets } from '@/services/theme'
+import { createDefaultReaderBackgroundPresets } from '@/services/theme/backgroundTypes'
 import type { ReaderFontOption, SystemFontFamilyGroup } from '@/services/reader/types'
 
 export type { ReaderFontOption, SystemFontFamilyGroup }
@@ -413,12 +410,17 @@ export const normalizeReaderConfig = (
   }
 
   const rawStylesheetMode = config?.epubBuiltInStylesheetMode
-  const legacyStylesheetMode = (config as Record<string, unknown> | undefined)?.loadEpubBuiltInStylesheet
+  const legacyStylesheetMode = (config as Record<string, unknown> | undefined)
+    ?.loadEpubBuiltInStylesheet
   const epubBuiltInStylesheetMode: EpubBuiltInStylesheetMode =
-    rawStylesheetMode === 'removed' || rawStylesheetMode === 'filtered' || rawStylesheetMode === 'preserved'
+    rawStylesheetMode === 'removed' ||
+    rawStylesheetMode === 'filtered' ||
+    rawStylesheetMode === 'preserved'
       ? rawStylesheetMode
       : typeof legacyStylesheetMode === 'boolean'
-        ? legacyStylesheetMode ? 'preserved' : 'removed'
+        ? legacyStylesheetMode
+          ? 'preserved'
+          : 'removed'
         : 'filtered'
 
   const mergedConfig = {

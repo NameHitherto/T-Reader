@@ -1,5 +1,5 @@
 import { reactive, readonly } from 'vue'
-import { GenerateGalleryImageRequest } from '@/types/gallery'
+import { GenerateGalleryImageRequest } from '@/services/gallery/types'
 import { generateGalleryImage } from '@/services/gallery/repository'
 import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'

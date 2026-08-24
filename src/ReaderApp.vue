@@ -85,8 +85,7 @@ import { ref, onMounted, onUnmounted, computed, nextTick, watch, type Ref } from
 import { invoke } from '@tauri-apps/api/core'
 import { UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { useReaderConfigStore } from './store/readerConfigStore'
-import { storeToRefs } from 'pinia'
+import { useReaderConfig } from './services/reader/config'
 import { logInfo, logWarn, logError } from '@/utils/logger'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
@@ -98,8 +97,8 @@ import GenerationStatusBar from './components/DrawDialog/GenerationStatusBar.vue
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
-import { BookConfig } from '@/types/book'
-import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+import { BookConfig } from '@/services/book/types'
+import { ContextMenuData, ContextMenuItem } from '@/components/ContextMenu/types'
 import { READER_DOM_EVENTS } from '@/constants/events'
 import { destroyEpubRendition, renderEpubBook } from '@/services/reader/epubRender'
 import type { EpubBuiltInStylesheetIsolationController } from '@/services/reader/stylesheetIsolation'
@@ -112,21 +111,15 @@ import {
   removeBookmarkUnderline,
 } from '@/services/reader/bookmark'
 import { bindRenditionEvents } from '@/services/reader/renditionEvents'
-import {
-  collectParentChapterIndexes,
-  scrollDrawerToActiveChapter,
-} from '@/services/reader/toc'
+import { collectParentChapterIndexes, scrollDrawerToActiveChapter } from '@/services/reader/toc'
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { bindReaderInteractions } from '@/services/reader/interaction'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
-import { useBookMarkStore, BookMark } from './store/bookMark'
+import { useBookMarkState, BookMark } from './services/reader/bookmarkState'
 import { withReaderLoading } from '@/services/reader/loadingOverlay'
 import { applyReaderStyles, ReaderStyleConfig } from '@/services/reader/style'
 import { serializeReaderThemeCss } from '@/services/reader/epubStyle'
-import {
-  loadReaderConfigFromDisk,
-  saveReaderConfigToDisk,
-} from '@/services/reader/config'
+import { loadReaderConfigFromDisk, saveReaderConfigToDisk } from '@/services/reader/config'
 import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFonts'
 import { buildReaderFontApplication } from '@/services/reader/fontApplication'
 import { primeBookLocationsAfterImport } from '@/services/book/cache'
@@ -142,7 +135,7 @@ import {
   syncReaderConfigThemeColors,
 } from '@/services/theme'
 import type { AppThemeMode } from '@/services/settings'
-import type { EpubRenditionLike, EpubTocItem } from '@/types/epub'
+import type { EpubRenditionLike, EpubTocItem } from '@/services/reader/epubTypes'
 import {
   ackReaderBookDelete,
   ackReaderLoadMessage,
@@ -179,8 +172,8 @@ let readerLoadGeneration = 0
 // ============================================================
 // 阅读配置 store
 // ============================================================
-const readerConfigStore = useReaderConfigStore()
-const { readerConfig } = storeToRefs(readerConfigStore)
+const readerConfigStore = useReaderConfig()
+const { readerConfig } = readerConfigStore
 
 // ============================================================
 // 主题
@@ -460,8 +453,8 @@ function openContextMenu(mode: string, x: number, y: number, options: ContextMen
 // ============================================================
 // 书签
 // ============================================================
-const bookMarkStore = useBookMarkStore()
-const { bookMarks } = storeToRefs(bookMarkStore)
+const bookMarkStore = useBookMarkState()
+const { bookMarks } = bookMarkStore
 const defaultUnderlineStyle = loadPreferredUnderlineStyle()
 
 const { bookMarkEditionVisible, bookMarkEditionContent, openEditorByMarkId, closeEditor } =

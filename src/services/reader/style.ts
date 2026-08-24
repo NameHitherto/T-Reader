@@ -2,7 +2,7 @@ import { getAppliedAppThemeMode, getReaderRuntimePalette } from '@/services/them
 import type { AppThemeMode } from '@/services/settings'
 import type { ReaderStyleConfig } from '@/services/reader/types'
 import { applyEpubReaderStyles } from '@/services/reader/epubStyle'
-import type { EpubRenditionLike } from '@/types/epub'
+import type { EpubRenditionLike } from '@/services/reader/epubTypes'
 
 export type { ReaderStyleConfig, ReaderRenditionLike } from '@/services/reader/types'
 

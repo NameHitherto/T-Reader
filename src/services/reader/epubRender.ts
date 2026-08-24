@@ -1,13 +1,13 @@
 import ePub from 'libs/epub.js'
-import { BookConfig } from '@/types/book'
+import { BookConfig } from '@/services/book/types'
 import { resolveEpubDisplayTarget } from '@/services/reader/epubProgress'
 import { logWarn } from '@/utils/logger'
 import {
   createEpubBuiltInStylesheetIsolationController,
   type EpubBuiltInStylesheetIsolationController,
 } from '@/services/reader/stylesheetIsolation'
-import type { EpubRenditionLike, EpubTocItem } from '@/types/epub'
-import type { EpubBuiltInStylesheetMode } from '@/store/readerConfigStore'
+import type { EpubRenditionLike, EpubTocItem } from '@/services/reader/epubTypes'
+import type { EpubBuiltInStylesheetMode } from '@/services/reader/config'
 
 export interface EpubRenderResult {
   rendition: EpubRenditionLike

@@ -1,6 +1,6 @@
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { documentDir, join } from '@tauri-apps/api/path'
-import { LOCAL_STORAGE_ROOT } from '@/services/fileSystem'
+import { LOCAL_STORAGE_ROOT } from '@/services/fs'
 
 /**
  * 把 gallery 记录中的相对路径（相对 Documents/T-Reader，如 cached/gallery/<id>/image.png）

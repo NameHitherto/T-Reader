@@ -30,7 +30,7 @@
 import { PropType } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { IconName } from '@/icons/registry'
-import { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+import { ContextMenuData, ContextMenuItem } from '@/components/ContextMenu/types'
 
 const DEFAULT_VIEWPORT_MARGIN = 20
 

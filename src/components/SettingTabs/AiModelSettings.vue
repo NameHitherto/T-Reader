@@ -127,7 +127,9 @@
         <div v-if="activePurpose === 'chat'" class="setting-item setting-item--input">
           <div class="setting-item__info">
             <span class="setting-item__title">上下文窗口</span>
-            <span class="setting-item__subtitle">模型支持的最大上下文 Token 数，留空则默认 100K</span>
+            <span class="setting-item__subtitle"
+              >模型支持的最大上下文 Token 数，留空则默认 100K</span
+            >
           </div>
           <div class="setting-item__control context-window-control">
             <el-input-number
@@ -202,10 +204,9 @@ import {
   PROVIDER_TYPES,
   type ModelPurpose,
   type ProviderType,
-} from '@/types/model'
+} from '@/services/settings/modelTypes'
 
-const { activePurpose, currentProvider, ensureProvider, selectModelPurpose } =
-  useSettingsCenter()
+const { activePurpose, currentProvider, ensureProvider, selectModelPurpose } = useSettingsCenter()
 
 // 首次渲染即确保当前模型类型持有可编辑对象，避免表单字段无绑定目标
 ensureProvider(activePurpose.value)
@@ -274,7 +275,7 @@ const applyDefaultEndpoint = () => {
 </script>
 
 <style scoped lang="scss">
-@use './setting-tab';
+@use '@/styles/components/setting-tab';
 
 // 模型类型单选按钮组：标题下方横向排布，选中 / 悬浮仅过渡背景、文字颜色与边框
 .purpose-selector {

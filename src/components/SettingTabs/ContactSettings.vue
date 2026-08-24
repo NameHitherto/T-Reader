@@ -26,7 +26,7 @@ import AppIcon from '@/components/common/AppIcon/index.vue'
 import { about } from '@/constants/about'
 import type { IconName } from '@/icons/registry'
 import { showMainTaskMessage } from '@/services/notification'
-import { toHttpResponseMessage } from '@/services/response'
+import { toHttpResponseMessage } from '@/services/sync/response'
 
 interface ContactItem {
   key: string
@@ -83,7 +83,7 @@ const openContactTarget = async (label: string, target: string) => {
 </script>
 
 <style scoped lang="scss">
-@use './setting-tab';
+@use '@/styles/components/setting-tab';
 
 .contact-setting-item {
   align-items: center;

@@ -249,8 +249,8 @@ import {
   formatCloudSyncResultMessage,
   getCloudSyncPreview,
 } from '@/services/sync'
-import { toHttpResponseMessage } from '@/services/response'
-import type { CloudSyncPreviewResult } from '@/types/sync'
+import { toHttpResponseMessage } from '@/services/sync/response'
+import type { CloudSyncPreviewResult } from '@/services/sync/types'
 
 export default defineComponent({
   name: 'CloudSyncView',

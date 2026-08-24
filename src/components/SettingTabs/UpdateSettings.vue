@@ -105,13 +105,13 @@ import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
 import { about } from '@/constants/about'
 import { showMainTaskMessage } from '@/services/notification'
-import { toHttpResponseMessage } from '@/services/response'
-import {
-  loadAppSettings,
-  normalizeUpdateChannel,
-  saveAppSettings,
-} from '@/services/settings'
-import type { AppUpdateCheckResult, AppUpdateProgressEvent, UpdateChannel } from '@/types/appUpdate'
+import { toHttpResponseMessage } from '@/services/sync/response'
+import { loadAppSettings, normalizeUpdateChannel, saveAppSettings } from '@/services/settings'
+import type {
+  AppUpdateCheckResult,
+  AppUpdateProgressEvent,
+  UpdateChannel,
+} from '@/services/settings/updateTypes'
 
 const version = ref('')
 const checking = ref(false)
@@ -406,7 +406,7 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@use './setting-tab';
+@use '@/styles/components/setting-tab';
 
 .update-settings {
   display: flex;

@@ -64,11 +64,7 @@ import {
   resolveBookCoverForDisplay,
   saveUploadedBookCover,
 } from '@/services/book/cache'
-import {
-  buildLocalFilePath,
-  LOCAL_DIRS,
-  removeLocalFile,
-} from '@/services/fileSystem'
+import { buildLocalFilePath, LOCAL_DIRS, removeLocalFile } from '@/services/fs'
 import { toBookConfigFilename } from '@/services/book/identity'
 import { prepareReaderBookDelete } from '@/services/ipc'
 import type { StoredBookRecord } from '@/services/book/types'

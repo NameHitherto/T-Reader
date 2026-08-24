@@ -130,34 +130,23 @@ import { open } from '@tauri-apps/plugin-dialog'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from '@/components/ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
-import type { BookFormat } from '@/types/book'
-import type { ContextMenuData, ContextMenuItem } from '@/types/contextMenu'
+import type { BookFormat } from '@/services/book/types'
+import type { ContextMenuData, ContextMenuItem } from '@/components/ContextMenu/types'
 import emptyStateImage from '@/assets/images/empty.png'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import BookMetadataEditDialog from '@/components/BookMetadataEditDialog.vue'
 import defaultCover from '@/assets/default-cover.png'
 import { detectBookFormatFromPath } from '@/services/book/format'
-import { getLocalDirNames } from '@/services/fileSystem'
-import type { LocalDirNames } from '@/services/fileSystem'
+import { getLocalDirNames } from '@/services/fs'
+import type { LocalDirNames } from '@/services/fs'
 import {
   parseBookCoverInBackground,
   resolveBookCoverForDisplay,
   removeBookCacheDir,
 } from '@/services/book/cache'
-import {
-  buildLastReadLabel,
-  normalizeDisplayedChapterTitle,
-} from '@/services/book/presentation'
-import {
-  useShelfBooksService,
-  type ShelfBook,
-  type ShelfBookFormat,
-} from '@/services/book/shelf'
-import {
-  parseBookCreatedAt,
-  type BookSortKey,
-  type BookSortOrder,
-} from '@/services/book/sort'
+import { buildLastReadLabel, normalizeDisplayedChapterTitle } from '@/services/book/presentation'
+import { useShelfBooksService, type ShelfBook, type ShelfBookFormat } from '@/services/book/shelf'
+import { parseBookCreatedAt, type BookSortKey, type BookSortOrder } from '@/services/book/sort'
 import ShelfMenu from '@/components/ShelfMenu/index.vue'
 import {
   invalidateBookFileCache,
@@ -171,22 +160,11 @@ import type { StoredBookConfig } from '@/services/book/repository'
 import type { ImportBookResult, StoredBookRecord } from '@/services/book/types'
 import { removeBookMarksByBookKey } from '@/services/book/bookmarks'
 import { toBookConfigFilename } from '@/services/book/identity'
-import {
-  buildLocalFilePath,
-  CLOUD_DIRS,
-  LOCAL_DIRS,
-  removeLocalFile,
-} from '@/services/fileSystem'
-import {
-  createMainTaskBatchNotifier,
-  showMainTaskMessage,
-} from '@/services/notification'
-import { toHttpResponseResult, toSettledResponseResult } from '@/services/response'
+import { buildLocalFilePath, CLOUD_DIRS, LOCAL_DIRS, removeLocalFile } from '@/services/fs'
+import { createMainTaskBatchNotifier, showMainTaskMessage } from '@/services/notification'
+import { toHttpResponseResult, toSettledResponseResult } from '@/services/sync/response'
 import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
-import {
-  prepareReaderBookDelete,
-  type BookshelfProgressSavedPayload,
-} from '@/services/ipc'
+import { prepareReaderBookDelete, type BookshelfProgressSavedPayload } from '@/services/ipc'
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme'
 import { WINDOW_EVENTS } from '@/constants/events'

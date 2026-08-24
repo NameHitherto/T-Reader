@@ -74,7 +74,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { BookChatContextInfo, BookChatMessage } from '@/types/bookChat'
+import type { BookChatContextInfo, BookChatMessage } from '@/services/chat/types'
 import {
   clearBookChatMessages,
   getBookChatContext,

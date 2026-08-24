@@ -1,5 +1,5 @@
-import type { ModelProviderMap } from '@/types/model'
-import type { UpdateChannel } from '@/types/appUpdate'
+import type { ModelProviderMap } from '@/services/settings/modelTypes'
+import type { UpdateChannel } from '@/services/settings/updateTypes'
 
 export type AppThemeMode = 'light' | 'dark'
 

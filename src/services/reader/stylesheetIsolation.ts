@@ -3,7 +3,7 @@ import {
   type EpubBookContext,
   type EpubSectionContext,
 } from '@/services/reader/epubCssFilter'
-import type { EpubContentsLike, EpubRenditionLike } from '@/types/epub'
+import type { EpubContentsLike, EpubRenditionLike } from '@/services/reader/epubTypes'
 
 interface EpubSpineContentHook {
   register: (hook: (document: Document, section?: EpubSectionContext) => void) => void

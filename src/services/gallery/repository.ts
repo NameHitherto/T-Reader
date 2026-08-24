@@ -1,10 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
-import { GalleryImage, GenerateGalleryImageRequest } from '@/types/gallery'
-import {
-  ensureLocalDir,
-  writeBinaryFile,
-  buildLocalFilePath,
-} from '@/services/fileSystem'
+import { GalleryImage, GenerateGalleryImageRequest } from '@/services/gallery/types'
+import { ensureLocalDir, writeBinaryFile, buildLocalFilePath } from '@/services/fs'
 import { generateID } from '@/utils/id'
 
 const GALLERY_STAGING_SUBDIR = 'cached/gallery/_staging'

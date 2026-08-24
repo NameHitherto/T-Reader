@@ -1,5 +1,5 @@
 import ePub, { EpubCFI } from 'libs/epub.js'
-import { BookConfig } from '@/types/book'
+import { BookConfig } from '@/services/book/types'
 import { logInfo, logWarn } from '@/utils/logger'
 import {
   calculateLegadoOffset,
@@ -11,7 +11,7 @@ import type {
   EpubSectionLike,
   EpubTocItem,
   EpubRenditionLike,
-} from '@/types/epub'
+} from '@/services/reader/epubTypes'
 
 export interface EpubProgressSnapshot {
   durChapterIndex: number
@@ -253,7 +253,9 @@ const clampProgress = (value: number): number => {
   return Math.min(100, Math.max(0, value))
 }
 
-export const calculateEpubProgress = async (rendition: EpubRenditionLike | null): Promise<number> => {
+export const calculateEpubProgress = async (
+  rendition: EpubRenditionLike | null,
+): Promise<number> => {
   const currentLocation = await Promise.resolve(rendition?.currentLocation?.())
   const percentage = currentLocation?.start?.percentage
 

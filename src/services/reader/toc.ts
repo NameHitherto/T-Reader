@@ -1,4 +1,4 @@
-import type { EpubBookLike, EpubNavigationItem } from '@/types/epub'
+import type { EpubBookLike, EpubNavigationItem } from '@/services/reader/epubTypes'
 
 export const collectParentChapterIndexes = (
   book: EpubBookLike | undefined,

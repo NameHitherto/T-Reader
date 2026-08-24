@@ -1,4 +1,4 @@
-import type { ReaderBackgroundPreset } from '@/types/readerBackground'
+import type { ReaderBackgroundPreset } from '@/services/theme/backgroundTypes'
 
 export interface AppThemePalette {
   appBackground: string

@@ -127,8 +127,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useReaderConfigStore } from '@/store/readerConfigStore'
+import { useReaderConfig } from '@/services/reader/config'
 import { saveReaderConfigToDisk } from '@/services/reader/config'
 import {
   buildLocalSrcValue,
@@ -155,7 +154,7 @@ import {
   SYSTEM_FONT_PREVIEW_TEXT,
   type EnabledSystemFont,
   type SystemFontEntry,
-} from '@/types/readerFonts'
+} from '@/services/reader/fontTypes'
 
 export default defineComponent({
   name: 'SystemFontEnableDialog',
@@ -167,8 +166,8 @@ export default defineComponent({
   },
   emits: ['update:modelValue', 'saved'],
   setup(_, { emit }) {
-    const readerConfigStore = useReaderConfigStore()
-    const { readerConfig } = storeToRefs(readerConfigStore)
+    const readerConfigStore = useReaderConfig()
+    const { readerConfig } = readerConfigStore
 
     const FONT_GROUP_BATCH_SIZE = 24
     const PREVIEW_FONT_STYLE_ID = 'system-font-enable-dialog-preview-font-style'

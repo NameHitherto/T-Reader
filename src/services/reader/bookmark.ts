@@ -4,7 +4,7 @@ import {
   DEFAULT_UNDERLINE_STYLE,
   type UnderlineStyle,
 } from '@/constants/bookmark'
-import type { EpubRenditionLike } from '@/types/epub'
+import type { EpubRenditionLike } from '@/services/reader/epubTypes'
 
 const resolveStyle = (bookMark: BookMark, fallback: UnderlineStyle): UnderlineStyle => ({
   color: bookMark.underlineColor || fallback.color,

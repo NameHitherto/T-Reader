@@ -57,7 +57,7 @@ const { txtTocRules, moveTxtTocRule } = useSettingsCenter()
 </script>
 
 <style scoped lang="scss">
-@use './setting-tab';
+@use '@/styles/components/setting-tab';
 
 .txt-toc-rule-empty {
   padding: 14px 0;
