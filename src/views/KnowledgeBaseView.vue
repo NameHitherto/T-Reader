@@ -234,7 +234,7 @@ import {
   updateKnowledgeSeries,
 } from '@/services/knowledgeBase'
 import { logError } from '@/utils/logger'
-import { BOOK_FILE_DIALOG_FILTERS } from '@/constants'
+import { SUPPORTED_BOOK_FORMATS } from '@/constants'
 import MarkdownContent from '@/components/common/MarkdownContent/index.vue'
 
 const router = useRouter()
@@ -483,7 +483,12 @@ const importDocuments = async () => {
     selected = await open({
       multiple: true,
       directory: false,
-      filters: BOOK_FILE_DIALOG_FILTERS,
+      filters: [
+        {
+          name: '书籍文件',
+          extensions: [...SUPPORTED_BOOK_FORMATS],
+        },
+      ],
     })
   } catch (error) {
     showMessage('error', String(error))

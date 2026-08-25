@@ -130,13 +130,11 @@ import { open } from '@tauri-apps/plugin-dialog'
 import loadingBlockade from '@/components/common/LoadingBlockade/index.vue'
 import ContextMenu from '@/components/ContextMenu/index.vue'
 import AppIcon from '@/components/common/AppIcon/index.vue'
-import type { BookFormat } from '@/services/book/types'
 import type { ContextMenuData, ContextMenuItem } from '@/components/ContextMenu/types'
 import emptyStateImage from '@/assets/images/empty.png'
 import BookInfoDialog from '@/components/BookInfoDialog/index.vue'
 import BookMetadataEditDialog from '@/components/BookMetadataEditDialog/index.vue'
 import defaultCover from '@/assets/default-cover.png'
-import { detectBookFormatFromPath } from '@/services/book/format'
 import { getLocalDirNames } from '@/services/fs'
 import type { LocalDirNames } from '@/services/fs'
 import {
@@ -167,7 +165,11 @@ import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import { prepareReaderBookDelete, type BookshelfProgressSavedPayload } from '@/services/ipc'
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme'
-import { BOOK_FILE_DIALOG_FILTERS, WINDOW_EVENTS } from '@/constants'
+import {
+  SUPPORTED_IMPORT_BOOK_FORMATS,
+  SupportedImportBookFormat,
+  WINDOW_EVENTS,
+} from '@/constants'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { basename, changeExt, getExt } from '@/utils/path'
 
@@ -179,7 +181,6 @@ defineOptions({
 // 类型声明
 // ============================================================
 type ShelfViewMode = 'list' | 'grid'
-type ImportSourceFormat = BookFormat | 'txt'
 
 // ============================================================
 // 接口声明
@@ -309,13 +310,14 @@ const handleViewModeChange = (mode: ShelfViewMode) => {
 // ============================================================
 // 导入格式处理
 // ============================================================
-const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
+const detectImportSourceFormat = (path: string): SupportedImportBookFormat | null => {
   const ext = getExt(path).toLowerCase()
-  if (ext === 'txt') {
-    return 'txt'
+
+  if (SUPPORTED_IMPORT_BOOK_FORMATS.includes(ext as SupportedImportBookFormat)) {
+    return ext as SupportedImportBookFormat
   }
 
-  return detectBookFormatFromPath(path)
+  return null
 }
 
 const toEpubFileName = (fileName: string): string => {
@@ -412,7 +414,12 @@ const addBook = async () => {
   const selectedFilePath = await open({
     multiple: true,
     directory: false,
-    filters: BOOK_FILE_DIALOG_FILTERS,
+    filters: [
+      {
+        name: '书籍文件',
+        extensions: [...SUPPORTED_IMPORT_BOOK_FORMATS],
+      },
+    ],
   })
 
   if (selectedFilePath === null) {

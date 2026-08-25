@@ -68,7 +68,7 @@ import { buildLocalFilePath, LOCAL_DIRS, removeLocalFile } from '@/services/fs'
 import { toBookConfigFilename } from '@/services/book/identity'
 import { prepareReaderBookDelete } from '@/services/ipc'
 import type { StoredBookRecord } from '@/services/book/types'
-import { IMAGE_FILE_DIALOG_FILTERS, MAX_COVER_IMAGE_BYTES } from '@/constants'
+import { SUPPORTED_IMAGE_EXTENSIONS, MAX_COVER_IMAGE_BYTES } from '@/constants'
 import { logWarn } from '@/utils/logger'
 
 const MAX_COVER_BYTES = MAX_COVER_IMAGE_BYTES
@@ -165,7 +165,12 @@ const chooseCover = async () => {
   const selected = await open({
     multiple: false,
     directory: false,
-    filters: IMAGE_FILE_DIALOG_FILTERS,
+    filters: [
+      {
+        name: '图片',
+        extensions: [...SUPPORTED_IMAGE_EXTENSIONS],
+      },
+    ],
   })
   if (!selected || Array.isArray(selected)) return
 
