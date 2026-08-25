@@ -2,7 +2,7 @@ import { ref, watch, Ref } from 'vue'
 import { applyBookmarkUnderline } from '@/services/reader/bookmark'
 import type { BookMark } from '@/services/reader/bookmarkState'
 import type { EpubRenditionLike } from '@/services/reader/epubTypes'
-import type { UnderlineStyle } from '@/constants/bookmark'
+import type { UnderlineStyle } from '@/services/reader'
 
 interface UseBookmarkEditorArgs {
   bookMarkStore: ReturnType<typeof import('@/services/reader/bookmarkState').useBookMarkState>

@@ -1,10 +1,11 @@
 import { invoke } from '@tauri-apps/api/core'
 import { GalleryImage, GenerateGalleryImageRequest } from '@/services/gallery/types'
 import { ensureLocalDir, writeBinaryFile, buildLocalFilePath } from '@/services/fs'
+import { LOCAL_DIRS } from '@/constants'
 import { generateID } from '@/utils/id'
 import { join } from '@/utils/path'
 
-const GALLERY_STAGING_SUBDIR = 'cached/gallery/_staging'
+const GALLERY_STAGING_SUBDIR = join(LOCAL_DIRS.cached, 'gallery/_staging')
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',

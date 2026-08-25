@@ -1,7 +1,6 @@
+import { SUPPORTED_BOOK_FORMATS } from '@/constants'
 import type { BookFormat } from '@/services/book/types'
 import { getExt } from '@/utils/path'
-
-const SUPPORTED_FORMATS: BookFormat[] = ['epub']
 
 export const detectBookFormatFromPath = (path: string): BookFormat | null => {
   const ext = getExt(path).toLowerCase()
@@ -9,7 +8,7 @@ export const detectBookFormatFromPath = (path: string): BookFormat | null => {
     return null
   }
 
-  if (SUPPORTED_FORMATS.includes(ext as BookFormat)) {
+  if ((SUPPORTED_BOOK_FORMATS as readonly string[]).includes(ext)) {
     return ext as BookFormat
   }
 

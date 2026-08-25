@@ -1,5 +1,5 @@
 import { READER_DOM_EVENTS } from '@/constants/events'
-import { BOOKMARK_UNDERLINE_CLASS } from '@/constants/bookmark'
+import { BOOKMARK_UNDERLINE_CLASS } from './bookmarkStyle'
 import type { EpubContentsLike, EpubRenditionLike } from '@/services/reader/epubTypes'
 
 interface ReaderKeydownHandlers {

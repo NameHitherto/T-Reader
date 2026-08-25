@@ -63,7 +63,7 @@ T-Reader 是基于 Vue 3 + TypeScript + Vite 与 Tauri 2 + Rust 的 Windows 桌�
   - `window/`：窗口控制与窗口生命周期服务。
 - `src/styles/`：全局样式规范，按 `global/`、`theme/`、`common/`、`components/`、`vendors/` 分类。
 - `src/utils/`：与具体业务领域无关、可供任意组件或服务复用的通用工具。
-- `src/constants/`：稳定的常量、枚举式选项及常量相关的小型纯函数。
+- `src/constants/`：稳定的全局的常量、枚举式选项及常量相关的小型非业务服务函数。
 - `src/router/`：主窗口路由定义。
 - `src/icons/`：图标注册和图标映射，不承载业务服务。
 

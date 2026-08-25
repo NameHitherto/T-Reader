@@ -1,3 +1,8 @@
+export const WINDOW_LABELS = {
+  MAIN: 'main',
+  READER: 'reader',
+} as const
+
 export const WINDOW_EVENTS = {
   LOAD_BOOK_KEY: 'load-book-key',
   PREPARE_BOOK_DELETE: 'prepare-book-delete',

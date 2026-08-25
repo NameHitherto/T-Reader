@@ -1,4 +1,6 @@
-export type BookFormat = 'epub'
+import type { SupportedBookFormat } from '@/constants'
+
+export type BookFormat = SupportedBookFormat
 
 export interface BookProgressSnapshot {
   durChapterIndex: number
@@ -12,7 +14,7 @@ export interface BookConfig extends BookProgressSnapshot {
   author: string
 }
 import type { ComputedRef, Ref } from 'vue'
-import type { UnderlineType } from '@/constants/bookmark'
+import type { UnderlineType } from '@/services/reader/bookmarkStyle'
 
 // ============================================================
 // 导入域

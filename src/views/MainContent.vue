@@ -167,7 +167,7 @@ import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import { prepareReaderBookDelete, type BookshelfProgressSavedPayload } from '@/services/ipc'
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme'
-import { WINDOW_EVENTS } from '@/constants/events'
+import { BOOK_FILE_DIALOG_FILTERS, WINDOW_EVENTS } from '@/constants'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { basename, changeExt, getExt } from '@/utils/path'
 
@@ -412,12 +412,7 @@ const addBook = async () => {
   const selectedFilePath = await open({
     multiple: true,
     directory: false,
-    filters: [
-      {
-        name: 'Book files',
-        extensions: ['epub', 'txt'],
-      },
-    ],
+    filters: BOOK_FILE_DIALOG_FILTERS,
   })
 
   if (selectedFilePath === null) {

@@ -96,6 +96,7 @@ import { stageReferenceImage } from '@/services/gallery'
 import { imageGenerationTask, startImageGenerationTask } from '@/services/gallery'
 import { logError, logInfo } from '@/utils/logger'
 import { generateID } from '@/utils/id'
+import { IMAGE_FILE_DIALOG_FILTERS } from '@/constants'
 
 interface ReferenceImage {
   id: string
@@ -245,7 +246,7 @@ const chooseLocalImage = async () => {
     const selected = await open({
       multiple: false,
       directory: false,
-      filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
+      filters: IMAGE_FILE_DIALOG_FILTERS,
     })
     if (typeof selected !== 'string' || selected.length === 0) {
       return

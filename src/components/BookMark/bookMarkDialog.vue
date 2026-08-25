@@ -91,7 +91,7 @@ import {
   savePreferredUnderlineStyle,
   type UnderlineStyle,
   type UnderlineType,
-} from '@/constants/bookmark'
+} from '@/services/reader'
 import { logWarn } from '@/utils/logger'
 import type { BookMark } from '@/services/reader/bookmarkState'
 

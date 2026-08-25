@@ -234,6 +234,7 @@ import {
   updateKnowledgeSeries,
 } from '@/services/knowledgeBase'
 import { logError } from '@/utils/logger'
+import { BOOK_FILE_DIALOG_FILTERS } from '@/constants'
 import MarkdownContent from '@/components/common/MarkdownContent/index.vue'
 
 const router = useRouter()
@@ -482,7 +483,7 @@ const importDocuments = async () => {
     selected = await open({
       multiple: true,
       directory: false,
-      filters: [{ name: 'EPUB', extensions: ['epub'] }],
+      filters: BOOK_FILE_DIALOG_FILTERS,
     })
   } catch (error) {
     showMessage('error', String(error))

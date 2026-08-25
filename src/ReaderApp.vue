@@ -126,7 +126,7 @@ import { primeBookLocationsAfterImport } from '@/services/book/cache'
 import { getReadyBookLocations } from '@/services/book/locationsCache'
 import { normalizeDisplayedChapterTitle } from '@/services/book/presentation'
 import { loadBookMarksByBookKey } from '@/services/book/bookmarks'
-import { loadPreferredUnderlineStyle } from '@/constants/bookmark'
+import { loadPreferredUnderlineStyle } from '@/services/reader'
 import { resolveEpubTocLabel } from '@/services/reader/epubProgress'
 import {
   buildReaderBackgroundDeclarations,

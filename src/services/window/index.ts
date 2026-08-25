@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { WINDOW_LABELS } from '@/constants'
 
 /**
  * 绑定自定义标题栏按钮事件。
@@ -18,7 +19,7 @@ export const bindWindowTitlebarControls = () => {
     void invoke('window_toggle_maximize', { label: windowLabel })
   }
   const onClose = () => {
-    if (windowLabel === 'reader') {
+    if (windowLabel === WINDOW_LABELS.READER) {
       void invoke('hide_reader_window')
       return
     }

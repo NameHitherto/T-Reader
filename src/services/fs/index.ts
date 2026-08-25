@@ -10,20 +10,15 @@ import {
 } from '@tauri-apps/plugin-fs'
 import { encodeJson } from '@/utils/json'
 import { join } from '@/utils/path'
+import {
+  LOCAL_STORAGE_ROOT,
+  LOCAL_DIRS,
+  CLOUD_DIRS,
+  type LocalDirNames,
+  type CloudDirNames,
+} from '@/constants'
 
-export const LOCAL_STORAGE_ROOT = 'T-Reader'
-
-export const LOCAL_DIRS = {
-  books: 'books',
-  progress: 'bookProgress',
-  cached: 'cached',
-  system: 'system',
-} as const
-
-export const CLOUD_DIRS = {
-  books: 'books',
-  progress: 'bookProgress',
-} as const
+export { LOCAL_STORAGE_ROOT, LOCAL_DIRS, CLOUD_DIRS, type LocalDirNames, type CloudDirNames }
 
 let ensureLocalStoragePromise: Promise<void> | null = null
 
@@ -132,16 +127,6 @@ export const readLocalDirEntries = async (relativePath: string): Promise<DirEntr
  *   ├── cached/        # 缓存文件
  *   └── system/        # 系统文件 (设置等)
  */
-
-/**
- * 本地目录名称（前端常量）
- */
-export type LocalDirNames = typeof LOCAL_DIRS
-
-/**
- * 云端目录名称（前端常量）
- */
-export type CloudDirNames = typeof CLOUD_DIRS
 
 /**
  * 获取本地目录名称（带缓存）

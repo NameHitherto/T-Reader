@@ -3,7 +3,7 @@ import {
   BOOKMARK_UNDERLINE_CLASS,
   DEFAULT_UNDERLINE_STYLE,
   type UnderlineStyle,
-} from '@/constants/bookmark'
+} from './bookmarkStyle'
 import type { EpubRenditionLike } from '@/services/reader/epubTypes'
 
 const resolveStyle = (bookMark: BookMark, fallback: UnderlineStyle): UnderlineStyle => ({

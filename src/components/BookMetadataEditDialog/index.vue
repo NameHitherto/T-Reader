@@ -68,9 +68,10 @@ import { buildLocalFilePath, LOCAL_DIRS, removeLocalFile } from '@/services/fs'
 import { toBookConfigFilename } from '@/services/book/identity'
 import { prepareReaderBookDelete } from '@/services/ipc'
 import type { StoredBookRecord } from '@/services/book/types'
+import { IMAGE_FILE_DIALOG_FILTERS, MAX_COVER_IMAGE_BYTES } from '@/constants'
 import { logWarn } from '@/utils/logger'
 
-const MAX_COVER_BYTES = 5 * 1024 * 1024
+const MAX_COVER_BYTES = MAX_COVER_IMAGE_BYTES
 
 const props = defineProps<{ modelValue: boolean; bookKey: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; saved: [bookKey: string] }>()
@@ -164,7 +165,7 @@ const chooseCover = async () => {
   const selected = await open({
     multiple: false,
     directory: false,
-    filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png', 'webp'] }],
+    filters: IMAGE_FILE_DIALOG_FILTERS,
   })
   if (!selected || Array.isArray(selected)) return
 
