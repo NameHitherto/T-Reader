@@ -155,7 +155,7 @@ import {
   uploadLocalBookFileToCloud,
 } from '@/services/book/repository'
 import type { StoredBookConfig } from '@/services/book/repository'
-import type { ImportBookResult, StoredBookRecord } from '@/services/book/types'
+import type { ImportBookResult, StoredBookRecord, ImportBookFormat } from '@/services/book/types'
 import { removeBookMarksByBookKey } from '@/services/book/bookmarks'
 import { toBookConfigFilename } from '@/services/book/identity'
 import { buildLocalFilePath, CLOUD_DIRS, LOCAL_DIRS, removeLocalFile } from '@/services/fs'
@@ -167,7 +167,6 @@ import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme'
 import {
   SUPPORTED_IMPORT_BOOK_FORMATS,
-  SupportedImportBookFormat,
   WINDOW_EVENTS,
 } from '@/constants'
 import { logError, logInfo, logWarn } from '@/utils/logger'
@@ -310,11 +309,11 @@ const handleViewModeChange = (mode: ShelfViewMode) => {
 // ============================================================
 // 导入格式处理
 // ============================================================
-const detectImportSourceFormat = (path: string): SupportedImportBookFormat | null => {
+const detectImportSourceFormat = (path: string): ImportBookFormat | null => {
   const ext = getExt(path).toLowerCase()
 
-  if (SUPPORTED_IMPORT_BOOK_FORMATS.includes(ext as SupportedImportBookFormat)) {
-    return ext as SupportedImportBookFormat
+  if (SUPPORTED_IMPORT_BOOK_FORMATS.includes(ext as ImportBookFormat)) {
+    return ext as ImportBookFormat
   }
 
   return null

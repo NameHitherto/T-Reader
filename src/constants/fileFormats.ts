@@ -2,7 +2,6 @@
  * 系统支持的书籍格式与扩展名
  */
 export const SUPPORTED_BOOK_FORMATS = ['epub'] as const
-export type SupportedBookFormat = (typeof SUPPORTED_BOOK_FORMATS)[number]
 
 export const SUPPORTED_BOOK_EXTENSIONS = ['epub'] as const
 
@@ -10,7 +9,6 @@ export const SUPPORTED_BOOK_EXTENSIONS = ['epub'] as const
  * 系统支持导入的书籍格式
  */
 export const SUPPORTED_IMPORT_BOOK_FORMATS = ['epub', 'txt'] as const
-export type SupportedImportBookFormat = (typeof SUPPORTED_IMPORT_BOOK_FORMATS)[number]
 
 /**
  * 系统支持的图片扩展名（封面、画廊参考图等）

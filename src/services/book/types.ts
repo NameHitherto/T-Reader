@@ -1,6 +1,7 @@
-import type { SupportedBookFormat } from '@/constants'
+import type { SUPPORTED_BOOK_FORMATS, SUPPORTED_IMPORT_BOOK_FORMATS } from '@/constants'
 
-export type BookFormat = SupportedBookFormat
+export type BookFormat = (typeof SUPPORTED_BOOK_FORMATS)[number]
+export type ImportBookFormat = (typeof SUPPORTED_IMPORT_BOOK_FORMATS)[number]
 
 export interface BookProgressSnapshot {
   durChapterIndex: number
