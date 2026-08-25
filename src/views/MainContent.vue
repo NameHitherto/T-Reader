@@ -165,10 +165,7 @@ import { openReaderWindowWithPrecheck } from '@/services/reader/windowLaunch'
 import { prepareReaderBookDelete, type BookshelfProgressSavedPayload } from '@/services/ipc'
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme'
-import {
-  SUPPORTED_IMPORT_BOOK_FORMATS,
-  WINDOW_EVENTS,
-} from '@/constants'
+import { SUPPORTED_IMPORT_BOOK_FORMATS, WINDOW_EVENTS } from '@/constants'
 import { logError, logInfo, logWarn } from '@/utils/logger'
 import { basename, changeExt, getExt } from '@/utils/path'
 
@@ -208,8 +205,14 @@ const IMPORT_LOADING_TEXT = {
 // 核心数据状态
 // ============================================================
 const shelfBooks = useShelfBooksService()
-const { books, isBooksEmpty, sortKey, sortOrder, setBookSort } = shelfBooks
-const booksLoading = ref(true)
+const {
+  books,
+  isBooksEmpty,
+  sortKey,
+  sortOrder,
+  setBookSort,
+  isInitialLoading: booksLoading,
+} = shelfBooks
 
 // ============================================================
 // 全局加载状态
@@ -391,19 +394,78 @@ const refreshShelfBookCover = async (record: StoredBookRecord) => {
   })
 }
 
-const loadBooks = async () => {
+const applyLoadedBooks = async (loadedBooks: StoredBookConfig[]) => {
+  shelfBooks.setShelfBooks(await Promise.all(loadedBooks.map((book) => buildShelfBook(book))))
+}
+
+// 首次加载：驱动可见 loading 遮罩；失败也落为 ready（空书架），交由下次挂载的后台刷新自愈
+const loadShelfInitial = async () => {
+  if (!shelfBooks.startInitialLoad()) {
+    return
+  }
+
   try {
-    booksLoading.value = true
     const loadedBooks = await loadBookConfigs()
-    shelfBooks.setShelfBooks(await Promise.all(loadedBooks.map((book) => buildShelfBook(book))))
+    await applyLoadedBooks(loadedBooks)
     logInfo('bookshelf', 'load-books', {
       total: books.value.length,
     })
   } catch (error) {
     logError('bookshelf', 'load-books failed', error)
   } finally {
-    booksLoading.value = false
+    shelfBooks.finishInitialLoad()
   }
+}
+
+// 后台静默刷新：切回书架时兜底云同步等外部改动，不弹出 loading，单飞去重
+const refreshShelfInBackground = async () => {
+  if (!shelfBooks.startBackgroundRefresh()) {
+    return
+  }
+
+  const epochAtStart = shelfBooks.getMutationEpoch()
+  try {
+    const loadedBooks = await loadBookConfigs()
+    if (shelfBooks.getMutationEpoch() !== epochAtStart) {
+      logInfo('bookshelf', 'refresh-books discarded-outdated-snapshot', {
+        epochAtStart,
+        currentEpoch: shelfBooks.getMutationEpoch(),
+      })
+      return
+    }
+
+    await applyLoadedBooks(loadedBooks)
+    logInfo('bookshelf', 'refresh-books', {
+      total: books.value.length,
+    })
+  } catch (error) {
+    logError('bookshelf', 'refresh-books failed', error)
+  } finally {
+    shelfBooks.finishBackgroundRefresh()
+  }
+}
+
+// 元数据编辑后的可见全量重载（书架处于活跃且用户刚保存）
+const reloadBooks = async () => {
+  try {
+    const loadedBooks = await loadBookConfigs()
+    await applyLoadedBooks(loadedBooks)
+    logInfo('bookshelf', 'reload-books', {
+      total: books.value.length,
+    })
+  } catch (error) {
+    logError('bookshelf', 'reload-books failed', error)
+  }
+}
+
+// 挂载入口：已加载则秒读内存 + 后台静默刷新；否则首次加载
+const ensureShelfLoaded = () => {
+  if (shelfBooks.hasInitiallyLoaded.value) {
+    void refreshShelfInBackground()
+    return
+  }
+
+  void loadShelfInitial()
 }
 
 // ============================================================
@@ -711,7 +773,7 @@ const applyBookshelfProgressSaved = (payload: BookshelfProgressSavedPayload) => 
 
   const currentBook = shelfBooks.getShelfBook(payload.bookKey)
   if (!currentBook) {
-    void loadBooks()
+    void ensureShelfLoaded()
     return
   }
 
@@ -786,7 +848,7 @@ const showBookMetadataEditor = (bookKey: string) => {
 
 const handleBookMetadataSaved = async () => {
   invalidateBookFileCache()
-  await loadBooks()
+  await reloadBooks()
 }
 
 // ============================================================
@@ -883,7 +945,7 @@ const getListMeta = (book: ShelfBook): string => {
 // 生命周期
 // ============================================================
 onMounted(() => {
-  void loadBooks()
+  void ensureShelfLoaded()
   void registerBookshelfProgressSavedListener().catch((error) => {
     logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
   })

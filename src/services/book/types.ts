@@ -143,6 +143,8 @@ export type ShelfBook = BookConfig & {
 export interface ShelfBooksService {
   books: ComputedRef<ShelfBook[]>
   isBooksEmpty: ComputedRef<boolean>
+  isInitialLoading: ComputedRef<boolean>
+  hasInitiallyLoaded: ComputedRef<boolean>
   sortKey: Ref<BookSortKey>
   sortOrder: Ref<BookSortOrder>
   setBookSort: (key: BookSortKey, order: BookSortOrder) => void
@@ -152,6 +154,11 @@ export interface ShelfBooksService {
   upsertShelfBook: (book: ShelfBook) => void
   removeShelfBook: (bookKey: string) => void
   refreshBookOrder: () => void
+  startInitialLoad: () => boolean
+  finishInitialLoad: () => void
+  startBackgroundRefresh: () => boolean
+  finishBackgroundRefresh: () => void
+  getMutationEpoch: () => number
 }
 
 // ============================================================
