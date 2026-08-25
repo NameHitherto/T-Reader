@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { GalleryImage, GenerateGalleryImageRequest } from '@/services/gallery/types'
 import { ensureLocalDir, writeBinaryFile, buildLocalFilePath } from '@/services/fs'
 import { generateID } from '@/utils/id'
+import { join } from '@/utils/path'
 
 const GALLERY_STAGING_SUBDIR = 'cached/gallery/_staging'
 
@@ -37,5 +38,5 @@ export const stageReferenceImage = async (bytes: Uint8Array, mimeType: string): 
   await ensureLocalDir(GALLERY_STAGING_SUBDIR)
   await writeBinaryFile(buildLocalFilePath(GALLERY_STAGING_SUBDIR, filename), bytes)
 
-  return `${GALLERY_STAGING_SUBDIR}/${filename}`
+  return join(GALLERY_STAGING_SUBDIR, filename)
 }

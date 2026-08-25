@@ -169,7 +169,7 @@ import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { getAppliedAppThemeMode } from '@/services/theme'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { logError, logInfo, logWarn } from '@/utils/logger'
-import { getFileNameFromPath } from '@/utils/filePath'
+import { basename, changeExt, getExt } from '@/utils/path'
 
 defineOptions({
   name: 'MainContent',
@@ -310,7 +310,7 @@ const handleViewModeChange = (mode: ShelfViewMode) => {
 // 导入格式处理
 // ============================================================
 const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
-  const ext = path.split('.').pop()?.toLowerCase()
+  const ext = getExt(path).toLowerCase()
   if (ext === 'txt') {
     return 'txt'
   }
@@ -319,10 +319,7 @@ const detectImportSourceFormat = (path: string): ImportSourceFormat | null => {
 }
 
 const toEpubFileName = (fileName: string): string => {
-  const lastDotIndex = fileName.lastIndexOf('.')
-  const stem = lastDotIndex >= 0 ? fileName.slice(0, lastDotIndex) : fileName
-
-  return `${stem || fileName}.epub`
+  return changeExt(fileName, '.epub')
 }
 
 // ============================================================
@@ -461,7 +458,7 @@ const addBook = async () => {
 }
 
 const addBookByPath = async (path: string, batchContext: BatchImportContext) => {
-  const sourceFileName = getFileNameFromPath(path)
+  const sourceFileName = basename(path)
   const sourceFormat = detectImportSourceFormat(path)
   if (!sourceFormat) {
     logWarn('bookshelf', 'unsupported-book-format', {

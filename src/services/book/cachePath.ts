@@ -1,12 +1,13 @@
 import { convertFileSrc } from '@tauri-apps/api/core'
-import { documentDir, join } from '@tauri-apps/api/path'
+import { documentDir, join as joinSystemPath } from '@tauri-apps/api/path'
 import { hashBookKey } from '@/services/book/identity'
 import { buildLocalFilePath, LOCAL_DIRS } from '@/services/fs'
+import { join } from '@/utils/path'
 
 const BOOK_CACHE_LOCATIONS_FILENAME = 'locations.json'
 
 export const buildBookCacheDir = async (bookKey: string): Promise<string> => {
-  return `${LOCAL_DIRS.cached}/${await hashBookKey(bookKey)}`
+  return join(LOCAL_DIRS.cached, await hashBookKey(bookKey))
 }
 
 export const buildBookCacheLocationsPath = async (bookKey: string): Promise<string> => {
@@ -25,7 +26,7 @@ export const buildBookCacheCoverAssetUrl = async (
   coverResource: string,
 ): Promise<string> => {
   const relativePath = await buildBookCacheCoverPath(bookKey, coverResource)
-  const absolutePath = await join(await documentDir(), relativePath)
+  const absolutePath = await joinSystemPath(await documentDir(), relativePath)
 
   return convertFileSrc(absolutePath)
 }

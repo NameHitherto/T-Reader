@@ -9,6 +9,7 @@ import {
   writeFile,
 } from '@tauri-apps/plugin-fs'
 import { encodeJson } from '@/utils/json'
+import { join } from '@/utils/path'
 
 export const LOCAL_STORAGE_ROOT = 'T-Reader'
 
@@ -31,11 +32,11 @@ const DOCUMENT_OPTIONS = {
 } as const
 
 export const buildLocalDirPath = (subdir: string): string => {
-  return `${LOCAL_STORAGE_ROOT}/${subdir}`
+  return join(LOCAL_STORAGE_ROOT, subdir)
 }
 
 export const buildLocalFilePath = (subdir: string, filename: string): string => {
-  return `${buildLocalDirPath(subdir)}/${filename}`
+  return join(LOCAL_STORAGE_ROOT, subdir, filename)
 }
 
 export const ensureLocalStorageDirs = async (): Promise<void> => {

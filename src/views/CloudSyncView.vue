@@ -69,8 +69,8 @@
 
               <div class="sync-file-main">
                 <div class="sync-file-name">
-                  <span class="sync-file-name-base">{{ splitFileName(item.fileName).base }}</span>
-                  <span class="sync-file-name-ext">{{ splitFileName(item.fileName).ext }}</span>
+                  <span class="sync-file-name-base">{{ splitPath(item.fileName).stem }}</span>
+                  <span class="sync-file-name-ext">{{ splitPath(item.fileName).ext }}</span>
                 </div>
                 <div class="sync-file-meta">
                   <span
@@ -251,6 +251,7 @@ import {
 } from '@/services/sync'
 import { toHttpResponseMessage } from '@/services/sync/response'
 import type { CloudSyncPreviewResult } from '@/services/sync/types'
+import { splitPath } from '@/utils/path'
 
 export default defineComponent({
   name: 'CloudSyncView',
@@ -298,17 +299,6 @@ export default defineComponent({
         })
       } finally {
         previewLoading.value = false
-      }
-    }
-
-    const splitFileName = (fileName: string) => {
-      const lastDotIndex = fileName.lastIndexOf('.')
-      if (lastDotIndex === -1) {
-        return { base: fileName, ext: '' }
-      }
-      return {
-        base: fileName.slice(0, lastDotIndex),
-        ext: fileName.slice(lastDotIndex),
       }
     }
 
@@ -374,9 +364,9 @@ export default defineComponent({
       selectedCount,
       executeButtonLabel,
       loadPreview,
-      splitFileName,
       updateSelection,
       executeSync,
+      splitPath
     }
   },
 })
