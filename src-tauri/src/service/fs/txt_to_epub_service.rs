@@ -142,7 +142,7 @@ fn build_epub_bytes(meta: &TxtInferredMeta, chapters: &[TxtChapter]) -> Result<V
 }
 
 fn render_chapter_html(chapter: &TxtChapter) -> String {
-    let title = escape_html(chapter.title.trim());
+    let title = escape_html(&chapter.title);
     let body = render_chapter_body(&chapter.lines);
 
     return format!(

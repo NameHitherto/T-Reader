@@ -1,6 +1,6 @@
 use std::cmp::Reverse;
 
-use fancy_regex::Regex;
+use fancy_regex::{Regex, RegexBuilder};
 
 use crate::{entities::txt_toc_rule::TxtTocRuleItem, utils::logging::log_info};
 
@@ -128,8 +128,21 @@ fn compile_multiline_rule(rule: &str) -> Result<Regex, String> {
     // A positive lookbehind whose only atom is repeated {0,n} is always true, so
     // removing that assertion preserves Java semantics and supports Legado's defaults.
     let compatible_rule = remove_always_true_lookbehinds(rule);
-    Regex::new(&format!("(?m){compatible_rule}")).map_err(|error| error.to_string())
+    // Java's regex engine has no backtracking-step ceiling, so a rule that Legado
+    // evaluates fine (e.g. id -16 `特殊符号 标题(单个)`) can hit fancy-regex's
+    // default 1_000_000 ceiling and throw `BacktrackLimitExceeded`; that would make
+    // `select_best_toc_rule` silently skip the rule and diverge from Legado. A
+    // raised ceiling reproduces Java semantics on realistic files without allowing
+    // a genuinely pathological pattern to hang forever.
+    RegexBuilder::new(&format!("(?m){compatible_rule}"))
+        .backtrack_limit(BACKTRACK_LIMIT)
+        .build()
+        .map_err(|error| error.to_string())
 }
+
+/// Raised fancy-regex backtracking ceiling, mirroring Java's effectively unbounded
+/// backtracking while still bounding truly catastrophic patterns.
+const BACKTRACK_LIMIT: usize = 50_000_000;
 
 fn remove_always_true_lookbehinds(rule: &str) -> String {
     let mut compatible = String::with_capacity(rule.len());
@@ -359,10 +372,7 @@ fn has_non_blank(text: &str) -> bool {
 }
 
 fn normalize_heading(raw: &str) -> String {
-    let heading = raw.trim();
-    if heading.is_empty() {
-        "未命名章节".to_string()
-    } else {
-        heading.to_string()
-    }
+    // Legado stores `matcher.group()` verbatim (no trimming), so keep the heading
+    // byte-for-byte to make chapter titles match exactly.
+    raw.to_string()
 }
