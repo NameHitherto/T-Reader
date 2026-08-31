@@ -19,6 +19,8 @@ import type { BookFormat } from '@/services/book/types'
 import { dispatchMainEvent } from '@/services/ipc'
 import { WINDOW_EVENTS } from '@/constants/events'
 import { loadAppSettings } from '@/services/settings'
+import { reconcileCloudProgressConfigs } from '@/services/sync'
+import type { ReconcileProgressConfigsResult } from '@/services/sync'
 import {
   localBookExists,
   listLocalBookFiles,
@@ -252,13 +254,11 @@ const readCloudBookFile = async (filename: string): Promise<Uint8Array> => {
 
   await writeLocalBookFile(filename, localBookData)
 
-  const persistedLocalBookData = await readLocalBookFileFromDisk(filename)
-
   logInfo('book-repository', 'read-cloud-book-file:done', {
     fileName: filename,
-    bytes: persistedLocalBookData.byteLength,
+    bytes: localBookData.byteLength,
   })
-  return persistedLocalBookData
+  return localBookData
 }
 
 const loadStoredBookFileMap = async (): Promise<Map<string, ResolvedBookFile>> => {
@@ -301,9 +301,26 @@ export const loadBookConfigs = async (): Promise<StoredBookConfig[]> => {
 
 export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   const filename = toBookConfigFilename(bookKey)
-  const cloudAvailability = await getCloudBookConfigReadAvailability()
-  let cloudError: unknown
 
+  // 本地优先：本地存在直接返回，不再为每次读取请求云端（跨设备变更由后台对账补入）。
+  try {
+    const localConfig = await readLocalBookConfig(filename)
+    logInfo('book-repository', 'load-book-config:done', {
+      bookKey,
+      source: 'local',
+      durChapterTime: getDurChapterTime(localConfig),
+    })
+    return localConfig
+  } catch (localError) {
+    logWarn('book-repository', 'load-book-config local-missing try-cloud', {
+      bookKey,
+      fileName: filename,
+      error: localError,
+    })
+  }
+
+  // 本地缺失：尝试从云端补齐一次并写回本地。
+  const cloudAvailability = await getCloudBookConfigReadAvailability()
   if (cloudAvailability === 'available') {
     try {
       const cloudConfig = await withTimeout(
@@ -314,11 +331,11 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
 
       try {
         await persistBookConfigToLocal(filename, cloudConfig)
-      } catch (localPersistError) {
+      } catch (persistError) {
         logWarn('book-repository', 'load-book-config cache-cloud-locally-failed', {
           bookKey,
           fileName: filename,
-          error: localPersistError,
+          error: persistError,
         })
       }
 
@@ -328,12 +345,11 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
         durChapterTime: getDurChapterTime(cloudConfig),
       })
       return cloudConfig
-    } catch (error) {
-      cloudError = error
-      logWarn('book-repository', 'load-book-config fallback-to-local', {
+    } catch (cloudError) {
+      logWarn('book-repository', 'load-book-config cloud-read-failed', {
         bookKey,
         fileName: filename,
-        error,
+        error: cloudError,
       })
     }
   } else {
@@ -344,26 +360,7 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
     })
   }
 
-  try {
-    const localConfig = await readLocalBookConfig(filename)
-    logInfo('book-repository', 'load-book-config:done', {
-      bookKey,
-      source: 'local',
-      durChapterTime: getDurChapterTime(localConfig),
-    })
-    return localConfig
-  } catch (localError) {
-    logWarn('book-repository', 'load-book-config unavailable', {
-      bookKey,
-      fileName: filename,
-      cloudAvailability,
-      cloudError,
-      localError,
-    })
-    throw Object.assign(new Error(`Book config not found for ${bookKey}`), {
-      cause: cloudError ?? localError,
-    })
-  }
+  throw new Error(`Book config not found for ${bookKey}`)
 }
 
 const notifyBookConfigCloudSyncFailed = (bookKey: string, filename: string): void => {
@@ -438,6 +435,45 @@ export const saveBookConfig = async (bookKey: string, config: BookConfig): Promi
     bytes: jsonBytes.byteLength,
   })
 }
+
+// ============================================================
+// 后台进度对账（本地优先 + 元数据变更检测）
+// ============================================================
+const RECONCILE_MIN_INTERVAL_MS = 10_000
+
+let reconcileInFlight: Promise<ReconcileProgressConfigsResult | null> | null = null
+let lastReconcileAt = 0
+
+export const reconcileProgressConfigs =
+  async (): Promise<ReconcileProgressConfigsResult | null> => {
+    if (reconcileInFlight) {
+      return await reconcileInFlight
+    }
+
+    const now = Date.now()
+    if (now - lastReconcileAt < RECONCILE_MIN_INTERVAL_MS) {
+      return null
+    }
+
+    const cloudAvailability = await getCloudBookConfigReadAvailability()
+    if (cloudAvailability !== 'available') {
+      return null
+    }
+
+    lastReconcileAt = now
+    reconcileInFlight = (async () => {
+      try {
+        return await reconcileCloudProgressConfigs()
+      } catch (error) {
+        logWarn('book-repository', 'reconcile-progress-configs failed', { error })
+        return null
+      } finally {
+        reconcileInFlight = null
+      }
+    })()
+
+    return await reconcileInFlight
+  }
 
 export const resolveBookFile = async (bookKey: string): Promise<ResolvedBookFile> => {
   const storedResolved = await invoke<ResolvedBookFile | null>('resolve_book_file', {

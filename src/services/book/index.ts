@@ -53,6 +53,7 @@ export {
   loadBookConfig,
   loadBookConfigs,
   loadLocalBookBinary,
+  reconcileProgressConfigs,
   removeStoredBook,
   resolveBookFile,
   resolveBookFormat,

@@ -149,6 +149,7 @@ import ShelfMenu from '@/components/ShelfMenu/index.vue'
 import {
   invalidateBookFileCache,
   loadBookConfigs,
+  reconcileProgressConfigs,
   removeStoredBook,
   resolveBookFile,
   resolveBookFormat,
@@ -410,6 +411,7 @@ const loadShelfInitial = async () => {
     logInfo('bookshelf', 'load-books', {
       total: books.value.length,
     })
+    void reconcileShelfInBackground()
   } catch (error) {
     logError('bookshelf', 'load-books failed', error)
   } finally {
@@ -438,6 +440,7 @@ const refreshShelfInBackground = async () => {
     logInfo('bookshelf', 'refresh-books', {
       total: books.value.length,
     })
+    void reconcileShelfInBackground()
   } catch (error) {
     logError('bookshelf', 'refresh-books failed', error)
   } finally {
@@ -455,6 +458,21 @@ const reloadBooks = async () => {
     })
   } catch (error) {
     logError('bookshelf', 'reload-books failed', error)
+  }
+}
+
+// 后台进度对账：书架已本地优先秒读，此处异步补齐跨设备进度变更，仅在拉取到变更时重载
+const reconcileShelfInBackground = async () => {
+  try {
+    const result = await reconcileProgressConfigs()
+    if (result && result.pulledFiles.length > 0) {
+      await reloadBooks()
+      logInfo('bookshelf', 'reconcile-books applied-pulled', {
+        pulled: result.pulledFiles.length,
+      })
+    }
+  } catch (error) {
+    logWarn('bookshelf', 'reconcile-books failed', error)
   }
 }
 
@@ -944,16 +962,22 @@ const getListMeta = (book: ShelfBook): string => {
 // ============================================================
 // 生命周期
 // ============================================================
+const handleWindowFocus = () => {
+  void reconcileShelfInBackground()
+}
+
 onMounted(() => {
   void ensureShelfLoaded()
   void registerBookshelfProgressSavedListener().catch((error) => {
     logWarn('bookshelf', 'register bookshelf-progress listener failed', error)
   })
+  window.addEventListener('focus', handleWindowFocus)
 })
 
 onUnmounted(() => {
   unlistenBookshelfProgressSaved?.()
   unlistenBookshelfProgressSaved = null
+  window.removeEventListener('focus', handleWindowFocus)
 })
 </script>
 
