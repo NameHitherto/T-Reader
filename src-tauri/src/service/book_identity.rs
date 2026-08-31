@@ -34,7 +34,14 @@ pub fn build_book_key(title: Option<&str>, author: Option<&str>) -> String {
     format!("{}_{}", title, author)
 }
 
+/// 缓存目录名使用 SHA-256 前 8 字节（16 位十六进制）缩短后的哈希，
+/// 在保证书籍库场景下碰撞概率可忽略的同时避免目录名过长。
+const HASH_BYTE_LEN: usize = 8;
+
 pub fn hash_book_key(book_key: &str) -> String {
     let digest = Sha256::digest(book_key.as_bytes());
-    digest.iter().map(|byte| format!("{:02x}", byte)).collect()
+    digest[..HASH_BYTE_LEN]
+        .iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect()
 }
