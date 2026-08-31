@@ -4,12 +4,64 @@ use crate::{
     entities::{webdav_error::WebDavError, Settings},
     utils::{
         logging::log_info,
-        webdav::{get_remote_file_url, parse_webdav_response},
+        webdav::{get_remote_file_url, parse_webdav_response, parse_webdav_response_meta, RemoteFileMeta},
     },
 };
 
 fn build_resource(subdir: &str, filename: &str) -> String {
     format!("{}/{}", subdir, filename)
+}
+
+pub async fn list_remote_files_with_meta(
+    client: &Client,
+    settings: &Settings,
+    subdir: &str,
+) -> Result<Vec<RemoteFileMeta>, WebDavError> {
+    let url = format!("{}/{}/", settings.webdav_url.trim_end_matches('/'), subdir);
+    let response = client
+        .request(http::Method::from_bytes(b"PROPFIND").unwrap(), &url)
+        .basic_auth(&settings.webdav_user, Some(&settings.webdav_pass))
+        .header("Depth", "1")
+        .send()
+        .await
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "list".to_string(),
+            resource: subdir.to_string(),
+            message: format!("网络请求失败: {:?}", error),
+        })?;
+
+    let status = response.status().as_u16();
+    if !response.status().is_success() {
+        return Err(WebDavError {
+            status_code: status,
+            operation: "list".to_string(),
+            resource: subdir.to_string(),
+            message: format!("列出远程文件失败，HTTP 状态码: {}", status),
+        });
+    }
+
+    let body = response.text().await.map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: subdir.to_string(),
+        message: format!("读取响应体失败: {}", error),
+    })?;
+    let metas = parse_webdav_response_meta(&body).map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: subdir.to_string(),
+        message: error,
+    })?;
+    log_info(
+        "webdav",
+        &format!(
+            "list-remote-files subdir={} total={}",
+            subdir,
+            metas.len()
+        ),
+    );
+    Ok(metas)
 }
 
 pub async fn list_remote_files(
