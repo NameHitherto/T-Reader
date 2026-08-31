@@ -1,23 +1,27 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::{
     entities::{
         webdav_error::WebDavError, CloudSyncApplyRequest, CloudSyncApplyResult,
         CloudSyncBookAction, CloudSyncBookSelection, CloudSyncBookStatus, CloudSyncPreviewItem,
-        CloudSyncPreviewResult, Settings, UpsertBookRequest,
+        CloudSyncPreviewResult, ReconcileProgressConfigsResult, Settings, UpsertBookRequest,
     },
     repository::{
         books::{get_book_by_key, upsert_book},
         local_fs::{
-            dir_repository::{ensure_local_dirs, CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR},
+            dir_repository::{ensure_local_dirs, CLOUD_BOOKS_DIR, CLOUD_PROGRESS_DIR, LOCAL_CACHED_DIR},
             file_repository::{list_files, read_binary_file, write_binary_file},
         },
         webdav::{
             client::build_webdav_client,
-            file_repository::{download_remote_file, list_remote_files, upload_remote_file},
+            file_repository::{
+                download_remote_file, list_remote_files, list_remote_files_with_meta,
+                upload_remote_file,
+            },
         },
     },
     service::{
@@ -32,7 +36,8 @@ use crate::{
     utils::{
         logging::{log_info, log_warn},
         webdav::{
-            is_config_file, is_supported_book_file, is_txt_book_file, should_upload_local_config,
+            is_config_file, is_supported_book_file, is_txt_book_file, read_dur_chapter_time,
+            should_upload_local_config, RemoteFileMeta,
         },
     },
 };
@@ -46,6 +51,7 @@ struct SyncSnapshot {
     cloud_books: BTreeSet<String>,
     local_configs: BTreeSet<String>,
     cloud_configs: BTreeSet<String>,
+    cloud_config_metas: HashMap<String, RemoteFileMeta>,
 }
 
 fn collect_local_files(
@@ -74,6 +80,20 @@ async fn collect_remote_files(
         .await?
         .into_iter()
         .filter(|file_name| filter(file_name))
+        .collect())
+}
+
+async fn collect_remote_file_metas(
+    client: &reqwest::Client,
+    settings: &Settings,
+    subdir: &str,
+    filter: fn(&str) -> bool,
+) -> Result<HashMap<String, RemoteFileMeta>, WebDavError> {
+    Ok(list_remote_files_with_meta(client, settings, subdir)
+        .await?
+        .into_iter()
+        .filter(|meta| filter(&meta.file_name))
+        .map(|meta| (meta.file_name.clone(), meta))
         .collect())
 }
 
@@ -107,8 +127,9 @@ async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, WebDav
         collect_remote_files(&client, &settings, CLOUD_BOOKS_DIR, is_supported_book_file).await?;
 
     let local_configs = collect_local_files(&progress_path, is_config_file)?;
-    let cloud_configs =
-        collect_remote_files(&client, &settings, CLOUD_PROGRESS_DIR, is_config_file).await?;
+    let cloud_config_metas =
+        collect_remote_file_metas(&client, &settings, CLOUD_PROGRESS_DIR, is_config_file).await?;
+    let cloud_configs: BTreeSet<String> = cloud_config_metas.keys().cloned().collect();
 
     log_info(
         "webdav-sync",
@@ -130,6 +151,7 @@ async fn collect_sync_snapshot(pool: &SqlitePool) -> Result<SyncSnapshot, WebDav
         cloud_books,
         local_configs,
         cloud_configs,
+        cloud_config_metas,
     })
 }
 
@@ -418,6 +440,14 @@ async fn sync_config_files(
     snapshot: &SyncSnapshot,
     result: &mut CloudSyncApplyResult,
 ) -> Result<(), WebDavError> {
+    let cached_dir = snapshot
+        .progress_path
+        .parent()
+        .map(|root| root.join(LOCAL_CACHED_DIR))
+        .unwrap_or_else(|| snapshot.progress_path.join(LOCAL_CACHED_DIR));
+    let mut cache = load_progress_meta_cache(&cached_dir);
+
+    // 本地独有 → 上传
     for file_name in snapshot.local_configs.difference(&snapshot.cloud_configs) {
         let contents = read_binary_file(&snapshot.progress_path.join(file_name)).map_err(|error| WebDavError {
             status_code: 0,
@@ -425,6 +455,7 @@ async fn sync_config_files(
             resource: file_name.clone(),
             message: error,
         })?;
+        let local_time = read_dur_chapter_time(&contents);
         upload_remote_file(
             &snapshot.client,
             &snapshot.settings,
@@ -433,9 +464,18 @@ async fn sync_config_files(
             contents,
         )
         .await?;
+        cache.insert(
+            file_name.clone(),
+            CloudProgressMeta {
+                etag: None,
+                last_modified: None,
+                dur_chapter_time: local_time,
+            },
+        );
         result.uploaded_config_count += 1;
     }
 
+    // 云端独有 → 下载
     for file_name in snapshot.cloud_configs.difference(&snapshot.local_configs) {
         let contents = download_remote_file(
             &snapshot.client,
@@ -450,9 +490,16 @@ async fn sync_config_files(
             resource: file_name.clone(),
             message: error,
         })?;
+        let cloud_meta = snapshot
+            .cloud_config_metas
+            .get(file_name)
+            .map(|meta| meta_from_remote(meta, &contents))
+            .unwrap_or_default();
+        cache.insert(file_name.clone(), cloud_meta);
         result.downloaded_config_count += 1;
     }
 
+    // 两边都存在 → 用元数据跳过未变化配置，仅对变化/无法判定者下载比较
     for file_name in snapshot.local_configs.intersection(&snapshot.cloud_configs) {
         let local_path = snapshot.progress_path.join(file_name);
         let local_contents = read_binary_file(&local_path).map_err(|error| WebDavError {
@@ -461,6 +508,35 @@ async fn sync_config_files(
             resource: file_name.clone(),
             message: error,
         })?;
+        let local_time = read_dur_chapter_time(&local_contents);
+        let remote_meta = snapshot.cloud_config_metas.get(file_name);
+
+        if let (Some(cached), Some(meta)) = (cache.get(file_name), remote_meta) {
+            if cloud_meta_unchanged(cached, meta) {
+                if local_is_newer_than_cached(local_time, cached.dur_chapter_time) {
+                    upload_remote_file(
+                        &snapshot.client,
+                        &snapshot.settings,
+                        CLOUD_PROGRESS_DIR,
+                        file_name,
+                        local_contents,
+                    )
+                    .await?;
+                    cache.insert(
+                        file_name.clone(),
+                        CloudProgressMeta {
+                            etag: None,
+                            last_modified: None,
+                            dur_chapter_time: local_time,
+                        },
+                    );
+                    result.uploaded_config_count += 1;
+                    result.replaced_config_count += 1;
+                }
+                continue;
+            }
+        }
+
         let cloud_contents = download_remote_file(
             &snapshot.client,
             &snapshot.settings,
@@ -470,6 +546,9 @@ async fn sync_config_files(
         .await?;
 
         if local_contents == cloud_contents {
+            if let Some(meta) = remote_meta {
+                cache.insert(file_name.clone(), meta_from_remote(meta, &cloud_contents));
+            }
             continue;
         }
 
@@ -482,6 +561,14 @@ async fn sync_config_files(
                 local_contents,
             )
             .await?;
+            cache.insert(
+                file_name.clone(),
+                CloudProgressMeta {
+                    etag: None,
+                    last_modified: None,
+                    dur_chapter_time: local_time,
+                },
+            );
             result.uploaded_config_count += 1;
             result.replaced_config_count += 1;
         } else {
@@ -491,10 +578,15 @@ async fn sync_config_files(
                 resource: file_name.clone(),
                 message: error,
             })?;
+            if let Some(meta) = remote_meta {
+                cache.insert(file_name.clone(), meta_from_remote(meta, &cloud_contents));
+            }
             result.downloaded_config_count += 1;
             result.replaced_config_count += 1;
         }
     }
+
+    save_progress_meta_cache(&cached_dir, &cache);
 
     Ok(())
 }
@@ -559,4 +651,330 @@ pub async fn webdav_sync_files(pool: &SqlitePool) -> Result<(), WebDavError> {
     apply_sync_plan_with_snapshot(snapshot, request, pool).await?;
     log_info("webdav-sync", "sync-files-done");
     Ok(())
+}
+
+// ============================================================
+// 进度配置后台对账（本地优先 + 元数据变更检测）
+// ============================================================
+
+const CLOUD_PROGRESS_META_FILE: &str = "cloud-progress-meta.json";
+
+/// 单个进度配置最近一次同步时记录下的云端状态。
+#[derive(Default, Clone, Serialize, Deserialize)]
+struct CloudProgressMeta {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    etag: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    last_modified: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dur_chapter_time: Option<i64>,
+}
+
+type ProgressMetaCache = HashMap<String, CloudProgressMeta>;
+
+fn load_progress_meta_cache(cached_dir: &Path) -> ProgressMetaCache {
+    let path = cached_dir.join(CLOUD_PROGRESS_META_FILE);
+    match read_binary_file(&path) {
+        Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_default(),
+        Err(_) => HashMap::new(),
+    }
+}
+
+fn save_progress_meta_cache(cached_dir: &Path, cache: &ProgressMetaCache) {
+    let path = cached_dir.join(CLOUD_PROGRESS_META_FILE);
+    match serde_json::to_vec(cache) {
+        Ok(bytes) => {
+            if let Err(error) = write_binary_file(&path, &bytes) {
+                log_warn(
+                    "webdav-sync",
+                    &format!("save-cloud-progress-meta-cache failed error={}", error),
+                );
+            }
+        }
+        Err(error) => {
+            log_warn(
+                "webdav-sync",
+                &format!("serialize-cloud-progress-meta-cache failed error={}", error),
+            );
+        }
+    }
+}
+
+/// 判断缓存的云端元数据与当前 PROPFIND 元数据是否一致（内容未变化）。
+fn cloud_meta_unchanged(cached: &CloudProgressMeta, meta: &RemoteFileMeta) -> bool {
+    if let (Some(cached_etag), Some(meta_etag)) = (&cached.etag, &meta.etag) {
+        return cached_etag == meta_etag;
+    }
+    if let (Some(cached_lm), Some(meta_lm)) = (&cached.last_modified, &meta.last_modified) {
+        return cached_lm == meta_lm;
+    }
+    false
+}
+
+/// 本地是否比「最近一次同步时的云端」更新。语义与 `should_upload_local_config` 一致。
+fn local_is_newer_than_cached(local: Option<i64>, cached_cloud: Option<i64>) -> bool {
+    match (local, cached_cloud) {
+        (Some(local), Some(cloud)) => local > cloud,
+        (Some(_), None) => true,
+        (None, _) => false,
+    }
+}
+
+fn meta_from_remote(meta: &RemoteFileMeta, contents: &[u8]) -> CloudProgressMeta {
+    CloudProgressMeta {
+        etag: meta.etag.clone(),
+        last_modified: meta.last_modified.clone(),
+        dur_chapter_time: read_dur_chapter_time(contents),
+    }
+}
+
+/// 后台进度配置对账：一次 PROPFIND 列出云端元数据，仅对发生变化/本地缺失/无元数据的
+/// 配置执行正文下载；本地较新者上传。单个文件失败只记日志，不中断整批。
+pub async fn webdav_reconcile_progress_configs(
+    pool: &SqlitePool,
+) -> Result<ReconcileProgressConfigsResult, WebDavError> {
+    let settings = load_settings_entity(pool).await.map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: "settings".to_string(),
+        message: error,
+    })?;
+    let client = build_webdav_client(settings.webdav_timeout_seconds, settings.proxy_enabled);
+
+    ensure_cloud_dirs(&settings)
+        .await
+        .map_err(|error| WebDavError {
+            status_code: 0,
+            operation: "list".to_string(),
+            resource: "cloud_dirs".to_string(),
+            message: error,
+        })?;
+    let root_path = ensure_local_dirs().map_err(|error| WebDavError {
+        status_code: 0,
+        operation: "list".to_string(),
+        resource: "local_dirs".to_string(),
+        message: error,
+    })?;
+
+    let progress_path = root_path.join(CLOUD_PROGRESS_DIR);
+    let cached_path = root_path.join(LOCAL_CACHED_DIR);
+
+    let local_configs = collect_local_files(&progress_path, is_config_file)?;
+    let remote_metas =
+        list_remote_files_with_meta(&client, &settings, CLOUD_PROGRESS_DIR).await?;
+    let remote_configs: BTreeSet<String> = remote_metas
+        .iter()
+        .filter(|meta| is_config_file(&meta.file_name))
+        .map(|meta| meta.file_name.clone())
+        .collect();
+
+    let mut cache = load_progress_meta_cache(&cached_path);
+    let mut result = ReconcileProgressConfigsResult::default();
+
+    for file_name in local_configs.union(&remote_configs) {
+        let local_path = progress_path.join(file_name);
+        let local_exists = local_configs.contains(file_name);
+        let remote_meta = remote_metas.iter().find(|meta| meta.file_name == *file_name);
+
+        match (local_exists, remote_meta) {
+            // 云端缺失、本地存在 → 上传本地
+            (true, None) => {
+                let contents = match read_binary_file(&local_path) {
+                    Ok(contents) => contents,
+                    Err(error) => {
+                        log_warn(
+                            "webdav-sync",
+                            &format!(
+                                "reconcile-read-local-failed file={} error={}",
+                                file_name, error
+                            ),
+                        );
+                        continue;
+                    }
+                };
+                let local_time = read_dur_chapter_time(&contents);
+                if let Err(error) =
+                    upload_remote_file(&client, &settings, CLOUD_PROGRESS_DIR, file_name, contents)
+                        .await
+                {
+                    log_warn(
+                        "webdav-sync",
+                        &format!(
+                            "reconcile-upload-failed file={} error={}",
+                            file_name, error.message
+                        ),
+                    );
+                    continue;
+                }
+                cache.insert(
+                    file_name.clone(),
+                    CloudProgressMeta {
+                        etag: None,
+                        last_modified: None,
+                        dur_chapter_time: local_time,
+                    },
+                );
+                result.pushed_files.push(file_name.clone());
+            }
+            // 本地缺失、云端存在 → 下载
+            (false, Some(meta)) => {
+                match download_remote_file(&client, &settings, CLOUD_PROGRESS_DIR, file_name).await
+                {
+                    Ok(contents) => {
+                        if let Err(error) = write_binary_file(&local_path, &contents) {
+                            log_warn(
+                                "webdav-sync",
+                                &format!(
+                                    "reconcile-write-local-failed file={} error={}",
+                                    file_name, error
+                                ),
+                            );
+                            continue;
+                        }
+                        cache.insert(file_name.clone(), meta_from_remote(meta, &contents));
+                        result.pulled_files.push(file_name.clone());
+                    }
+                    Err(error) => {
+                        log_warn(
+                            "webdav-sync",
+                            &format!(
+                                "reconcile-download-failed file={} error={}",
+                                file_name, error.message
+                            ),
+                        );
+                    }
+                }
+            }
+            // 两边都存在 → 元数据判变化
+            (true, Some(meta)) => {
+                let contents = match read_binary_file(&local_path) {
+                    Ok(contents) => contents,
+                    Err(error) => {
+                        log_warn(
+                            "webdav-sync",
+                            &format!(
+                                "reconcile-read-local-failed file={} error={}",
+                                file_name, error
+                            ),
+                        );
+                        continue;
+                    }
+                };
+                let local_time = read_dur_chapter_time(&contents);
+
+                if let Some(cached) = cache.get(file_name) {
+                    if cloud_meta_unchanged(cached, meta) {
+                        if local_is_newer_than_cached(local_time, cached.dur_chapter_time) {
+                            if let Err(error) = upload_remote_file(
+                                &client,
+                                &settings,
+                                CLOUD_PROGRESS_DIR,
+                                file_name,
+                                contents,
+                            )
+                            .await
+                            {
+                                log_warn(
+                                    "webdav-sync",
+                                    &format!(
+                                        "reconcile-upload-failed file={} error={}",
+                                        file_name, error.message
+                                    ),
+                                );
+                                continue;
+                            }
+                            cache.insert(
+                                file_name.clone(),
+                                CloudProgressMeta {
+                                    etag: None,
+                                    last_modified: None,
+                                    dur_chapter_time: local_time,
+                                },
+                            );
+                            result.pushed_files.push(file_name.clone());
+                        } else {
+                            result.unchanged_count += 1;
+                        }
+                        continue;
+                    }
+                }
+
+                // 云端已变化或缺少可判定元数据 → 下载云端后按 durChapterTime 比较
+                match download_remote_file(&client, &settings, CLOUD_PROGRESS_DIR, file_name).await
+                {
+                    Ok(cloud_contents) => {
+                        if contents == cloud_contents {
+                            result.unchanged_count += 1;
+                            cache.insert(file_name.clone(), meta_from_remote(meta, &cloud_contents));
+                        } else if should_upload_local_config(&contents, &cloud_contents) {
+                            if let Err(error) = upload_remote_file(
+                                &client,
+                                &settings,
+                                CLOUD_PROGRESS_DIR,
+                                file_name,
+                                contents,
+                            )
+                            .await
+                            {
+                                log_warn(
+                                    "webdav-sync",
+                                    &format!(
+                                        "reconcile-upload-failed file={} error={}",
+                                        file_name, error.message
+                                    ),
+                                );
+                                continue;
+                            }
+                            cache.insert(
+                                file_name.clone(),
+                                CloudProgressMeta {
+                                    etag: None,
+                                    last_modified: None,
+                                    dur_chapter_time: local_time,
+                                },
+                            );
+                            result.pushed_files.push(file_name.clone());
+                        } else {
+                            if let Err(error) = write_binary_file(&local_path, &cloud_contents) {
+                                log_warn(
+                                    "webdav-sync",
+                                    &format!(
+                                        "reconcile-write-local-failed file={} error={}",
+                                        file_name, error
+                                    ),
+                                );
+                                continue;
+                            }
+                            cache.insert(file_name.clone(), meta_from_remote(meta, &cloud_contents));
+                            result.pulled_files.push(file_name.clone());
+                        }
+                    }
+                    Err(error) => {
+                        log_warn(
+                            "webdav-sync",
+                            &format!(
+                                "reconcile-download-failed file={} error={}",
+                                file_name, error.message
+                            ),
+                        );
+                    }
+                }
+            }
+            (false, None) => {}
+        }
+    }
+
+    save_progress_meta_cache(&cached_path, &cache);
+
+    log_info(
+        "webdav-sync",
+        &format!(
+            "reconcile-progress-configs-done pulled={} pushed={} unchanged={}",
+            result.pulled_files.len(),
+            result.pushed_files.len(),
+            result.unchanged_count
+        ),
+    );
+
+    Ok(result)
 }

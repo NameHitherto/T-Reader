@@ -25,7 +25,7 @@ pub use chat::{
 };
 pub use cloud_sync::{
     CloudSyncApplyRequest, CloudSyncApplyResult, CloudSyncBookAction, CloudSyncBookSelection,
-    CloudSyncBookStatus, CloudSyncPreviewItem, CloudSyncPreviewResult,
+    CloudSyncBookStatus, CloudSyncPreviewItem, CloudSyncPreviewResult, ReconcileProgressConfigsResult,
 };
 pub use font::FontNameEntry;
 pub use gallery::{GalleryImageDto, GenerateGalleryImageRequest};

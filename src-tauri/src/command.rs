@@ -10,6 +10,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::webdav::webdav_sync_files,
         crate::api::webdav::webdav_get_sync_preview,
         crate::api::webdav::webdav_apply_sync_plan,
+        crate::api::webdav::webdav_reconcile_progress_configs,
         crate::api::font::get_system_fonts,
         crate::api::updater::prepare_updater_proxy,
         crate::api::updater::check_app_update,

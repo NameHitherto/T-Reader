@@ -56,3 +56,16 @@ pub struct CloudSyncApplyResult {
     pub replaced_config_count: usize,
     pub skipped_count: usize,
 }
+
+#[derive(Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReconcileProgressConfigsResult {
+    /// 从云端拉取并写回本地的进度配置文件名
+    pub pulled_files: Vec<String>,
+    /// 本地较新、上传到云端的进度配置文件名
+    pub pushed_files: Vec<String>,
+    /// 云端已删除、本地同步清理的进度配置文件名（预留）
+    pub removed_files: Vec<String>,
+    /// 无变化的进度配置数量
+    pub unchanged_count: usize,
+}

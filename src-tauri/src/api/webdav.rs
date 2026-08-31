@@ -2,7 +2,7 @@ use crate::{
     database::DatabaseState,
     entities::{
         webdav_error::WebDavError, CloudSyncApplyRequest, CloudSyncApplyResult,
-        CloudSyncPreviewResult,
+        CloudSyncPreviewResult, ReconcileProgressConfigsResult,
     },
     service::webdav::{
         file_service::{
@@ -70,4 +70,11 @@ pub async fn webdav_apply_sync_plan(
     request: CloudSyncApplyRequest,
 ) -> Result<CloudSyncApplyResult, WebDavError> {
     sync_service::webdav_apply_sync_plan(&database.pool, request).await
+}
+
+#[tauri::command]
+pub async fn webdav_reconcile_progress_configs(
+    database: State<'_, DatabaseState>,
+) -> Result<ReconcileProgressConfigsResult, WebDavError> {
+    sync_service::webdav_reconcile_progress_configs(&database.pool).await
 }
