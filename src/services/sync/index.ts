@@ -5,6 +5,7 @@ import type {
   CloudSyncBookAction,
   CloudSyncPreviewItem,
   CloudSyncPreviewResult,
+  ReconcileProgressConfigsResult,
 } from '@/services/sync/types'
 
 export const EMPTY_CLOUD_SYNC_PREVIEW: CloudSyncPreviewResult = {
@@ -24,6 +25,10 @@ export const applyCloudSyncPlan = async (
   return await invoke<CloudSyncApplyResult>('webdav_apply_sync_plan', {
     request,
   })
+}
+
+export const reconcileCloudProgressConfigs = async (): Promise<ReconcileProgressConfigsResult> => {
+  return await invoke<ReconcileProgressConfigsResult>('webdav_reconcile_progress_configs')
 }
 
 export const buildDefaultCloudSyncSelectionMap = (
@@ -113,5 +118,6 @@ export type {
   CloudSyncBookStatus,
   CloudSyncPreviewItem,
   CloudSyncPreviewResult,
+  ReconcileProgressConfigsResult,
 } from './types'
 export type { WebDavError } from './errors'

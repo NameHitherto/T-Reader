@@ -33,3 +33,10 @@ export interface CloudSyncApplyResult {
   replacedConfigCount: number
   skippedCount: number
 }
+
+export interface ReconcileProgressConfigsResult {
+  pulledFiles: string[]
+  pushedFiles: string[]
+  removedFiles: string[]
+  unchangedCount: number
+}
