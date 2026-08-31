@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::time::Duration;
 
 use serde_json::Value;
 use sqlx::SqlitePool;
@@ -11,10 +10,6 @@ use crate::{
         local_fs::{
             dir_repository::{ensure_local_dirs, LOCAL_BOOKS_DIR, LOCAL_PROGRESS_DIR},
             file_repository::{copy_file, read_binary_file, write_binary_file},
-        },
-        webdav::{
-            client::build_webdav_client,
-            file_repository::download_remote_file,
         },
     },
     service::{
@@ -29,92 +24,45 @@ use crate::{
     utils::webdav::is_txt_book_file,
 };
 
-/// 尝试从云端读取进度配置
+/// 尝试从云端读取进度配置。已配置 WebDAV 时单次 GET（内置重试与超时），404 视为无云端配置。
 async fn try_read_cloud_progress_config(
     pool: &SqlitePool,
     config_filename: &str,
 ) -> Result<Option<Value>, String> {
-    // 加载设置
     let settings = match load_settings_entity(pool).await {
         Ok(s) => s,
         Err(_) => return Ok(None),
     };
 
-    // 检查 WebDAV URL 是否配置
     let webdav_url = settings.webdav_url.trim();
     if webdav_url.is_empty() {
         return Ok(None);
     }
 
-    // 云端检查超时与 WebDAV 请求超时保持一致，由用户在设置中配置
-    let config_timeout = Duration::from_secs(settings.webdav_timeout_seconds.max(1) as u64);
-    let client = build_webdav_client(settings.webdav_timeout_seconds, settings.proxy_enabled);
-
-    // 使用 timeout 检查文件是否存在
-    let exists_future = crate::service::webdav::file_service::webdav_file_exists(
-        pool,
-        "bookProgress",
-        config_filename,
-    );
-
-    let exists = match tokio::time::timeout(config_timeout, exists_future).await
+    match crate::service::webdav::file_service::webdav_get_file(pool, "bookProgress", config_filename)
+        .await
     {
-        Ok(Ok(true)) => true,
-        Ok(Ok(false)) => return Ok(None),
-        Ok(Err(_)) => return Ok(None),
-        Err(_) => {
-            log_warn(
-                "book-import",
-                &format!("cloud-config-check-timeout file={}", config_filename),
-            );
-            return Ok(None);
-        }
-    };
-
-    if !exists {
-        return Ok(None);
-    }
-
-    // 下载云端配置
-    let download_future = download_remote_file(
-        &client,
-        &settings,
-        "bookProgress",
-        config_filename,
-    );
-
-    match tokio::time::timeout(config_timeout, download_future).await
-    {
-        Ok(Ok(contents)) => {
-            let config: Value = match serde_json::from_slice(&contents) {
-                Ok(v) => v,
-                Err(e) => {
-                    log_warn(
-                        "book-import",
-                        &format!(
-                            "cloud-config-parse-failed file={} error={}",
-                            config_filename, e
-                        ),
-                    );
-                    return Ok(None);
-                }
-            };
-            Ok(Some(config))
-        }
-        Ok(Err(e)) => {
+        Ok(contents) => match serde_json::from_slice(&contents) {
+            Ok(config) => Ok(Some(config)),
+            Err(e) => {
+                log_warn(
+                    "book-import",
+                    &format!(
+                        "cloud-config-parse-failed file={} error={}",
+                        config_filename, e
+                    ),
+                );
+                Ok(None)
+            }
+        },
+        Err(error) if error.status_code == 404 => Ok(None),
+        Err(error) => {
             log_warn(
                 "book-import",
                 &format!(
                     "cloud-config-download-failed file={} error={}",
-                    config_filename, e
+                    config_filename, error.message
                 ),
-            );
-            Ok(None)
-        }
-        Err(_) => {
-            log_warn(
-                "book-import",
-                &format!("cloud-config-download-timeout file={}", config_filename),
             );
             Ok(None)
         }
