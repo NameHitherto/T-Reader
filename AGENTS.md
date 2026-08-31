@@ -12,10 +12,7 @@ T-Reader 是基于 Vue 3 + TypeScript + Vite 与 Tauri 2 + Rust 的 Windows 桌�
 
 ## 开发环境分工
 
-项目采用双环境开发：
-
-- **WSL2**：由 agent 负责编码、代码阅读、静态检查与前端构建检查。
-- **Windows**：负责 Rust 编译验证、Tauri 打包验证以及手动运行测试。
+项目编码阶段可在**Windows**以外的操作系统例如**WSL2**中进行。
 
 因此：
 
@@ -39,6 +36,22 @@ T-Reader 是基于 Vue 3 + TypeScript + Vite 与 Tauri 2 + Rust 的 Windows 桌�
 - 发布 workflow 位于 `.github/workflows/release.yml`，当前矩阵目标为 `x86_64-pc-windows-msvc`。
 - 不要覆盖或回滚工作区中与当前任务无关的既有修改；开始改动前先查看 `git status`。
 - 提交信息遵循 Conventional Commits，描述使用中文，详见 `CONTRIBUTING.md`。
+
+## 系统本地持久化目录
+
+系统本地持久化根目录固定为 Windows 用户文档目录下的 `T-Reader/`（即 `Documents/T-Reader/`），当前目录结构如下：
+
+```text
+T-Reader/
+├─ books/         # 原始书籍文件
+├─ bookProgress/  # 书籍进度配置
+├─ knowledge/     # 知识库导入的原始 EPUB 文件
+├─ cached/        # 封面、locations、段落统计缓存，以及打包后的 logs/ 日志目录
+└─ system/        # SQLite 数据库 t-reader.db
+```
+
+- `books/` 和 `bookProgress/` 的目录名称、层级及内部文件组织属于既有持久化兼容协议，不得自主改名、迁移、合并、拆分或调整文件结构。
+- 只有当用户在当前任务中主动、明确声明需要修改时，才允许变更 `books/` 或 `bookProgress/` 的文件结构。
 
 ## 前端目录职责（`src/`）
 
@@ -69,4 +82,4 @@ T-Reader 是基于 Vue 3 + TypeScript + Vite 与 Tauri 2 + Rust 的 Windows 桌�
 
 ### 类型归属规范
 
-不再新增顶层 `src/types/`。领域类型跟随所属服务维护在对应的 `types.ts` 或明确命名的类型文件中：书籍在 `services/book/types.ts`，阅读器/EPUB 在 `services/reader/`，对话在 `services/chat/`，画廊在 `services/gallery/`，知识库在 `services/knowledgeBase/`，同步在 `services/sync/`，设置/模型/更新/代理在 `services/settings/`，主题在 `services/theme/`；组件专属类型放在组件目录内。
+不新增顶层 `src/types/`。领域类型跟随所属服务维护在对应的 `types.ts` 或明确命名的类型文件中：书籍在 `services/book/types.ts`，阅读器/EPUB 在 `services/reader/`，对话在 `services/chat/`，画廊在 `services/gallery/`，知识库在 `services/knowledgeBase/`，同步在 `services/sync/`，设置/模型/更新/代理在 `services/settings/`，主题在 `services/theme/`；组件专属类型放在组件目录内。
