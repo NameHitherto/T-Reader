@@ -26,7 +26,7 @@
     "@tauri-apps/plugin-shell": "2.3.5",
     "@tauri-apps/plugin-updater": "2.10.1",
     "@tauri-apps/plugin-window-state": "2.4.1",
-    "element-plus": "^2.13.6",
+    "element-plus": "^2.14.5",
     "highlight.js": "^11.12.0",
     "jszip": "^3.10.1",
     "markdown-it": "^15.0.0",
