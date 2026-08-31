@@ -65,14 +65,6 @@ const parseBookConfigData = (data: Uint8Array): BookConfig => {
   return normalizeBookConfig(parsed)
 }
 
-const getDurChapterTime = (config: Partial<BookConfig> | null | undefined): number => {
-  if (!config || typeof config.durChapterTime !== 'number' || Number.isNaN(config.durChapterTime)) {
-    return 0
-  }
-
-  return config.durChapterTime
-}
-
 const toResolvedBookFile = (fileName: string): ResolvedBookFile | null => {
   const format = detectBookFormatFromPath(fileName)
   if (!format) {
@@ -305,11 +297,7 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
   // 本地优先：本地存在直接返回，不再为每次读取请求云端（跨设备变更由后台对账补入）。
   try {
     const localConfig = await readLocalBookConfig(filename)
-    logInfo('book-repository', 'load-book-config:done', {
-      bookKey,
-      source: 'local',
-      durChapterTime: getDurChapterTime(localConfig),
-    })
+
     return localConfig
   } catch (localError) {
     logWarn('book-repository', 'load-book-config local-missing try-cloud', {
@@ -339,11 +327,6 @@ export const loadBookConfig = async (bookKey: string): Promise<BookConfig> => {
         })
       }
 
-      logInfo('book-repository', 'load-book-config:done', {
-        bookKey,
-        source: 'cloud',
-        durChapterTime: getDurChapterTime(cloudConfig),
-      })
       return cloudConfig
     } catch (cloudError) {
       logWarn('book-repository', 'load-book-config cloud-read-failed', {
@@ -490,12 +473,6 @@ export const resolveBookFile = async (bookKey: string): Promise<ResolvedBookFile
   const currentFileMap = await loadStoredBookFileMap()
   currentFileMap.set(bookKey, storedResolved)
   cachedBookFileMap = currentFileMap
-  logInfo('book-repository', 'resolve-book-file:done', {
-    bookKey,
-    source: 'database',
-    fileName: storedResolved.fileName,
-    format: storedResolved.format,
-  })
   return storedResolved
 }
 

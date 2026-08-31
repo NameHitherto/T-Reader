@@ -349,11 +349,6 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       createdAt: parseBookCreatedAt(record.createdAt),
     }
 
-    logInfo('bookshelf', 'build-shelf-book:done', {
-      bookKey,
-      format,
-      progressValue,
-    })
     return shelfBook
   } catch (error) {
     logWarn('bookshelf', 'build-shelf-book unresolved-file', {
@@ -374,11 +369,6 @@ const buildShelfBook = async (storedBook: StoredBookConfig): Promise<ShelfBook> 
       createdAt: parseBookCreatedAt(record.createdAt),
     }
 
-    logInfo('bookshelf', 'build-shelf-book:done', {
-      bookKey,
-      format: 'unknown',
-      progressValue: 0,
-    })
     return shelfBook
   }
 }

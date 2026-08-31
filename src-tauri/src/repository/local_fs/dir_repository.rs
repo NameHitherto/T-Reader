@@ -132,12 +132,7 @@ pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
             Ok(resp) => {
                 let status = resp.status();
                 let status_code = status.as_u16();
-                if status.is_success() {
-                    log_info(
-                        "webdav",
-                        &format!("cloud-dir-ready subdir={} status={}", subdir, status_code),
-                    );
-                } else if matches!(status_code, 301 | 302 | 405 | 409) {
+                if matches!(status_code, 301 | 302 | 405 | 409) {
                     // 405: RFC 4918 规定对已存在的集合执行 MKCOL 应返回 405;
                     // 409: 部分服务器（如坚果云）对已存在目录返回 409;
                     // 301/302: 已存在路径可能被服务器重定向。
@@ -146,7 +141,7 @@ pub async fn ensure_cloud_dirs(settings: &Settings) -> Result<(), String> {
                         "webdav",
                         &format!("cloud-dir-exists subdir={} status={}", subdir, status_code),
                     );
-                } else {
+                } else if !status.is_success() {
                     log_warn(
                         "webdav",
                         &format!("cloud-dir-check status={} subdir={}", status_code, subdir),
