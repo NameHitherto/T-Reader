@@ -28,3 +28,13 @@ export type {
 } from './epubTypes'
 export type { EnabledSystemFont, SystemFontEntry } from './fontTypes'
 export type { BookMark } from './bookmarkState'
+export {
+  DEFAULT_SEARCH_MAX_RESULTS,
+  SEARCH_HIGHLIGHT_CLASS,
+  addSearchHighlight,
+  clearSearchHighlights,
+  removeSearchHighlight,
+  searchBook,
+} from './search'
+export type { ReaderSearchHit, SearchBookOptions } from './search'
+export type { EpubSectionMatch, EpubSpineItemLike, EpubSpineLike } from './epubTypes'

@@ -40,3 +40,6 @@ plan
 # exe
 *.exe
 *.lnk
+
+# temp
+tmp

@@ -56,6 +56,7 @@ declare module 'vue' {
     NetworkSettings: typeof import('./src/components/SettingTabs/NetworkSettings.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchDialog: typeof import('./src/components/SearchDialog/index.vue')['default']
     ShelfMenu: typeof import('./src/components/ShelfMenu/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
     SystemFontEnableDialog: typeof import('./src/components/SystemFontEnableDialog/index.vue')['default']

@@ -74,6 +74,19 @@
       </div>
     </Transition>
   </Teleport>
+  <!-- 书籍内容搜索 -->
+  <SearchDialog
+    v-model:keyword="searchKeyword"
+    :visible="searchVisible"
+    :hits="searchHits"
+    :searching="isSearching"
+    :status-text="searchStatusText"
+    :active-hit-id="activeSearchHitId"
+    :has-highlight="hasSearchHighlight"
+    @select="handleSelectSearchHit"
+    @clear-highlight="clearSearchHighlight"
+    @close="closeSearch"
+  />
   <!-- 阅读进度 -->
   <div v-if="readingStatusText" class="reading-status" :title="readingStatusText">
     {{ readingStatusText }}
@@ -97,6 +110,7 @@ import GenerationStatusBar from './components/DrawDialog/GenerationStatusBar.vue
 import StyleMenu from './components/StyleMenu/index.vue'
 import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
+import SearchDialog from './components/SearchDialog/index.vue'
 import { BookConfig } from '@/services/book/types'
 import { ContextMenuData, ContextMenuItem } from '@/components/ContextMenu/types'
 import { READER_DOM_EVENTS } from '@/constants/events'
@@ -115,6 +129,7 @@ import { collectParentChapterIndexes, scrollDrawerToActiveChapter } from '@/serv
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { bindReaderInteractions } from '@/services/reader/interaction'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
+import { useReaderSearch } from '@/composables/useReaderSearch'
 import { useBookMarkState, BookMark } from './services/reader/bookmarkState'
 import { withReaderLoading } from '@/services/reader/loadingOverlay'
 import { applyReaderStyles, ReaderStyleConfig } from '@/services/reader/style'
@@ -136,6 +151,7 @@ import {
 } from '@/services/theme'
 import type { AppThemeMode } from '@/services/settings'
 import type { EpubRenditionLike, EpubTocItem } from '@/services/reader/epubTypes'
+import type { ReaderSearchHit } from '@/services/reader/search'
 import {
   ackReaderBookDelete,
   ackReaderLoadMessage,
@@ -620,6 +636,7 @@ function disposeReaderBookRuntime(options: DisposeReaderBookRuntimeOptions = {})
   drawDialogVisible.value = false
   chatDialogVisible.value = false
   drawDialogPrompt.value = ''
+  searchVisible.value = false
   bookMarkStore.clearBookMarks()
 
   if (resetBookState) {
@@ -828,6 +845,43 @@ watch(styleMenuVisible, (visible) => {
 })
 
 // ============================================================
+// 书籍内容搜索
+// ============================================================
+const {
+  searchVisible,
+  keyword: searchKeyword,
+  hits: searchHits,
+  isSearching,
+  statusText: searchStatusText,
+  activeHitId: activeSearchHitId,
+  hasHighlight: hasSearchHighlight,
+  jumpToHit,
+  closeSearch,
+  toggleSearch,
+  clearHighlight: clearSearchHighlight,
+} = useReaderSearch(rendition)
+
+const handleSelectSearchHit = (hit: ReaderSearchHit) => {
+  void jumpToHit(hit)
+}
+
+function handleReaderDomToggleSearchDialog() {
+  void toggleSearch()
+}
+
+function handleReaderDomCloseSearchDialog() {
+  closeSearch()
+}
+
+function setSearchButtonActive(active: boolean) {
+  document.getElementById('titlebar-search')?.classList.toggle('active', active)
+}
+
+watch(searchVisible, (visible) => {
+  setSearchButtonActive(visible)
+})
+
+// ============================================================
 // 弹窗状态
 // ============================================================
 const helpVisible = ref(false)
@@ -877,7 +931,8 @@ const anyReaderOverlayOpen = computed(
     systemFontDialogVisible.value ||
     drawDialogVisible.value ||
     chatDialogVisible.value ||
-    styleMenuVisible.value,
+    styleMenuVisible.value ||
+    searchVisible.value,
 )
 
 // ============================================================
@@ -894,6 +949,7 @@ const readerOverlayRefs: Array<Ref<boolean>> = [
   drawDialogVisible,
   chatDialogVisible,
   styleMenuVisible,
+  searchVisible,
 ]
 
 for (const overlayRef of readerOverlayRefs) {
@@ -1038,6 +1094,8 @@ onMounted(async () => {
   window.addEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_CHAT_DIALOG, handleReaderDomToggleChatDialog)
+  window.addEventListener(READER_DOM_EVENTS.TOGGLE_SEARCH_DIALOG, handleReaderDomToggleSearchDialog)
+  window.addEventListener(READER_DOM_EVENTS.CLOSE_SEARCH_DIALOG, handleReaderDomCloseSearchDialog)
   window.addEventListener('resize', handleWindowResize)
   window.addEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.addEventListener('reader:after-fullscreen', handleAfterFullscreen)
@@ -1049,6 +1107,14 @@ onUnmounted(() => {
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_CHAT_DIALOG, handleReaderDomToggleChatDialog)
+  window.removeEventListener(
+    READER_DOM_EVENTS.TOGGLE_SEARCH_DIALOG,
+    handleReaderDomToggleSearchDialog,
+  )
+  window.removeEventListener(
+    READER_DOM_EVENTS.CLOSE_SEARCH_DIALOG,
+    handleReaderDomCloseSearchDialog,
+  )
   window.removeEventListener('resize', handleWindowResize)
   window.removeEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.removeEventListener('reader:after-fullscreen', handleAfterFullscreen)
@@ -1061,6 +1127,7 @@ onUnmounted(() => {
   unlistenShowBookInfo.value?.()
   unlistenShowHelp.value?.()
   setStyleMenuButtonActive(false)
+  setSearchButtonActive(false)
 })
 </script>
 
@@ -1087,6 +1154,11 @@ onUnmounted(() => {
   pointer-events: all;
   cursor: var(--t-mouse-cursor-link), default;
   user-select: none;
+}
+
+/* 搜索命中的高亮只是视觉提示，不拦截点击，避免遮挡正文选中与书签交互 */
+:global(.search-highlight) {
+  pointer-events: none;
 }
 
 :global(.style-menu-panel) {

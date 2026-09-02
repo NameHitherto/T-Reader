@@ -34,6 +34,9 @@ const bootstrap = async () => {
   const onChatDialogClick = () => {
     window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.TOGGLE_CHAT_DIALOG))
   }
+  const onSearchDialogClick = () => {
+    window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.TOGGLE_SEARCH_DIALOG))
+  }
   const onShowBookInfoClick = () => {
     webviewWindow.emit(WINDOW_EVENTS.SHOW_BOOK_INFO)
   }
@@ -46,6 +49,8 @@ const bootstrap = async () => {
   // AI绘画弹窗
   document.getElementById('titlebar-draw')?.addEventListener('click', onDrawDialogClick)
   document.getElementById('titlebar-chat')?.addEventListener('click', onChatDialogClick)
+  // 书籍内容搜索
+  document.getElementById('titlebar-search')?.addEventListener('click', onSearchDialogClick)
   // 关于本书信息
   document.getElementById('titlebar-about')?.addEventListener('click', onShowBookInfoClick)
   // 帮助
@@ -55,6 +60,7 @@ const bootstrap = async () => {
     document.getElementById('titlebar-customer')?.removeEventListener('click', onStyleMenuClick)
     document.getElementById('titlebar-draw')?.removeEventListener('click', onDrawDialogClick)
     document.getElementById('titlebar-chat')?.removeEventListener('click', onChatDialogClick)
+    document.getElementById('titlebar-search')?.removeEventListener('click', onSearchDialogClick)
     document.getElementById('titlebar-about')?.removeEventListener('click', onShowBookInfoClick)
     document.getElementById('titlebar-help')?.removeEventListener('click', onShowHelpClick)
     unlistenTheme()

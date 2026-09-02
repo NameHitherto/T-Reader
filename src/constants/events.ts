@@ -21,4 +21,6 @@ export const READER_DOM_EVENTS = {
   CLOSE_STYLE_MENU: 'reader:close-style-menu',
   TOGGLE_DRAW_DIALOG: 'reader:toggle-draw-dialog',
   TOGGLE_CHAT_DIALOG: 'reader:toggle-chat-dialog',
+  TOGGLE_SEARCH_DIALOG: 'reader:toggle-search-dialog',
+  CLOSE_SEARCH_DIALOG: 'reader:close-search-dialog',
 } as const
