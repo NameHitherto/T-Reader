@@ -8,7 +8,6 @@
     :append-to-body="true"
     :show-close="false"
     :close-on-press-escape="false"
-    :close-on-click-modal="false"
     :destroy-on-close="false"
     @open="onOpen"
     @close="onClose"
