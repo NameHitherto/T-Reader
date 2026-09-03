@@ -1,91 +1,162 @@
 <template>
   <el-dialog
+    :model-value="modelValue"
     align-center
     destroy-on-close
-    title="笔记"
     class="bookmark-dialog-wrapper"
-    width="400px"
+    modal-class="bookmark-dialog-overlay"
+    width="440px"
     :append-to-body="true"
     :show-close="false"
-    :close-on-press-escape="false"
-    :modal="false"
-    @open="onOpen"
+    :close-on-press-escape="true"
+    :close-on-click-modal="true"
+    @open="handleOpen"
     @close="onClose"
+    @update:model-value="(val: boolean) => emit('update:modelValue', val)"
   >
-    <el-button class="bookmark-delete" type="danger" circle @click="deleteBookMark">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-        <path
-          fill="currentColor"
-          fill-rule="evenodd"
-          d="M5.442 3.5H12.5A1.5 1.5 0 0 1 14 5v6a1.5 1.5 0 0 1-1.5 1.5H5.442a1.5 1.5 0 0 1-1.171-.563L1.796 8.844a1.35 1.35 0 0 1 0-1.688l2.475-3.093A1.5 1.5 0 0 1 5.44 3.5m-2.343-.374A3 3 0 0 1 5.442 2H12.5a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5.442a3 3 0 0 1-2.343-1.126L.625 9.781a2.85 2.85 0 0 1 0-3.562zM7.28 5.47a.75.75 0 0 0-1.06 1.06L7.69 8L6.22 9.47a.75.75 0 1 0 1.06 1.06l1.47-1.47l1.47 1.47a.75.75 0 1 0 1.06-1.06L9.81 8l1.47-1.47a.75.75 0 0 0-1.06-1.06L8.75 6.94z"
-        />
-      </svg>
-    </el-button>
-    <div class="comment-edition">
-      <el-input
-        v-model="comments"
-        maxlength="100"
-        :autosize="{ minRows: 2, maxRows: 6 }"
-        resize="none"
-        type="textarea"
-        placeholder="在此编辑个人感想"
-        show-word-limit
-        @change="bookMarkJSON.comments = comments"
-      />
-    </div>
-    <div class="underline-panel">
-      <div class="underline-editor">
-        <div class="type-picker">
-          <span class="picker-label">线型</span>
-          <el-select
-            :model-value="currentType"
-            class="type-select"
-            popper-class="bookmark-type-popper"
-            @update:model-value="updateType"
-          >
-            <template #label>
-              <span class="type-preview" v-html="underlinePreviewSvg(currentType)" />
-            </template>
-            <el-option v-for="type in underlineTypes" :key="type" :value="type">
-              <span class="type-preview" v-html="underlinePreviewSvg(type)" />
-            </el-option>
-          </el-select>
+    <template #header>
+      <div class="dialog-header">
+        <div class="header-title-wrap">
+          <span class="header-icon-box">
+            <AppIcon name="bookmark" :size="15" />
+          </span>
+          <span class="header-title">编辑划线笔记</span>
         </div>
-        <div class="color-picker">
-          <span class="picker-label">颜色</span>
-          <div class="color-palette">
-            <span
-              v-for="color in colorChoices"
-              :key="color"
-              class="color-choice"
-              :class="{ 'is-selected': color === currentColor }"
-              :style="{ backgroundColor: color }"
-              @click="updateColor(color)"
-            />
+      </div>
+    </template>
+
+    <div class="dialog-content">
+      <!-- 个人感想编辑区 -->
+      <div class="comment-section">
+        <div class="section-head">
+          <span class="section-title">笔记感想</span>
+          <span class="char-count" :class="{ 'is-limit': comments.length >= 500 }">
+            {{ comments.length }} / 500
+          </span>
+        </div>
+        <el-input
+          v-model="comments"
+          type="textarea"
+          :autosize="{ minRows: 2, maxRows: 5 }"
+          resize="none"
+          maxlength="500"
+          placeholder="在此写下阅读感悟、批注或心得..."
+          class="comment-input"
+          @input="handleCommentInput"
+        />
+      </div>
+
+      <!-- 划线样式控制面板 -->
+      <div class="style-panel">
+        <!-- 线型卡片网格选择器 -->
+        <div class="type-section">
+          <span class="section-label">线型风格</span>
+          <div class="type-grid">
+            <button
+              v-for="item in LINE_TYPES"
+              :key="item.type"
+              type="button"
+              class="type-card"
+              :class="{ 'is-active': item.type === currentType }"
+              @click="updateType(item.type)"
+            >
+              <div class="type-card-preview" v-html="underlinePreviewSvg(item.type)" />
+              <div class="type-card-info">
+                <span class="type-card-label">{{ item.label }}</span>
+                <span class="type-card-desc">{{ item.desc }}</span>
+              </div>
+              <span v-if="item.type === currentType" class="type-card-badge">
+                <svg
+                  viewBox="0 0 16 16"
+                  width="10"
+                  height="10"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 8.5 6.5 12 13 4" />
+                </svg>
+              </span>
+            </button>
           </div>
         </div>
-        <div class="width-picker">
-          <span class="picker-label">粗细</span>
-          <el-slider
-            v-model="widthValue"
-            class="width-slider"
-            :min="widthRange.min"
-            :max="widthRange.max"
-            :step="widthRange.step"
-            :format-tooltip="formatWidthTooltip"
-            @change="commitWidth"
-          />
-          <span class="width-value">{{ widthValue }}px</span>
+
+        <!-- 调色盘 -->
+        <div class="color-section">
+          <span class="section-label">划线色彩</span>
+          <div class="color-palette">
+            <button
+              v-for="color in colorChoices"
+              :key="color"
+              type="button"
+              class="color-choice"
+              :class="{ 'is-selected': color === currentColor }"
+              :style="{ '--swatch-color': color }"
+              :title="color"
+              :aria-label="`选择划线颜色 ${color}`"
+              @click="updateColor(color)"
+            >
+              <span class="color-dot" :style="{ backgroundColor: color }">
+                <svg
+                  class="check-icon"
+                  :class="{ 'is-active': color === currentColor }"
+                  :style="{ color: isLightColor(color) ? '#1f2937' : '#ffffff' }"
+                  viewBox="0 0 16 16"
+                  width="12"
+                  height="12"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3.5 8.5 6.5 11.5 12.5 4.5" />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 粗细滑块 -->
+        <div class="width-section">
+          <span class="section-label">粗细微调</span>
+          <div class="width-row">
+            <span class="width-icon thin" title="更细">
+              <span class="line-bar line-bar--thin"></span>
+            </span>
+            <el-slider
+              :model-value="widthValue"
+              class="width-slider"
+              :min="widthRange.min"
+              :max="widthRange.max"
+              :step="widthRange.step"
+              :show-tooltip="false"
+              @input="onSliderInput"
+              @change="onSliderChange"
+            />
+            <span class="width-icon thick" title="更粗">
+              <span class="line-bar line-bar--thick"></span>
+            </span>
+            <span class="width-badge">{{ widthValue.toFixed(1) }} px</span>
+          </div>
         </div>
       </div>
     </div>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="emit('update:modelValue', false)">取消</el-button>
+        <el-button type="primary" @click="saveAndClose">完成</el-button>
+      </div>
+    </template>
   </el-dialog>
 </template>
-<script lang="ts">
-import { ref, defineComponent } from 'vue'
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import {
   UNDERLINE_COLOR_CHOICES,
-  UNDERLINE_TYPES,
   UNDERLINE_WIDTH_RANGE,
   loadPreferredUnderlineStyle,
   savePreferredUnderlineStyle,
@@ -94,224 +165,523 @@ import {
 } from '@/services/reader'
 import { logWarn } from '@/utils/logger'
 import type { BookMark } from '@/services/reader/bookmarkState'
+import AppIcon from '@/components/common/AppIcon/index.vue'
 
-export default defineComponent({
-  name: 'BookMarkDialog',
-  props: {
-    bookMarkList: {
-      type: String,
-    },
-  },
-  emits: ['update:bookMarkList', 'delete'],
-  data() {
-    return {
-      comments: ref(''),
-      bookMarkJSON: ref<Partial<BookMark>>({}),
-      colorChoices: [...UNDERLINE_COLOR_CHOICES],
-      underlineTypes: [...UNDERLINE_TYPES],
-      widthRange: { ...UNDERLINE_WIDTH_RANGE },
-      widthValue: 2,
-      preferredStyle: loadPreferredUnderlineStyle(),
+interface Props {
+  modelValue?: boolean
+  bookMarkList?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: false,
+  bookMarkList: '',
+})
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void
+  (e: 'update:bookMarkList', value: string): void
+  (e: 'delete', markId: string): void
+}>()
+
+interface LineTypeMeta {
+  type: UnderlineType
+  label: string
+  desc: string
+}
+
+const LINE_TYPES: LineTypeMeta[] = [
+  { type: 'brush', label: '毛笔', desc: '手绘墨迹起伏' },
+  { type: 'highlighter', label: '荧光', desc: '半透明马克笔' },
+  { type: 'spring', label: '弹簧', desc: '趣味回旋卷线' },
+  { type: 'dotwave', label: '波浪', desc: '律动波点虚线' },
+]
+
+const comments = ref('')
+const bookMarkJSON = ref<Partial<BookMark>>({})
+const colorChoices = [...UNDERLINE_COLOR_CHOICES]
+const widthRange = { ...UNDERLINE_WIDTH_RANGE }
+const widthValue = ref(2)
+const preferredStyle = ref<UnderlineStyle>(loadPreferredUnderlineStyle())
+
+const currentStyle = computed<UnderlineStyle>(() => ({
+  color: bookMarkJSON.value.underlineColor || preferredStyle.value.color,
+  type: bookMarkJSON.value.underlineType || preferredStyle.value.type,
+  width: bookMarkJSON.value.underlineWidth ?? preferredStyle.value.width,
+}))
+
+const currentColor = computed(() => currentStyle.value.color)
+const currentType = computed(() => currentStyle.value.type)
+const currentWidth = computed(() => currentStyle.value.width)
+
+const isLightColor = (color: string): boolean => {
+  const hex = color.replace('#', '')
+  if (hex.length !== 6) return false
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+  return lum > 0.65
+}
+
+const handleOpen = () => {
+  preferredStyle.value = loadPreferredUnderlineStyle()
+  if (props.bookMarkList) {
+    try {
+      bookMarkJSON.value = JSON.parse(props.bookMarkList)
+      comments.value = bookMarkJSON.value.comments || ''
+      widthValue.value = currentWidth.value
+    } catch {
+      logWarn('bookmark', 'failed-to-parse-bookmark-json')
+    }
+  } else {
+    logWarn('bookmark', 'open-empty-note')
+  }
+}
+
+watch(
+  () => props.bookMarkList,
+  (newVal) => {
+    if (!newVal || !props.modelValue) return
+    try {
+      bookMarkJSON.value = JSON.parse(newVal)
+      comments.value = bookMarkJSON.value.comments || ''
+      widthValue.value = currentWidth.value
+    } catch {
+      // ignore
     }
   },
-  computed: {
-    currentStyle(): UnderlineStyle {
-      return {
-        color: this.bookMarkJSON.underlineColor || this.preferredStyle.color,
-        type: this.bookMarkJSON.underlineType || this.preferredStyle.type,
-        width: this.bookMarkJSON.underlineWidth ?? this.preferredStyle.width,
-      }
-    },
-    currentColor() {
-      return this.currentStyle.color
-    },
-    currentType() {
-      return this.currentStyle.type
-    },
-    currentWidth() {
-      return this.currentStyle.width
-    },
-  },
-  methods: {
-    async onOpen() {
-      // 将string转为json
-      if (this.bookMarkList) {
-        this.bookMarkJSON = JSON.parse(this.bookMarkList)
-        this.comments = this.bookMarkJSON.comments || ''
-        this.widthValue = this.currentWidth
-      } else {
-        logWarn('bookmark', 'open-empty-note')
-      }
-    },
-    async onClose() {
-      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
-    },
-    async deleteBookMark() {
-      this.$emit('delete', this.bookMarkJSON.id)
-    },
-    commitStyle() {
-      const style = this.currentStyle
-      this.bookMarkJSON.underlineColor = style.color
-      this.bookMarkJSON.underlineType = style.type
-      this.bookMarkJSON.underlineWidth = style.width
-      savePreferredUnderlineStyle(style)
-      this.$emit('update:bookMarkList', JSON.stringify(this.bookMarkJSON))
-    },
-    async updateColor(color: string) {
-      this.bookMarkJSON.underlineColor = color
-      this.commitStyle()
-    },
-    async updateType(type: UnderlineType) {
-      this.bookMarkJSON.underlineType = type
-      this.commitStyle()
-    },
-    async updateWidth(width: number) {
-      this.bookMarkJSON.underlineWidth = width
-      this.commitStyle()
-    },
-    commitWidth() {
-      this.updateWidth(this.widthValue)
-    },
-    formatWidthTooltip(value: number): string {
-      return `${value}px`
-    },
-    underlinePreviewSvg(type: UnderlineType): string {
-      const stroke = 'currentColor'
-      const wrap = (inner: string) =>
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 24" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`
+)
 
-      switch (type) {
-        case 'brush':
-          return wrap(
-            `<path d="M4 13 Q 20 16 34 12 T 60 14 T 92 12" fill="none" stroke="${stroke}" stroke-width="7" stroke-linecap="square"/>`,
-          )
-        case 'highlighter':
-          return wrap(
-            `<path d="M4 17 L 92 13" fill="none" stroke="${stroke}" stroke-width="14" stroke-linecap="round" opacity="0.45"/>`,
-          )
-        case 'spring':
-          return wrap(
-            `<path d="M4 15 C 12 5 16 23 24 15 C 32 5 36 23 44 15 C 52 5 56 23 64 15 C 72 5 76 23 84 15 C 88 11 90 19 92 15" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`,
-          )
-        case 'dotwave':
-          return wrap(
-            `<path d="M4 13 Q 26 20 48 13 T 92 13" fill="none" stroke="${stroke}" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 10"/>`,
-          )
-        default:
-          return ''
-      }
-    },
-  },
-})
+const commitStyle = () => {
+  const style: UnderlineStyle = {
+    color: currentColor.value,
+    type: currentType.value,
+    width: currentWidth.value,
+  }
+  bookMarkJSON.value.underlineColor = style.color
+  bookMarkJSON.value.underlineType = style.type
+  bookMarkJSON.value.underlineWidth = style.width
+  savePreferredUnderlineStyle(style)
+  emit('update:bookMarkList', JSON.stringify(bookMarkJSON.value))
+}
+
+const updateColor = (color: string) => {
+  bookMarkJSON.value.underlineColor = color
+  commitStyle()
+}
+
+const updateType = (type: UnderlineType) => {
+  bookMarkJSON.value.underlineType = type
+  commitStyle()
+}
+
+const updateWidth = (width: number) => {
+  bookMarkJSON.value.underlineWidth = width
+  commitStyle()
+}
+
+const onSliderInput = (val: number | number[]) => {
+  const num = typeof val === 'number' ? val : val[0]
+  widthValue.value = num
+  bookMarkJSON.value.underlineWidth = num
+}
+
+const onSliderChange = (val: number | number[]) => {
+  const num = typeof val === 'number' ? val : val[0]
+  updateWidth(num)
+}
+
+const handleCommentInput = () => {
+  bookMarkJSON.value.comments = comments.value
+}
+
+const saveAndClose = () => {
+  bookMarkJSON.value.comments = comments.value
+  commitStyle()
+  emit('update:modelValue', false)
+}
+
+const onClose = () => {
+  bookMarkJSON.value.comments = comments.value
+  commitStyle()
+}
+
+const underlinePreviewSvg = (type: UnderlineType): string => {
+  const stroke = 'currentColor'
+  const wrap = (inner: string) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 24" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`
+
+  switch (type) {
+    case 'brush':
+      return wrap(
+        `<path d="M4 13 Q 20 16 34 12 T 60 14 T 92 12" fill="none" stroke="${stroke}" stroke-width="6" stroke-linecap="square"/>`,
+      )
+    case 'highlighter':
+      return wrap(
+        `<path d="M4 14 L 92 14" fill="none" stroke="${stroke}" stroke-width="12" stroke-linecap="round" opacity="0.45"/>`,
+      )
+    case 'spring':
+      return wrap(
+        `<path d="M4 15 C 12 5 16 23 24 15 C 32 5 36 23 44 15 C 52 5 56 23 64 15 C 72 5 76 23 84 15 C 88 11 90 19 92 15" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linecap="round"/>`,
+      )
+    case 'dotwave':
+      return wrap(
+        `<path d="M4 13 Q 26 20 48 13 T 92 13" fill="none" stroke="${stroke}" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="1 8"/>`,
+      )
+    default:
+      return ''
+  }
+}
 </script>
 <style lang="scss" scoped>
 .bookmark-dialog-wrapper {
+  :deep(.el-dialog__header) {
+    padding: 16px 20px 0;
+  }
+
   :deep(.el-dialog__body) {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    padding: 16px 20px 20px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 0 20px 18px;
   }
 }
 
-.bookmark-delete {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: var(--text-on-brand);
+.dialog-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .header-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-icon-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-xs);
+      background: var(--surface-brand-soft);
+      color: var(--brand-primary);
+    }
+
+    .header-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.2px;
+    }
+  }
 }
 
-.underline-panel {
-  margin-top: 4px;
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.underline-editor {
+.comment-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 18px;
-}
 
-.picker-label {
-  min-width: 32px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.type-picker,
-.color-picker,
-.width-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.type-select {
-  width: 136px;
-}
-
-.type-preview {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 96px;
-  height: 22px;
-  color: var(--text-secondary);
-
-  :deep(svg) {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-}
-
-.color-palette {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--surface-strong);
-  border-radius: var(--radius-sm);
-}
-
-.color-choice {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid var(--surface-strong);
-  cursor: var(--t-mouse-cursor-link), pointer;
-  box-shadow: var(--shadow-xs);
-
-  &.is-selected {
-    border-color: var(--text-primary);
-    transform: translateY(-1px);
-  }
-}
-
-.width-slider {
-  flex: 1;
-  margin-right: 4px;
-}
-
-.width-value {
-  min-width: 44px;
-  font-size: 13px;
-  text-align: right;
-  color: var(--text-secondary);
-}
-</style>
-
-<style lang="scss">
-.bookmark-type-popper {
-  .el-select-dropdown__item {
+  .section-head {
     display: flex;
     align-items: center;
-    justify-content: center;
-    height: 34px;
-    padding: 0 12px;
+    justify-content: space-between;
   }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .char-count {
+    font-size: 11px;
+    color: var(--text-muted);
+
+    &.is-limit {
+      color: var(--danger);
+    }
+  }
+
+  .comment-input {
+    :deep(.el-textarea__inner) {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-card-soft);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.6;
+      transition:
+        border-color var(--duration-fast) var(--easing-standard),
+        box-shadow var(--duration-fast) var(--easing-standard);
+
+      &::placeholder {
+        color: var(--text-muted);
+      }
+
+      &:focus {
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px var(--ring-brand-soft);
+      }
+    }
+  }
+}
+
+.style-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card-muted);
+  border: 1px solid var(--border-soft);
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+}
+
+.type-section {
+  display: flex;
+  flex-direction: column;
+
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .type-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    cursor: var(--t-mouse-cursor-pointer), pointer;
+    text-align: left;
+    transition:
+      border-color var(--duration-fast) var(--easing-standard),
+      background-color var(--duration-fast) var(--easing-standard),
+      transform var(--duration-fast) var(--easing-standard);
+
+    &:hover {
+      border-color: var(--border-brand);
+      background: var(--surface-card-soft);
+      transform: translateY(-1px);
+    }
+
+    &.is-active {
+      border-color: var(--brand-primary);
+      background: var(--surface-brand-soft);
+      box-shadow: 0 0 0 1px var(--brand-primary);
+
+      .type-card-label {
+        color: var(--brand-primary);
+        font-weight: 600;
+      }
+    }
+
+    .type-card-preview {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 18px;
+      flex-shrink: 0;
+      color: var(--text-secondary);
+
+      :deep(svg) {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .type-card-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .type-card-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .type-card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.3;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .type-card-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--brand-primary);
+      color: #ffffff;
+    }
+  }
+}
+
+.color-section {
+  display: flex;
+  flex-direction: column;
+
+  .color-palette {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+  }
+
+  .color-choice {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: var(--t-mouse-cursor-pointer), pointer;
+    transition: transform var(--duration-base) var(--easing-standard);
+
+    &:hover {
+      transform: scale(1.08);
+    }
+
+    &.is-selected {
+      .color-dot {
+        box-shadow:
+          0 0 0 2px var(--surface-strong),
+          0 0 0 4px var(--swatch-color);
+      }
+    }
+
+    .color-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 0, 0, 0.08);
+      box-shadow: var(--shadow-xs);
+      transition:
+        transform var(--duration-base) var(--easing-standard);
+    }
+
+    .check-icon {
+      display: block;
+      opacity: 0;
+      transform: scale(0.6);
+      transition:
+        opacity var(--duration-base) var(--easing-standard),
+        transform var(--duration-base) var(--easing-standard);
+
+      &.is-active {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  }
+}
+
+.width-section {
+  display: flex;
+  flex-direction: column;
+
+  .width-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .width-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+
+    .line-bar {
+      display: block;
+      background: currentColor;
+
+      &--thin {
+        width: 12px;
+        height: 1.5px;
+        border-radius: 1px;
+      }
+
+      &--thick {
+        width: 14px;
+        height: 4.5px;
+        border-radius: 2px;
+      }
+    }
+  }
+
+  .width-slider {
+    flex: 1;
+    margin: 0 2px;
+  }
+
+  .width-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-card);
+    border: 1px solid var(--border-default);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
 }
 </style>

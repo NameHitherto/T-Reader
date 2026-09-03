@@ -32,7 +32,8 @@
   }
 }
 
-.system-font-enable-dialog-overlay {
+.system-font-enable-dialog-overlay,
+.bookmark-dialog-overlay {
   backdrop-filter: var(--overlay-blur);
   background: var(--surface-overlay);
 }
