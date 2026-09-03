@@ -33,6 +33,14 @@
   <book-info-dialog v-model="bookInfoVisible" :book-key="currentBookKey" />
   <!-- 右键菜单 -->
   <ContextMenu v-model:show="showContextMenu" :menu-data="contextMenuOptions" />
+  <!-- 注释笔记气泡 -->
+  <AnnotationBubble
+    :visible="bubbleVisible"
+    :bookmark="activeBookmark"
+    :position="bubblePosition"
+    @close="closeBubble"
+    @edit="handleEditFromBubble"
+  />
   <!-- 笔记编辑框 -->
   <BookMarkDialog
     v-model="bookMarkEditionVisible"
@@ -103,6 +111,7 @@ import { logInfo, logWarn, logError } from '@/utils/logger'
 import BookInfoDialog from './components/BookInfoDialog/index.vue'
 import ContextMenu from './components/ContextMenu/index.vue'
 import BookMarkDialog from './components/BookMark/bookMarkDialog.vue'
+import AnnotationBubble from './components/BookMark/annotationBubble.vue'
 import HelpDialog from './components/HelpDialog/index.vue'
 import DrawDialog from './components/DrawDialog/index.vue'
 import ChatDialog from './components/ChatDialog/index.vue'
@@ -129,6 +138,7 @@ import { collectParentChapterIndexes, scrollDrawerToActiveChapter } from '@/serv
 import { buildContextMenuData } from '@/services/reader/contextMenu'
 import { bindReaderInteractions } from '@/services/reader/interaction'
 import { useBookmarkEditor } from '@/composables/useBookmarkEditor'
+import { useBookmarkBubble } from '@/composables/useBookmarkBubble'
 import { useReaderSearch } from '@/composables/useReaderSearch'
 import { useBookMarkState, BookMark } from './services/reader/bookmarkState'
 import { withReaderLoading } from '@/services/reader/loadingOverlay'
@@ -368,12 +378,14 @@ async function saveReaderRendition() {
 let disposeReaderInteractions: (() => void) | null = null
 
 function prevPage() {
+  closeBubble()
   if (rendition.value && readerConfig.value.flow === 'paginated') {
     rendition.value.prev?.()
   }
 }
 
 function nextPage() {
+  closeBubble()
   if (rendition.value && readerConfig.value.flow === 'paginated') {
     rendition.value.next?.()
   }
@@ -480,6 +492,29 @@ const { bookMarkEditionVisible, bookMarkEditionContent, openEditorByMarkId, clos
     defaultUnderlineStyle,
   })
 
+const {
+  bubbleVisible,
+  activeBookmark,
+  bubblePosition,
+  openBubbleByMarkId,
+  closeBubble,
+  syncCurrentPosition,
+  isBubbleRelatedTarget,
+} = useBookmarkBubble({
+  bookMarkStore,
+})
+
+let lastPointerCoords: { x: number; y: number } | null = null
+
+function handlePointerDownForBubble(e: PointerEvent) {
+  lastPointerCoords = { x: e.clientX, y: e.clientY }
+}
+
+function handleEditFromBubble(markId: string) {
+  closeBubble()
+  openEditorByMarkId(markId)
+}
+
 function initAllBookMarks() {
   if (!currentBookKey.value) return
 
@@ -516,15 +551,19 @@ async function addBookMark() {
 }
 
 async function addBookMarkComment() {
+  closeBubble()
   const bookMarkId = await addBookMark()
   openEditorByMarkId(bookMarkId)
 }
 
 function delBookMark(markId: string) {
   const bookMark = bookMarkStore.getBookMark(markId)[0]
-  removeBookmarkUnderline(rendition.value, bookMark.bookCfi)
-  bookMarkStore.removeBookMark(markId)
+  if (bookMark) {
+    removeBookmarkUnderline(rendition.value, bookMark.bookCfi)
+    bookMarkStore.removeBookMark(markId)
+  }
   closeEditor()
+  closeBubble()
 }
 
 // ============================================================
@@ -536,6 +575,7 @@ function handleRenditionEvents() {
 
   bindRenditionEvents(rendition.value, {
     onRelocated: (location) => {
+      closeBubble()
       const locationStart = location.start
       if (locationStart?.href) {
         activeChapter.value = locationStart.href
@@ -552,7 +592,7 @@ function handleRenditionEvents() {
       selectedText.value = text
       selectedRange.value = cfiRange
     },
-    onMarkClicked: (markId: string) => openEditorByMarkId(markId),
+    onMarkClicked: (markId: string) => openBubbleByMarkId(markId, lastPointerCoords),
   })
 }
 
@@ -569,18 +609,39 @@ function bindCurrentReaderInteractions() {
     hideContextMenu: () => {
       showContextMenu.value = false
     },
-    isParentPointerIgnored: (target) => styleMenuVisible.value && isStyleMenuRelatedTarget(target),
+    hideAnnotationBubble: () => {
+      closeBubble()
+    },
+    isParentPointerIgnored: (target) =>
+      (styleMenuVisible.value && isStyleMenuRelatedTarget(target)) ||
+      (bubbleVisible.value && isBubbleRelatedTarget(target)),
     isOverlayOpen: () => anyReaderOverlayOpen.value,
-    openContextMenu: (x, y, menuItems) =>
-      openContextMenu('root', x, y, menuItems as ContextMenuItem[]),
+    openContextMenu: (x, y, menuItems) => {
+      closeBubble()
+      openContextMenu('root', x, y, menuItems as ContextMenuItem[])
+    },
     buildContextMenuItems: () => [
       { label: '标记 | 添加书签', type: 'bookmark', onClick: () => addBookMark() },
       { label: '注释 | 个人评论', type: 'comment', onClick: () => addBookMarkComment() },
       { label: '绘画 | 生成插画', type: 'draw', onClick: () => openDrawDialogWithSelection() },
     ],
     buildBookmarkContextMenuItems: (markId: string) => [
-      { label: '编辑 | 编辑笔记', type: 'edit', onClick: () => openEditorByMarkId(markId) },
-      { label: '删除 | 删除笔记', type: 'delBookMark', onClick: () => delBookMark(markId) },
+      {
+        label: '编辑 | 编辑笔记',
+        type: 'edit',
+        onClick: () => {
+          closeBubble()
+          openEditorByMarkId(markId)
+        },
+      },
+      {
+        label: '删除 | 删除笔记',
+        type: 'delBookMark',
+        onClick: () => {
+          closeBubble()
+          delBookMark(markId)
+        },
+      },
     ],
   })
 
@@ -823,6 +884,9 @@ function handleReaderDomCloseStyleMenu() {
 let resizeSuspended = false
 
 function handleWindowResize() {
+  if (bubbleVisible.value) {
+    syncCurrentPosition()
+  }
   if (resizeSuspended) return
   if (!styleMenuVisible.value) return
   void syncStyleMenuLayout()
@@ -932,7 +996,8 @@ const anyReaderOverlayOpen = computed(
     drawDialogVisible.value ||
     chatDialogVisible.value ||
     styleMenuVisible.value ||
-    searchVisible.value,
+    searchVisible.value ||
+    bubbleVisible.value,
 )
 
 // ============================================================
@@ -950,6 +1015,7 @@ const readerOverlayRefs: Array<Ref<boolean>> = [
   chatDialogVisible,
   styleMenuVisible,
   searchVisible,
+  bubbleVisible,
 ]
 
 for (const overlayRef of readerOverlayRefs) {
@@ -1097,12 +1163,14 @@ onMounted(async () => {
   window.addEventListener(READER_DOM_EVENTS.TOGGLE_SEARCH_DIALOG, handleReaderDomToggleSearchDialog)
   window.addEventListener(READER_DOM_EVENTS.CLOSE_SEARCH_DIALOG, handleReaderDomCloseSearchDialog)
   window.addEventListener('resize', handleWindowResize)
+  window.addEventListener('pointerdown', handlePointerDownForBubble, true)
   window.addEventListener('reader:before-fullscreen', handleBeforeFullscreen)
   window.addEventListener('reader:after-fullscreen', handleAfterFullscreen)
 })
 
 onUnmounted(() => {
   disposeReaderBookRuntime()
+  window.removeEventListener('pointerdown', handlePointerDownForBubble, true)
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_STYLE_MENU, handleReaderDomToggleStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.CLOSE_STYLE_MENU, handleReaderDomCloseStyleMenu)
   window.removeEventListener(READER_DOM_EVENTS.TOGGLE_DRAW_DIALOG, handleReaderDomToggleDrawDialog)

@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AiModelSettings: typeof import('./src/components/SettingTabs/AiModelSettings.vue')['default']
+    AnnotationBubble: typeof import('./src/components/BookMark/annotationBubble.vue')['default']
     AppIcon: typeof import('./src/components/common/AppIcon/index.vue')['default']
     BookInfoDialog: typeof import('./src/components/BookInfoDialog/index.vue')['default']
     BookMarkDialog: typeof import('./src/components/BookMark/bookMarkDialog.vue')['default']

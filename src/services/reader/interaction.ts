@@ -10,6 +10,7 @@ interface ReaderKeydownHandlers {
 
 interface ResetReaderTransientUiHandlers {
   hideContextMenu: () => void
+  hideAnnotationBubble?: () => void
 }
 
 interface ReaderContextMenuItem {
@@ -23,6 +24,7 @@ interface BindReaderInteractionsArgs {
   onNextPage: () => void
   onToggleFullscreen: () => void
   hideContextMenu: () => void
+  hideAnnotationBubble?: () => void
   isParentPointerIgnored: (target: HTMLElement | null) => boolean
   openContextMenu: (x: number, y: number, menuItems: ReaderContextMenuItem[]) => void
   buildContextMenuItems: () => ReaderContextMenuItem[]
@@ -54,6 +56,7 @@ export const dispatchReaderKeydown = (event: KeyboardEvent, handlers: ReaderKeyd
 export const resetReaderTransientUi = (handlers: ResetReaderTransientUiHandlers) => {
   window.dispatchEvent(new CustomEvent(READER_DOM_EVENTS.CLOSE_STYLE_MENU))
   handlers.hideContextMenu()
+  handlers.hideAnnotationBubble?.()
 }
 
 const findIframeByWindow = (iframeWindow: Window) => {
@@ -93,6 +96,11 @@ export const bindReaderInteractions = (
   const boundDocuments = new WeakSet<Document>()
 
   const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      resetTransientUi()
+      return
+    }
+
     // 弹窗/菜单打开时（如书籍信息、绘画、目录、笔记编辑等），
     // 临时禁用方向键翻页等阅读器快捷键，避免干扰弹窗内的输入与操作
     if (args.isOverlayOpen()) {
@@ -109,6 +117,7 @@ export const bindReaderInteractions = (
   const resetTransientUi = () => {
     resetReaderTransientUi({
       hideContextMenu: args.hideContextMenu,
+      hideAnnotationBubble: args.hideAnnotationBubble,
     })
   }
 
@@ -135,6 +144,7 @@ export const bindReaderInteractions = (
     }
 
     event.preventDefault()
+    args.hideAnnotationBubble?.()
     args.openContextMenu(event.clientX, event.clientY, args.buildBookmarkContextMenuItems(markId))
   }
 
