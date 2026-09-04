@@ -34,6 +34,7 @@ dependencies = [
  "tauri-plugin-shell",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
+ "tempfile",
  "tiktoken-rs",
  "time",
  "tokio",

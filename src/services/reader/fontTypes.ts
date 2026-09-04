@@ -25,3 +25,40 @@ export interface EnabledSystemFont {
   faceIndex: number
   familyAliases?: string[]
 }
+
+export interface LocalFontEntry {
+  filename: string
+  family: string
+  displayFamily: string
+  subfamily: string | null
+  fullName: string | null
+  postscriptName: string | null
+  weight: number | null
+  path: string
+  faceIndex: number
+  familyAliases: string[]
+}
+
+export type LocalFontExtractionStatus = 'extracted' | 'existing' | 'skipped' | 'failed'
+
+export interface LocalFontExtractionResult {
+  sourcePath: string
+  filename: string | null
+  fonts: LocalFontEntry[]
+  status: LocalFontExtractionStatus
+  reason: string | null
+}
+
+export interface LocalFontWarning {
+  filename: string
+  reason: string
+}
+
+export interface LocalFontsResult {
+  fonts: LocalFontEntry[]
+  warnings: LocalFontWarning[]
+}
+
+export interface DeleteLocalFontResult {
+  deleted: boolean
+}

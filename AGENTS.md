@@ -47,7 +47,8 @@ T-Reader/
 ├─ bookProgress/  # 书籍进度配置
 ├─ knowledge/     # 知识库导入的原始 EPUB 文件
 ├─ cached/        # 封面、locations、段落统计缓存，以及打包后的 logs/ 日志目录
-└─ system/        # SQLite 数据库 t-reader.db
+├─ system/        # SQLite 数据库 t-reader.db
+└─ fonts/         # 本地字体文件（扁平 hash.ext）
 ```
 
 - `books/` 和 `bookProgress/` 的目录名称、层级及内部文件组织属于既有持久化兼容协议，不得自主改名、迁移、合并、拆分或调整文件结构。

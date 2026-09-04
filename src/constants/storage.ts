@@ -11,6 +11,7 @@ export const LOCAL_DIRS = {
   progress: 'bookProgress',
   cached: 'cached',
   system: 'system',
+  fonts: 'fonts',
 } as const
 
 /**

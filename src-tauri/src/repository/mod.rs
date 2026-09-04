@@ -1,5 +1,6 @@
 pub mod books;
 pub mod chat;
+pub mod font_metadata;
 pub mod gallery;
 pub mod knowledge_base;
 pub mod local_fs;

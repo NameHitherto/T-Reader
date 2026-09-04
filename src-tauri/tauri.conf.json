@@ -15,7 +15,8 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$DOCUMENT/T-Reader/cached/**/*"
+          "$DOCUMENT/T-Reader/cached/**/*",
+          "$DOCUMENT/T-Reader/fonts/*"
         ]
       }
     }
