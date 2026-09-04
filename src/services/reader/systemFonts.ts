@@ -1,10 +1,20 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { EpubBuiltInStylesheetMode, ReaderConfig } from '@/services/reader/config'
+import {
+  loadReaderConfigFromDisk,
+  saveReaderConfigToDisk,
+  type EpubBuiltInStylesheetMode,
+  type ReaderConfig,
+} from '@/services/reader/config'
 import type { EnabledSystemFont, SystemFontEntry } from '@/services/reader/fontTypes'
 import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/services/reader/fontTypes'
-import { getReaderThemeCompatColors, normalizeReaderBackgroundPresets } from '@/services/theme'
+import {
+  getReaderThemeCompatColors,
+  normalizeReaderBackgroundPresets,
+  syncReaderConfigThemeColors,
+} from '@/services/theme'
 import { createDefaultReaderBackgroundPresets } from '@/services/theme/backgroundTypes'
 import type { ReaderFontOption, SystemFontFamilyGroup } from '@/services/reader/types'
+import { dispatchReaderStyleUpdate } from '@/services/ipc'
 
 export type { ReaderFontOption, SystemFontFamilyGroup }
 
@@ -450,4 +460,49 @@ export const normalizeReaderConfig = (
           : DEFAULT_READER_FONT,
     enabledSystemFonts,
   }
+}
+
+export const loadEnabledSystemFonts = async (): Promise<EnabledSystemFont[]> => {
+  const rawConfig = await loadReaderConfigFromDisk().catch(() => null)
+  const systemFonts = await fetchSystemFonts().catch(() => [])
+  const currentConfig = normalizeReaderConfig(rawConfig, systemFonts)
+
+  return currentConfig.enabledSystemFonts
+}
+
+export const persistEnabledSystemFonts = async (
+  nextEnabledFonts: EnabledSystemFont[],
+): Promise<ReaderConfig> => {
+  const rawConfig = await loadReaderConfigFromDisk().catch(() => null)
+  const systemFonts = await fetchSystemFonts().catch(() => [])
+  const currentConfig = normalizeReaderConfig(rawConfig, systemFonts)
+
+  currentConfig.enabledSystemFonts = nextEnabledFonts
+
+  if (currentConfig.font !== DEFAULT_READER_FONT) {
+    const matchedFont = getEnabledFontByValue(nextEnabledFonts, currentConfig.font)
+    if (!matchedFont) {
+      currentConfig.font = DEFAULT_READER_FONT
+    }
+  }
+
+  const syncedConfig = syncReaderConfigThemeColors(currentConfig)
+  await saveReaderConfigToDisk(syncedConfig)
+  await dispatchReaderStyleUpdate()
+  return syncedConfig
+}
+
+export const disableSystemFont = async (
+  fontToDisable: EnabledSystemFont,
+): Promise<ReaderConfig> => {
+  const rawConfig = await loadReaderConfigFromDisk().catch(() => null)
+  const systemFonts = await fetchSystemFonts().catch(() => [])
+  const currentConfig = normalizeReaderConfig(rawConfig, systemFonts)
+
+  const keyToDisable = getSystemFontEntryKey(fontToDisable)
+  const updatedEnabledFonts = currentConfig.enabledSystemFonts.filter(
+    (font) => getSystemFontEntryKey(font) !== keyToDisable,
+  )
+
+  return await persistEnabledSystemFonts(updatedEnabledFonts)
 }

@@ -24,7 +24,7 @@
   --el-color-warning: var(--warning);
   --el-color-danger: var(--danger);
   --el-color-info: var(--text-tertiary);
-  --el-mask-color: var(--surface-overlay);
+  --el-mask-color: var(--surface-mask, rgba(255, 255, 255, 0.85));
   --el-box-shadow-light: var(--shadow-sm);
   --el-box-shadow: var(--shadow-md);
   --el-border-radius-base: var(--radius-sm);
@@ -269,8 +269,8 @@
 }
 
 .el-loading-mask {
-  background: var(--surface-overlay-strong);
-  backdrop-filter: blur(10px);
+  background: var(--surface-mask, rgba(255, 255, 255, 0.85));
+  backdrop-filter: var(--surface-mask-blur, blur(4px));
 }
 
 .el-message-box__header,
@@ -285,6 +285,11 @@
 
 .el-scrollbar__thumb {
   background-color: var(--scrollbar-thumb);
+}
+
+// —— 消息通知 ——
+.el-message {
+  z-index: 5000 !important;
 }
 
 // —— 消息通知（ElMessage - main-task-message）——

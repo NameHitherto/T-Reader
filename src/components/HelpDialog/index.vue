@@ -38,39 +38,6 @@
             <img :src="styleDemoImg" alt="样式设置演示" />
           </div>
         </div>
-
-        <div class="help-enabled-fonts section">
-          <div class="title">已启用的系统字体</div>
-          <div class="font-panel">
-            <div class="font-panel-head">
-              <div class="font-panel-copy">
-                <div class="font-panel-subtitle">当前可在样式菜单中选择的系统字体</div>
-                <div class="font-panel-description">没有启用时，阅读器只会使用系统默认 Serif。</div>
-              </div>
-              <el-button class="font-panel-button" @click="$emit('open-system-font-dialog')">
-                自定义系统字体
-              </el-button>
-            </div>
-
-            <div v-if="enabledSystemFonts.length > 0" class="font-card-list">
-              <div
-                v-for="font in enabledSystemFonts"
-                :key="getSystemFontEntryKey(font)"
-                class="font-card"
-              >
-                <div class="font-card-name">{{ font.displayFamily }}</div>
-                <div class="font-card-meta">
-                  {{ font.fullName || font.subfamily || 'Regular' }}
-                  <template v-if="!font.fullName && font.weight"> / {{ font.weight }}</template>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="font-empty-state">
-              当前仅启用系统默认 Serif，尚未选择额外系统字体。
-            </div>
-          </div>
-        </div>
       </el-scrollbar>
     </div>
   </el-dialog>
@@ -78,16 +45,11 @@
 
 <script lang="ts">
 import { computed, defineComponent } from 'vue'
-import { useReaderConfig } from '@/services/reader/config'
-import { getSystemFontEntryKey } from '@/services/reader/systemFonts'
 import styleDemoImg from '@/assets/images/style_demo.png'
 
 export default defineComponent({
   name: 'HelpDialog',
-  emits: ['open-system-font-dialog'],
   setup() {
-    const readerConfigStore = useReaderConfig()
-    const { readerConfig } = readerConfigStore
     const shortcuts = [
       { description: '上一页', key: ['↑'] },
       { description: '上一页', key: ['←'] },
@@ -114,8 +76,6 @@ export default defineComponent({
     return {
       groupedShortcuts,
       styleDemoImg,
-      enabledSystemFonts: computed(() => readerConfig.value.enabledSystemFonts),
-      getSystemFontEntryKey,
     }
   },
 })
@@ -231,92 +191,6 @@ export default defineComponent({
         img {
           width: 100%;
           border-radius: var(--radius-sm);
-        }
-      }
-    }
-
-    .help-enabled-fonts {
-      .font-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        padding: 16px;
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-default);
-        background: var(--surface-card);
-        box-shadow: var(--shadow-md);
-      }
-
-      .font-panel-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: flex-start;
-      }
-
-      .font-panel-subtitle {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-
-      .font-panel-description {
-        margin-top: 6px;
-        font-size: 13px;
-        line-height: 1.7;
-        color: var(--text-tertiary);
-      }
-
-      :deep(.font-panel-button.el-button) {
-        flex-shrink: 0;
-        min-width: 140px;
-      }
-
-      .font-card-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-
-      .font-card {
-        min-width: 150px;
-        padding: 14px 16px;
-        border-radius: var(--radius-md);
-        background: var(--surface-strong);
-        border: 1px solid var(--border-default);
-        box-shadow: var(--shadow-sm);
-      }
-
-      .font-card-name {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-
-      .font-card-meta {
-        margin-top: 6px;
-        font-size: 12px;
-        color: var(--text-tertiary);
-      }
-
-      .font-empty-state {
-        padding: 18px;
-        border-radius: var(--radius-md);
-        background: var(--surface-card-soft);
-        color: var(--text-tertiary);
-        font-size: 13px;
-        line-height: 1.7;
-      }
-    }
-  }
-}
-
-@media (max-width: 720px) {
-  .help-dialog-wrapper {
-    .help-dialog-view {
-      .help-enabled-fonts {
-        .font-panel-head {
-          flex-direction: column;
         }
       }
     }

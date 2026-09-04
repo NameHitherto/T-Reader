@@ -26,6 +26,8 @@
   --surface-overlay: rgba(17, 24, 39, 0.18);
   --surface-overlay-soft: rgba(17, 24, 39, 0.12);
   --surface-overlay-strong: rgba(17, 24, 39, 0.42);
+  --surface-mask: rgba(255, 255, 255, 0.85);
+  --surface-mask-blur: blur(4px);
   --surface-code: #f8fafc;
   --surface-code-inline: #f3f4f6;
   --surface-overlay-gradient: linear-gradient(
@@ -183,6 +185,8 @@
   --surface-overlay: rgba(10, 11, 14, 0.65);
   --surface-overlay-soft: rgba(10, 11, 14, 0.4);
   --surface-overlay-strong: rgba(10, 11, 14, 0.85);
+  --surface-mask: rgba(20, 21, 24, 0.85);
+  --surface-mask-blur: blur(4px);
   --surface-code: #141518;
   --surface-code-inline: #1b1d22;
   --surface-overlay-gradient: linear-gradient(

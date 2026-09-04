@@ -48,8 +48,7 @@
     @delete="(markId: string) => delBookMark(markId)"
   />
   <!-- 功能帮助 -->
-  <HelpDialog v-model="helpVisible" @open-system-font-dialog="handleOpenSystemFontDialogFromHelp" />
-  <SystemFontEnableDialog v-model="systemFontDialogVisible" />
+  <HelpDialog v-model="helpVisible" />
   <!-- AI绘画 -->
   <DrawDialog
     v-model="drawDialogVisible"
@@ -74,11 +73,7 @@
         class="style-menu-panel"
         :style="styleMenuPanelStyle"
       >
-        <StyleMenu
-          :max-height="styleMenuPosition.maxHeight"
-          :theme-mode="appThemeMode"
-          @open-font-dialog="handleOpenSystemFontDialog"
-        />
+        <StyleMenu :max-height="styleMenuPosition.maxHeight" :theme-mode="appThemeMode" />
       </div>
     </Transition>
   </Teleport>
@@ -117,7 +112,6 @@ import DrawDialog from './components/DrawDialog/index.vue'
 import ChatDialog from './components/ChatDialog/index.vue'
 import GenerationStatusBar from './components/DrawDialog/GenerationStatusBar.vue'
 import StyleMenu from './components/StyleMenu/index.vue'
-import SystemFontEnableDialog from './components/SystemFontEnableDialog/index.vue'
 import TocMenu from './components/TocMenu/index.vue'
 import SearchDialog from './components/SearchDialog/index.vue'
 import { BookConfig } from '@/services/book/types'
@@ -949,7 +943,6 @@ watch(searchVisible, (visible) => {
 // 弹窗状态
 // ============================================================
 const helpVisible = ref(false)
-const systemFontDialogVisible = ref(false)
 const drawDialogVisible = ref(false)
 const drawDialogPrompt = ref('')
 const chatDialogVisible = ref(false)
@@ -972,16 +965,6 @@ function handleReaderDomToggleChatDialog() {
   chatDialogVisible.value = !chatDialogVisible.value
 }
 
-function handleOpenSystemFontDialog() {
-  closeStyleMenu()
-  systemFontDialogVisible.value = true
-}
-
-function handleOpenSystemFontDialogFromHelp() {
-  helpVisible.value = false
-  systemFontDialogVisible.value = true
-}
-
 // ============================================================
 // 弹窗打开状态聚合（用于临时禁用阅读器快捷键）
 // ============================================================
@@ -992,7 +975,6 @@ const anyReaderOverlayOpen = computed(
     showContextMenu.value ||
     bookMarkEditionVisible.value ||
     helpVisible.value ||
-    systemFontDialogVisible.value ||
     drawDialogVisible.value ||
     chatDialogVisible.value ||
     styleMenuVisible.value ||
@@ -1010,7 +992,6 @@ const readerOverlayRefs: Array<Ref<boolean>> = [
   showContextMenu,
   bookMarkEditionVisible,
   helpVisible,
-  systemFontDialogVisible,
   drawDialogVisible,
   chatDialogVisible,
   styleMenuVisible,

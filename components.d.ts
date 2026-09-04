@@ -25,6 +25,7 @@ declare module 'vue' {
     DrawDialog: typeof import('./src/components/DrawDialog/index.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
     ElCol: typeof import('element-plus/es')['ElCol']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
@@ -36,10 +37,7 @@ declare module 'vue' {
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElOption: typeof import('element-plus/es')['ElOption']
-    ElPopconfirm: typeof import('element-plus/es')['ElPopconfirm']
     ElProgress: typeof import('element-plus/es')['ElProgress']
-    ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
-    ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -50,6 +48,7 @@ declare module 'vue' {
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    ExtractBookFontDialog: typeof import('./src/components/ExtractBookFontDialog/index.vue')['default']
     GeneralSettings: typeof import('./src/components/SettingTabs/GeneralSettings.vue')['default']
     GenerationStatusBar: typeof import('./src/components/DrawDialog/GenerationStatusBar.vue')['default']
     HelpDialog: typeof import('./src/components/HelpDialog/index.vue')['default']
@@ -61,9 +60,12 @@ declare module 'vue' {
     SearchDialog: typeof import('./src/components/SearchDialog/index.vue')['default']
     ShelfMenu: typeof import('./src/components/ShelfMenu/index.vue')['default']
     StyleMenu: typeof import('./src/components/StyleMenu/index.vue')['default']
-    SystemFontEnableDialog: typeof import('./src/components/SystemFontEnableDialog/index.vue')['default']
+    SystemFontSelectDialog: typeof import('./src/components/SystemFontSelectDialog/index.vue')['default']
     TocMenu: typeof import('./src/components/TocMenu/index.vue')['default']
     TxtTocSettings: typeof import('./src/components/SettingTabs/TxtTocSettings.vue')['default']
     UpdateSettings: typeof import('./src/components/SettingTabs/UpdateSettings.vue')['default']
+  }
+  export interface GlobalDirectives {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

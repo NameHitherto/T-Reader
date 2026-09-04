@@ -31,7 +31,6 @@
       <div class="basic-option">
         <span class="option-title">字体</span>
         <el-select
-          ref="fontSelectRef"
           v-model="selectedFont"
           placeholder="系统默认字体"
           class="font-select"
@@ -44,15 +43,6 @@
             :label="font.label"
             :value="font.value"
           />
-          <template #footer>
-            <button
-              type="button"
-              class="font-select-footer"
-              @click="handleOpenFontDialogFromSelect"
-            >
-              选择系统字体
-            </button>
-          </template>
         </el-select>
       </div>
     </div>
@@ -170,15 +160,13 @@ export default defineComponent({
       default: 'light',
     },
   },
-  emits: ['open-font-dialog'],
-  setup(props, { emit }) {
+  setup(props) {
     type ReaderFlowToggleValue = 'paginated' | 'scrolled'
     const readerConfigStore = useReaderConfig()
     const { readerConfig } = readerConfigStore
 
     const menuElement = ref<HTMLElement | null>(null)
     const selectedFont = ref(readerConfig.value.font)
-    const fontSelectRef = ref<{ blur: () => void } | null>(null)
     const settings = ref<ReaderNumericSetting[]>([
       {
         label: '首行缩进',
@@ -417,16 +405,6 @@ export default defineComponent({
       emitStyleApplication()
     }
 
-    const openFontDialog = () => {
-      selectedFont.value = readerConfig.value.font
-      emit('open-font-dialog')
-    }
-
-    const handleOpenFontDialogFromSelect = () => {
-      fontSelectRef.value?.blur()
-      openFontDialog()
-    }
-
     watch(
       () => readerConfig.value.font,
       (font) => {
@@ -451,8 +429,6 @@ export default defineComponent({
       flow,
       flowOptions,
       fontOptions,
-      fontSelectRef,
-      handleOpenFontDialogFromSelect,
       menuElement,
       menuStyle,
       readerConfig,
@@ -632,28 +608,5 @@ label {
   white-space: nowrap;
   font-size: 13px;
   line-height: 1;
-}
-
-// 字体下拉框底部的“选择系统字体”入口
-:global(.style-menu-select-popper .el-select-dropdown__footer) {
-  border-top: 1px solid var(--border-soft);
-}
-
-:global(.style-menu-select-popper .font-select-footer) {
-  display: block;
-  width: 100%;
-  padding: 9px 16px;
-  border: none;
-  background: transparent;
-  color: var(--brand-primary);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  text-align: left;
-  cursor: pointer;
-}
-
-:global(.style-menu-select-popper .font-select-footer:hover) {
-  background: var(--surface-brand-soft);
 }
 </style>
