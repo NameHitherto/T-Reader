@@ -1,6 +1,9 @@
 export const DEFAULT_READER_FONT = 'serif'
 export const DEFAULT_READER_FONT_LABEL = '系统默认（Serif）'
 export const SYSTEM_FONT_PREVIEW_TEXT = 'Roxy ㄙㄞˋ ㄍㄠ！'
+export const BOOK_FONT_PREFIX = 'book-font:'
+
+export type ReaderFontType = 'default' | 'system' | 'book'
 
 export interface SystemFontEntry {
   family: string

@@ -1,7 +1,9 @@
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
 import { DEFAULT_READER_FONT, type EnabledSystemFont } from '@/services/reader/fontTypes'
-import { getReaderThemeCompatColors } from '@/services/theme'
+import { getReaderThemeCompatColors, syncReaderConfigThemeColors } from '@/services/theme'
+import type { AppThemeMode } from '@/services/settings'
+import { dispatchReaderStyleUpdate } from '@/services/ipc'
 import {
   createDefaultReaderBackgroundPresets,
   type ReaderBackgroundPresets,
@@ -69,14 +71,7 @@ export const useReaderConfig = () => ({
   setReaderConfig: (config: Partial<ReaderConfig>) => {
     readerConfig.value = { ...readerConfig.value, ...config }
   },
-  calculate: (key: keyof ReaderConfig, value: number) => {
-    const currentValue = readerConfig.value[key]
-    if (typeof currentValue !== 'number') return
-    ;(readerConfig.value[key] as number) = Number((currentValue + value).toFixed(2))
-  },
-  changeState: <K extends keyof ReaderConfig>(key: K, value: ReaderConfig[K]) => {
-    readerConfig.value[key] = value
-  },
+  updateConfig: updateReaderConfig,
 })
 
 export const loadReaderConfigFromDisk = async () => {
@@ -84,5 +79,39 @@ export const loadReaderConfigFromDisk = async () => {
 }
 
 export const saveReaderConfigToDisk = async (config: object) => {
-  await invoke('save_reader_config', { request: config })
+  return await invoke<ReaderConfig>('save_reader_config', { request: config })
 }
+
+let readerConfigTask: Promise<unknown> = Promise.resolve()
+
+// 配置刷新与用户修改共用队列，防止较早的数据库读取覆盖较新的修改。
+export const runReaderConfigTask = <T>(task: () => Promise<T>): Promise<T> => {
+  const result = readerConfigTask.then(task)
+  readerConfigTask = result.catch(() => undefined)
+  return result
+}
+
+export type ReaderConfigUpdate =
+  | Partial<ReaderConfig>
+  | ((current: ReaderConfig) => Partial<ReaderConfig> | null)
+
+// 所有用户样式修改都必须先写入数据库，成功后再同步内存并通知阅读窗口。
+export const updateReaderConfig = (update: ReaderConfigUpdate, themeMode?: AppThemeMode) =>
+  runReaderConfigTask(async () => {
+    const current = {
+      ...createDefaultReaderConfig(),
+      ...(await loadReaderConfigFromDisk()),
+    } as ReaderConfig
+    const patch = typeof update === 'function' ? update(current) : update
+    if (!patch) return current
+
+    const next = syncReaderConfigThemeColors({ ...current, ...patch }, themeMode)
+    const saved = await saveReaderConfigToDisk({
+      ...patch,
+      color: next.color,
+      fontColor: next.fontColor,
+    })
+    readerConfig.value = saved
+    await dispatchReaderStyleUpdate()
+    return saved
+  })

@@ -13,9 +13,15 @@ export {
   createDefaultReaderConfig,
   loadReaderConfigFromDisk,
   saveReaderConfigToDisk,
+  updateReaderConfig,
   useReaderConfig,
 } from './config'
-export type { EpubBuiltInStylesheetMode, ReaderConfig, ReaderFlowMode } from './config'
+export type {
+  EpubBuiltInStylesheetMode,
+  ReaderConfig,
+  ReaderConfigUpdate,
+  ReaderFlowMode,
+} from './config'
 export type {
   EpubBookLike,
   EpubContentsLike,
@@ -26,7 +32,26 @@ export type {
   EpubSectionLike,
   EpubTocItem,
 } from './epubTypes'
-export type { EnabledSystemFont, SystemFontEntry } from './fontTypes'
+export type {
+  EnabledSystemFont,
+  LocalFontEntry,
+  ReaderFontType,
+  SystemFontEntry,
+} from './fontTypes'
+export { BOOK_FONT_PREFIX } from './fontTypes'
+export {
+  buildReaderBookFontOptions,
+  deleteLocalFont,
+  extractEpubFonts,
+  findLocalFontMatch,
+  formatBookFontLabel,
+  getBookFontValue,
+  getLocalFontUrl,
+  getLocalFonts,
+  isBookFontValue,
+  parseBookFontValue,
+  useLocalFonts,
+} from './localFonts'
 export type { BookMark } from './bookmarkState'
 export {
   DEFAULT_SEARCH_MAX_RESULTS,

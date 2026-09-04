@@ -153,7 +153,13 @@ import {
   loadEnabledSystemFonts,
   persistEnabledSystemFonts,
 } from '@/services/reader/systemFonts'
-import { deleteLocalFont, getLocalFonts, getLocalFontUrl } from '@/services/reader/localFonts'
+import {
+  deleteLocalFont,
+  refreshLocalFontCatalog,
+  getLocalFontUrl,
+  parseBookFontValue,
+} from '@/services/reader/localFonts'
+import { updateReaderConfig } from '@/services/reader/config'
 import {
   buildLocalSrcValue,
   escapeCssString,
@@ -303,7 +309,7 @@ const loadAllFonts = async () => {
   try {
     const [sysFonts, localResult] = await Promise.all([
       loadEnabledSystemFonts().catch(() => []),
-      getLocalFonts().catch(() => ({ fonts: [], warnings: [] })),
+      refreshLocalFontCatalog().catch(() => ({ fonts: [], warnings: [] })),
     ])
 
     enabledSystemFonts.value = sysFonts
@@ -346,6 +352,17 @@ const handleDeleteImportedFont = async (filename: string) => {
         offset: FONT_NOTIFICATION_OFFSET,
       })
     }
+
+    await updateReaderConfig((currentConfig) => {
+      const parsed = parseBookFontValue(currentConfig.font)
+      if (
+        (parsed && parsed.filename.toLowerCase() === filename.toLowerCase()) ||
+        currentConfig.font.toLowerCase() === filename.toLowerCase()
+      ) {
+        return { font: DEFAULT_READER_FONT }
+      }
+      return null
+    })
 
     await loadAllFonts()
   } catch (error) {

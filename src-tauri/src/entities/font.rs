@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FontNameEntry {
     pub family: String,
     pub display_family: String,
@@ -13,7 +13,7 @@ pub struct FontNameEntry {
     pub family_aliases: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LocalFontEntry {
     pub filename: String,
     #[serde(flatten)]

@@ -14,6 +14,7 @@ pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Sen
         crate::api::font::get_system_fonts,
         crate::api::font::extract_epub_fonts,
         crate::api::font::get_local_fonts,
+        crate::api::font::refresh_local_font_catalog,
         crate::api::font::delete_local_font,
         crate::api::updater::prepare_updater_proxy,
         crate::api::updater::check_app_update,

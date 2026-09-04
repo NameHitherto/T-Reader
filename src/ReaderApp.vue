@@ -138,9 +138,17 @@ import { useBookMarkState, BookMark } from './services/reader/bookmarkState'
 import { withReaderLoading } from '@/services/reader/loadingOverlay'
 import { applyReaderStyles, ReaderStyleConfig } from '@/services/reader/style'
 import { serializeReaderThemeCss } from '@/services/reader/epubStyle'
-import { loadReaderConfigFromDisk, saveReaderConfigToDisk } from '@/services/reader/config'
-import { fetchSystemFonts, normalizeReaderConfig } from '@/services/reader/systemFonts'
-import { buildReaderFontApplication } from '@/services/reader/fontApplication'
+import {
+  loadReaderConfigFromDisk,
+  runReaderConfigTask,
+  saveReaderConfigToDisk,
+} from '@/services/reader/config'
+import { normalizeReaderConfig } from '@/services/reader/systemFonts'
+import {
+  buildReaderFontApplication,
+  syncReaderSystemFontStyle,
+} from '@/services/reader/fontApplication'
+import { useLocalFonts } from '@/services/reader/localFonts'
 import { primeBookLocationsAfterImport } from '@/services/book/cache'
 import { getReadyBookLocations } from '@/services/book/locationsCache'
 import { normalizeDisplayedChapterTitle } from '@/services/book/presentation'
@@ -200,11 +208,25 @@ const { readerConfig } = readerConfigStore
 // ============================================================
 const appThemeMode = ref<AppThemeMode>(getAppliedAppThemeMode())
 
+const { localFonts, refreshLocalFonts } = useLocalFonts()
+
 const readerPalette = computed(() =>
   getReaderRuntimePalette(readerConfig.value, appThemeMode.value),
 )
 const readerFontApplication = computed(() =>
-  buildReaderFontApplication(readerConfig.value.font, readerConfig.value.enabledSystemFonts),
+  buildReaderFontApplication(
+    readerConfig.value.font,
+    readerConfig.value.enabledSystemFonts,
+    localFonts.value,
+  ),
+)
+
+watch(
+  readerFontApplication,
+  (app) => {
+    syncReaderSystemFontStyle(app)
+  },
+  { immediate: true },
 )
 const readerDefaultTheme = computed(() => {
   const columnStyle: Record<string, string> = {}
@@ -300,33 +322,26 @@ async function applyReaderStyle(applyIframeStyle = true) {
 // 阅读配置持久化
 // ============================================================
 async function loadReaderConfig() {
-  try {
-    const [configTemp, systemFonts] = await Promise.all([
-      loadReaderConfigFromDisk(),
-      fetchSystemFonts().catch((error) => {
-        logWarn('reader', 'load-system-fonts-failed skip-migration', error)
-        return []
-      }),
-    ])
+  return runReaderConfigTask(async () => {
+    try {
+      const [configTemp, fetchedLocalFonts] = await Promise.all([
+        loadReaderConfigFromDisk(),
+        refreshLocalFonts().catch((error) => {
+          logWarn('reader', 'load-local-fonts-failed', error)
+          return []
+        }),
+      ])
 
-    const normalizedConfig = normalizeReaderConfig(configTemp, systemFonts)
-    const themedConfig = syncReaderConfigThemeColors(normalizedConfig, appThemeMode.value)
-    readerConfigStore.setReaderConfig(themedConfig)
-
-    if (JSON.stringify(configTemp) !== JSON.stringify(themedConfig)) {
-      await saveReaderConfigToDisk(themedConfig)
+      const normalizedConfig = normalizeReaderConfig(configTemp, [], fetchedLocalFonts)
+      const themedConfig = syncReaderConfigThemeColors(normalizedConfig, appThemeMode.value)
+      if (JSON.stringify(configTemp) !== JSON.stringify(themedConfig)) {
+        await saveReaderConfigToDisk(themedConfig)
+      }
+      readerConfigStore.setReaderConfig(themedConfig)
+    } catch {
+      logWarn('reader', 'load-reader-config-failed keep-current')
     }
-  } catch {
-    readerConfigStore.setDefaultConfig()
-    readerConfigStore.setReaderConfig(
-      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
-    )
-    logWarn('reader', 'load-reader-config-failed use-default')
-  }
-}
-
-async function saveReaderConfig() {
-  await saveReaderConfigToDisk(syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value))
+  })
 }
 
 // ============================================================
@@ -1026,9 +1041,7 @@ const saveReaderSession = async () => {
   await saveReaderRendition().catch(() => {
     logError('reader', 'close-save-progress-failed')
   })
-  await saveReaderConfig().catch(() => {
-    logError('reader', 'close-save-config-failed')
-  })
+  await runReaderConfigTask(async () => undefined)
 }
 
 let readerLifecycleQueue: Promise<void> = Promise.resolve()
@@ -1099,9 +1112,7 @@ registerReaderWindowEvents({
     await applyReaderStyle()
   },
   onUpdateReaderStyle: async () => {
-    readerConfigStore.setReaderConfig(
-      syncReaderConfigThemeColors(readerConfig.value, appThemeMode.value),
-    )
+    await loadReaderConfig()
     await applyReaderStyle()
   },
   onWindowHide: () =>

@@ -4,6 +4,7 @@ pub mod font_metadata;
 pub mod gallery;
 pub mod knowledge_base;
 pub mod local_fs;
+pub mod local_fonts;
 pub mod notes;
 pub mod settings;
 pub mod system;

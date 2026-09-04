@@ -35,7 +35,7 @@ pub fn extract_epub_fonts(filename: &str) -> Result<Vec<ExtractedFontResult>, St
     extract_epub_fonts_at(&get_local_root_dir()?, filename, LIMITS)
 }
 
-pub fn get_local_fonts() -> Result<LocalFontsResult, String> {
+pub fn scan_local_fonts() -> Result<LocalFontsResult, String> {
     let directory = fonts::prepare_fonts_dir(&get_local_root_dir()?)?;
     fonts::scan_fonts(&directory)
 }

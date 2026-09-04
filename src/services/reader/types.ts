@@ -1,6 +1,10 @@
 import type { BookConfig, BookFormat } from '@/services/book/types'
 import type { ReaderBackgroundPresets } from '@/services/theme/backgroundTypes'
-import type { EnabledSystemFont, SystemFontEntry } from '@/services/reader/fontTypes'
+import type {
+  EnabledSystemFont,
+  ReaderFontType,
+  SystemFontEntry,
+} from '@/services/reader/fontTypes'
 import type { BookLocationsCachePayload } from '@/services/book/types'
 
 export interface ReaderLoadResult {
@@ -42,6 +46,8 @@ export interface ReaderFontOption {
   family: string
   subfamily: string | null
   isDefault: boolean
+  type?: ReaderFontType
+  filename?: string
 }
 
 export interface SystemFontFamilyGroup {

@@ -1,20 +1,20 @@
 import { invoke } from '@tauri-apps/api/core'
 import {
   loadReaderConfigFromDisk,
-  saveReaderConfigToDisk,
+  updateReaderConfig,
   type EpubBuiltInStylesheetMode,
   type ReaderConfig,
 } from '@/services/reader/config'
-import type { EnabledSystemFont, SystemFontEntry } from '@/services/reader/fontTypes'
+import type {
+  EnabledSystemFont,
+  LocalFontEntry,
+  SystemFontEntry,
+} from '@/services/reader/fontTypes'
 import { DEFAULT_READER_FONT, DEFAULT_READER_FONT_LABEL } from '@/services/reader/fontTypes'
-import {
-  getReaderThemeCompatColors,
-  normalizeReaderBackgroundPresets,
-  syncReaderConfigThemeColors,
-} from '@/services/theme'
+import { findLocalFontMatch, getBookFontValue, isBookFontValue } from '@/services/reader/localFonts'
+import { getReaderThemeCompatColors, normalizeReaderBackgroundPresets } from '@/services/theme'
 import { createDefaultReaderBackgroundPresets } from '@/services/theme/backgroundTypes'
 import type { ReaderFontOption, SystemFontFamilyGroup } from '@/services/reader/types'
-import { dispatchReaderStyleUpdate } from '@/services/ipc'
 
 export type { ReaderFontOption, SystemFontFamilyGroup }
 
@@ -398,6 +398,7 @@ export const getEnabledFontByValue = (enabledFonts: EnabledSystemFont[], fontVal
 export const normalizeReaderConfig = (
   config: Partial<ReaderConfig> | null | undefined,
   systemFonts: SystemFontEntry[],
+  localFonts: LocalFontEntry[] = [],
 ): ReaderConfig => {
   const backgroundPresets = normalizeReaderBackgroundPresets(config?.backgroundPresets)
   const baseConfig: ReaderConfig = {
@@ -444,28 +445,38 @@ export const normalizeReaderConfig = (
     systemFonts,
   )
 
-  const matchedEnabledFont =
-    mergedConfig.font === DEFAULT_READER_FONT
-      ? null
-      : getEnabledFontByValue(enabledSystemFonts, mergedConfig.font)
+  let resolvedFont = DEFAULT_READER_FONT
+
+  if (mergedConfig.font && mergedConfig.font !== DEFAULT_READER_FONT) {
+    // 内置字体仅通过来源标识或旧文件名匹配。
+    const matchedBookFont = findLocalFontMatch(mergedConfig.font, localFonts)
+    if (matchedBookFont) {
+      resolvedFont = getBookFontValue(matchedBookFont)
+    } else if (isBookFontValue(mergedConfig.font)) {
+      // 若 localFonts 尚未载入（如孤立配置调用），保持原有标识不误退化
+      if (localFonts.length === 0) {
+        resolvedFont = mergedConfig.font
+      }
+    } else {
+      // 2. 匹配已启用的系统字体
+      const matchedEnabledFont = getEnabledFontByValue(enabledSystemFonts, mergedConfig.font)
+      if (matchedEnabledFont) {
+        resolvedFont = getReaderFontValue(matchedEnabledFont)
+      }
+    }
+  }
 
   return {
     ...mergedConfig,
     backgroundPresets,
-    font:
-      mergedConfig.font === DEFAULT_READER_FONT
-        ? DEFAULT_READER_FONT
-        : matchedEnabledFont
-          ? getReaderFontValue(matchedEnabledFont)
-          : DEFAULT_READER_FONT,
+    font: resolvedFont,
     enabledSystemFonts,
   }
 }
 
 export const loadEnabledSystemFonts = async (): Promise<EnabledSystemFont[]> => {
   const rawConfig = await loadReaderConfigFromDisk().catch(() => null)
-  const systemFonts = await fetchSystemFonts().catch(() => [])
-  const currentConfig = normalizeReaderConfig(rawConfig, systemFonts)
+  const currentConfig = normalizeReaderConfig(rawConfig, [])
 
   return currentConfig.enabledSystemFonts
 }
@@ -473,31 +484,26 @@ export const loadEnabledSystemFonts = async (): Promise<EnabledSystemFont[]> => 
 export const persistEnabledSystemFonts = async (
   nextEnabledFonts: EnabledSystemFont[],
 ): Promise<ReaderConfig> => {
-  const rawConfig = await loadReaderConfigFromDisk().catch(() => null)
-  const systemFonts = await fetchSystemFonts().catch(() => [])
-  const currentConfig = normalizeReaderConfig(rawConfig, systemFonts)
+  return updateReaderConfig((current) => {
+    const currentConfig = normalizeReaderConfig(current, [])
+    currentConfig.enabledSystemFonts = nextEnabledFonts
 
-  currentConfig.enabledSystemFonts = nextEnabledFonts
-
-  if (currentConfig.font !== DEFAULT_READER_FONT) {
-    const matchedFont = getEnabledFontByValue(nextEnabledFonts, currentConfig.font)
-    if (!matchedFont) {
-      currentConfig.font = DEFAULT_READER_FONT
+    // 系统字体列表的变更不影响已选择的书籍字体。
+    if (currentConfig.font !== DEFAULT_READER_FONT && !isBookFontValue(currentConfig.font)) {
+      const matchedFont = getEnabledFontByValue(nextEnabledFonts, currentConfig.font)
+      if (!matchedFont) {
+        currentConfig.font = DEFAULT_READER_FONT
+      }
     }
-  }
-
-  const syncedConfig = syncReaderConfigThemeColors(currentConfig)
-  await saveReaderConfigToDisk(syncedConfig)
-  await dispatchReaderStyleUpdate()
-  return syncedConfig
+    return { enabledSystemFonts: nextEnabledFonts, font: currentConfig.font }
+  })
 }
 
 export const disableSystemFont = async (
   fontToDisable: EnabledSystemFont,
 ): Promise<ReaderConfig> => {
   const rawConfig = await loadReaderConfigFromDisk().catch(() => null)
-  const systemFonts = await fetchSystemFonts().catch(() => [])
-  const currentConfig = normalizeReaderConfig(rawConfig, systemFonts)
+  const currentConfig = normalizeReaderConfig(rawConfig, [])
 
   const keyToDisable = getSystemFontEntryKey(fontToDisable)
   const updatedEnabledFonts = currentConfig.enabledSystemFonts.filter(

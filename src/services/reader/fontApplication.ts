@@ -1,11 +1,18 @@
-import { DEFAULT_READER_FONT, type EnabledSystemFont } from '@/services/reader/fontTypes'
+import {
+  DEFAULT_READER_FONT,
+  type EnabledSystemFont,
+  type LocalFontEntry,
+  type ReaderFontType,
+} from '@/services/reader/fontTypes'
 import { getEnabledFontByValue } from '@/services/reader/systemFonts'
+import { findLocalFontMatch, getLocalFontUrl, isBookFontValue } from '@/services/reader/localFonts'
 
 export const ACTIVE_READER_FONT_FAMILY = 'TReaderActiveFont'
 export const READER_SYSTEM_FONT_STYLE_ID = 'reader-system-font-style'
 
 export interface ReaderFontApplication {
-  resolvedFont: EnabledSystemFont | null
+  resolvedFont: EnabledSystemFont | LocalFontEntry | null
+  fontType: ReaderFontType
   fontFamilyCss: string
   fontFaceThemeBlock: Record<string, string> | null
   fontFaceRule: string | null
@@ -59,13 +66,15 @@ export const getReaderLocalFontCandidates = (
 export const buildReaderFontApplication = (
   fontValue: string,
   enabledFonts: EnabledSystemFont[],
+  localFonts: LocalFontEntry[] = [],
 ): ReaderFontApplication => {
-  const normalizedValue = fontValue.trim().toLowerCase()
-  const isDefaultFont = normalizedValue === DEFAULT_READER_FONT
+  const normalizedValue = (fontValue || '').trim().toLowerCase()
+  const isDefaultFont = !normalizedValue || normalizedValue === DEFAULT_READER_FONT
 
   if (isDefaultFont) {
     return {
       resolvedFont: null,
+      fontType: 'default',
       fontFamilyCss: DEFAULT_READER_FONT,
       fontFaceThemeBlock: null,
       fontFaceRule: null,
@@ -73,12 +82,36 @@ export const buildReaderFontApplication = (
     }
   }
 
+  // 内置字体只匹配来源标识或旧文件名，不按系统字体名称匹配。
+  const matchedLocalFont = findLocalFontMatch(fontValue, localFonts)
+  if (matchedLocalFont) {
+    const fontUrl = getLocalFontUrl(matchedLocalFont)
+    const src = `url("${escapeCssString(fontUrl)}")`
+
+    return {
+      resolvedFont: matchedLocalFont,
+      fontType: 'book',
+      fontFamilyCss: `"${ACTIVE_READER_FONT_FAMILY}", ${DEFAULT_READER_FONT}`,
+      fontFaceThemeBlock: {
+        'font-family': ACTIVE_READER_FONT_FAMILY,
+        src,
+        'font-display': 'swap',
+      },
+      fontFaceRule: `@font-face { font-family: "${ACTIVE_READER_FONT_FAMILY}"; src: ${src}; font-display: swap; }`,
+      localSources: [fontUrl],
+    }
+  }
+
+  // 2. 匹配已启用的系统字体
   const resolvedFont = getEnabledFontByValue(enabledFonts, fontValue)
-  const localSources = getReaderLocalFontCandidates(resolvedFont, fontValue)
+  const localSources = isBookFontValue(fontValue)
+    ? []
+    : getReaderLocalFontCandidates(resolvedFont, fontValue)
 
   if (localSources.length === 0) {
     return {
       resolvedFont: resolvedFont || null,
+      fontType: 'default',
       fontFamilyCss: DEFAULT_READER_FONT,
       fontFaceThemeBlock: null,
       fontFaceRule: null,
@@ -90,6 +123,7 @@ export const buildReaderFontApplication = (
 
   return {
     resolvedFont: resolvedFont || null,
+    fontType: 'system',
     fontFamilyCss: `"${ACTIVE_READER_FONT_FAMILY}", ${DEFAULT_READER_FONT}`,
     fontFaceThemeBlock: {
       'font-family': ACTIVE_READER_FONT_FAMILY,

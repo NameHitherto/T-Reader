@@ -37,12 +37,30 @@
           popper-class="style-menu-select-popper"
           @change="selectFont"
         >
-          <el-option
-            v-for="font in fontOptions"
-            :key="font.value"
-            :label="font.label"
-            :value="font.value"
-          />
+          <el-option-group label="系统字体" class="font-select-group">
+            <el-option
+              v-for="font in systemFontOptions"
+              :key="font.value"
+              :label="font.label"
+              :value="font.value"
+            />
+          </el-option-group>
+
+          <el-option-group label="书籍内置字体" class="font-select-group font-select-group--book">
+            <el-option
+              v-if="bookFontOptions.length === 0"
+              disabled
+              label="暂无书籍内置字体"
+              value="__empty_book_fonts__"
+            />
+            <el-option
+              v-for="font in bookFontOptions"
+              v-else
+              :key="font.value"
+              :label="font.label"
+              :value="font.value"
+            />
+          </el-option-group>
         </el-select>
       </div>
     </div>
@@ -106,22 +124,26 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, watch, type PropType } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch, type PropType } from 'vue'
 import { confirm } from '@tauri-apps/plugin-dialog'
-import { useReaderConfig, type EpubBuiltInStylesheetMode } from '@/services/reader/config'
+import { ElMessage } from 'element-plus'
+import {
+  createDefaultReaderConfig,
+  useReaderConfig,
+  type EpubBuiltInStylesheetMode,
+  type ReaderConfigUpdate,
+} from '@/services/reader/config'
 import { buildReaderFontOptions } from '@/services/reader/systemFonts'
-import { dispatchReaderStyleUpdate } from '@/services/ipc'
+import { buildReaderBookFontOptions, useLocalFonts } from '@/services/reader/localFonts'
 import { DEFAULT_READER_FONT } from '@/services/reader/fontTypes'
 import {
   getAppliedAppThemeMode,
   getReaderBackgroundPresetOptions,
-  syncReaderConfigThemeColors,
   type ReaderBackgroundPresetOption,
 } from '@/services/theme'
 import type { AppThemeMode } from '@/services/settings'
 import type {
   ReaderBackgroundPreset,
-  ReaderBackgroundPresets,
   ReaderDarkBackgroundPreset,
   ReaderLightBackgroundPreset,
 } from '@/services/theme/backgroundTypes'
@@ -164,6 +186,11 @@ export default defineComponent({
     type ReaderFlowToggleValue = 'paginated' | 'scrolled'
     const readerConfigStore = useReaderConfig()
     const { readerConfig } = readerConfigStore
+    const { localFonts, refreshLocalFonts } = useLocalFonts()
+
+    onMounted(() => {
+      void refreshLocalFonts()
+    })
 
     const menuElement = ref<HTMLElement | null>(null)
     const selectedFont = ref(readerConfig.value.font)
@@ -280,9 +307,11 @@ export default defineComponent({
     const epubBuiltInStylesheetMode = ref<EpubBuiltInStylesheetMode>(
       readerConfig.value.epubBuiltInStylesheetMode,
     )
-    const fontOptions = computed(() =>
+    const systemFontOptions = computed(() =>
       buildReaderFontOptions(readerConfig.value.enabledSystemFonts),
     )
+    const bookFontOptions = computed(() => buildReaderBookFontOptions(localFonts.value))
+    const allFontOptions = computed(() => [...systemFontOptions.value, ...bookFontOptions.value])
     const backgroundPresetOptions = computed(() => {
       return getReaderBackgroundPresetOptions(currentThemeMode.value)
     })
@@ -328,30 +357,14 @@ export default defineComponent({
       epubBuiltInStylesheetMode.value = readerConfig.value.epubBuiltInStylesheetMode
     }
 
-    const emitStyleApplication = () => {
-      void dispatchReaderStyleUpdate()
-    }
-
-    const buildBackgroundPresetsForCurrentTheme = (
-      preset: ReaderBackgroundPreset,
-    ): ReaderBackgroundPresets => {
-      if (currentThemeMode.value === 'dark') {
-        return {
-          ...readerConfig.value.backgroundPresets,
-          dark: preset as ReaderDarkBackgroundPreset,
-        }
+    const saveStyle = async (update: ReaderConfigUpdate) => {
+      try {
+        await readerConfigStore.updateConfig(update, currentThemeMode.value)
+      } catch (error) {
+        ElMessage.error(`阅读样式同步失败，请重试：${String(error)}`)
+      } finally {
+        updateVisual()
       }
-
-      return {
-        ...readerConfig.value.backgroundPresets,
-        light: preset as ReaderLightBackgroundPreset,
-      }
-    }
-
-    const syncCurrentThemeCompatColors = () => {
-      readerConfigStore.setReaderConfig(
-        syncReaderConfigThemeColors(readerConfig.value, currentThemeMode.value),
-      )
     }
 
     const resetStyle = async () => {
@@ -360,75 +373,58 @@ export default defineComponent({
         kind: 'warning',
       })
       if (confirmation) {
-        const nextBackgroundPresets = buildBackgroundPresetsForCurrentTheme('default')
-        readerConfigStore.setDefaultConfig()
-        readerConfigStore.changeState('backgroundPresets', nextBackgroundPresets)
-        selectedFont.value = DEFAULT_READER_FONT
-        syncCurrentThemeCompatColors()
-        emitStyleApplication()
-        updateVisual()
+        const mode = currentThemeMode.value
+        await saveStyle((current) => ({
+          ...createDefaultReaderConfig(),
+          backgroundPresets: { ...current.backgroundPresets, [mode]: 'default' },
+        }))
       }
     }
 
     const selectBackgroundPreset = (preset: ReaderBackgroundPreset) => {
-      readerConfigStore.changeState(
-        'backgroundPresets',
-        buildBackgroundPresetsForCurrentTheme(preset),
-      )
-      syncCurrentThemeCompatColors()
-      emitStyleApplication()
+      const mode = currentThemeMode.value
+
+      return saveStyle((current) => ({
+        backgroundPresets:
+          mode === 'dark'
+            ? { ...current.backgroundPresets, dark: preset as ReaderDarkBackgroundPreset }
+            : { ...current.backgroundPresets, light: preset as ReaderLightBackgroundPreset },
+      }))
     }
 
     const selectFont = (font: string) => {
-      const fontExists = fontOptions.value.some((option) => option.value === font)
+      const fontExists = allFontOptions.value.some((option) => option.value === font)
       const nextFont = fontExists ? font : DEFAULT_READER_FONT
-      selectedFont.value = nextFont
-      readerConfigStore.changeState('font', nextFont)
-      emitStyleApplication()
-      updateVisual()
+
+      return saveStyle({ font: nextFont })
     }
 
     const switchFlow = (value?: ReaderFlowToggleValue) => {
       const nextFlow = normalizeFlowToggleValue(value || flow.value)
-      flow.value = nextFlow
-      readerConfigStore.changeState('flow', nextFlow)
-      emitStyleApplication()
+
+      return saveStyle({ flow: nextFlow })
     }
 
     const switchEpubBuiltInStylesheetMode = (value: EpubBuiltInStylesheetMode) => {
-      epubBuiltInStylesheetMode.value = value
-      readerConfigStore.changeState('epubBuiltInStylesheetMode', value)
+      return saveStyle({ epubBuiltInStylesheetMode: value })
     }
 
     const adjustSetting = (key: NumericSettingKey, value: number) => {
-      readerConfigStore.changeState(key, value)
-      emitStyleApplication()
+      return saveStyle({ [key]: value })
     }
 
-    watch(
-      () => readerConfig.value.font,
-      (font) => {
-        selectedFont.value = font
-      },
-    )
-
-    watch(
-      () => readerConfig.value.epubBuiltInStylesheetMode,
-      (mode) => {
-        epubBuiltInStylesheetMode.value = mode
-      },
-    )
+    watch(readerConfig, updateVisual, { deep: true })
 
     return {
       activeBackgroundPreset,
       adjustSetting,
       backgroundPresetOptions,
+      bookFontOptions,
       buildPreviewStyle,
       epubBuiltInStylesheetMode,
       epubBuiltInStylesheetOptions,
       flow,
       flowOptions,
-      fontOptions,
       menuElement,
       menuStyle,
       readerConfig,
@@ -439,6 +435,7 @@ export default defineComponent({
       settings,
       switchEpubBuiltInStylesheetMode,
       switchFlow,
+      systemFontOptions,
     }
   },
 })
@@ -608,5 +605,25 @@ label {
   white-space: nowrap;
   font-size: 13px;
   line-height: 1;
+}
+
+// 字体下拉框分组与分割线
+:global(.style-menu-select-popper .el-select-group__wrap) {
+  padding-bottom: 4px;
+}
+
+:global(.style-menu-select-popper .el-select-group__wrap:not(:first-child)) {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-soft);
+}
+
+:global(.style-menu-select-popper .el-select-group__title) {
+  padding: 4px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 22px;
+  user-select: none;
 }
 </style>
